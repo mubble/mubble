@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "module"                  : "commonjs",
+    "target"                  : "es2015",
+    "noImplicitAny"           : true,
+    "sourceMap"               : true,
+    "outDir"                  : "lib",
+    "declaration"             : true,
+    "emitDecoratorMetadata"   : true,
+    "experimentalDecorators"  : true,
+    "strictNullChecks"        : true
+  },
+  "include": [
+      "src/**/*"
+  ],
+  "exclude": [
+      "node_modules",
+      "**/*.spec.ts"
+  ],
+  "typeAcquisition": {
+    "enable": true,
+    "include": ["../core"]
+  }
+}
