@@ -1,0 +1,4 @@
+.vscode
+.npmignore
+src
+tsconfig.json

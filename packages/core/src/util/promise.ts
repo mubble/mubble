@@ -13,12 +13,11 @@ export function getFn(fn: any, context: any): (...arParam: any[]) => Promise<any
 
   return function(...arParam: any[]): Promise<any> {
     
-    return new Promise( function(resolve, reject) {
+    return new Promise( function(resolve : any, reject : any) {
       
-      function cb() {
+      function cb(...arCbParam: any[]) {
         
-        const arCbParam = [...arguments],
-              err       = arCbParam.shift()
+        const err = arCbParam.shift()
             
         if (err) return reject(err)
         resolve.apply(null, arCbParam)

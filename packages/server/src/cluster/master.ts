@@ -17,17 +17,36 @@ import * as fs            from 'fs'
 import * as childProcess  from 'child_process'
 
 // Import from external modules with types
-import * as _             from 'lodash'
+import * as lo            from 'lodash'
 
 // Import from external modules without types
 const posix:any = require('posix') // https://github.com/ohmu/node-posix
 
 // Internal imports
-import {Validator}  from '@mubble/core'
-import * as ipc     from './ipc-message'
-import {CONFIG}     from './config'
+import {Validator}        from '@mubble/core'
+import * as ipc           from './ipc-message'
+import {CONFIG}           from './config'
+import {clusterWorker}    from './worker'
 
-const RUN_MODE = {DEV: 'DEV', PROD: 'PROD'}
+import {RunContext, RUN_MODE} from '../util/run-context'
+
+/**
+ * This is the first API called. It start the platform with given configuration
+ * @param minNodeVersion    Verify the node version before running
+ * @param config            Configuration for the platform
+ */
+
+export async function startCluster( rc      : RunContext,
+                                    config  : CONFIG) : Promise<boolean> {
+
+  if (cluster.isMaster) {
+    await clusterMaster.start(rc, config)
+  } else {
+    await clusterWorker.start(rc, config)
+  }
+  return cluster.isMaster
+}
+
 
 interface UserInfo {
   uid: number
@@ -47,46 +66,40 @@ export class ClusterMaster {
     if (clusterMaster) throw('ClusterMaster is singleton. It cannot be instantiated again')
   }
   
-  async start(config: CONFIG) {
+  async start(rc : RunContext, config: CONFIG) {
 
     if (!cluster.isMaster) {
       throw('ClusterMaster cannot be started in the cluster.worker process')
     }
 
     this.config = config
-    this.validateConfig()
+    rc.isDebug() && rc.debug(this.constructor.name, 'Starting cluster master with config', config)
+
+    this.validateConfig(rc)
 
     // Set this process title to same as server name
     process.title  = this.config.SERVER_NAME
 
     // check if server is already running
-    await this.checkRunning()
+    await this.checkRunning(rc)
 
     // We capture the events at the master level, although we can also do it at the worker
     // level, this is to avoid receiving the events from the workers that have been removed 
     // from the workers array
-    cluster.on('exit',    this.eventWorkerExit.bind(this))
-    cluster.on('online',  this.eventWorkerOnline.bind(this))
-    cluster.on('message', this.eventWorkerMessage.bind(this))
+    RunContext.on('ExitMsg',    cluster, 'exit',    this.eventWorkerExit.bind(this))
+    RunContext.on('OnlMsg',     cluster, 'online',  this.eventWorkerOnline.bind(this))
+    RunContext.on('ClusterMsg', cluster, 'message', this.eventWorkerMessage.bind(this))
 
     // start Workers
-    this.startWorkers()
-
-    // wait forever as cluster master never returns
-    await new Promise((resolve, reject) => {
-    })
+    this.startWorkers(rc)
   }
 
-  validateConfig(): void {
+  validateConfig(rc : RunContext): void {
 
     const conf = this.config
 
     if (!Validator.isValidName(conf.SERVER_NAME)) {
       throw('Invalid server name: ' + conf.SERVER_NAME)
-    }
-
-    if (!(conf.RUN_MODE in RUN_MODE)) {
-      throw('Invalid run mode: ' + conf.RUN_MODE)
     }
 
     if (!Validator.isValidName(conf.RUN_AS)) {
@@ -98,7 +111,7 @@ export class ClusterMaster {
         throw('library bug: posix.getpwnam did not return user info')
       }
     } catch(e) {
-      console.error('posix.getpwnam', e)
+      rc.isError() && rc.error(this.constructor.name, 'posix.getpwnam', e)
       throw('Could not find the RUN_AS user name on system: ' + conf.RUN_AS)
     }
 
@@ -111,7 +124,7 @@ export class ClusterMaster {
     }
   }
 
-  async checkRunning () {
+  async checkRunning (rc : RunContext) {
 
     const serverName  = this.config.SERVER_NAME,
           fileName    = crypto.createHash('md5').update(serverName).digest('hex') + '_' + serverName,
@@ -126,7 +139,7 @@ export class ClusterMaster {
       if (e.code === 'ENOENT') {
         return this.createLockFile(fullPath)
       } else {
-        console.log(e)
+        rc.isError() && rc.error(this.constructor.name, e)
         throw('checkRunning failed while fs.statSync on ' + fullPath)
       }
     }
@@ -143,7 +156,7 @@ export class ClusterMaster {
     this.createLockFile(fullPath)
   }
 
-  createLockFile(lockFile:string) {
+  private createLockFile(lockFile:string) {
 
     fs.writeFileSync(lockFile, String(process.pid))
     if (!process.getuid() && this.userInfo) {
@@ -151,14 +164,14 @@ export class ClusterMaster {
     }
   }
 
-  runCmdPS_P (cmd: string): Promise<string> {
+  private runCmdPS_P (cmd: string): Promise<string> {
     return this.execCmd(cmd).catch(() => {
       return ''
     })
   }
   
 
-  execCmd (cmd: string): Promise<string> {
+  private execCmd (cmd: string): Promise<string> {
 
     return new Promise(function(resolve, reject) {
       childProcess.exec(cmd, function (err, stdout, stderr) {
@@ -169,13 +182,13 @@ export class ClusterMaster {
     })
   }
 
-  startWorkers() {
+  startWorkers(rc : RunContext) {
 
     const conf      = this.config,
           argv      = process.execArgv,
           execArgv  = []
     
-    if (conf.RUN_MODE === RUN_MODE.DEV) {
+    if (rc.getRunMode() === RUN_MODE.DEV) {
       if (argv.indexOf('--debug') !== -1) {
         execArgv.push(argv.indexOf('--debug-brk') === -1 ? '--debug' : '--debug-brk')
       }
@@ -184,7 +197,7 @@ export class ClusterMaster {
       }
 
       if (execArgv.length) {
-        console.log('execArgv', execArgv)
+        rc.isDebug() && rc.debug(this.constructor.name, 'execArgv', execArgv)
         cluster.setupMaster({
           args: execArgv
         })
@@ -192,74 +205,71 @@ export class ClusterMaster {
     }
 
     const instances = conf.INSTANCES || 
-                      conf.RUN_MODE === RUN_MODE.PROD ? os.cpus().length : 1
+                      (rc.getRunMode() === RUN_MODE.PROD ? os.cpus().length : 1)
 
     for (let workerIndex: number = 0; workerIndex < instances; workerIndex++) {
-      const workerInfo : WorkerInfo = new WorkerInfo(this, workerIndex)
+      const workerInfo : WorkerInfo = new WorkerInfo(rc, this, workerIndex)
       this.workers.push(workerInfo)
-      workerInfo.fork()
+      workerInfo.fork(rc)
     }                  
   }
 
 
-  eventWorkerExit(worker: cluster.Worker, code: number, signal: string): void {
+  eventWorkerExit(rc: RunContext, worker: cluster.Worker, code: number, signal: string): any {
+
+    // This is typically when worker has decided to exit, clusterManager is always aware of these
+    // situations. Hence no action here
+    if (code === ipc.CODE.VOLUNTARY_DEATH) return
 
     // We wrap everything in try catch to avoid cluster from going down
+    const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
     try {
-      const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
       if (!workerInfo) {
-        return console.warn('Multiple notifications? Got exit message from a missing worker. forkId:', worker.id)
+        return rc.isWarn() && rc.warn(this.constructor.name, 'Multiple notifications? Got exit message from a missing worker. forkId:', worker.id)
       }
 
-      console.warn('Worker died', {exitCode: code, signal}, workerInfo)
+      rc.isWarn() && rc.warn(this.constructor.name, 'Worker died', {exitCode: code, signal}, workerInfo)
 
       // If all the workers die voluntarily means server could not start
-      if (code === ipc.CODE.VOLUNTARY_DEATH) {
-        workerInfo.failed()
-        if (this.workers.every((workerInfo: WorkerInfo) => workerInfo.state === WORKER_STATE.FAILED)) {
-          console.error('Exiting cluster as all workers have failed to start')
-          process.exit(1)
-        }
-      } else {
-        workerInfo.substitute(true)
-      }
+      workerInfo.substitute(rc, true)
 
     } catch (err) {
-      console.error('cluster.on/exit - Caught global exception to avoid process shutdown: ' + err)
+      rc.isError() && rc.error(this.constructor.name, 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
     }
   }
 
-  eventWorkerOnline(worker: cluster.Worker): void {
-
+  eventWorkerOnline(rc: RunContext, worker: cluster.Worker): any {
     try {
       const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
       if (!workerInfo) {
-        return console.warn('Got online from a missing worker. forkId:', worker.id)
+        return rc.isWarn() && rc.warn(this.constructor.name, 'Got online from a missing worker. forkId:', worker.id)
       }
-      workerInfo.online()
+      workerInfo.online(rc)
     } catch (err) {
-      console.error('cluster.on/exit - Caught global exception to avoid process shutdown: ' + err)
+      rc.isError() && rc.error(this.constructor.name, 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
     }
   }
 
-  eventWorkerMessage(worker: cluster.Worker, msg: any) : void {
+  eventWorkerMessage(rc: RunContext, worker: cluster.Worker, msg: any) : any {
+
+    const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
     try {
-      const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
       if (!workerInfo) {
-        return console.warn('Got msg from a missing worker. forkId:', worker.id, msg)
+        return rc.isWarn() && rc.warn(this.constructor.name, 'Got msg from a missing worker. forkId:', worker.id, msg)
       }
-      workerInfo.message(msg)
+      workerInfo.message(rc, msg)
     } catch (err) {
-      console.error('cluster.on/exit - Caught global exception to avoid process shutdown: ' + err)
+      rc.isError() && rc.error(this.constructor.name, 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
     }
   }
 
   private findWorkerInfo(worker: cluster.Worker): [number, WorkerInfo | null] {
-    const workerIndex = _.findIndex(this.workers, {forkId: worker.id})
+    const workerIndex = lo.findIndex(this.workers, {forkId: worker.id})
     return workerIndex === -1 ? [-1, null] : [workerIndex, this.workers[workerIndex]]
   }
 
 }
+export const clusterMaster = new ClusterMaster()
 
 /*------------------------------------------------------------------------------
   WorkerInfo
@@ -283,51 +293,52 @@ class WorkerInfo {
   private restartCount  : number                = 0
   public  state         : WORKER_STATE          = WORKER_STATE.INIT
 
-  constructor(readonly clusterMaster: ClusterMaster,
+  constructor(rc: RunContext, 
+              readonly clusterMaster: ClusterMaster,
               readonly workerIndex  : number, // index of clusterMaster.workers
               ) {
   }
 
   // this is called when system has ascertained that the worker needs to be forked
   // either in case of fresh start, death, reload (code change or excessive memory usage) 
-  public fork() {
+  public fork(rc: RunContext) {
     this.worker       = cluster.fork()
     this.forkId       = this.worker.id
     this.lastStartTS  = Date.now()
     this.state        = WORKER_STATE.STARTED
-    console.log('Cluster: Forking worker with index', this.workerIndex)
+    rc.isDebug() && rc.debug(this.constructor.name, 'Forking worker with index', this.workerIndex)
   }
 
-  private restart(): void {
+  private restart(rc: RunContext): any {
 
     if (this.state !== WORKER_STATE.INIT) {
-      return console.error('Restart requested in wrong state', this)
+      return rc.isError() && rc.error(this.constructor.name, 'Restart requested in wrong state', this)
     }
 
     this.state = WORKER_STATE.START_WAIT
     const msToRestart = this.lastStartTS + CONST.MS_BETWEEN_RESTARTS - Date.now()
-    setTimeout(() => {
+    RunContext.setTimeout('StartTimer', (rc) => {
 
-      this.fork()
+      this.fork(rc)
       this.restartCount++
-      console.log('Restarted worker', this)
+      rc.isStatus() && rc.status(this.constructor.name, 'Restarted worker', this)
 
     }, msToRestart > 0 ? msToRestart : 0)
   }
 
-  public online(): void {
+  public online(rc: RunContext): void {
     this.state = WORKER_STATE.ONLINE
     const msgObj = new ipc.CWInitializeWorker(this.workerIndex)
     msgObj.send(this.worker)
   }
 
-  public failed(): void {
+  public failed(rc: RunContext): void {
     this.worker = null
     this.forkId = '0'
     this.state = WORKER_STATE.FAILED
   }
 
-  public substitute(onDeath: boolean): void {
+  public substitute(rc: RunContext, onDeath: boolean): void {
 
     if (!onDeath) {
       const msgObj = new ipc.CWRequestStop()
@@ -338,10 +349,10 @@ class WorkerInfo {
     this.worker = null
     this.forkId = '0'
 
-    onDeath ? this.restart() : this.fork()
+    onDeath ? this.restart(rc) : this.fork(rc)
   }
 
-  public message(msg: any):void {
+  public message(rc: RunContext, msg: any):void {
 
   }
 
@@ -350,5 +361,3 @@ class WorkerInfo {
 started at:${this.lastStartTS} restarts:${this.restartCount}`
   }
 }
-
-export const clusterMaster = new ClusterMaster()

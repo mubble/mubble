@@ -1,7 +1,7 @@
 {
-  "name": "@mubble/server",
+  "name": "@mubble/browser",
   "version": "1.0.0",
-  "description": "Server package for Mubble projects",
+  "description": "Browser package for Mubble projects",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
@@ -11,17 +11,10 @@
   "author": "Raghvendra Varma",
   "license": "ISC",
   "devDependencies": {
-    "@types/lodash": "^4.14.61",
-    "@types/node": "^7.0.12",
-    "@types/semver": "^5.3.31"
+    "@types/lodash": "^4.14.61"
   },
   "peerDependencies": {
     "lodash": "^4.17.4",
-    "posix": "^4.1.1",
-    "semver": "^5.3.0",
-    "ws": "^2.2.3",
-    "repl.history": "^0.1.4",
-    "colors": "^1.1.2",
     "@mubble/core": "file:../core"
   }
 }

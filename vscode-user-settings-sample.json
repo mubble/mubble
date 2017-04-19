@@ -1,0 +1,109 @@
+// Place your settings in this file to overwrite the default settings
+{
+    "editor.tabSize": 2,
+    "editor.insertSpaces":true,
+    "editor.detectIndentation": false,
+
+    "editor.renderIndentGuides": true,
+    "editor.rulers": [80, 120],
+
+    "psi-header.config": {
+        "forceToTop": true,
+        "blankLinesAfter": 1,
+        "license": "Custom"
+    },
+
+    "psi-header.license-text": [
+        "All shall be well and all shall be well and all manner of things shall be well.",
+        "We're doomed!"
+    ],
+
+    "psi-header.variables": [
+        ["company", "Mubble Networks Private Limited"],
+        ["author", "Raghvendra Varma"]
+    ],
+
+    "psi-header.lang-config": [
+        {
+            "language": "lua",
+            "begin": "--[[",
+            "prefix": "--",
+            "end": "--]]",
+            "blankLinesAfter": 0
+        },
+        {
+            "language": "typescript",
+            "begin": "/*------------------------------------------------------------------------------",
+            "prefix": "   ",
+            "end": "------------------------------------------------------------------------------*/",
+            "blankLinesAfter": 1,
+            "forceToTop": false
+        },
+        {
+            "language": "javascript",
+            "mapTo": "typescript"
+        }
+    ],
+    "psi-header.templates": [
+        {
+            "language": "typescript",
+            "template": [
+                "About      : <Write about the file here>",
+                "",
+                "Created on : <<date>>",
+                "Author     : <<author>>",
+                "",
+                "Copyright (c) <<year>> <<company>>. All rights reserved."
+            ]
+        },
+        {
+            "language": "javascript",
+            "mapTo": "typescript"
+        }
+    ],
+
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "**/build": true,
+    "**/lib": true
+  },
+  "git.enabled": false,
+  "files.autoSave": "afterDelay",
+  "files.autoSaveDelay": 30000,
+"workbench.editor.enablePreview": false,
+"window.zoomLevel": 0,
+"workbench.colorTheme": "Visual Studio Dark",
+
+    "cSpell.userWords": [
+      "Mubble",
+      "Raghvendra",
+      "Varma",
+      "getpwnam",
+      "sudoer",
+      "promisify",
+      "RAGHAVV",
+      "Struct",
+      "ampm",
+      "ncserver",
+      "Newschat",
+      "npmignore",
+      "preinstall",
+      "Alcatel",
+      "housekeep"
+    ],
+    "workbench.iconTheme": "material-icon-theme",
+    "files.exclude": {
+      "**/.git": true,
+      "**/.svn": true,
+      "**/.hg": true,
+      "**/CVS": true,
+      "**/.DS_Store": true,
+      "node_modules/": true,
+      ".vscode/": true,
+      "lib/": true,
+      "build/": true,
+      "dist": true
+    },
+    "vsicons.projectDetection.autoReload": true
+  }

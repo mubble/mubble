@@ -12,6 +12,7 @@ export const CODE = {
   VOLUNTARY_DEATH      : 13
 }
 
+// Base class for all ipc messages
 export abstract class BaseIpcMsg {
   constructor(public id: string) {
 
@@ -21,24 +22,26 @@ export abstract class BaseIpcMsg {
     if (!worker) return
     worker.send(this)
   }
-
 }
 
+// Used to pass the initial startup params to worker
 export class CWInitializeWorker extends BaseIpcMsg {
 
   constructor(public workerIndex: number) {
     super(CWInitializeWorker.name)
   }
-
 }
 
+// Used when administrator wants to restart the service gracefully
 export class CWRequestStop extends BaseIpcMsg {
-
   constructor() {
     super(CWRequestStop.name)
   }
-
 }
 
-
-
+// Used when memory goes up
+export class WCRequestReplace extends BaseIpcMsg {
+  constructor() {
+    super(CWRequestStop.name)
+  }
+}

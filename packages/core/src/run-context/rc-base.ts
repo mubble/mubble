@@ -7,50 +7,81 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {LOG_LEVEL}    from './config'
-import {systemConfig} from './index'
-import {format}       from '../util/date'
+import {format} from '../util/date'
 
+// first index is dummy
+const LEVEL_CHARS: string[] = ['', '', '', '*** ', '!!! ']
 
-export class Logger {
+export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
 
-  private lastLogTS: number = 0
+export abstract class RunContextBase {
 
-  static getLogger(moduleName: string, logLevel ?: LOG_LEVEL) {
-    
-    if (!systemConfig) throw('Logger is not initialized')
-    if (!logLevel)    logLevel    = systemConfig.LOG_LEVEL
-    if (!moduleName)  moduleName  = '?'
+  static logLevel       : LOG_LEVEL
+  static tzMin          : number | undefined
+  static consoleLogging : boolean
 
-    return new Logger(moduleName, logLevel as LOG_LEVEL)
+  static init(logLevel        : LOG_LEVEL, 
+              consoleLogging  : boolean, 
+              tzMin          ?: number) {
+
+    RunContextBase.logLevel         = logLevel
+    RunContextBase.tzMin            = tzMin
+    RunContextBase.consoleLogging   = consoleLogging
   }
 
-  constructor(private moduleName: string, private logLevel: LOG_LEVEL) {
+  private lastLogTS   : number    = 0
+  private moduleName  : string    = '?'
+
+  constructor(private contextId ?: string, private contextName ?: string, private logLevel ?: LOG_LEVEL) {
 
   }
 
-  private debug(...args: any[]) {
-    return this._log(LOG_LEVEL.DEBUG, args)
+  getLogLevel(): LOG_LEVEL {
+    return this.getLogLevel() || RunContextBase.logLevel
   }
 
-  private status(...args: any[]) {
-    return this._log(LOG_LEVEL.STATUS, args)
+  isDebug(): boolean {
+    return this.getLogLevel() <= LOG_LEVEL.DEBUG
   }
 
-  private warn(...args: any[]) {
-    return this._log(LOG_LEVEL.WARN, args)
+  isStatus(): boolean {
+    return this.getLogLevel() <= LOG_LEVEL.STATUS
   }
 
-  private error(...args: any[]) {
-    return this._log(LOG_LEVEL.ERROR, args)
+  isWarn(): boolean {
+    return this.getLogLevel() <= LOG_LEVEL.WARN
   }
 
-  private _log(level: LOG_LEVEL, ...args: any[]) {
+  isError(): boolean {
+    return this.getLogLevel() <= LOG_LEVEL.ERROR
+  }
 
-    if (level < this.logLevel) return
+  debug(moduleName: string, ...args: any[]) {
+    return this._log(moduleName, LOG_LEVEL.DEBUG, args)
+  }
+
+  status(moduleName: string, ...args: any[]) {
+    return this._log(moduleName, LOG_LEVEL.STATUS, args)
+  }
+
+  warn(moduleName: string, ...args: any[]) {
+    return this._log(moduleName, LOG_LEVEL.WARN, args)
+  }
+
+  error(moduleName: string, ...args: any[]) {
+    return this._log(moduleName, LOG_LEVEL.ERROR, args)
+  }
+
+  hasLogged(): boolean {
+    return this.lastLogTS !== 0
+  }
+
+  _log(moduleName: string, level: LOG_LEVEL, ...args: any[]): string {
+
+    if (level < this.getLogLevel()) return 'not logging'
 
     const curDate = new Date(),
-          dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', systemConfig.LOG_TZ_MIN),
+          dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', RunContextBase.tzMin),
           durStr  = this.durationStr(curDate.getTime())
 
     let buffer = args.reduce((buf, val) => {
@@ -63,12 +94,29 @@ export class Logger {
         strVal = String(val).trim()
       }
       return buf + ' ' + strVal
-    }, '')
+    })
+
+    if (RunContextBase.consoleLogging) {
+      const logStr = this.contextId ?
+              `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.contextId}] ${moduleName}(${this.contextName}): ${buffer}` :
+              `${LEVEL_CHARS[level]}${dateStr} ${durStr} ${moduleName}: ${buffer}`
+      this.logToConsole(level, logStr)
+    }
+
+    return buffer
   }
 
-  durationStr(ts: number): string {
+  abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
+
+  private durationStr(ts: number): string {
 
     const ms = ts - this.lastLogTS
+
+    if (!this.lastLogTS) {
+      this.lastLogTS = ts
+      return '---'
+    }
+
     this.lastLogTS = ts
     
     if (ms < 10)  return '  ' + ms
@@ -78,7 +126,7 @@ export class Logger {
     return '+++'
   }
 
-  objectToString(obj: Object, lvl: number): string {
+  private objectToString(obj: Object, lvl: number): string {
     
     const isArray = Array.isArray(obj),
           isSet   = obj instanceof Set,
@@ -102,7 +150,7 @@ export class Logger {
     }
     
     if (!isArray && ((str = obj.toString()) !== '[object Object]')) {
-      //console.log('toString did not match', obj.toString, ({}).toString)
+      //console._log('toString did not match', obj.toString, ({}).toString)
       return str
     }
     
