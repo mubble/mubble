@@ -17,7 +17,7 @@ import * as _             from 'lodash'
 import * as ipc     from './ipc-message'
 import {CONFIG}     from './config'
 
-import {RunContext, RUN_MODE} from '../util/run-context'
+import {RunContextServer, RUN_MODE} from '../util/rc-server'
 
 const CONST = {
   MS_WAIT_FOR_INIT: 30000
@@ -33,14 +33,14 @@ export class ClusterWorker {
     if (clusterWorker) throw('ClusterWorker is singleton. It cannot be instantiated again')
   }
 
-  async start(rc: RunContext, config: CONFIG) {
+  async start(rc: RunContextServer, config: CONFIG) {
 
     if (cluster.isMaster) {
       throw('ClusterWorker cannot be started in the cluster.master process')
     }
 
     this.config = config
-    RunContext.on('ClusterMsg', process, 'message', this.onMessage.bind(this))
+    RunContextServer.on('ClusterMsg', process, 'message', this.onMessage.bind(this))
 
     return new Promise((resolve, reject) => {
       this.pendingInitResolve = resolve
@@ -53,7 +53,7 @@ export class ClusterWorker {
     })
   }
 
-  onMessage(rc: RunContext, msg: any) {
+  onMessage(rc: RunContextServer, msg: any) {
 
     if (!_.isPlainObject(msg)) {
       return rc.isError() && rc.error(this.constructor.name, 'Received invalid message', msg)
@@ -73,7 +73,7 @@ export class ClusterWorker {
 
   }
 
-  voluntaryExit(rc: RunContext) {
+  voluntaryExit(rc: RunContextServer) {
     rc.isStatus() && rc.status(this.constructor.name, 'Voluntarily exiting the worker process')
     process.exit(ipc.CODE.VOLUNTARY_DEATH)
   }

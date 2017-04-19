@@ -7,7 +7,8 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {RunContext} from '../util/run-context'
+import {RunContextServer, RUN_MODE} from '../util/rc-server'
+
 import { XmnRouter, XmnResponse, 
          MubbleWebSocket, BaseWs, STATUS}  from '@mubble/core'
 

@@ -28,7 +28,7 @@ import * as ipc           from './ipc-message'
 import {CONFIG}           from './config'
 import {clusterWorker}    from './worker'
 
-import {RunContext, RUN_MODE} from '../util/run-context'
+import {RunContextServer, RUN_MODE} from '../util/rc-server'
 
 /**
  * This is the first API called. It start the platform with given configuration
@@ -36,7 +36,7 @@ import {RunContext, RUN_MODE} from '../util/run-context'
  * @param config            Configuration for the platform
  */
 
-export async function startCluster( rc      : RunContext,
+export async function startCluster( rc      : RunContextServer,
                                     config  : CONFIG) : Promise<boolean> {
 
   if (cluster.isMaster) {
@@ -66,7 +66,7 @@ export class ClusterMaster {
     if (clusterMaster) throw('ClusterMaster is singleton. It cannot be instantiated again')
   }
   
-  async start(rc : RunContext, config: CONFIG) {
+  async start(rc : RunContextServer, config: CONFIG) {
 
     if (!cluster.isMaster) {
       throw('ClusterMaster cannot be started in the cluster.worker process')
@@ -86,15 +86,15 @@ export class ClusterMaster {
     // We capture the events at the master level, although we can also do it at the worker
     // level, this is to avoid receiving the events from the workers that have been removed 
     // from the workers array
-    RunContext.on('ExitMsg',    cluster, 'exit',    this.eventWorkerExit.bind(this))
-    RunContext.on('OnlMsg',     cluster, 'online',  this.eventWorkerOnline.bind(this))
-    RunContext.on('ClusterMsg', cluster, 'message', this.eventWorkerMessage.bind(this))
+    RunContextServer.on('ExitMsg',    cluster, 'exit',    this.eventWorkerExit.bind(this))
+    RunContextServer.on('OnlMsg',     cluster, 'online',  this.eventWorkerOnline.bind(this))
+    RunContextServer.on('ClusterMsg', cluster, 'message', this.eventWorkerMessage.bind(this))
 
     // start Workers
     this.startWorkers(rc)
   }
 
-  validateConfig(rc : RunContext): void {
+  validateConfig(rc : RunContextServer): void {
 
     const conf = this.config
 
@@ -124,7 +124,7 @@ export class ClusterMaster {
     }
   }
 
-  async checkRunning (rc : RunContext) {
+  async checkRunning (rc : RunContextServer) {
 
     const serverName  = this.config.SERVER_NAME,
           fileName    = crypto.createHash('md5').update(serverName).digest('hex') + '_' + serverName,
@@ -182,7 +182,7 @@ export class ClusterMaster {
     })
   }
 
-  startWorkers(rc : RunContext) {
+  startWorkers(rc : RunContextServer) {
 
     const conf      = this.config,
           argv      = process.execArgv,
@@ -215,7 +215,7 @@ export class ClusterMaster {
   }
 
 
-  eventWorkerExit(rc: RunContext, worker: cluster.Worker, code: number, signal: string): any {
+  eventWorkerExit(rc: RunContextServer, worker: cluster.Worker, code: number, signal: string): any {
 
     // This is typically when worker has decided to exit, clusterManager is always aware of these
     // situations. Hence no action here
@@ -238,7 +238,7 @@ export class ClusterMaster {
     }
   }
 
-  eventWorkerOnline(rc: RunContext, worker: cluster.Worker): any {
+  eventWorkerOnline(rc: RunContextServer, worker: cluster.Worker): any {
     try {
       const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
       if (!workerInfo) {
@@ -250,7 +250,7 @@ export class ClusterMaster {
     }
   }
 
-  eventWorkerMessage(rc: RunContext, worker: cluster.Worker, msg: any) : any {
+  eventWorkerMessage(rc: RunContextServer, worker: cluster.Worker, msg: any) : any {
 
     const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
     try {
@@ -293,7 +293,7 @@ class WorkerInfo {
   private restartCount  : number                = 0
   public  state         : WORKER_STATE          = WORKER_STATE.INIT
 
-  constructor(rc: RunContext, 
+  constructor(rc: RunContextServer, 
               readonly clusterMaster: ClusterMaster,
               readonly workerIndex  : number, // index of clusterMaster.workers
               ) {
@@ -301,7 +301,7 @@ class WorkerInfo {
 
   // this is called when system has ascertained that the worker needs to be forked
   // either in case of fresh start, death, reload (code change or excessive memory usage) 
-  public fork(rc: RunContext) {
+  public fork(rc: RunContextServer) {
     this.worker       = cluster.fork()
     this.forkId       = this.worker.id
     this.lastStartTS  = Date.now()
@@ -309,7 +309,7 @@ class WorkerInfo {
     rc.isDebug() && rc.debug(this.constructor.name, 'Forking worker with index', this.workerIndex)
   }
 
-  private restart(rc: RunContext): any {
+  private restart(rc: RunContextServer): any {
 
     if (this.state !== WORKER_STATE.INIT) {
       return rc.isError() && rc.error(this.constructor.name, 'Restart requested in wrong state', this)
@@ -317,7 +317,7 @@ class WorkerInfo {
 
     this.state = WORKER_STATE.START_WAIT
     const msToRestart = this.lastStartTS + CONST.MS_BETWEEN_RESTARTS - Date.now()
-    RunContext.setTimeout('StartTimer', (rc) => {
+    RunContextServer.setTimeout('StartTimer', (rc) => {
 
       this.fork(rc)
       this.restartCount++
@@ -326,19 +326,19 @@ class WorkerInfo {
     }, msToRestart > 0 ? msToRestart : 0)
   }
 
-  public online(rc: RunContext): void {
+  public online(rc: RunContextServer): void {
     this.state = WORKER_STATE.ONLINE
     const msgObj = new ipc.CWInitializeWorker(this.workerIndex)
     msgObj.send(this.worker)
   }
 
-  public failed(rc: RunContext): void {
+  public failed(rc: RunContextServer): void {
     this.worker = null
     this.forkId = '0'
     this.state = WORKER_STATE.FAILED
   }
 
-  public substitute(rc: RunContext, onDeath: boolean): void {
+  public substitute(rc: RunContextServer, onDeath: boolean): void {
 
     if (!onDeath) {
       const msgObj = new ipc.CWRequestStop()
@@ -352,7 +352,7 @@ class WorkerInfo {
     onDeath ? this.restart(rc) : this.fork(rc)
   }
 
-  public message(rc: RunContext, msg: any):void {
+  public message(rc: RunContextServer, msg: any):void {
 
   }
 

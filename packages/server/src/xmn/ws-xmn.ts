@@ -14,8 +14,9 @@ import { XmnEvent, XmnRequest, XmnResponse,
 
 import {router} from '../router/router'
 
-import {RunContext} from '../util/run-context'
-let rc: RunContext // TOOD: bad hack
+import {RunContextServer, RUN_MODE} from '../util/rc-server'
+
+let rc: RunContextServer // TODO: bad hack
 
 class ServerSocketWrap extends BaseWs {
 
@@ -90,11 +91,11 @@ export class WsXmn {
 
   constructor(httpServer: http.Server) {
 
-    rc = RunContext.getNew('WsXmn')
+    rc = RunContextServer.getNew('WsXmn')
     this.wsServer = new ws.Server({server: httpServer})
 
     this.wsServer.on('connection', (socket : any) => {
-      const rc = RunContext.getAdHoc()
+      const rc = RunContextServer.getAdHoc()
       rc.isDebug() && rc.debug(this.constructor.name, 'got a new connection')
       const ssw = new ServerSocketWrap(socket)
       this.sockets.push(new MubbleWebSocket(ssw, router))
@@ -108,19 +109,19 @@ export class WsXmn {
 // class ClientSocket  {
   
 //   constructor(private socket: any) {
-//     RunContext.on('WsMsg'   , socket, 'message', this.message.bind(this))
-//     RunContext.on('WsClose' , socket, 'close'  , this.close.bind(this))
-//     RunContext.on('WsError' , socket, 'error'  , this.error.bind(this))
+//     RunContextServer.on('WsMsg'   , socket, 'message', this.message.bind(this))
+//     RunContextServer.on('WsClose' , socket, 'close'  , this.close.bind(this))
+//     RunContextServer.on('WsError' , socket, 'error'  , this.error.bind(this))
 //   }
 
-//   message(rc: RunContext, msg: any, binary: boolean) {
+//   message(rc: RunContextServer, msg: any, binary: boolean) {
 //     rc.isStatus() && rc.status(this.constructor.name, 'Received message', msg)
 //   }
 
-//   close(rc: RunContext, code: number, message: string) {
+//   close(rc: RunContextServer, code: number, message: string) {
 //   }
 
-//   error(rc: RunContext, err: Error) {
+//   error(rc: RunContextServer, err: Error) {
     
 //   }
 // }

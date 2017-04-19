@@ -11,7 +11,7 @@ import * as repl from 'repl'
 import * as path from 'path'
 import * as fs   from 'fs'
 
-import {RunContext} from './run-context'
+import {RunContextServer, RUN_MODE} from '../util/rc-server'
 
 // Import from external modules without types
 const replHistory: any = require('repl.history') // https://github.com/ohmu/node-posix
@@ -21,7 +21,7 @@ export class Repl {
   
   promise: Promise<any>
   
-  constructor(private rc: RunContext) {
+  constructor(private rc: RunContextServer) {
   }
 
   init(context ?: any) {

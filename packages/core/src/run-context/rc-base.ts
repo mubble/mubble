@@ -10,7 +10,7 @@
 import {format} from '../util/date'
 
 // first index is dummy
-const LEVEL_CHARS: string[] = ['', '', '', '*** ', '!!! ']
+const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
 export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
 
@@ -24,9 +24,9 @@ export abstract class RunContextBase {
               consoleLogging  : boolean, 
               tzMin          ?: number) {
 
-    RunContextBase.logLevel         = logLevel
-    RunContextBase.tzMin            = tzMin
-    RunContextBase.consoleLogging   = consoleLogging
+    RunContextBase.logLevel       = logLevel
+    RunContextBase.tzMin          = tzMin
+    RunContextBase.consoleLogging = consoleLogging
   }
 
   private lastLogTS   : number    = 0
@@ -37,7 +37,7 @@ export abstract class RunContextBase {
   }
 
   getLogLevel(): LOG_LEVEL {
-    return this.getLogLevel() || RunContextBase.logLevel
+    return this.logLevel || RunContextBase.logLevel
   }
 
   isDebug(): boolean {

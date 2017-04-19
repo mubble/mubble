@@ -11,7 +11,7 @@ import * as http              from 'http'
 
 import {HttpRequestManager}   from './http-request-manager'
 import {WsXmn}                from './ws-xmn'
-import {RunContext}           from '../util/run-context'
+import {RunContextServer}     from '../util/rc-server'
 import {runState}             from '../util/run-state'
 import {clusterWorker}        from '../cluster/worker'
 
@@ -47,7 +47,7 @@ export class Web {
     if (web) throw('Router is singleton. It cannot be instantiated again')
   }
 
-  init( rc               : RunContext,
+  init( rc               : RunContextServer,
         httpConfig      ?: HttpConfig, 
         websocketConfig ?: WebsocketConfig, 
         httpsConfig     ?: HttpsConfig) : void {
@@ -87,13 +87,13 @@ export class Web {
     }
   }
 
-  async start(rc: RunContext) {
+  async start(rc: RunContextServer) {
     if (this.httpServer) await this.listen(rc, this.httpServer, this.httpConfig as WebConfig)
     if (this.wsHttpServer) await this.listen(rc, this.wsHttpServer, this.websocketConfig as WebConfig)
     if (this.httpsServer) await this.listen(rc, this.httpsServer, this.httpsConfig as WebConfig)
   }
 
-  listen(rc: RunContext, httpServer: http.Server, config: WebConfig) {
+  listen(rc: RunContextServer, httpServer: http.Server, config: WebConfig) {
 
     return new Promise((resolve, reject) => {
 
@@ -106,7 +106,7 @@ export class Web {
       })
 
       httpServer.on('close', () => {
-        const rc = RunContext.getAdHoc()
+        const rc = RunContextServer.getAdHoc()
         if (runState.isStopping()) {
           rc.isStatus() && rc.status(this.constructor.name, 'Exiting on http close event')
           clusterWorker.voluntaryExit(rc)
@@ -117,7 +117,7 @@ export class Web {
       })
 
       httpServer.on('clientError', (err : any, socket : any) => {
-        const rc = RunContext.getAdHoc()
+        const rc = RunContextServer.getAdHoc()
         rc.isStatus() && rc.status(this.constructor.name, 'httpServer.clientError', err, 'ignoring')
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
       })
