@@ -12,7 +12,6 @@ import * as http              from 'http'
 import {HttpRequestManager}   from './http-request-manager'
 import {WsXmn}                from './ws-xmn'
 import {RunContextServer}     from '../util/rc-server'
-import {runState}             from '../util/run-state'
 import {clusterWorker}        from '../cluster/worker'
 
 
@@ -68,7 +67,7 @@ export class Web {
       } else {
         wsServer = this.wsHttpServer = http.createServer()
       }
-      const wsReqManager = new WsXmn(wsServer)
+      const wsReqManager = new WsXmn(rc, wsServer)
     }
 
     if (this.httpsConfig) {
@@ -106,8 +105,7 @@ export class Web {
       })
 
       httpServer.on('close', () => {
-        const rc = RunContextServer.getAdHoc()
-        if (runState.isStopping()) {
+        if (rc.runState.isStopping()) {
           rc.isStatus() && rc.status(this.constructor.name, 'Exiting on http close event')
           clusterWorker.voluntaryExit(rc)
         }
@@ -117,7 +115,6 @@ export class Web {
       })
 
       httpServer.on('clientError', (err : any, socket : any) => {
-        const rc = RunContextServer.getAdHoc()
         rc.isStatus() && rc.status(this.constructor.name, 'httpServer.clientError', err, 'ignoring')
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
       })

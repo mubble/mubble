@@ -14,30 +14,52 @@ const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
 export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
 
+export abstract class ExternalLogger {
+  abstract log(level: LOG_LEVEL, logMsg: string): void
+}
+
+export class InitConfig {
+
+  constructor(public logLevel        : LOG_LEVEL,
+              public consoleLogging  : boolean,
+              public tzMin          ?: number | undefined,
+              public externalLogger ?: ExternalLogger | undefined
+) {
+
+  }
+}
+
+export class RunState {
+  moduleLLMap   : { [key: string]: any } = {}
+}
+
 export abstract class RunContextBase {
 
-  static logLevel       : LOG_LEVEL
-  static tzMin          : number | undefined
-  static consoleLogging : boolean
+  public  lastLogTS     : number    = 0
 
-  static init(logLevel        : LOG_LEVEL, 
-              consoleLogging  : boolean, 
-              tzMin          ?: number) {
+  protected constructor(public initConfig   : InitConfig,
+              public runState     : RunState,
+              public contextId   ?: string, 
+              public contextName ?: string) {
 
-    RunContextBase.logLevel       = logLevel
-    RunContextBase.tzMin          = tzMin
-    RunContextBase.consoleLogging = consoleLogging
   }
 
-  private lastLogTS   : number    = 0
-  private moduleName  : string    = '?'
+  abstract copyConstruct(contextId ?: string, contextName ?: string): any
 
-  constructor(private contextId ?: string, private contextName ?: string, private logLevel ?: LOG_LEVEL) {
+  clone(newRcb: RunContextBase) {
+    newRcb.initConfig   = this.initConfig
+    newRcb.runState     = this.runState
+    if (newRcb.contextId === this.contextId && newRcb.contextName === this.contextName) {
+      newRcb.lastLogTS = this.lastLogTS
+    }
+  }
 
+  changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
+    this.runState.moduleLLMap[moduleName] = logLevel
   }
 
   getLogLevel(): LOG_LEVEL {
-    return this.logLevel || RunContextBase.logLevel
+    return this.initConfig.logLevel
   }
 
   isDebug(): boolean {
@@ -78,10 +100,11 @@ export abstract class RunContextBase {
 
   _log(moduleName: string, level: LOG_LEVEL, ...args: any[]): string {
 
-    if (level < this.getLogLevel()) return 'not logging'
+    const refLogLevel = this.runState.moduleLLMap[moduleName] || this.getLogLevel()
+    if (level < refLogLevel) return 'not logging'
 
     const curDate = new Date(),
-          dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', RunContextBase.tzMin),
+          dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', this.initConfig.tzMin),
           durStr  = this.durationStr(curDate.getTime())
 
     let buffer = args.reduce((buf, val) => {
@@ -96,7 +119,7 @@ export abstract class RunContextBase {
       return buf + ' ' + strVal
     })
 
-    if (RunContextBase.consoleLogging) {
+    if (this.initConfig.consoleLogging) {
       const logStr = this.contextId ?
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.contextId}] ${moduleName}(${this.contextName}): ${buffer}` :
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} ${moduleName}: ${buffer}`

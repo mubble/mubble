@@ -86,9 +86,9 @@ export class ClusterMaster {
     // We capture the events at the master level, although we can also do it at the worker
     // level, this is to avoid receiving the events from the workers that have been removed 
     // from the workers array
-    RunContextServer.on('ExitMsg',    cluster, 'exit',    this.eventWorkerExit.bind(this))
-    RunContextServer.on('OnlMsg',     cluster, 'online',  this.eventWorkerOnline.bind(this))
-    RunContextServer.on('ClusterMsg', cluster, 'message', this.eventWorkerMessage.bind(this))
+    rc.on('ExitMsg',    cluster, 'exit',    this.eventWorkerExit.bind(this))
+    rc.on('OnlMsg',     cluster, 'online',  this.eventWorkerOnline.bind(this))
+    rc.on('ClusterMsg', cluster, 'message', this.eventWorkerMessage.bind(this))
 
     // start Workers
     this.startWorkers(rc)
@@ -317,7 +317,7 @@ class WorkerInfo {
 
     this.state = WORKER_STATE.START_WAIT
     const msToRestart = this.lastStartTS + CONST.MS_BETWEEN_RESTARTS - Date.now()
-    RunContextServer.setTimeout('StartTimer', (rc) => {
+    rc.setTimeout('StartTimer', (rc) => {
 
       this.fork(rc)
       this.restartCount++

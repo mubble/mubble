@@ -99,17 +99,17 @@ export const ERROR = {
   NOT_CONNECTED: 'NOT_CONNECTED'
 }
 
-export abstract class BaseWs {
+// export abstract class BaseWs {
 
-  abstract mapEvents(mws: MubbleWebSocket)    : void
-  abstract getStatus()                        : STATUS
-  abstract getBufferedBytes()                 : number
-  abstract sendRequest(request: XmnRequest)   : void
-  abstract sendResponse(request: XmnResponse) : void
-  abstract sendEvent(event: XmnEvent)         : void
-  abstract close(msg: any)                    : void
+//   abstract mapEvents(mws: MubbleWebSocket)    : void
+//   abstract getStatus()                        : STATUS
+//   abstract bufferedAmount                 : number
+//   abstract sendRequest(request: XmnRequest)   : void
+//   abstract sendResponse(request: XmnResponse) : void
+//   abstract sendEvent(event: XmnEvent)         : void
+//   abstract close(msg: any)                    : void
 
-}
+// }
 
 enum REQUEST_STATUS {
   TO_BE_SENT, SENT, ROUTED
@@ -149,8 +149,11 @@ export class MubbleWebSocket {
   private mapPending: Map<number, Pending> = new Map()
   private timer: any
 
-  constructor(private platformWs : BaseWs, private router : XmnRouter) {
-    platformWs.mapEvents(this)
+  constructor(private platformWs : any, private router : XmnRouter) {
+    platformWs.onopen     = this.onOpen.bind(this)
+    platformWs.onmessage  = this.onMessage.bind(this)
+    platformWs.onclose    = this.onClose.bind(this)
+    platformWs.onerror    = this.onError.bind(this)
   }
 
   onOpen() {
@@ -185,10 +188,24 @@ export class MubbleWebSocket {
 
   }
 
+  getStatus() {
+    switch (this.platformWs.readyState) {
+
+    case this.platformWs.CONNECTING:
+      return STATUS.CONNECTING
+
+    case this.platformWs.OPEN:
+      return STATUS.OPEN
+    }
+    // case this.platformWs.CLOSING:
+    // case this.platformWs.CLOSED:
+    return STATUS.CLOSED
+  }
+
   sendRequest(apiName: string, data: object) {
 
     return new Promise((resolve, reject) => {
-      const status = this.platformWs.getStatus()
+      const status = this.getStatus()
       if (status === STATUS.CLOSED) {
         return reject(new Error(ERROR.NOT_CONNECTED))
       }
@@ -196,7 +213,7 @@ export class MubbleWebSocket {
       const reqId = Pending.nextSendRequestId
 
 
-      if (status === STATUS.CONNECTING || this.platformWs.getBufferedBytes() > 0) {
+      if (status === STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
 
         this.mapPending.set(reqId, 
           new Pending(REQUEST_OR_EVENT.REQUEST, apiName, data, REQUEST_STATUS.TO_BE_SENT, 
@@ -204,12 +221,12 @@ export class MubbleWebSocket {
 
       } else {
 
-        this.platformWs.sendRequest({
+        this.platformWs.send(JSON.stringify({
           type  : 'request',
           api   : apiName,
           data  : data,
           seq   : reqId
-        })
+        }))
 
         // TODO: Set the start time for cleanup
         this.mapPending.set(reqId, 
@@ -225,12 +242,12 @@ export class MubbleWebSocket {
 
     return new Promise((resolve, reject) => {
       
-      const status = this.platformWs.getStatus()
-      if (this.platformWs.getStatus() === STATUS.CLOSED) {
+      const status = this.getStatus()
+      if (this.getStatus() === STATUS.CLOSED) {
         return reject(new Error(ERROR.NOT_CONNECTED))
       }
 
-      if (status === STATUS.CONNECTING || this.platformWs.getBufferedBytes() > 0) {
+      if (status === STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
 
         this.mapPending.set(Pending.nextSendEventId, 
           new Pending(REQUEST_OR_EVENT.EVENT, name, data, REQUEST_STATUS.TO_BE_SENT, 
@@ -238,43 +255,43 @@ export class MubbleWebSocket {
 
       } else {
 
-        this.platformWs.sendEvent({
+        this.platformWs.send(JSON.stringify({
           type    : 'event',
           name    : name,
           eventTs : eventTs,
           data    : data
-        })
+        }))
       }
     })
   }
 
   private housekeep() {
 
-    const status = this.platformWs.getStatus()
+    const status = this.getStatus()
     this.mapPending.forEach((pending, key) => {
       if (status === STATUS.CLOSED) {
         if (pending.status === REQUEST_STATUS.SENT || pending.status === REQUEST_STATUS.TO_BE_SENT) {
           pending.reject(new Error(ERROR.NOT_CONNECTED))
         }
         this.mapPending.delete(key)
-      } else if (status === STATUS.OPEN && this.platformWs.getBufferedBytes() === 0) {
+      } else if (status === STATUS.OPEN && this.platformWs.bufferedAmount === 0) {
         if (pending.status === REQUEST_STATUS.TO_BE_SENT) {
           if (pending.reqOrEvent === REQUEST_OR_EVENT.REQUEST) {
-            this.platformWs.sendRequest({
+            this.platformWs.send(JSON.stringify({
               type  : 'request',
               api   : pending.name,
               data  : pending.data as object,
               seq   : pending.seq
-            })
+            }))
             pending.data   = undefined
             pending.status = REQUEST_STATUS.SENT
           } else {
-            this.platformWs.sendEvent({
+            this.platformWs.send(JSON.stringify({
               type    : 'event',
               name    : pending.name,
               data    : pending.data as object,
               eventTs : 0 // TODO: this is a bug!!!!!
-            })
+            }))
             this.mapPending.delete(key)
           }
         }

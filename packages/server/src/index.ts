@@ -9,8 +9,7 @@
 export {startCluster}         from './cluster/master'
 export {web}                  from './xmn/web'
 export {router}               from './router/router'
-export {RunContextServer, 
-        RUN_MODE}             from './util/rc-server'
+export *             from './util/rc-server'
 export {Repl}                 from './util/repl'
 
 /* TODO:

@@ -10,7 +10,7 @@
 import * as http from 'http'
 import * as ws   from 'ws'
 import { XmnEvent, XmnRequest, XmnResponse, 
-         MubbleWebSocket, BaseWs, STATUS}  from '@mubble/core'
+         MubbleWebSocket, STATUS}  from '@mubble/core'
 
 import {router} from '../router/router'
 
@@ -18,70 +18,70 @@ import {RunContextServer, RUN_MODE} from '../util/rc-server'
 
 let rc: RunContextServer // TODO: bad hack
 
-class ServerSocketWrap extends BaseWs {
+// class ServerSocketWrap extends BaseWs {
 
-  constructor(private ws : any) {
-    super()
-  }
+//   constructor(private ws : any) {
+//     super()
+//   }
 
-  mapEvents(mws: MubbleWebSocket) : void {
+//   mapEvents(mws: MubbleWebSocket) : void {
 
-    this.ws.onopen = () => {
-      rc.isStatus() && rc.status(this.constructor.name, 'Websocket connected')
-      mws.onOpen()
-    }
+//     this.ws.onopen = () => {
+//       rc.isStatus() && rc.status(this.constructor.name, 'Websocket connected')
+//       mws.onOpen()
+//     }
 
-    this.ws.onmessage = (msgEvent: any) => {
-      mws.onMessage(msgEvent.data)
-    }
+//     this.ws.onmessage = (msgEvent: any) => {
+//       mws.onMessage(msgEvent.data)
+//     }
 
-    this.ws.onclose = (closeEvent: any) => {
-      rc.isStatus() && rc.status(this.constructor.name, 'Websocket closed', closeEvent)
-      mws.onClose()
-    }
+//     this.ws.onclose = (closeEvent: any) => {
+//       rc.isStatus() && rc.status(this.constructor.name, 'Websocket closed', closeEvent)
+//       mws.onClose()
+//     }
 
-    this.ws.onerror = (err: any) => {
-      rc.isWarn() && rc.warn(this.constructor.name, 'Websocket received error', err)
-      mws.onError(err)
-    }
-  }
+//     this.ws.onerror = (err: any) => {
+//       rc.isWarn() && rc.warn(this.constructor.name, 'Websocket received error', err)
+//       mws.onError(err)
+//     }
+//   }
 
-  getStatus() : STATUS {
+//   getStatus() : STATUS {
 
-    switch (this.ws.readyState) {
+//     switch (this.ws.readyState) {
 
-    case this.ws.CONNECTING:
-      return STATUS.CONNECTING
+//     case this.ws.CONNECTING:
+//       return STATUS.CONNECTING
 
-    case this.ws.OPEN:
-      return STATUS.OPEN
-    }
-    // case this.ws.CLOSING:
-    // case this.ws.CLOSED:
-    return STATUS.CLOSED
+//     case this.ws.OPEN:
+//       return STATUS.OPEN
+//     }
+//     // case this.ws.CLOSING:
+//     // case this.ws.CLOSED:
+//     return STATUS.CLOSED
 
-  }
+//   }
 
-  getBufferedBytes() : number {
-    return this.ws.bufferedAmount
-  }
+//   getBufferedBytes() : number {
+//     return this.ws.bufferedAmount
+//   }
 
-  sendRequest(request: XmnRequest): void {
-    this.ws.send(JSON.stringify(request))
-  }
+//   sendRequest(request: XmnRequest): void {
+//     this.ws.send(JSON.stringify(request))
+//   }
 
-  sendResponse(request: XmnResponse): void {
-    this.ws.send(JSON.stringify(request))
-  }
+//   sendResponse(request: XmnResponse): void {
+//     this.ws.send(JSON.stringify(request))
+//   }
 
-  sendEvent(event: XmnEvent): void {
-    this.ws.send(JSON.stringify(event))
-  }
+//   sendEvent(event: XmnEvent): void {
+//     this.ws.send(JSON.stringify(event))
+//   }
 
-  close(): void {
-    this.ws.close()
-  }
-}
+//   close(): void {
+//     this.ws.close()
+//   }
+// }
 
 
 export class WsXmn {
@@ -89,16 +89,13 @@ export class WsXmn {
   private wsServer : ws.Server
   private sockets  :  MubbleWebSocket[] = []
 
-  constructor(httpServer: http.Server) {
+  constructor(rc: RunContextServer, httpServer: http.Server) {
 
-    rc = RunContextServer.getNew('WsXmn')
     this.wsServer = new ws.Server({server: httpServer})
 
     this.wsServer.on('connection', (socket : any) => {
-      const rc = RunContextServer.getAdHoc()
       rc.isDebug() && rc.debug(this.constructor.name, 'got a new connection')
-      const ssw = new ServerSocketWrap(socket)
-      this.sockets.push(new MubbleWebSocket(ssw, router))
+      this.sockets.push(new MubbleWebSocket(socket, router))
     })
   }
 }

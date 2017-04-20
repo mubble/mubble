@@ -40,7 +40,7 @@ export class ClusterWorker {
     }
 
     this.config = config
-    RunContextServer.on('ClusterMsg', process, 'message', this.onMessage.bind(this))
+    rc.on('ClusterMsg', process, 'message', this.onMessage.bind(this))
 
     return new Promise((resolve, reject) => {
       this.pendingInitResolve = resolve

@@ -10,7 +10,7 @@
 import {RunContextServer, RUN_MODE} from '../util/rc-server'
 
 import { XmnRouter, XmnResponse, 
-         MubbleWebSocket, BaseWs, STATUS}  from '@mubble/core'
+         MubbleWebSocket, STATUS}  from '@mubble/core'
 
 export class Router implements XmnRouter {
 

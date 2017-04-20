@@ -8,80 +8,76 @@
 ------------------------------------------------------------------------------*/
 
 import { XmnEvent, XmnRequest, XmnResponse, 
-         MubbleWebSocket, BaseWs, STATUS}  from '@mubble/core'
+         MubbleWebSocket, STATUS}  from '@mubble/core'
 
 
-import {Logger}           from '../util/logger'
+// class WebSocketWrap extends BaseWs {
 
-const logger = Logger.getLogger('BrowserWebSocket')
+//   private ws : WebSocket
 
-class WebSocketWrap extends BaseWs {
+//   constructor(url: string) {
+//     super()
+//     this.ws = new WebSocket(url)
+//   }
 
-  private ws : WebSocket
+//   mapEvents(mws: MubbleWebSocket) : void {
 
-  constructor(url: string) {
-    super()
-    this.ws = new WebSocket(url)
-  }
+//     this.ws.onopen = () => {
+//       logger.isStatus() && logger.status('Websocket connected')
+//       mws.onOpen()
+//     }
 
-  mapEvents(mws: MubbleWebSocket) : void {
+//     this.ws.onmessage = (msgEvent: MessageEvent) => {
+//       mws.onMessage(msgEvent.data)
+//     }
 
-    this.ws.onopen = () => {
-      logger.isStatus() && logger.status('Websocket connected')
-      mws.onOpen()
-    }
+//     this.ws.onclose = (closeEvent: CloseEvent) => {
+//       logger.isStatus() && logger.status('Websocket closed', closeEvent)
+//       mws.onClose()
+//     }
 
-    this.ws.onmessage = (msgEvent: MessageEvent) => {
-      mws.onMessage(msgEvent.data)
-    }
+//     this.ws.onerror = (err: any) => {
+//       logger.isWarn() && logger.warn('Websocket received error', err)
+//       mws.onError(err)
+//     }
+//   }
 
-    this.ws.onclose = (closeEvent: CloseEvent) => {
-      logger.isStatus() && logger.status('Websocket closed', closeEvent)
-      mws.onClose()
-    }
+//   getStatus() : STATUS {
 
-    this.ws.onerror = (err: any) => {
-      logger.isWarn() && logger.warn('Websocket received error', err)
-      mws.onError(err)
-    }
-  }
+//     switch (this.ws.readyState) {
 
-  getStatus() : STATUS {
+//     case this.ws.CONNECTING:
+//       return STATUS.CONNECTING
 
-    switch (this.ws.readyState) {
+//     case this.ws.OPEN:
+//       return STATUS.OPEN
+//     }
+//     // case this.ws.CLOSING:
+//     // case this.ws.CLOSED:
+//     return STATUS.CLOSED
 
-    case this.ws.CONNECTING:
-      return STATUS.CONNECTING
+//   }
 
-    case this.ws.OPEN:
-      return STATUS.OPEN
-    }
-    // case this.ws.CLOSING:
-    // case this.ws.CLOSED:
-    return STATUS.CLOSED
+//   getBufferedBytes() : number {
+//     return this.ws.bufferedAmount
+//   }
 
-  }
+//   sendRequest(request: XmnRequest): void {
+//     this.ws.send(JSON.stringify(request))
+//   }
 
-  getBufferedBytes() : number {
-    return this.ws.bufferedAmount
-  }
+//   sendResponse(request: XmnResponse): void {
+//     this.ws.send(JSON.stringify(request))
+//   }
 
-  sendRequest(request: XmnRequest): void {
-    this.ws.send(JSON.stringify(request))
-  }
+//   sendEvent(event: XmnEvent): void {
+//     this.ws.send(JSON.stringify(event))
+//   }
 
-  sendResponse(request: XmnResponse): void {
-    this.ws.send(JSON.stringify(request))
-  }
-
-  sendEvent(event: XmnEvent): void {
-    this.ws.send(JSON.stringify(event))
-  }
-  
-  close(): void {
-    this.ws.close()
-  }
-}
+//   close(): void {
+//     this.ws.close()
+//   }
+// }
 
 
 
@@ -91,17 +87,10 @@ export class BrowserWs {
 
   static init(appName: string, version: string, host: string, port ?: number) {
     BrowserWs.url = MubbleWebSocket.getWsUrl(appName, version, host, port)
-    logger.isDebug() && logger.debug('Setup websocket url as', BrowserWs.url)
-  }
-
-  private ws : WebSocketWrap
-  constructor() {
-    if (!BrowserWs.url) throw('Need to setup the url before construction')
-    this.ws = new WebSocketWrap(BrowserWs.url)
   }
 
   getSocket(): MubbleWebSocket {
-    return new MubbleWebSocket(this.ws)
+    return new MubbleWebSocket(new WebSocket(BrowserWs.url))
   }
 }
 
