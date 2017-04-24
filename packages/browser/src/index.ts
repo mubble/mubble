@@ -7,5 +7,5 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-export * from './util/logger'
-export * from './xmn/ws'
+export * from './rc-browser'
+export * from './xmn/ws-browser'

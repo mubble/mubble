@@ -56,34 +56,32 @@ will be defined later.
 
 
 ------------------------------------------------------------------------------*/
+import {XmnRouter} from './xmn-router'
+import {RunContextBase} from '../rc-base'
+
 enum REQUEST_OR_EVENT {
   REQUEST, EVENT
 }
 
-export interface XmnRequest {
+interface WsRequest {
   type  : 'request'
   api   : string
   seq   : number
   data  : object
 }
 
-export interface XmnResponse {
+interface WsResponse {
   type  : 'response'
   seq   : number
   error : string | null
   data  : object
 }
 
-export interface XmnEvent {
+interface WsEvent {
   type    : 'event'
   name    : string
   eventTs : number
   data    : object
-}
-
-export interface XmnRouter {
-  routeEvent(id: string, eventTs: number, data: object): void
-  routeRequest(api: string, data: object): any
 }
 
 export enum STATUS {
@@ -104,9 +102,9 @@ export const ERROR = {
 //   abstract mapEvents(mws: MubbleWebSocket)    : void
 //   abstract getStatus()                        : STATUS
 //   abstract bufferedAmount                 : number
-//   abstract sendRequest(request: XmnRequest)   : void
-//   abstract sendResponse(request: XmnResponse) : void
-//   abstract sendEvent(event: XmnEvent)         : void
+//   abstract sendRequest(request: WsRequest)   : void
+//   abstract sendResponse(request: WsResponse) : void
+//   abstract sendEvent(event: WsEvent)         : void
 //   abstract close(msg: any)                    : void
 
 // }
@@ -149,38 +147,98 @@ export class MubbleWebSocket {
   private mapPending: Map<number, Pending> = new Map()
   private timer: any
 
-  constructor(private platformWs : any, private router : XmnRouter) {
-    platformWs.onopen     = this.onOpen.bind(this)
-    platformWs.onmessage  = this.onMessage.bind(this)
-    platformWs.onclose    = this.onClose.bind(this)
-    platformWs.onerror    = this.onError.bind(this)
+  constructor(private refRc: RunContextBase, private platformWs : any, private router : XmnRouter) {
+    try {
+      platformWs.onopen     = this.onOpen.bind(this)
+      platformWs.onmessage  = this.onMessage.bind(this)
+      platformWs.onclose    = this.onClose.bind(this)
+      platformWs.onerror    = this.onError.bind(this)
+    } catch (err) {
+      refRc.isError() && refRc.error(refRc.getName(this), 'Error while constructing websocket', err)
+    }
   }
 
   onOpen() {
-    this.timer = setInterval(this.housekeep.bind(this), 1000)
+    // need to move this to system timer
+    try {
+      const rc: RunContextBase = this.refRc.copyConstruct('', 'WsOnOpen')
+      rc.isDebug() && rc.debug(rc.getName(this), `Websocket is now open`)
+      this.timer = setInterval(this.housekeep.bind(this), 1000)
+    } catch (err) {
+      this.refRc.isError() && this.refRc.error(this.refRc.getName(this), 'Error while constructing websocket', err)
+    }
   }
 
-  onMessage(msg: any) {
+  onMessage(messageEvent: any) {
+
+    const rc: RunContextBase = this.refRc.copyConstruct('', 'WsOnMsg')
 
     try {
+
+      const msg         = messageEvent.data
+      rc.isDebug() && rc.debug(rc.getName(this), `Websocket onMessage ${msg}`)
+
       const incomingMsg = JSON.parse(msg)
+
       if (incomingMsg.type === 'request') {
-        this.router.routeRequest(incomingMsg.api, incomingMsg.data)
-        // TODO: this is to be added to pending
-      } else {
-        this.router.routeEvent(incomingMsg.name, incomingMsg.eventTs, incomingMsg.data)
+
+        const irb = this.router.getNewInRequest()
+        irb.setApi(incomingMsg.api)
+        irb.setParam(incomingMsg.data)
+
+        this.router.routeRequest(rc, irb).then(obj => {
+          this._send(rc, {
+            type  : 'response',
+            error : null,
+            data  : obj,
+            seq   : incomingMsg.seq
+          })
+          
+        }, err => {
+          rc.isError() && rc.error(rc.getName(this), 'Bombed while processing request', err)
+          this._send(rc, {
+            type  : 'response',
+            error : err.name || 'Error',
+            data  : err.message || err.name,
+            seq   : incomingMsg.seq
+          })
+        })
+        // TODO: this request is to be added to pending list
+      } else if (incomingMsg.type === 'response') {
+
+        const pending = this.mapPending.get(incomingMsg.seq)
+        if (!pending) {
+          rc.isError() && rc.error(rc.getName(this), 'Could not find pending item for message', incomingMsg)
+          return
+        }
+
+        this.mapPending.delete(incomingMsg.seq)
+        if (incomingMsg.error) {
+          return pending.reject(new Error(incomingMsg.data))
+        } else {
+          return pending.resolve(incomingMsg.data)
+        }
+
+      } else if (incomingMsg.type === 'event') {
+
+        const ieb = this.router.getNewInEvent()
+        ieb.setName(incomingMsg.name)
+        ieb.setParam(incomingMsg.data)
+        
+        this.router.routeEvent(rc, ieb)
       }
     } catch (err) {
-      return console.error('got invalid message', msg)
+      return console.error('got invalid message', err, messageEvent)
     }
   }
 
   onClose() {
+    const rc: RunContextBase = this.refRc.copyConstruct('', 'WsOnClose')
+    rc.isDebug() && rc.debug(rc.getName(this), `Websocket is now closed`)
     if (this.timer) {
       clearInterval(this.timer)
       this.timer = null
     }
-
   }
 
   onError(err: any) {
@@ -202,7 +260,7 @@ export class MubbleWebSocket {
     return STATUS.CLOSED
   }
 
-  sendRequest(apiName: string, data: object) {
+  sendRequest(rc: RunContextBase, apiName: string, data: object) {
 
     return new Promise((resolve, reject) => {
       const status = this.getStatus()
@@ -212,8 +270,8 @@ export class MubbleWebSocket {
 
       const reqId = Pending.nextSendRequestId
 
-
       if (status === STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
+        rc.isDebug() && rc.debug(rc.getName(this), `Queueing request for ${apiName} status ${status}`)
 
         this.mapPending.set(reqId, 
           new Pending(REQUEST_OR_EVENT.REQUEST, apiName, data, REQUEST_STATUS.TO_BE_SENT, 
@@ -221,12 +279,12 @@ export class MubbleWebSocket {
 
       } else {
 
-        this.platformWs.send(JSON.stringify({
+        this._send(rc, {
           type  : 'request',
           api   : apiName,
           data  : data,
           seq   : reqId
-        }))
+        })
 
         // TODO: Set the start time for cleanup
         this.mapPending.set(reqId, 
@@ -238,7 +296,7 @@ export class MubbleWebSocket {
 
   }
 
-  sendEvent(name: string, eventTs: number, data: object) {
+  sendEvent(rc: RunContextBase, name: string, eventTs: number, data: object) {
 
     return new Promise((resolve, reject) => {
       
@@ -255,47 +313,56 @@ export class MubbleWebSocket {
 
       } else {
 
-        this.platformWs.send(JSON.stringify({
+        this._send(rc, {
           type    : 'event',
           name    : name,
           eventTs : eventTs,
           data    : data
-        }))
+        })
       }
     })
   }
 
   private housekeep() {
 
+    const rc: RunContextBase = this.refRc.copyConstruct('', 'WsTimer')
     const status = this.getStatus()
+
     this.mapPending.forEach((pending, key) => {
+
       if (status === STATUS.CLOSED) {
         if (pending.status === REQUEST_STATUS.SENT || pending.status === REQUEST_STATUS.TO_BE_SENT) {
           pending.reject(new Error(ERROR.NOT_CONNECTED))
         }
         this.mapPending.delete(key)
       } else if (status === STATUS.OPEN && this.platformWs.bufferedAmount === 0) {
+
         if (pending.status === REQUEST_STATUS.TO_BE_SENT) {
           if (pending.reqOrEvent === REQUEST_OR_EVENT.REQUEST) {
-            this.platformWs.send(JSON.stringify({
+            this._send(rc, {
               type  : 'request',
               api   : pending.name,
               data  : pending.data as object,
               seq   : pending.seq
-            }))
+            })
             pending.data   = undefined
             pending.status = REQUEST_STATUS.SENT
           } else {
-            this.platformWs.send(JSON.stringify({
+            this._send(rc, {
               type    : 'event',
               name    : pending.name,
               data    : pending.data as object,
               eventTs : 0 // TODO: this is a bug!!!!!
-            }))
+            })
             this.mapPending.delete(key)
           }
         }
       }
     })
+  }
+
+  private _send(rc: RunContextBase, obj: any) {
+    rc.isDebug() && rc.debug(rc.getName(this), `Sending msg ${obj.type} with ${obj.api || obj.name || obj.seq}`)
+    this.platformWs.send(JSON.stringify(obj))
   }
 }

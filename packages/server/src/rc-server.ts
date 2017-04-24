@@ -13,6 +13,7 @@ import * as lo              from 'lodash'
 import {
   RunContextBase, 
   LOG_LEVEL,
+  RUN_MODE,
   InitConfig,
   RunState
 }  from '@mubble/core'
@@ -26,22 +27,23 @@ colors.setTheme({
   ERROR: 'red'
 })
 
-export enum RUN_MODE {DEV, PROD}
-
 const CONS = "BCDFGHJKLMNPQRSTVWXYZ",
       VOWS = "AEIOU"
 
+export {RUN_MODE, LOG_LEVEL} from '@mubble/core'
 export class InitConfigServer extends InitConfig {
 
-  constructor(public runMode    : RUN_MODE,
+  constructor(       runMode    : RUN_MODE,
                      logLevel  ?: LOG_LEVEL, 
                      tzMin     ?: number,
               public accessLog ?: boolean) {
 
-    super(logLevel || LOG_LEVEL.STATUS, 
+    super(runMode,  
+          logLevel || LOG_LEVEL.STATUS, 
           !!process.stdout.isTTY,
           tzMin)
 
+          
     if (accessLog === undefined) this.accessLog = true      
   }
 }

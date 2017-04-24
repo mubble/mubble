@@ -11,7 +11,7 @@ import * as repl from 'repl'
 import * as path from 'path'
 import * as fs   from 'fs'
 
-import {RunContextServer, RUN_MODE} from '../util/rc-server'
+import {RunContextServer, RUN_MODE} from '../rc-server'
 
 // Import from external modules without types
 const replHistory: any = require('repl.history') // https://github.com/ohmu/node-posix
@@ -33,6 +33,7 @@ export class Repl {
       context.fs       = fs
       context.path     = path
       context.$        = this
+      context.rc       = this.rc
 
       const replServer: any = repl.start({prompt: 'mubble > ', useGlobal: true})
       replHistory(replServer, process.env.HOME + '/.mubble-repl')

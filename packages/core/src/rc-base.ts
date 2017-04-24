@@ -7,12 +7,13 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {format} from '../util/date'
+import {format} from './util/date'
 
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
 export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
+export enum RUN_MODE {DEV, PROD}
 
 export abstract class ExternalLogger {
   abstract log(level: LOG_LEVEL, logMsg: string): void
@@ -20,7 +21,8 @@ export abstract class ExternalLogger {
 
 export class InitConfig {
 
-  constructor(public logLevel        : LOG_LEVEL,
+  constructor(public runMode         : RUN_MODE,
+              public logLevel        : LOG_LEVEL,
               public consoleLogging  : boolean,
               public tzMin          ?: number | undefined,
               public externalLogger ?: ExternalLogger | undefined
@@ -62,6 +64,14 @@ export abstract class RunContextBase {
     return this.initConfig.logLevel
   }
 
+  /**
+   * Tries to figure out the name of the context
+   * @param obj: this 
+   */
+  getName(obj: any): string {
+    return obj.name || (obj.constructor ? obj.constructor.name : '?')
+  }
+
   isDebug(): boolean {
     return this.getLogLevel() <= LOG_LEVEL.DEBUG
   }
@@ -98,7 +108,7 @@ export abstract class RunContextBase {
     return this.lastLogTS !== 0
   }
 
-  _log(moduleName: string, level: LOG_LEVEL, ...args: any[]): string {
+  private _log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
 
     const refLogLevel = this.runState.moduleLLMap[moduleName] || this.getLogLevel()
     if (level < refLogLevel) return 'not logging'
@@ -110,14 +120,16 @@ export abstract class RunContextBase {
     let buffer = args.reduce((buf, val) => {
       let strVal
       if (val instanceof Error) {
-        strVal = val.stack
+        // Error.name typically has class name of the ErrorCLass like EvalError
+        // Error.message has the user readable message, this is also included in the stack
+        strVal = val.stack || `Error ${val.name}: ${val.message} (no stack)`
       } else if (val && (typeof(val) === 'object')) {
         strVal = this.objectToString(val, 2)
       } else {
         strVal = String(val).trim()
       }
-      return buf + ' ' + strVal
-    })
+      return buf ? buf + ' ' + strVal : strVal
+    }, '')
 
     if (this.initConfig.consoleLogging) {
       const logStr = this.contextId ?

@@ -9,12 +9,10 @@
 
 import * as http from 'http'
 import * as ws   from 'ws'
-import { XmnEvent, XmnRequest, XmnResponse, 
+import { XmnRouter,  
          MubbleWebSocket, STATUS}  from '@mubble/core'
 
-import {router} from '../router/router'
-
-import {RunContextServer, RUN_MODE} from '../util/rc-server'
+import {RunContextServer, RUN_MODE} from '../rc-server'
 
 let rc: RunContextServer // TODO: bad hack
 
@@ -89,13 +87,14 @@ export class WsXmn {
   private wsServer : ws.Server
   private sockets  :  MubbleWebSocket[] = []
 
-  constructor(rc: RunContextServer, httpServer: http.Server) {
+  constructor(rc: RunContextServer, httpServer: http.Server, router: XmnRouter) {
 
     this.wsServer = new ws.Server({server: httpServer})
 
     this.wsServer.on('connection', (socket : any) => {
       rc.isDebug() && rc.debug(this.constructor.name, 'got a new connection')
-      this.sockets.push(new MubbleWebSocket(socket, router))
+      this.sockets.push(new MubbleWebSocket(rc, socket, router))
+      // TODO: Need to cleanup socket via timer and notification ????
     })
   }
 }

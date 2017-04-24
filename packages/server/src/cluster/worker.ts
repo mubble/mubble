@@ -17,7 +17,7 @@ import * as _             from 'lodash'
 import * as ipc     from './ipc-message'
 import {CONFIG}     from './config'
 
-import {RunContextServer, RUN_MODE} from '../util/rc-server'
+import {RunContextServer, RUN_MODE} from '../rc-server'
 
 const CONST = {
   MS_WAIT_FOR_INIT: 30000

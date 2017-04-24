@@ -28,7 +28,7 @@ import * as ipc           from './ipc-message'
 import {CONFIG}           from './config'
 import {clusterWorker}    from './worker'
 
-import {RunContextServer, RUN_MODE} from '../util/rc-server'
+import {RunContextServer, RUN_MODE} from '../rc-server'
 
 /**
  * This is the first API called. It start the platform with given configuration

@@ -8,8 +8,7 @@
 ------------------------------------------------------------------------------*/
 export {startCluster}         from './cluster/master'
 export {web}                  from './xmn/web'
-export {router}               from './router/router'
-export *             from './util/rc-server'
+export *                      from './rc-server'
 export {Repl}                 from './util/repl'
 
 /* TODO:
