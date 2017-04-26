@@ -15,6 +15,6 @@
   },
   "peerDependencies": {
     "lodash": "^4.17.4",
-    "@mubble/core": "file:../core"
+    "@mubble/core": "latest"
   }
 }

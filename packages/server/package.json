@@ -23,6 +23,6 @@
     "ws": "^2.2.3",
     "repl.history": "^0.1.4",
     "colors": "^1.1.2",
-    "@mubble/core": "file:../core"
+    "@mubble/core": "latest"
   }
 }

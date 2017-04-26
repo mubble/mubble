@@ -60,6 +60,6 @@ export abstract class RunContextBrowser extends RunContextBase {
   logToConsole(level: LOG_LEVEL, logStr: string): void {
 
     const fn: any = CONSOLE_FN_MAP[level]
-    fn(logStr)
+    fn.call(console, logStr)
   }
 }
