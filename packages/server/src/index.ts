@@ -12,7 +12,7 @@ export *                      from './rc-server'
 export {Repl}                 from './util/repl'
 export *                      from './util/userInfo'
 export *                      from './util/execute'
-export *                      from './gcp/googleInit'
+export *                      from './gcp/gcloud-env'
 export *                      from './db/datastore/basedatastore'
 
 /* TODO:

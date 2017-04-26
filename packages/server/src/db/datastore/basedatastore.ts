@@ -12,7 +12,7 @@ const datastore : any = require('@google-cloud/datastore')
 
 import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './errorCodes'
-import {googleInit}       from '../../gcp/googleInit'
+import {GcloudEnv}        from '../../gcp/gcloud-env'
 
 export abstract class BaseDatastore {
 
@@ -43,20 +43,17 @@ export abstract class BaseDatastore {
   abstract getUniqueConstraints()                     : Array<any>
   abstract setChildEntities(name : string, val : any) : void
 
-  static async init(rc : RunContextServer) {
-    let res = await googleInit(rc),
-        datastoreClient
-    if (res.doAuth) {
-      datastoreClient = datastore ({
-        projectId   : res.projectId,
-        credentials : res.authKey
+  static async init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
+    if (gcloudEnv.authKey) {
+      return datastore ({
+        projectId   : gcloudEnv.projectId,
+        credentials : gcloudEnv.authKey
       })
     } else {
-      datastoreClient = datastore ({
-        projectId   : res.projectId
+      return datastore ({
+        projectId   : gcloudEnv.projectId
       })
     }
-    return {datastoreClient : datastoreClient, namespace : res.namespace}
   }
 
   constructor(rc : any, kindName : String) {

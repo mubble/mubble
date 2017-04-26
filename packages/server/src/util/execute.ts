@@ -9,7 +9,7 @@
 
 import * as child_process from 'child_process'
 
-export function execCmd (cmd : string, ignoreStdErr : boolean, ignoreErr : boolean) : Promise<String> {
+export function execCmd (cmd : string, ignoreStdErr ?: boolean, ignoreErr ?: boolean) : Promise<string> {
     const exec = child_process.exec
 
     return new Promise(function(resolve, reject) {
