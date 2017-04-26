@@ -10,6 +10,10 @@ export {startCluster}         from './cluster/master'
 export {web}                  from './xmn/web'
 export *                      from './rc-server'
 export {Repl}                 from './util/repl'
+export *                      from './util/userInfo'
+export *                      from './util/execute'
+export *                      from './gcp/gcloud-env'
+export *                      from './db/datastore/basedatastore'
 
 /* TODO:
 
