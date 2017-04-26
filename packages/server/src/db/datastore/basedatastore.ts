@@ -18,14 +18,14 @@ export abstract class BaseDatastore {
 
   // Common fields in all the tables
   [index : string] : any
-  _id              : Number | String
-  createTS         : Number
-  deleted          : Boolean
+  protected _id          : Number | String
+  protected createTS     : Number
+  protected deleted      : Boolean
      
   // holds most recent values for create, modify or delete
-  modTS            : Number
-  modUid           : Number
-  modLoc           : {lat : Number, long : Number}
+  protected modTS        : Number
+  protected modUid       : Number
+  protected modLoc       : {lat : Number, long : Number}
     
   // Internal references
   private _datastore     : any
@@ -41,7 +41,7 @@ export abstract class BaseDatastore {
   abstract getChildEntities()                         : {[index : string] : { type : string, val : any, model : any}} 
   abstract getIndexedFields()                         : Array<String>
   abstract getUniqueConstraints()                     : Array<any>
-  abstract setChildEntities(name : string, val : any) : void
+  abstract setChildEntity(name : string, val : any)   : void
 
   static async init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
@@ -56,10 +56,11 @@ export abstract class BaseDatastore {
     }
   }
 
-  constructor(rc : any, kindName : String) {
+  constructor(rc : any) {
     this._namespace     = rc.gcloudEnv.namespace
     this._datastore     = rc.gcloudEnv.datastore
-    this._kindName      = kindName
+    this._kindName      = this.constructor.name
+    console.log(this._kindName )
     this._childEntities = this.getChildEntities()
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields())
   }
@@ -266,7 +267,7 @@ export abstract class BaseDatastore {
         const dataModel = new model.constructor()
         
         dataModel.getWithTransaction(val[0][0][this._datastore.KEY], ignoreRNF, transaction)
-        this.setChildEntities(childEntity, dataModel.serialize())
+        this.setChildEntity(childEntity, dataModel.serialize())
       } else {
         const resArr    = [],
               dataModel = new model.constructor()
@@ -275,7 +276,7 @@ export abstract class BaseDatastore {
           dataModel.getWithTransaction(val[0][i][this._datastore.KEY], ignoreRNF, transaction)
           resArr.push(dataModel.serialize())
         }
-        this.setChildEntities(childEntity, resArr)
+        this.setChildEntity(childEntity, resArr)
       }
     }
   }
