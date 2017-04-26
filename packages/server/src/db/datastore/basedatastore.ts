@@ -57,8 +57,8 @@ export abstract class BaseDatastore {
   }
 
   constructor(rc : any, kindName : String) {
-    this._namespace     = rc.namespace
-    this._datastore     = rc.datastore
+    this._namespace     = rc.gcloudEnv.namespace
+    this._datastore     = rc.gcloudEnv.datastore
     this._kindName      = kindName
     this._childEntities = this.getChildEntities()
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields())
@@ -71,7 +71,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
-  protected async get(id : Number | String, ignoreRNF ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+  protected async get(rc : any, id : Number | String, ignoreRNF ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     const key = this.getDatastoreKey(id)
 
     let transaction : any
@@ -106,21 +106,21 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Insert to datastore 
 ------------------------------------------------------------------------------*/ 
-  protected async insert(insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
-    return await this.insertInternal(null, insertTime, ignoreDupRec, noChildren)
+  protected async insert(rc : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+    return await this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
   - Insert a child, provided the parent key 
 ------------------------------------------------------------------------------*/ 
-  protected async insertChild(parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
-    return await this.insertInternal (parentKey, insertTime, ignoreDupRec, noChildren)
+  protected async insertChild(rc : any, parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+    return await this.insertInternal (rc, parentKey, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
   - Insert a multiple objects in a go. provided, the objects are in an array
 ------------------------------------------------------------------------------*/ 
-  protected async bulkInsert(recs : Array<any>, noChildren ?: Boolean, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean> {
+  protected async bulkInsert(rc : any, recs : Array<any>, noChildren ?: Boolean, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean> {
     const transaction = this._datastore.transaction()
 
     try {
@@ -129,7 +129,7 @@ export abstract class BaseDatastore {
       for( let i in recs) {
         this.deserialize(recs[i])
         await this.setUnique ()
-        await this.insertWithTransaction(null, transaction, insertTime, ignoreDupRec )
+        await this.insertWithTransaction(rc, null, transaction, insertTime, ignoreDupRec )
       }
       await transaction.commit()
       return true
@@ -148,12 +148,12 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Update
 ------------------------------------------------------------------------------*/ 
-  protected async update(id : Number | String, updRec : any, ignoreRNF ?: Boolean) : Promise<Boolean> {
+  protected async update(rc : any, id : Number | String, updRec : any, ignoreRNF ?: Boolean) : Promise<Boolean> {
     const transaction = this._datastore.transaction()
 
     try {
       await transaction.run()
-      await this.updateWithTransaction(id, updRec, transaction, ignoreRNF )
+      await this.updateWithTransaction(rc, id, updRec, transaction, ignoreRNF )
       await transaction.commit()
       return true
     } 
@@ -168,13 +168,13 @@ export abstract class BaseDatastore {
   - Input should be an an array of objects to be updated
   - The object should contain its ID in the "_id" parameter
 ------------------------------------------------------------------------------*/ 
-  protected async bulkUpdate(updRecs : Array<any>, insertTime ?: Number, ignoreRNF ?: Boolean) : Promise<Boolean>{
+  protected async bulkUpdate(rc : any, updRecs : Array<any>, insertTime ?: Number, ignoreRNF ?: Boolean) : Promise<Boolean>{
     const transaction = this._datastore.transaction()
 
     try {
       await transaction.run()
       for(let rec of updRecs) {
-        await this.updateWithTransaction(rec._id, rec, transaction, ignoreRNF)
+        await this.updateWithTransaction(rc, rec._id, rec, transaction, ignoreRNF)
       } 
       await transaction.commit()
       return true
@@ -192,14 +192,14 @@ export abstract class BaseDatastore {
   - The unique param is deleted, if set
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
-  protected async softDelete(id : Number | String, params : any) : Promise<Boolean> {
+  protected async softDelete(rc : any, id : Number | String, params : any) : Promise<Boolean> {
     const transaction = this._datastore.transaction()
   
     if(!params) params = {}   
     params.deleted = true
     try {
       await transaction.run()
-      await this.updateWithTransaction (id, params, false, transaction)
+      await this.updateWithTransaction (rc, id, params, false, transaction)
       await this.deleteUnique()
       await transaction.commit()
       return true
@@ -246,7 +246,7 @@ export abstract class BaseDatastore {
                             INTERNAL FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-  private async getWithTransaction(key : Array<any>, transaction : any, ignoreRNF ?: Boolean) : Promise<void> {
+  private async getWithTransaction(rc : any, key : Array<any>, transaction : any, ignoreRNF ?: Boolean) : Promise<void> {
     const entityRec  = await transaction.get(key)
 
     if (!entityRec.length) {
@@ -280,7 +280,7 @@ export abstract class BaseDatastore {
     }
   }
 
-  private async insertInternal(parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+  private async insertInternal(rc : any, parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     const transaction  = this._datastore.transaction(),
           _datastoreKey = (parentKey) ? this.getDatastoreKey('', this._kindName, parentKey.path) : this.getDatastoreKey()  
 
@@ -294,7 +294,7 @@ export abstract class BaseDatastore {
         return true
       } else {
         await transaction.run()
-        await this.insertWithTransaction(parentKey, transaction, insertTime, ignoreDupRec)
+        await this.insertWithTransaction(rc, parentKey, transaction, insertTime, ignoreDupRec)
         await transaction.commit()
         return true
       }
@@ -314,7 +314,7 @@ export abstract class BaseDatastore {
     }
   }
 
-  private async insertWithTransaction(parentKey : any, transaction : any, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean>{
+  private async insertWithTransaction(rc : any, parentKey : any, transaction : any, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean>{
     const newRec = this.getInsertRec(insertTime)
           
     let datastoreKey = (parentKey) ? this.getDatastoreKey(null, this._kindName, parentKey.path) : this.getDatastoreKey()
@@ -341,16 +341,16 @@ export abstract class BaseDatastore {
 
           dsObj = obj.deserialize(dsObj)
         }
-        await dsObj.insertWithTransaction(insertTime, ignoreDupRec, datastoreKey, transaction)
+        await dsObj.insertWithTransaction(rc, insertTime, ignoreDupRec, datastoreKey, transaction)
       }
     }
     return true
   }
 
-  private async updateWithTransaction (id : Number | String, updRec : any, transaction : any, ignoreRNF ?: Boolean) : Promise<void>{
+  private async updateWithTransaction (rc : any, id : Number | String, updRec : any, transaction : any, ignoreRNF ?: Boolean) : Promise<void>{
     const key = this.getDatastoreKey(id)
 
-    await this.getWithTransaction(key, transaction, ignoreRNF)
+    await this.getWithTransaction(rc, key, transaction, ignoreRNF)
     Object.assign(this, updRec)
     const newRec = this.getUpdateRec()
     transaction.save({key: key, data:newRec})
