@@ -131,7 +131,7 @@ export class MubbleWebSocket {
 
   static getWsUrl(appName: string, version: string, host: string, port ?: number) {
 
-    return `ws://${host}${port ? ':' + port : ''}/socket.io?${MubbleWebSocket.encodeParams({
+    return `ws://${host}${port ? ':' + port : ''}/engine.io?${MubbleWebSocket.encodeParams({
       [CONST.APP] : appName,
       [CONST.VER] : version
     })}`
