@@ -11,7 +11,7 @@
 const datastore : any = require('@google-cloud/datastore')
 
 import {RunContextServer} from '../../rc-server'
-import {ERROR_CODES}      from './errorCodes'
+import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 
 export abstract class BaseDatastore {
@@ -77,14 +77,13 @@ export abstract class BaseDatastore {
     let transaction : any
 
     try {
-      if (!this._childEntities || this._childEntities === {} || noChildren) {   
+      if (!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren) {   
         const entityRec = await this._datastore.get(key)
 
-        if (entityRec.length === 0) {
-          if (ignoreRNF) return true
+        if (!entityRec.length) {
+          if (ignoreRNF) return false
           throw (ERROR_CODES.RECORD_NOT_FOUND)
         }
-
         this._id = this.getIdFromResult(rc, entityRec[0])
         this.deserialize(rc, entityRec[0])
         return true       
@@ -97,10 +96,9 @@ export abstract class BaseDatastore {
       }
     }
     catch (err) {
-      console.log(err)
-      // apiInfo.log('_datastore.get [' + err.code + ']', err.message || err)
+      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
       if (transaction) await transaction.rollback()
-      throw(new Error(err))
+      throw(new Error(ERROR_CODES.GCP_ERROR))
     }
   }
 
@@ -127,8 +125,8 @@ export abstract class BaseDatastore {
     try {
       await transaction.run()
 
-      for( let i in recs) {
-        this.deserialize(rc, recs[i])
+      for(const rec of recs) {
+        this.deserialize(rc, rec)
         await this.setUnique (rc)
         await this.insertWithTransaction(rc, null, transaction, insertTime, ignoreDupRec )
       }
@@ -136,7 +134,7 @@ export abstract class BaseDatastore {
       return true
     }
     catch(err) {
-      // apiInfo.log ('datastore.bulkInsert [' + err.code + ']', err.message || err)
+      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       for (let i in recs) { 
         this.deserialize(rc, recs[i])
@@ -174,14 +172,14 @@ export abstract class BaseDatastore {
 
     try {
       await transaction.run()
-      for(let rec of updRecs) {
+      for(const rec of updRecs) {
         await this.updateWithTransaction(rc, rec._id, rec, transaction, ignoreRNF)
       } 
       await transaction.commit()
       return true
     }
     catch (err) {
-      // apiInfo.log ('datastore.bulkUpdate [' + err.code + ']', err.message || err)
+      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }   
@@ -206,7 +204,7 @@ export abstract class BaseDatastore {
       return true
     } 
     catch (err) {
-      // apiInfo.log ('_datastore.softDelete [' + err.code + ']', err.message || err)
+      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
@@ -217,29 +215,9 @@ export abstract class BaseDatastore {
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
   protected getIdFromResult(rc : any, res : any) : Number | string {
-    const key = res[this._datastore.KEY].path
-          
+    const key = res[this._datastore.KEY].path   
     return key[key.length - 1]
   }
-
-
-
-
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            UTILITY FUNCTIONS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
-  // A quick way to get auto columns to ignore when listing records
-  // toString() {
-  //   const obj = {}
-    
-  //   mu(_).some((val, key) => {
-  //     if (key.substr(0, 1) === '_') return
-  //     if (this.__autoFields.indexOf(key) !== -1) return
-  //     obj[key] = val
-  //   })
-    
-  //   return this._kindName + '#' + this._id + '==>' + mu(obj).toString()
-  // }
   
 
 
@@ -258,7 +236,7 @@ export abstract class BaseDatastore {
     this._id = this.getIdFromResult(rc, entityRec[0])
     this.deserialize(rc, entityRec[0])
     
-    for (const childEntity  in this._childEntities) {
+    for (let childEntity  in this._childEntities) {
       const model = this._childEntities[childEntity].model,
             query = this._datastore.createQuery(this._namespace, model._kindName).hasAncestor(key),
             val   = await this._datastore.runQuery(query)
@@ -287,7 +265,7 @@ export abstract class BaseDatastore {
 
     try {
       await this.setUnique (rc)
-      if ((!this._childEntities || this._childEntities === {} || noChildren)) {
+      if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
         const newRec = this.getInsertRec(rc, insertTime)
 
         await this._datastore.insert({key: datastoreKey, data: newRec})
@@ -300,14 +278,13 @@ export abstract class BaseDatastore {
         return true
       }
     } catch (err) {
-      // apiInfo.log ('_datastore.insert [' + err.code + ']', err.message, err)
+      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
       if (transaction) await transaction.rollback()
       await this.deleteUnique (rc)
       if (err.toString().split(':')[1] !== ' entity already exists') {
         throw(new Error(ERROR_CODES.GCP_ERROR))
       } else {
         if (ignoreDupRec) {
-          // apiInfo.log('_datastore.insert: Duplicate record exists, ignoring error; Key = ' + JSON.stringify(_datastoreKey))
           return true
         }
         throw(new Error(ERROR_CODES.RECORD_ALREADY_EXISTS))
@@ -323,7 +300,7 @@ export abstract class BaseDatastore {
     if (!this._id) { // If we already have a key, no need to allocate
       const key = await transaction.allocateIds(datastoreKey, 1) 
 
-      this._id        = key[0][0].path[key[0][0].path.length - 1]
+      this._id     = key[0][0].path[key[0][0].path.length - 1]
       datastoreKey = key[0][0]
     }
 
@@ -335,7 +312,7 @@ export abstract class BaseDatastore {
             val        = this._childEntities[childEntity].val,
             dsObjArray = (type === 'array') ? val : [val] // Put in an array if 'object'
 
-      for( let dsObj of dsObjArray) {
+      for(let dsObj of dsObjArray) {
         if(!(dsObj instanceof BaseDatastore)) {
           const model = this._childEntities[childEntity].model,
                 obj   = new model.constructor()
@@ -363,15 +340,15 @@ export abstract class BaseDatastore {
   private serialize(rc : any, value : any) : Array<any> { 
     const rec = []
 
-    for (let k in value) { 
-      let val = value[k]
-      if (k.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
+    for (let prop in value) { 
+      let val = value[prop]
+      if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
       if (val && typeof(val) === 'object' && val.serialize instanceof Function) {
         val = val.serialize(rc)
       }
       
-      if(!(k in this._childEntities)){
-        rec.push ({ name: k, value: val, excludeFromIndexes: (this._indexedFields.indexOf(k) === -1) })
+      if(!(prop in this._childEntities)){
+        rec.push ({ name: prop, value: val, excludeFromIndexes: (this._indexedFields.indexOf(prop) === -1) })
       }
     }
     return rec
@@ -482,8 +459,12 @@ export abstract class BaseDatastore {
         await this._datastore.insert({key: uniqueEntityKey, data: ''})
       }
       catch (err) {
-        // apiInfo.warn('_datastore.setUnique: Error setting Unique; Key = ' + JSON.stringify(uniqueEntityKey))
-        throw (new Error(err))
+        rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+        if (err.toString().split(':')[1] !== ' entity already exists') {
+          throw(new Error(ERROR_CODES.GCP_ERROR))
+        } else {
+          throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
+        }
       }
     }
     for(let child in this._childEntities) {
@@ -504,8 +485,8 @@ export abstract class BaseDatastore {
       try {
         await this._datastore.delete(uniqueEntityKey)
       } catch (err) {
-        // apiInfo.error('_datastore.deleteUnique: Error deleting Unique; Key = ' + JSON.stringify(uniqueEntityKey))
-        throw (new Error(err))
+        rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+        throw (new Error(ERROR_CODES.GCP_ERROR))
       }
     }
     for (let child in this._childEntities) {

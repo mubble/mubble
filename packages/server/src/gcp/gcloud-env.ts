@@ -13,7 +13,7 @@ import {
         RUN_MODE,
        }                      from '../rc-server'
 import {execCmd}              from '../util/execute'
-import {getRunAs}             from '../util/userInfo'
+import {getRunAs}             from '../util/user-info'
 
 const Credentials = {
   AUTH_KEY : {
