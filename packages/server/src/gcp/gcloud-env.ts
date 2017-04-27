@@ -70,9 +70,9 @@ export class GcloudEnv {
 
   public datastore : any  
 
-  constructor(public projectId : string,
-              public namespace : string,
-              public authKey  ?: object) {
+  constructor(public projectId  : string,
+              public namespace  : string,
+              public authKey   ?: object) {
 
   }
 }
