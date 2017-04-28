@@ -40,9 +40,40 @@ export abstract class BaseDatastore {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           ABSTRACT FUNCTIONS. NEED TO BE IMPLEMENTED IN MODEL CLASS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
-  abstract getChildEntities(rc : any)                         : {[index : string] : { model : any, isArray : boolean }} 
-  abstract getIndexedFields(rc : any)                         : Array<string>
-  abstract getUniqueConstraints(rc : any)                     : Array<any>
+/*------------------------------------------------------------------------------
+  - Get a list of Fields which need to be indexed in Datastore
+  - Return Values is an array of
+    - field Name in this Entity
+  - Example: 
+    return ['mobileNo', 'deactivated']
+------------------------------------------------------------------------------*/                  
+  abstract getIndexedFields(rc : any) : Array<string>
+
+/*------------------------------------------------------------------------------
+  - Get a list of Fields which need to be checked for Uniqueness across the entire Entity
+  - Return Values is an array of
+    - field Name in this Entity
+  - Example: 
+    return ['mobileNo', 'emailId']
+------------------------------------------------------------------------------*/                  
+  abstract getUniqueConstraints(rc : any) : Array<string>
+
+/*------------------------------------------------------------------------------
+  - Get Child Entities 
+  - Return Values is an object with 
+    - field Name of the childEntity within this Entity (Parent Entity)
+    - value = Object containing an instance of the Child Entity & an indicator if the object is an array
+  - Example: 
+    return { 'userLink': { model: new UserLink(rc), isArray: true }}
+------------------------------------------------------------------------------*/                  
+  abstract getChildEntities(rc : any) : {[index : string] : { model : BaseDatastore, isArray : boolean }} 
+
+/*------------------------------------------------------------------------------
+  - Set the child Entity value
+  - Parameters
+    - field Name of the childEntity within this Entity (Parent Entity)
+    - value of the childEntity
+------------------------------------------------------------------------------*/                  
   abstract setChildEntity(rc : any, name : string, val : any) : void
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -315,12 +346,10 @@ export abstract class BaseDatastore {
             dsObjArray = (isArray) ? this[childEntity] : [ this[childEntity] ] // Put in an array if 'object'
 
       for(let dsObj of dsObjArray) {
-        if(!(dsObj instanceof BaseDatastore)) {
-          const model = this._childEntities[childEntity].model,
-                obj   = new model.constructor()
+        const model = this._childEntities[childEntity].model,
+              obj   = new model.constructor()
 
-          dsObj = obj.deserialize(rc, dsObj)
-        }
+        dsObj = obj.deserialize(rc, dsObj)
         await dsObj.insertWithTransaction(rc, insertTime, ignoreDupRec, datastoreKey, transaction)
       }
     }
@@ -469,8 +498,7 @@ export abstract class BaseDatastore {
       }
     }
     for(let child in this._childEntities) {
-      if (this._childEntities[child].model.prototype instanceof BaseDatastore)
-        await this._childEntities[child].model.setUnique()
+      await this._childEntities[child].model.setUnique()
     }
     return true
   }
@@ -491,8 +519,7 @@ export abstract class BaseDatastore {
       }
     }
     for (let child in this._childEntities) {
-      if (this._childEntities[child].model.prototype instanceof BaseDatastore)
-        await this._childEntities[child].model.deleteUnique()
+      await this._childEntities[child].model.deleteUnique()
     }
     return true
   } 
