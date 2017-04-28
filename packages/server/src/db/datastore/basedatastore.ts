@@ -47,7 +47,7 @@ export abstract class BaseDatastore {
   - Example: 
     return ['mobileNo', 'deactivated']
 ------------------------------------------------------------------------------*/                  
-  abstract getIndexedFields(rc : any) : Array<string>
+  abstract getIndexedFields(rc : RunContextServer) : Array<string>
 
 /*------------------------------------------------------------------------------
   - Get a list of Fields which need to be checked for Uniqueness across the entire Entity
@@ -56,7 +56,7 @@ export abstract class BaseDatastore {
   - Example: 
     return ['mobileNo', 'emailId']
 ------------------------------------------------------------------------------*/                  
-  abstract getUniqueConstraints(rc : any) : Array<string>
+  abstract getUniqueConstraints(rc : RunContextServer) : Array<string>
 
 /*------------------------------------------------------------------------------
   - Get Child Entities 
@@ -66,7 +66,7 @@ export abstract class BaseDatastore {
   - Example: 
     return { 'userLink': { model: new UserLink(rc), isArray: true }}
 ------------------------------------------------------------------------------*/                  
-  abstract getChildEntities(rc : any) : {[index : string] : { model : BaseDatastore, isArray : boolean }} 
+  abstract getChildEntities(rc : RunContextServer) : {[index : string] : { model : BaseDatastore, isArray : boolean }} 
 
 /*------------------------------------------------------------------------------
   - Set the child Entity value
@@ -74,7 +74,7 @@ export abstract class BaseDatastore {
     - field Name of the childEntity within this Entity (Parent Entity)
     - value of the childEntity
 ------------------------------------------------------------------------------*/                  
-  abstract setChildEntity(rc : any, name : string, val : any) : void
+  abstract setChildEntity(rc : RunContextServer, name : string, val : any) : void
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -92,10 +92,10 @@ export abstract class BaseDatastore {
     }
   }
 
-  constructor(rc : any) {
-    this._namespace     = rc.gcloudEnv.namespace
-    this._datastore     = rc.gcloudEnv.datastore
-    this._kindName      = this.constructor.name
+  constructor(rc : RunContextServer, gcloudEnv : GcloudEnv, kindName : string) {
+    this._namespace     = gcloudEnv.namespace
+    this._datastore     = gcloudEnv.datastore
+    this._kindName      = kindName.toLowerCase()
     this._childEntities = this.getChildEntities(rc)
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
   }
@@ -107,7 +107,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
-  protected async get(rc : any, id : Number | String, ignoreRNF ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+  protected async get(rc : RunContextServer, id : Number | String, ignoreRNF ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     const key = this.getDatastoreKey(rc, id)
 
     let transaction : any
@@ -141,21 +141,21 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Insert to datastore 
 ------------------------------------------------------------------------------*/ 
-  protected async insert(rc : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+  protected async insert(rc : RunContextServer, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     return await this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
   - Insert a child, provided the parent key 
 ------------------------------------------------------------------------------*/ 
-  protected async insertChild(rc : any, parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+  protected async insertChild(rc : RunContextServer, parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     return await this.insertInternal (rc, parentKey, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
   - Insert a multiple objects in a go. provided, the objects are in an array
 ------------------------------------------------------------------------------*/ 
-  protected async bulkInsert(rc : any, recs : Array<any>, noChildren ?: Boolean, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean> {
+  protected async bulkInsert(rc : RunContextServer, recs : Array<any>, noChildren ?: Boolean, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean> {
     const transaction = this._datastore.transaction()
 
     try {
@@ -183,7 +183,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Update
 ------------------------------------------------------------------------------*/ 
-  protected async update(rc : any, id : Number | String, updRec : any, ignoreRNF ?: Boolean) : Promise<Boolean> {
+  protected async update(rc : RunContextServer, id : Number | String, updRec : any, ignoreRNF ?: Boolean) : Promise<Boolean> {
     const transaction = this._datastore.transaction()
 
     try {
@@ -203,7 +203,7 @@ export abstract class BaseDatastore {
   - Input should be an an array of objects to be updated
   - The object should contain its ID in the "_id" parameter
 ------------------------------------------------------------------------------*/ 
-  protected async bulkUpdate(rc : any, updRecs : Array<any>, insertTime ?: Number, ignoreRNF ?: Boolean) : Promise<Boolean>{
+  protected async bulkUpdate(rc : RunContextServer, updRecs : Array<any>, insertTime ?: Number, ignoreRNF ?: Boolean) : Promise<Boolean>{
     const transaction = this._datastore.transaction()
 
     try {
@@ -227,7 +227,7 @@ export abstract class BaseDatastore {
   - The unique param is deleted, if set
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
-  protected async softDelete(rc : any, id : Number | String, params : any) : Promise<Boolean> {
+  protected async softDelete(rc : RunContextServer, id : Number | String, params : any) : Promise<Boolean> {
     const transaction = this._datastore.transaction()
   
     if(!params) params = {}   
@@ -250,7 +250,7 @@ export abstract class BaseDatastore {
   - Get ID from result
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
-  protected getIdFromResult(rc : any, res : any) : Number | string {
+  protected getIdFromResult(rc : RunContextServer, res : any) : Number | string {
     const key = res[this._datastore.KEY].path   
     return key[key.length - 1]
   }
@@ -261,7 +261,7 @@ export abstract class BaseDatastore {
                             INTERNAL FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-  private async getWithTransaction(rc : any, key : Array<any>, transaction : any, ignoreRNF ?: Boolean) : Promise<void> {
+  private async getWithTransaction(rc : RunContextServer, key : Array<any>, transaction : any, ignoreRNF ?: Boolean) : Promise<void> {
     const entityRec  = await transaction.get(key)
 
     if (!entityRec.length) {
@@ -295,7 +295,7 @@ export abstract class BaseDatastore {
     }
   }
 
-  private async insertInternal(rc : any, parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
+  private async insertInternal(rc : RunContextServer, parentKey : any, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     const transaction  = this._datastore.transaction(),
           datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)  
 
@@ -326,7 +326,7 @@ export abstract class BaseDatastore {
     }
   }
 
-  private async insertWithTransaction(rc : any, parentKey : any, transaction : any, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean>{
+  private async insertWithTransaction(rc : RunContextServer, parentKey : any, transaction : any, insertTime ?: Number, ignoreDupRec ?: Boolean) : Promise<Boolean>{
     const newRec = this.getInsertRec(rc, insertTime)
           
     let datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)
@@ -356,7 +356,7 @@ export abstract class BaseDatastore {
     return true
   }
 
-  private async updateWithTransaction (rc : any, id : Number | String, updRec : any, transaction : any, ignoreRNF ?: Boolean) : Promise<void>{
+  private async updateWithTransaction (rc : RunContextServer, id : Number | String, updRec : any, transaction : any, ignoreRNF ?: Boolean) : Promise<void>{
     const key = this.getDatastoreKey(rc, id)
 
     await this.getWithTransaction(rc, key, transaction, ignoreRNF)
@@ -367,7 +367,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Serialize is towards Datastore. Need to convert it to Data format
 ------------------------------------------------------------------------------*/
-  private serialize(rc : any, value : any) : Array<any> { 
+  private serialize(rc : RunContextServer, value : any) : Array<any> { 
     const rec = []
 
     for (let prop in value) { 
@@ -387,7 +387,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Assign the values of the object passed to the respective fields
 ------------------------------------------------------------------------------*/
-  private deserialize(rc : any, value : any) : void {
+  private deserialize(rc : RunContextServer, value : any) : void {
     
     for (let prop in value) { 
       let val     = value[prop],
@@ -409,7 +409,7 @@ export abstract class BaseDatastore {
   - The whole model class along with fixed params defined in datastore is
     taken if 'insertRec' is not provided 
 ------------------------------------------------------------------------------*/
-  private getInsertRec(rc : any, insertTime ?: Number, insertRec ?: any) : Array<any> {
+  private getInsertRec(rc : RunContextServer, insertTime ?: Number, insertRec ?: any) : Array<any> {
     let retArr : Array<any> = []
         
     insertRec  = insertRec  || this
@@ -432,7 +432,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Records are to be converted to a format accepted by datastore
 ------------------------------------------------------------------------------*/
-  private getUpdateRec(rc : any, updateRec ?: any, updateTime ?: Number) : Array<any> {
+  private getUpdateRec(rc : RunContextServer, updateRec ?: any, updateTime ?: Number) : Array<any> {
     let retArr : Array<any> = []
         
     if (!updateRec) updateRec = this
@@ -457,7 +457,7 @@ export abstract class BaseDatastore {
       path      : [The complete path]
     }
 ------------------------------------------------------------------------------*/
-  private getDatastoreKey(rc : any, id ?: Number | String | null , kindName ?: String, parentPath ?: Array<any>) {
+  private getDatastoreKey(rc : RunContextServer, id ?: Number | String | null , kindName ?: String, parentPath ?: Array<any>) {
     let datastoreKey
 
     if (!kindName) kindName = this._kindName
@@ -480,7 +480,7 @@ export abstract class BaseDatastore {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  private async setUnique(rc : any) : Promise<Boolean> {
+  private async setUnique(rc : RunContextServer) : Promise<Boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
@@ -506,7 +506,7 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - The unique keys are to be deleted when the corresponding entity is deleted
 ------------------------------------------------------------------------------*/
-  private async deleteUnique(rc : any) : Promise<Boolean> {
+  private async deleteUnique(rc : RunContextServer) : Promise<Boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
