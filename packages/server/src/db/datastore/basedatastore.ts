@@ -37,12 +37,17 @@ export abstract class BaseDatastore {
     [index : string] : { type : string, val : any, model : any}
   }
 
-  //Functions that need to be over-ridden  
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+          ABSTRACT FUNCTIONS. NEED TO BE IMPLEMENTED IN MODEL CLASS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   abstract getChildEntities()                         : {[index : string] : { type : string, val : any, model : any}} 
-  abstract getIndexedFields()                         : Array<String>
+  abstract getIndexedFields()                         : Array<string>
   abstract getUniqueConstraints()                     : Array<any>
   abstract setChildEntity(name : string, val : any)   : void
 
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                      INITIALIZATION FUNCTION
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
       return datastore ({
