@@ -50,8 +50,8 @@ export class Repl {
   }
 
   _print(...args: any[]) {
-    args.forEach(function(val, index) {
-      this.rc.status(val, typeof(val))
+    args.forEach((val, index) => {
+      this.rc.status('repl', val, typeof(val))
     })
   }
   
@@ -63,7 +63,7 @@ export class Repl {
     return pr.then( function() {
       console.log('Success...', Date.now() - ts, 'ms')
       _._print(...arguments)
-    }).catch(function() {
+    }, function() {
       console.log('Failed!', Date.now() - ts, 'ms')
       _._print(...arguments)
     })
@@ -71,5 +71,16 @@ export class Repl {
 
   set pr(pr: Promise<any>) {
     this.print(pr)
+  }
+
+  callApi(apiName: string, param: object) {
+    
+    const rc:any = this.rc
+
+    const irb = rc.router.getNewInRequest()
+    irb.setApi(apiName)
+    irb.setParam(param)
+
+    this.pr = rc.router.routeRequest(rc, irb)
   }
 }
