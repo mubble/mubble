@@ -25,13 +25,12 @@ export abstract class BaseDatastore {
   // holds most recent values for create, modify or delete
   protected modTS        : Number
   protected modUid       : Number
-  protected modLoc       : {lat : Number, long : Number}
     
   // Internal references
   private _datastore     : any
   private _namespace     : String       
   private _kindName      : String
-  private _autoFields    : Array<String> = ['createTS', 'deleted', 'modTS', 'modUid', 'modLoc']
+  private _autoFields    : Array<String> = ['createTS', 'deleted', 'modTS', 'modUid']
   private _indexedFields : Array<String> = ['createTS', 'deleted', 'modTS']
   private _childEntities : {
     [index : string] : { model : any, isArray : boolean }
