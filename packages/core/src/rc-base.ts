@@ -69,7 +69,7 @@ export abstract class RunContextBase {
    * @param obj: this 
    */
   getName(obj: any): string {
-    return obj.name || (obj.constructor ? obj.constructor.name : '?')
+    return obj ? (obj.name || (obj.constructor ? obj.constructor.name : '?')) : '?'
   }
 
   isDebug(): boolean {
