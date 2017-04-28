@@ -40,10 +40,10 @@ export abstract class BaseDatastore {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           ABSTRACT FUNCTIONS. NEED TO BE IMPLEMENTED IN MODEL CLASS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
-  abstract getChildEntities()                         : {[index : string] : { model : any, isArray : boolean }} 
-  abstract getIndexedFields()                         : Array<string>
-  abstract getUniqueConstraints()                     : Array<any>
-  abstract setChildEntity(name : string, val : any)   : void
+  abstract getChildEntities(rc : any)                         : {[index : string] : { model : any, isArray : boolean }} 
+  abstract getIndexedFields(rc : any)                         : Array<string>
+  abstract getUniqueConstraints(rc : any)                     : Array<any>
+  abstract setChildEntity(rc : any, name : string, val : any) : void
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -65,8 +65,8 @@ export abstract class BaseDatastore {
     this._namespace     = rc.gcloudEnv.namespace
     this._datastore     = rc.gcloudEnv.datastore
     this._kindName      = this.constructor.name
-    this._childEntities = this.getChildEntities()
-    this._indexedFields = this._indexedFields.concat(this.getIndexedFields())
+    this._childEntities = this.getChildEntities(rc)
+    this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -250,7 +250,7 @@ export abstract class BaseDatastore {
         const dataModel = new model.constructor()
         
         dataModel.getWithTransaction(rc, val[0][0][this._datastore.KEY], transaction, ignoreRNF)
-        this.setChildEntity(childEntity, dataModel.serialize(rc))
+        this.setChildEntity(rc, childEntity, dataModel.serialize(rc))
       } else {
         const resArr    = [],
               dataModel = new model.constructor()
@@ -259,7 +259,7 @@ export abstract class BaseDatastore {
           dataModel.getWithTransaction(rc, val[0][i][this._datastore.KEY], transaction, ignoreRNF)
           resArr.push(dataModel.serialize(rc))
         }
-        this.setChildEntity(childEntity, resArr)
+        this.setChildEntity(rc, childEntity, resArr)
       }
     }
   }
@@ -455,7 +455,7 @@ export abstract class BaseDatastore {
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
   private async setUnique(rc : any) : Promise<Boolean> {
-    const uniqueConstraints = this.getUniqueConstraints() || []
+    const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( let constraint of uniqueConstraints) {
       let uniqueEntityKey = this.getDatastoreKey(rc, constraint, this._kindName + '_unique')
@@ -482,7 +482,7 @@ export abstract class BaseDatastore {
   - The unique keys are to be deleted when the corresponding entity is deleted
 ------------------------------------------------------------------------------*/
   private async deleteUnique(rc : any) : Promise<Boolean> {
-    const uniqueConstraints = this.getUniqueConstraints() || []
+    const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( let constraint of uniqueConstraints) {
       let uniqueEntityKey = this.getDatastoreKey(rc, constraint, this._kindName + '_unique')
