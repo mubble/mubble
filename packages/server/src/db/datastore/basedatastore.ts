@@ -271,9 +271,7 @@ export abstract class BaseDatastore {
     try {
       await this.setUnique (rc)
       if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
-        const newRec = this.getInsertRec(rc, insertTime)
-
-        await this._datastore.insert({key: datastoreKey, data: newRec})
+        await this._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
         this._id = datastoreKey.path[datastoreKey.path.length - 1]
         return true
       } else {
@@ -334,8 +332,7 @@ export abstract class BaseDatastore {
 
     await this.getWithTransaction(rc, key, transaction, ignoreRNF)
     Object.assign(this, updRec)
-    const newRec = this.getUpdateRec(rc)
-    transaction.save({key: key, data:newRec})
+    transaction.save({key: key, data: this.getUpdateRec(rc)})
   }
 
 /*------------------------------------------------------------------------------
@@ -457,8 +454,8 @@ export abstract class BaseDatastore {
   private async setUnique(rc : any) : Promise<Boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
-    for( let constraint of uniqueConstraints) {
-      let uniqueEntityKey = this.getDatastoreKey(rc, constraint, this._kindName + '_unique')
+    for( const constraint of uniqueConstraints) {
+      let uniqueEntityKey = this.getDatastoreKey(rc, this[constraint], this._kindName + '_unique')
       try {
         await this._datastore.insert({key: uniqueEntityKey, data: ''})
       }
@@ -484,8 +481,8 @@ export abstract class BaseDatastore {
   private async deleteUnique(rc : any) : Promise<Boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
-    for( let constraint of uniqueConstraints) {
-      let uniqueEntityKey = this.getDatastoreKey(rc, constraint, this._kindName + '_unique')
+    for( const constraint of uniqueConstraints) {
+      let uniqueEntityKey = this.getDatastoreKey(rc, this[constraint], this._kindName + '_unique')
       try {
         await this._datastore.delete(uniqueEntityKey)
       } catch (err) {
