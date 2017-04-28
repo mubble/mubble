@@ -40,7 +40,7 @@ export abstract class BaseDatastore {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           ABSTRACT FUNCTIONS. NEED TO BE IMPLEMENTED IN MODEL CLASS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
-  abstract getChildEntities()                         : {[index : string] : { type : string, val : any, model : any}} 
+  abstract getChildEntities()                         : {[index : string] : { array : boolean, model : any}} 
   abstract getIndexedFields()                         : Array<string>
   abstract getUniqueConstraints()                     : Array<any>
   abstract setChildEntity(name : string, val : any)   : void
