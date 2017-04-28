@@ -34,13 +34,13 @@ export abstract class BaseDatastore {
   private _autoFields    : Array<String> = ['createTS', 'deleted', 'modTS', 'modUid', 'modLoc']
   private _indexedFields : Array<String> = ['createTS', 'deleted', 'modTS']
   private _childEntities : {
-    [index : string] : { type : string, val : any, model : any}
+    [index : string] : { model : any, isArray : boolean }
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
           ABSTRACT FUNCTIONS. NEED TO BE IMPLEMENTED IN MODEL CLASS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
-  abstract getChildEntities()                         : {[index : string] : { array : boolean, model : any}} 
+  abstract getChildEntities()                         : {[index : string] : { model : any, isArray : boolean }} 
   abstract getIndexedFields()                         : Array<string>
   abstract getUniqueConstraints()                     : Array<any>
   abstract setChildEntity(name : string, val : any)   : void
@@ -246,7 +246,7 @@ export abstract class BaseDatastore {
             query = this._datastore.createQuery(this._namespace, model._kindName).hasAncestor(key),
             val   = await this._datastore.runQuery(query)
 
-      if (this._childEntities[childEntity].type === 'object') {
+      if (this._childEntities[childEntity].isArray === false) {
         const dataModel = new model.constructor()
         
         dataModel.getWithTransaction(rc, val[0][0][this._datastore.KEY], transaction, ignoreRNF)
@@ -313,9 +313,8 @@ export abstract class BaseDatastore {
 
     // Check for Child Entities
     for (let childEntity in this._childEntities) {
-      const type       = this._childEntities[childEntity].type,
-            val        = this._childEntities[childEntity].val,
-            dsObjArray = (type === 'array') ? val : [val] // Put in an array if 'object'
+      const isArray    = this._childEntities[childEntity].isArray,
+            dsObjArray = (isArray) ? this[childEntity] : [ this[childEntity] ] // Put in an array if 'object'
 
       for(let dsObj of dsObjArray) {
         if(!(dsObj instanceof BaseDatastore)) {
