@@ -15,7 +15,6 @@ export *           from './util/regex'
 export *           from './xmn/mubble-web-socket'
 export *           from './xmn/xmn-router'
 export *           from './xmn/xmn-registry'
-export *           from './xmn/incoming-base'
 
 
 

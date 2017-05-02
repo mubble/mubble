@@ -46,7 +46,7 @@ export class ClusterWorker {
       this.pendingInitResolve = resolve
       setTimeout(() => {
         if (this.pendingInitResolve) { // indicates promise is not fulfilled
-          rc.isError() && rc.error(this.constructor.name, 'Could not get worker index in stipulated ms', CONST.MS_WAIT_FOR_INIT)
+          rc.isError() && rc.error(rc.getName(this), 'Could not get worker index in stipulated ms', CONST.MS_WAIT_FOR_INIT)
           process.exit(ipc.CODE.VOLUNTARY_DEATH)
         }
       }, CONST.MS_WAIT_FOR_INIT)
@@ -56,7 +56,7 @@ export class ClusterWorker {
   onMessage(rc: RunContextServer, msg: any) {
 
     if (!_.isPlainObject(msg)) {
-      return rc.isError() && rc.error(this.constructor.name, 'Received invalid message', msg)
+      return rc.isError() && rc.error(rc.getName(this), 'Received invalid message', msg)
     }
 
     switch (msg.id) {
@@ -67,14 +67,14 @@ export class ClusterWorker {
       const fn = this.pendingInitResolve
       this.pendingInitResolve = null
       fn() // resolve so that we can go ahead with further init
-      rc.isStatus() && rc.status(this.constructor.name, 'Started worker with index', this.workerIndex)
+      rc.isStatus() && rc.status(rc.getName(this), 'Started worker with index', this.workerIndex)
       break
     }
 
   }
 
   voluntaryExit(rc: RunContextServer) {
-    rc.isStatus() && rc.status(this.constructor.name, 'Voluntarily exiting the worker process')
+    rc.isStatus() && rc.status(rc.getName(this), 'Voluntarily exiting the worker process')
     process.exit(ipc.CODE.VOLUNTARY_DEATH)
   }
 

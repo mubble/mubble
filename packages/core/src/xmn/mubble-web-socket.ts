@@ -56,7 +56,12 @@ will be defined later.
 
 
 ------------------------------------------------------------------------------*/
-import {XmnRouter} from './xmn-router'
+import {  XmnRouter, 
+          Protocol,
+          IncomingConnectionBase, 
+          IncomingRequestBase, 
+          IncomingEventBase} from './xmn-router'
+
 import {RunContextBase} from '../rc-base'
 
 enum REQUEST_OR_EVENT {
@@ -144,10 +149,18 @@ export class MubbleWebSocket {
     .join('&');    
   }
 
-  private mapPending: Map<number, Pending> = new Map()
-  private timer: any
+  private mapPending  : Map<number, Pending> = new Map()
+  private timer       : any
+  private refRc       : RunContextBase
+  private platformWs  : any
+  private router      : XmnRouter
 
-  constructor(private refRc: RunContextBase, private platformWs : any, private router : XmnRouter) {
+  init(refRc: RunContextBase, platformWs : any, router : XmnRouter) {
+
+    this.refRc      = refRc
+    this.platformWs = platformWs
+    this.router     = router
+
     try {
       platformWs.onopen     = this.onOpen.bind(this)
       platformWs.onmessage  = this.onMessage.bind(this)
@@ -180,13 +193,20 @@ export class MubbleWebSocket {
 
       const incomingMsg = JSON.parse(msg)
 
+      // TODO ???? dummy to be fixed
+      const icb = this.router.beforeConnect(rc, {
+        ip: '', protocol: Protocol.WEBSOCKET, host: '', port: 9000, url: '',
+        headers: {}, appName: 'NCApp', appVersion: '0.0.1', jsVersion: '0.0.1',
+        channel: 'ANDROID'
+      })
+
       if (incomingMsg.type === 'request') {
 
-        const irb = this.router.getNewInRequest()
-        irb.setApi(incomingMsg.api)
-        irb.setParam(incomingMsg.data)
-
-        this.router.routeRequest(rc, irb).then(obj => {
+        this.router.routeRequest(rc, icb, {
+          api: incomingMsg.api,
+          param: incomingMsg.data,
+          startTs : Date.now()
+        }).then(obj => {
           this._send(rc, {
             type  : 'response',
             error : null,
@@ -220,12 +240,14 @@ export class MubbleWebSocket {
         }
 
       } else if (incomingMsg.type === 'event') {
-
-        const ieb = this.router.getNewInEvent()
-        ieb.setName(incomingMsg.name)
-        ieb.setParam(incomingMsg.data)
         
-        this.router.routeEvent(rc, ieb)
+        this.router.routeEvent(rc, icb, {
+          name: incomingMsg.name,
+          param: incomingMsg.data,
+          startTs : Date.now()
+        }).catch(err => {
+          rc.isError() && rc.error(rc.getName(this), 'Bombed while processing event', err)
+        })
       }
     } catch (err) {
       return console.error('got invalid message', err, messageEvent)

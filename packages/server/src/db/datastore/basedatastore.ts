@@ -81,21 +81,21 @@ export abstract class BaseDatastore {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
-      return datastore ({
+      gcloudEnv.datastore = datastore ({
         projectId   : gcloudEnv.projectId,
         credentials : gcloudEnv.authKey
       })
     } else {
-      return datastore ({
+      gcloudEnv.datastore = datastore ({
         projectId   : gcloudEnv.projectId
       })
     }
   }
 
-  constructor(rc : any) {
-    this._namespace     = rc.gcloudEnv.namespace
-    this._datastore     = rc.gcloudEnv.datastore
-    this._kindName      = this.constructor.name
+  constructor(rc : any, gcloudEnv : GcloudEnv, collectionName: string) {
+    this._namespace     = gcloudEnv.namespace
+    this._datastore     = gcloudEnv.datastore
+    this._kindName      = collectionName
     this._childEntities = this.getChildEntities(rc)
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
   }
@@ -132,7 +132,7 @@ export abstract class BaseDatastore {
       }
     }
     catch (err) {
-      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       if (transaction) await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
@@ -170,7 +170,7 @@ export abstract class BaseDatastore {
       return true
     }
     catch(err) {
-      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       for (let i in recs) { 
         this.deserialize(rc, recs[i])
@@ -215,7 +215,7 @@ export abstract class BaseDatastore {
       return true
     }
     catch (err) {
-      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }   
@@ -240,7 +240,7 @@ export abstract class BaseDatastore {
       return true
     } 
     catch (err) {
-      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
@@ -312,7 +312,7 @@ export abstract class BaseDatastore {
         return true
       }
     } catch (err) {
-      rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       if (transaction) await transaction.rollback()
       await this.deleteUnique (rc)
       if (err.toString().split(':')[1] !== ' entity already exists') {
@@ -489,7 +489,7 @@ export abstract class BaseDatastore {
         await this._datastore.insert({key: uniqueEntityKey, data: ''})
       }
       catch (err) {
-        rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         if (err.toString().split(':')[1] !== ' entity already exists') {
           throw(new Error(ERROR_CODES.GCP_ERROR))
         } else {
@@ -514,7 +514,7 @@ export abstract class BaseDatastore {
       try {
         await this._datastore.delete(uniqueEntityKey)
       } catch (err) {
-        rc.isError() && rc.error(this.constructor.name, '[Error Code:' + err.code + '], Error Message:', err.message)
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         throw (new Error(ERROR_CODES.GCP_ERROR))
       }
     }

@@ -21,7 +21,13 @@ export class BrowserWs {
   }
 
   getSocket(rc: RunContextBrowser, router: XmnRouter): MubbleWebSocket {
-    return new MubbleWebSocket(rc, new WebSocket(BrowserWs.url), router)
+
+    const mws = new MubbleWebSocket(),
+          ws  = new WebSocket(BrowserWs.url)
+
+    rc.isDebug() && rc.debug(rc.getName(this), BrowserWs.url, ws)      
+    mws.init(rc, ws, router)
+    return mws
   }
 }
 

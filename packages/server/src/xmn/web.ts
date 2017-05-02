@@ -103,7 +103,7 @@ export class Web {
 
       httpServer.listen(config.port, (err: any) => {
         if (err) {
-          rc.isError() && rc.error(this.constructor.name, 'http.listen failed', config.port)
+          rc.isError() && rc.error(rc.getName(this), 'http.listen failed', config.port)
           return reject(err)
         }
         resolve()
@@ -111,16 +111,16 @@ export class Web {
 
       httpServer.on('close', () => {
         if (rc.runState.isStopping()) {
-          rc.isStatus() && rc.status(this.constructor.name, 'Exiting on http close event')
+          rc.isStatus() && rc.status(rc.getName(this), 'Exiting on http close event')
           clusterWorker.voluntaryExit(rc)
         }
 
-        rc.isError() && rc.error(this.constructor.name, 'HTTPServer received an unexpected close event. Shutting down!')
+        rc.isError() && rc.error(rc.getName(this), 'HTTPServer received an unexpected close event. Shutting down!')
         process.exit(1)
       })
 
       httpServer.on('clientError', (err : any, socket : any) => {
-        rc.isStatus() && rc.status(this.constructor.name, 'httpServer.clientError', err, 'ignoring')
+        rc.isStatus() && rc.status(rc.getName(this), 'httpServer.clientError', err, 'ignoring')
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
       })
     })

@@ -73,7 +73,7 @@ export class ClusterMaster {
     }
 
     this.config = config
-    rc.isDebug() && rc.debug(this.constructor.name, 'Starting cluster master with config', config)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Starting cluster master with config', config)
 
     this.validateConfig(rc)
 
@@ -111,7 +111,7 @@ export class ClusterMaster {
         throw('library bug: posix.getpwnam did not return user info')
       }
     } catch(e) {
-      rc.isError() && rc.error(this.constructor.name, 'posix.getpwnam', e)
+      rc.isError() && rc.error(rc.getName(this), 'posix.getpwnam', e)
       throw('Could not find the RUN_AS user name on system: ' + conf.RUN_AS)
     }
 
@@ -139,7 +139,7 @@ export class ClusterMaster {
       if (e.code === 'ENOENT') {
         return this.createLockFile(fullPath)
       } else {
-        rc.isError() && rc.error(this.constructor.name, e)
+        rc.isError() && rc.error(rc.getName(this), e)
         throw('checkRunning failed while fs.statSync on ' + fullPath)
       }
     }
@@ -197,7 +197,7 @@ export class ClusterMaster {
       }
 
       if (execArgv.length) {
-        rc.isDebug() && rc.debug(this.constructor.name, 'execArgv', execArgv)
+        rc.isDebug() && rc.debug(rc.getName(this), 'execArgv', execArgv)
         cluster.setupMaster({
           args: execArgv
         })
@@ -225,16 +225,16 @@ export class ClusterMaster {
     const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
     try {
       if (!workerInfo) {
-        return rc.isWarn() && rc.warn(this.constructor.name, 'Multiple notifications? Got exit message from a missing worker. forkId:', worker.id)
+        return rc.isWarn() && rc.warn(rc.getName(this), 'Multiple notifications? Got exit message from a missing worker. forkId:', worker.id)
       }
 
-      rc.isWarn() && rc.warn(this.constructor.name, 'Worker died', {exitCode: code, signal}, workerInfo)
+      rc.isWarn() && rc.warn(rc.getName(this), 'Worker died', {exitCode: code, signal}, workerInfo)
 
       // If all the workers die voluntarily means server could not start
       workerInfo.substitute(rc, true)
 
     } catch (err) {
-      rc.isError() && rc.error(this.constructor.name, 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
+      rc.isError() && rc.error(rc.getName(this), 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
     }
   }
 
@@ -242,11 +242,11 @@ export class ClusterMaster {
     try {
       const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
       if (!workerInfo) {
-        return rc.isWarn() && rc.warn(this.constructor.name, 'Got online from a missing worker. forkId:', worker.id)
+        return rc.isWarn() && rc.warn(rc.getName(this), 'Got online from a missing worker. forkId:', worker.id)
       }
       workerInfo.online(rc)
     } catch (err) {
-      rc.isError() && rc.error(this.constructor.name, 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
+      rc.isError() && rc.error(rc.getName(this), 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
     }
   }
 
@@ -255,11 +255,11 @@ export class ClusterMaster {
     const [workerIndex, workerInfo] = this.findWorkerInfo(worker)
     try {
       if (!workerInfo) {
-        return rc.isWarn() && rc.warn(this.constructor.name, 'Got msg from a missing worker. forkId:', worker.id, msg)
+        return rc.isWarn() && rc.warn(rc.getName(this), 'Got msg from a missing worker. forkId:', worker.id, msg)
       }
       workerInfo.message(rc, msg)
     } catch (err) {
-      rc.isError() && rc.error(this.constructor.name, 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
+      rc.isError() && rc.error(rc.getName(this), 'cluster.on/exit - Caught global exception to avoid process shutdown: ', err)
     }
   }
 
@@ -306,13 +306,13 @@ class WorkerInfo {
     this.forkId       = this.worker.id
     this.lastStartTS  = Date.now()
     this.state        = WORKER_STATE.STARTED
-    rc.isDebug() && rc.debug(this.constructor.name, 'Forking worker with index', this.workerIndex)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Forking worker with index', this.workerIndex)
   }
 
   private restart(rc: RunContextServer): any {
 
     if (this.state !== WORKER_STATE.INIT) {
-      return rc.isError() && rc.error(this.constructor.name, 'Restart requested in wrong state', this)
+      return rc.isError() && rc.error(rc.getName(this), 'Restart requested in wrong state', this)
     }
 
     this.state = WORKER_STATE.START_WAIT
@@ -321,7 +321,7 @@ class WorkerInfo {
 
       this.fork(rc)
       this.restartCount++
-      rc.isStatus() && rc.status(this.constructor.name, 'Restarted worker', this)
+      rc.isStatus() && rc.status(rc.getName(this), 'Restarted worker', this)
 
     }, msToRestart > 0 ? msToRestart : 0)
   }

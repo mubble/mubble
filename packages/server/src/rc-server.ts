@@ -107,7 +107,7 @@ export abstract class RunContextServer extends RunContextBase {
       this.freeRunId()
       return ret
     }, (err) => {
-      this.isError() && this.error(this.constructor.name, 'Run context', 
+      this.isError() && this.error(this.getName(this), 'Run context', 
           this.contextId, 'failed with error', err)
       this.freeRunId()
       throw(err)
@@ -156,7 +156,7 @@ export abstract class RunContextServer extends RunContextBase {
   }
 
   private freeRunId() {
-    this.isStatus() && this.hasLogged() && this.status(this.constructor.name, '....done....')
+    this.isStatus() && this.hasLogged() && this.status(this.getName(this), '....done....')
   }
 
   logToConsole(level: LOG_LEVEL, logStr: string): void {

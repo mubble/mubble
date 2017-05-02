@@ -184,7 +184,7 @@ export abstract class RunContextBase {
       keyLength = keys.length
     }
     
-    if (!isArray && ((str = obj.toString()) !== '[object Object]')) {
+    if (!isArray && typeof(obj.toString) === 'function' && ((str = obj.toString()) !== '[object Object]')) {
       //console._log('toString did not match', obj.toString, ({}).toString)
       return str
     }
