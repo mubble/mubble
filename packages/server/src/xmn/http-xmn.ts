@@ -20,7 +20,7 @@ export class HttpXmn {
 
     const rc = this.refRc.copyConstruct('', 'HttpReq')
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'http api', req.url)
+    rc.isDebug() && rc.debug(rc.getName(this), 'http api', req.url, req.headers)
 
     res.setHeader('Content-Type', 'text/html');
     res.writeHead(200, {'Content-Type': 'text/plain'});
