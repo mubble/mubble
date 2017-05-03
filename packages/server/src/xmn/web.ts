@@ -10,7 +10,7 @@
 import * as http              from 'http'
 import {XmnRouter}            from '@mubble/core'
 
-import {HttpRequestManager}   from './http-request-manager'
+import {HttpXmn}              from './http-xmn'
 import {WsXmn}                from './ws-xmn'
 import {RunContextServer}     from '../rc-server'
 import {clusterWorker}        from '../cluster/worker'
@@ -61,7 +61,7 @@ export class Web {
     this.router          = router
 
     if (this.httpConfig) {
-      const httpReqManager = new HttpRequestManager()
+      const httpReqManager = new HttpXmn()
       this.httpServer      = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
 
@@ -86,7 +86,7 @@ export class Web {
         throw('https port cannot be same as ws port')
       }
 
-      const httpReqManager = new HttpRequestManager()
+      const httpReqManager = new HttpXmn()
       this.httpsServer     = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
   }
