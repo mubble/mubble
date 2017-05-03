@@ -161,7 +161,7 @@ export abstract class RunContextBase {
     return '+++'
   }
 
-  private objectToString(obj: Object, lvl: number): string {
+  private objectToString(obj: Object, maxLevels: number, pendingLevels ?:number): string {
     
     const isArray = Array.isArray(obj),
           isSet   = obj instanceof Set,
@@ -176,6 +176,7 @@ export abstract class RunContextBase {
         keys      : string[], 
         keyLength : number
 
+    if (pendingLevels === undefined) pendingLevels = maxLevels    
     if (isSet || isMap) {
       keys = (obj as any).keys()
       keyLength = (obj as any).size
@@ -184,6 +185,11 @@ export abstract class RunContextBase {
       keyLength = keys.length
     }
     
+    if (typeof(obj) === 'function') {
+      const fn = obj as Function
+      return maxLevels === pendingLevels ? fn.toString() : 'function ' + fn.name
+    }
+
     if (!isArray && typeof(obj.toString) === 'function' && ((str = obj.toString()) !== '[object Object]')) {
       //console._log('toString did not match', obj.toString, ({}).toString)
       return str
@@ -214,7 +220,7 @@ export abstract class RunContextBase {
         
       } else {
         
-        if (!lvl) {
+        if (!pendingLevels) {
           
           if (Array.isArray(value)) {
             len = value.length
@@ -225,7 +231,7 @@ export abstract class RunContextBase {
           }
           
         } else {
-          buffer += this.objectToString(value, lvl - 1)
+          buffer += this.objectToString(value, maxLevels, pendingLevels - 1)
         }
       }
     }

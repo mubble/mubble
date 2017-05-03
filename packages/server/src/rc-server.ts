@@ -137,7 +137,13 @@ export abstract class RunContextServer extends RunContextBase {
   }
 
   setTimeout(contextName: string, fn: (...args: any[]) => any, ms: number, ...args: any[]) {
-    setTimeout(() => {
+    return setTimeout(() => {
+      this._runFn(contextName, fn, args)
+    }, ms)
+  }
+
+  setInterval(contextName: string, fn: (...args: any[]) => any, ms: number, ...args: any[]) {
+    return setInterval(() => {
       this._runFn(contextName, fn, args)
     }, ms)
   }

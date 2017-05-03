@@ -44,7 +44,7 @@ export class WsXmn {
   onVerifyClient(info: { origin: string; secure: boolean; req: http.IncomingMessage }, 
     cb: (res: boolean) => void) {
 
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onVerifyClient', info)
+    console.log(info)
     return cb(true)
   }
 

@@ -13,7 +13,7 @@ import {XmnRegistry, PERM}  from './xmn-registry'
 
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
-export interface IncomingConnectionBase {
+export abstract class InConnectionBase {
 
   ip          : string
   protocol    : Protocol
@@ -26,20 +26,42 @@ export interface IncomingConnectionBase {
   channel     : string
   appVersion  : string
   jsVersion   : string
+
+  /**
+   * You should initialize any extra members you have added to InConnectionBase
+   * must call super.initialize(rc, inParams) as first line
+   * 
+   * In case of http(s) inParams is taken from InConnectionBase.headers
+   * For WebSockets: The requested name-value pairs are put in a synthetically created InConnectionBase.headers 
+   * 
+   * @param rc 
+   * @param inParams
+   */
+  initialize(rc: RunContextBase, inParams: {[index: string]: any}): void {
+    
+  }
 }
 
-export interface IncomingRequestBase {
+export abstract class InRequestBase {
 
   api         : string
   param       : object
   startTs     : number
+
+  initialize(rc: RunContextBase, inParams: {[index: string]: any}): void {
+
+  }
 }
 
-export interface IncomingEventBase {
+export abstract class InEventBase {
 
   name        : string
   param       : object
   startTs     : number
+
+  initialize(rc: RunContextBase, inParams: {[index: string]: any}): void {
+    
+  }
 }
 
 interface ApiInfo {
@@ -57,50 +79,54 @@ interface EventInfo {
 export abstract class XmnRouter {
 
   /**
-   * This api is called when a new connection arrives for websocket or http(s)
-   * You should extend the IncomingConnectionBase and return that. This would 
-   * helps you in keeping the extra information that you wish to associate with a connection
-   * 
-   * In case of http(s) all the data is taken from IncomingConnectionBase.headers
-   * For WebSockets: The requested name-value pairs are put in a synthetically created IncomingConnectionBase.headers 
-   * 
+   * Factory method to get an instance
    * @param rc 
-   * @param inConnection Base connection to extend
    */
-  abstract beforeConnect(rc           : RunContextBase, 
-                         inConnection : IncomingConnectionBase) : IncomingConnectionBase
+  abstract getNewInConnection(rc: RunContextBase): InConnectionBase
+
+  /**
+   * Factory method to get an instance
+   * @param rc 
+   */
+  abstract getNewInRequest(rc: RunContextBase):InRequestBase
+
+  /**
+   * Factory method to get an instance
+   * @param rc 
+   */
+  abstract getNewInEvent(rc: RunContextBase):InEventBase
 
   /**
    * Called before executing a request api (pre-hook)
    * @param rc 
-   * @param inConnection  : Incoming connection
+   * @param inConnection  : In connection
    * @param inRequest     : Request object to be extended and returned
    */
   abstract beforeRequest(rc           : RunContextBase, 
-                         inConnection : IncomingConnectionBase, 
-                         inRequest    : IncomingRequestBase)  : IncomingRequestBase
+                         inConnection : InConnectionBase, 
+                         inRequest    : InRequestBase)  : InRequestBase
 
   /**
    * Called after successfully executing a request api (post-hook)
    * @param rc 
-   * @param inConnection : Incoming connection
-   * @param inRequest    : Incoming request
+   * @param inConnection : In connection
+   * @param inRequest    : In request
    * @param outResponse  : Last chance to modify the response
    */
   abstract afterRequest (rc           : RunContextBase, 
-                         inConnection : IncomingConnectionBase, 
-                         inRequest    : IncomingRequestBase,
+                         inConnection : InConnectionBase, 
+                         inRequest    : InRequestBase,
                          outResponse  : object)               : object
   
   /**
    * Called before executing a event api (pre-hook)
    * @param rc 
-   * @param inConnection : Incoming connection
-   * @param inEvent      : Incoming event object to be extended
+   * @param inConnection : In connection
+   * @param inEvent      : In event object to be extended
    */
   abstract beforeEvent  (rc           : RunContextBase, 
-                         inConnection : IncomingConnectionBase, 
-                         inEvent    : IncomingEventBase)      : IncomingEventBase
+                         inConnection : InConnectionBase, 
+                         inEvent    : InEventBase)      : InEventBase
 
 
 /*------------------------------------------------------------------------------
@@ -141,7 +167,7 @@ export abstract class XmnRouter {
     }
   }
 
-  async routeRequest(rc: RunContextBase, ic : IncomingConnectionBase, ir: IncomingRequestBase) {
+  async routeRequest(rc: RunContextBase, ic : InConnectionBase, ir: InRequestBase) {
 
     const apiInfo = this.apiMap[ir.api]
     if (!apiInfo) throw(Error(rc.error(rc.getName(this), 'Unknown api called', ir.api)))
@@ -152,7 +178,7 @@ export abstract class XmnRouter {
     return await this.afterRequest(rc, ic, serverIr, response)
  }
 
-  async routeEvent(rc: RunContextBase, ic : IncomingConnectionBase, ie: IncomingEventBase) {
+  async routeEvent(rc: RunContextBase, ic : InConnectionBase, ie: InEventBase) {
     const eventInfo = this.eventMap[ie.name]
     if (!eventInfo) throw(Error(rc.error(rc.getName(this), 'Unknown event called', ie.name)))
 
@@ -173,8 +199,8 @@ export abstract class XmnRouter {
   }
 
   private async invokeFn(rc   : RunContextBase, 
-                         ic   : IncomingConnectionBase, 
-                         ire  : IncomingRequestBase | IncomingEventBase, 
+                         ic   : InConnectionBase, 
+                         ire  : InRequestBase | InEventBase, 
                          info : any) {
 
     const parent = info.parent,

@@ -58,9 +58,9 @@ will be defined later.
 ------------------------------------------------------------------------------*/
 import {  XmnRouter, 
           Protocol,
-          IncomingConnectionBase, 
-          IncomingRequestBase, 
-          IncomingEventBase} from './xmn-router'
+          InConnectionBase, 
+          InRequestBase, 
+          InEventBase} from './xmn-router'
 
 import {RunContextBase} from '../rc-base'
 
@@ -194,19 +194,16 @@ export class MubbleWebSocket {
       const incomingMsg = JSON.parse(msg)
 
       // TODO ???? dummy to be fixed
-      const icb = this.router.beforeConnect(rc, {
-        ip: '', protocol: Protocol.WEBSOCKET, host: '', port: 9000, url: '',
-        headers: {}, appName: 'NCApp', appVersion: '0.0.1', jsVersion: '0.0.1',
-        channel: 'ANDROID'
-      })
+      const ic = this.router.getNewInConnection(rc)
 
       if (incomingMsg.type === 'request') {
 
-        this.router.routeRequest(rc, icb, {
-          api: incomingMsg.api,
-          param: incomingMsg.data,
-          startTs : Date.now()
-        }).then(obj => {
+        const ir = this.router.getNewInRequest(rc);
+        ir.api = incomingMsg.api
+        ir.param = incomingMsg.data
+        ir.startTs = Date.now()
+
+        this.router.routeRequest(rc, ic, ir).then(obj => {
           this._send(rc, {
             type  : 'response',
             error : null,
@@ -241,11 +238,12 @@ export class MubbleWebSocket {
 
       } else if (incomingMsg.type === 'event') {
         
-        this.router.routeEvent(rc, icb, {
-          name: incomingMsg.name,
-          param: incomingMsg.data,
-          startTs : Date.now()
-        }).catch(err => {
+        const ie = this.router.getNewInEvent(rc);
+        ie.name = incomingMsg.name
+        ie.param = incomingMsg.data
+        ie.startTs = Date.now()
+
+        this.router.routeEvent(rc, ic, ie).catch(err => {
           rc.isError() && rc.error(rc.getName(this), 'Bombed while processing event', err)
         })
       }
