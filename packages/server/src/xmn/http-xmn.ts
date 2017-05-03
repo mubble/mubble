@@ -20,7 +20,9 @@ export class HttpXmn {
 
     const rc = this.refRc.copyConstruct('', 'HttpReq')
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'http api', req.url, req.headers)
+    rc.isDebug() && rc.debug(rc.getName(this), 'http api', req.url, 
+      req.headers, req.socket ? {localAddr: req.socket.localAddress  + ':' + req.socket.localPort, 
+      remote: req.socket.remoteAddress + ':' + req.socket.remotePort } : 'no socket')
 
     res.setHeader('Content-Type', 'text/html');
     res.writeHead(200, {'Content-Type': 'text/plain'});
