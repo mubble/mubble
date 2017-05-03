@@ -61,7 +61,7 @@ export class Web {
     this.router          = router
 
     if (this.httpConfig) {
-      const httpReqManager = new HttpXmn()
+      const httpReqManager = new HttpXmn(rc)
       this.httpServer      = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
 
@@ -86,7 +86,7 @@ export class Web {
         throw('https port cannot be same as ws port')
       }
 
-      const httpReqManager = new HttpXmn()
+      const httpReqManager = new HttpXmn(rc)
       this.httpsServer     = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
   }
