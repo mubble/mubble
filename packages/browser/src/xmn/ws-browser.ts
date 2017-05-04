@@ -16,17 +16,21 @@ export class BrowserWs {
 
   static url : string
 
-  static init(appName: string, version: string, host: string, port ?: number) {
+  static init(appName: string, version: string, host: string, port ?: number): void {
     BrowserWs.url = MubbleWebSocket.getWsUrl(appName, version, host, port)
   }
 
-  getSocket(rc: RunContextBrowser, router: XmnRouter): MubbleWebSocket {
+  static async getSocket(rc: RunContextBrowser, router: XmnRouter): Promise<MubbleWebSocket> {
 
     const mws = new MubbleWebSocket(),
           ws  = new WebSocket(BrowserWs.url)
 
-    rc.isDebug() && rc.debug(rc.getName(this), BrowserWs.url, ws)      
-    mws.init(rc, ws, router)
+    if (!BrowserWs.url) {
+      rc.isError() && rc.error(rc.getName(this), 'Forgot to do BrowserWs.init? No url')
+      return null
+    }
+
+    await mws.init(rc, ws, router)
     return mws
   }
 }

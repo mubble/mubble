@@ -155,7 +155,10 @@ export class MubbleWebSocket {
   private platformWs  : any
   private router      : XmnRouter
 
-  init(refRc: RunContextBase, platformWs : any, router : XmnRouter) {
+  private openPromiseResolve : any
+  private openPromiseReject  : any
+
+  init(refRc: RunContextBase, platformWs : any, router : XmnRouter): Promise<void> {
 
     this.refRc      = refRc
     this.platformWs = platformWs
@@ -168,7 +171,13 @@ export class MubbleWebSocket {
       platformWs.onerror    = this.onError.bind(this)
     } catch (err) {
       refRc.isError() && refRc.error(refRc.getName(this), 'Error while constructing websocket', err)
+      throw(err)
     }
+
+    return new Promise<void>((resolve, reject) => {
+      this.openPromiseResolve = resolve
+      this.openPromiseReject  = reject
+    })
   }
 
   onOpen() {
@@ -177,9 +186,24 @@ export class MubbleWebSocket {
       const rc: RunContextBase = this.refRc.copyConstruct('', 'WsOnOpen')
       rc.isDebug() && rc.debug(rc.getName(this), `Websocket is now open`)
       this.timer = setInterval(this.housekeep.bind(this), 1000)
+      this.finishPendingOpen()
+      this.housekeep()
     } catch (err) {
       this.refRc.isError() && this.refRc.error(this.refRc.getName(this), 'Error while constructing websocket', err)
+      this.finishPendingOpen(err)
     }
+  }
+
+  private finishPendingOpen(err ?: any) {
+
+    if (err) {
+      this.openPromiseReject && this.openPromiseReject(err)
+    } else {
+      this.openPromiseResolve && this.openPromiseResolve()
+    }
+
+    this.openPromiseResolve = null
+    this.openPromiseReject  = null
   }
 
   onMessage(messageEvent: any) {
@@ -262,8 +286,13 @@ export class MubbleWebSocket {
   }
 
   onError(err: any) {
-
-
+    const rc: RunContextBase = this.refRc.copyConstruct('', 'WsOnError')
+    rc.isDebug() && rc.debug(rc.getName(this), `Websocket got error`, err)
+    this.finishPendingOpen(err)
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
   }
 
   getStatus() {
