@@ -55,10 +55,14 @@ export class GcloudEnv {
 
       if (instanceEnv) { // running at google
 
-        const projectName = await execCmd(projIdCmd, true, true),
-              hostname    = await execCmd(hostNameCmd, true, true)
+        const projectName = await execCmd(projIdCmd, true, true)
 
-        return new GcloudEnv(projectName, hostname.split('.')[0])
+        if (await execCmd(projAttrCmd, true, true) === RUN_MODE[RUN_MODE.PROD]) {
+          return new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
+        } else {
+          const hostname = await execCmd(hostNameCmd, true, true)
+          return new GcloudEnv(projectName, hostname.split('.')[0])
+        }
 
       } else {
         return new GcloudEnv(Credentials.PROJECT_ID, 
