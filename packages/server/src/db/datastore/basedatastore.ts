@@ -25,7 +25,7 @@ export abstract class BaseDatastore {
   // holds most recent values for create, modify or delete
   protected modTS        : Number
   protected modUid       : Number
-    
+
   // Internal references
   private _datastore     : any
   private _namespace     : String       
@@ -254,6 +254,20 @@ export abstract class BaseDatastore {
   protected getIdFromResult(rc : RunContextServer, res : any) : Number | string {
     const key = res[this._datastore.KEY].path   
     return key[key.length - 1]
+  }
+
+/*------------------------------------------------------------------------------
+  - Create Query 
+------------------------------------------------------------------------------*/
+  protected createQuery (rc : RunContextServer) {
+    return this._datastore.createQuery(this._namespace, this._kindName)
+  }
+
+/*------------------------------------------------------------------------------
+  - Run Query 
+------------------------------------------------------------------------------*/
+  protected async runQuery(rc : RunContextServer, query : string) {
+    return await this._datastore.runQuery(query)
   }
   
 
@@ -524,4 +538,4 @@ export abstract class BaseDatastore {
     }
     return true
   } 
-}                   
+}
