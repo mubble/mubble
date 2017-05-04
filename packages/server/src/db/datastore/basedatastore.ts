@@ -73,7 +73,7 @@ export abstract class BaseDatastore {
     - field Name of the childEntity within this Entity (Parent Entity)
     - value of the childEntity
 ------------------------------------------------------------------------------*/                  
-  setChildEntity (rc : any, name : string, val : any) : void {
+  setChildEntity (rc : RunContextServer, name : string, val : Object) : void {
     this[name] = val
   }
 
