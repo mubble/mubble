@@ -141,6 +141,11 @@ export abstract class BaseDatastore {
 
 /*------------------------------------------------------------------------------
   - Insert to datastore 
+
+  Parameters:
+  - insertTime     = Default is now()
+  - ignoreDupRec   = Default is true [Ignore Duplicates... Ignore the Duplicate Error]
+  - noChildren     = Default is true [No Children]
 ------------------------------------------------------------------------------*/ 
   protected async insert(rc : RunContextServer, insertTime ?: Number, ignoreDupRec ?: Boolean, noChildren ?: Boolean) : Promise<Boolean> {
     return await this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
@@ -270,8 +275,6 @@ export abstract class BaseDatastore {
     return await this._datastore.runQuery(query)
   }
   
-
-
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             INTERNAL FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */

@@ -28,6 +28,13 @@ export abstract class InConnectionBase {
   jsVersion   : string
 
   /**
+   * This will be called after the initialization
+   * 
+   * @param rc 
+   */
+  abstract validate (rc: RunContextBase) : boolean;
+
+  /**
    * You should initialize any extra members you have added to InConnectionBase
    * must call super.initialize(rc, inParams) as first line
    * 
