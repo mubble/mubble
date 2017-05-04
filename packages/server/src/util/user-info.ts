@@ -9,7 +9,7 @@
 
 import * as os from 'os'
 
-export function getRunAs() {
+export function getSystemUserId () {
   return os.userInfo().username
 }
 

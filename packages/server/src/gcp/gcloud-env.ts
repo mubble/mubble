@@ -13,7 +13,7 @@ import {
         RUN_MODE,
        }                      from '../rc-server'
 import {execCmd}              from '../util/execute'
-import {getRunAs}             from '../util/user-info'
+import {getSystemUserId}      from '../util/user-info'
 
 const Credentials = {
   AUTH_KEY : {
@@ -66,7 +66,7 @@ export class GcloudEnv {
 
       } else {
         return new GcloudEnv(Credentials.PROJECT_ID, 
-                             getRunAs().toUpperCase(),
+                             getSystemUserId().toUpperCase(),
                              Credentials.AUTH_KEY)
       }
     }
