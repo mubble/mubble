@@ -89,17 +89,16 @@ interface WsEvent {
   data    : object
 }
 
-export enum STATUS {
+export enum WS_STATUS {
   CONNECTING, OPEN, CLOSED
 }
 
-const CONST = {
-  APP: 'APP',
-  VER: 'VER'
+export const WS_ERROR = {
+  NOT_CONNECTED: 'NOT_CONNECTED'
 }
 
-export const ERROR = {
-  NOT_CONNECTED: 'NOT_CONNECTED'
+export const WS_CONST = {
+  CONNECTION_COOKIE: 'CONNECTION_COOKIE'
 }
 
 // export abstract class BaseWs {
@@ -134,13 +133,8 @@ class Pending {
 
 export class MubbleWebSocket {
 
-  static getWsUrl(appName: string, version: string, host: string, port ?: number) {
-
-    return `ws://${host}${port ? ':' + port : ''}/engine.io?${MubbleWebSocket.encodeParams({
-      [CONST.APP] : appName,
-      [CONST.VER] : version
-    })}`
-
+  static getWsUrl(host: string, port: number, connectionInfo: {[index: string]: any}) {
+    return `ws://${host}${port ? ':' + port : ''}/engine.io?${MubbleWebSocket.encodeParams(connectionInfo)}`
   }
 
   static encodeParams(params: object) {
@@ -154,15 +148,17 @@ export class MubbleWebSocket {
   private refRc       : RunContextBase
   private platformWs  : any
   private router      : XmnRouter
+  private ic          : InConnectionBase
 
   private openPromiseResolve : any
   private openPromiseReject  : any
 
-  init(refRc: RunContextBase, platformWs : any, router : XmnRouter): Promise<void> {
+  init(refRc: RunContextBase, platformWs : any, router : XmnRouter, ic: InConnectionBase): Promise<void> {
 
     this.refRc      = refRc
     this.platformWs = platformWs
     this.router     = router
+    this.ic         = ic
 
     try {
       platformWs.onopen     = this.onOpen.bind(this)
@@ -217,9 +213,6 @@ export class MubbleWebSocket {
 
       const incomingMsg = JSON.parse(msg)
 
-      // TODO ???? dummy to be fixed
-      const ic = this.router.getNewInConnection(rc)
-
       if (incomingMsg.type === 'request') {
 
         const ir = this.router.getNewInRequest(rc);
@@ -227,7 +220,7 @@ export class MubbleWebSocket {
         ir.param = incomingMsg.data
         ir.startTs = Date.now()
 
-        this.router.routeRequest(rc, ic, ir).then(obj => {
+        this.router.routeRequest(rc, this.ic, ir).then(obj => {
           this._send(rc, {
             type  : 'response',
             error : null,
@@ -267,7 +260,7 @@ export class MubbleWebSocket {
         ie.param = incomingMsg.data
         ie.startTs = Date.now()
 
-        this.router.routeEvent(rc, ic, ie).catch(err => {
+        this.router.routeEvent(rc, this.ic, ie).catch(err => {
           rc.isError() && rc.error(rc.getName(this), 'Bombed while processing event', err)
         })
       }
@@ -299,27 +292,27 @@ export class MubbleWebSocket {
     switch (this.platformWs.readyState) {
 
     case this.platformWs.CONNECTING:
-      return STATUS.CONNECTING
+      return WS_STATUS.CONNECTING
 
     case this.platformWs.OPEN:
-      return STATUS.OPEN
+      return WS_STATUS.OPEN
     }
     // case this.platformWs.CLOSING:
     // case this.platformWs.CLOSED:
-    return STATUS.CLOSED
+    return WS_STATUS.CLOSED
   }
 
   sendRequest(rc: RunContextBase, apiName: string, data: object) {
 
     return new Promise((resolve, reject) => {
       const status = this.getStatus()
-      if (status === STATUS.CLOSED) {
-        return reject(new Error(ERROR.NOT_CONNECTED))
+      if (status === WS_STATUS.CLOSED) {
+        return reject(new Error(WS_ERROR.NOT_CONNECTED))
       }
 
       const reqId = Pending.nextSendRequestId
 
-      if (status === STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
+      if (status === WS_STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
         rc.isDebug() && rc.debug(rc.getName(this), `Queueing request for ${apiName} status ${status}`)
 
         this.mapPending.set(reqId, 
@@ -350,11 +343,11 @@ export class MubbleWebSocket {
     return new Promise((resolve, reject) => {
       
       const status = this.getStatus()
-      if (this.getStatus() === STATUS.CLOSED) {
-        return reject(new Error(ERROR.NOT_CONNECTED))
+      if (this.getStatus() === WS_STATUS.CLOSED) {
+        return reject(new Error(WS_ERROR.NOT_CONNECTED))
       }
 
-      if (status === STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
+      if (status === WS_STATUS.CONNECTING || this.platformWs.bufferedAmount > 0) {
 
         this.mapPending.set(Pending.nextSendEventId, 
           new Pending(REQUEST_OR_EVENT.EVENT, name, data, REQUEST_STATUS.TO_BE_SENT, 
@@ -379,12 +372,12 @@ export class MubbleWebSocket {
 
     this.mapPending.forEach((pending, key) => {
 
-      if (status === STATUS.CLOSED) {
+      if (status === WS_STATUS.CLOSED) {
         if (pending.status === REQUEST_STATUS.SENT || pending.status === REQUEST_STATUS.TO_BE_SENT) {
-          pending.reject(new Error(ERROR.NOT_CONNECTED))
+          pending.reject(new Error(WS_ERROR.NOT_CONNECTED))
         }
         this.mapPending.delete(key)
-      } else if (status === STATUS.OPEN && this.platformWs.bufferedAmount === 0) {
+      } else if (status === WS_STATUS.OPEN && this.platformWs.bufferedAmount === 0) {
 
         if (pending.status === REQUEST_STATUS.TO_BE_SENT) {
           if (pending.reqOrEvent === REQUEST_OR_EVENT.REQUEST) {

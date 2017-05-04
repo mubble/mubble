@@ -13,40 +13,38 @@ import {XmnRegistry, PERM}  from './xmn-registry'
 
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
+export class ConParamBase {
+  [index: string]: string | number
+}
+
 export abstract class InConnectionBase {
 
-  ip          : string
   protocol    : Protocol
-  host        : string
-  port        : number
+  host        : string   // host name of the server
+  port        : number   // port of the server
   url         : string // /api/getTopics
   headers     : object
+  ip          : string   // ip address or host name of the client socket
 
-  appName     : string
-  channel     : string
-  appVersion  : string
-  jsVersion   : string
+  params      : ConParamBase
 
   /**
-   * This will be called after the initialization
+   * This will be called on the server to validate the client request
+   * This function should throw error when verification fails or return the 
+   * response for the client
    * 
    * @param rc 
    */
-  abstract validate (rc: RunContextBase) : boolean;
+  abstract async verifyConnection(rc: RunContextBase) : Promise<object>
 
   /**
-   * You should initialize any extra members you have added to InConnectionBase
-   * must call super.initialize(rc, inParams) as first line
-   * 
-   * In case of http(s) inParams is taken from InConnectionBase.headers
-   * For WebSockets: The requested name-value pairs are put in a synthetically created InConnectionBase.headers 
+   * This will be called on the client with when server has verified the connection
+   * Results are available in conResult
    * 
    * @param rc 
-   * @param inParams
+   * @param conResult
    */
-  initialize(rc: RunContextBase, inParams: {[index: string]: any}): void {
-    
-  }
+  abstract connected(rc: RunContextBase, conResult: {[index: string]: string | number}) : void
 }
 
 export abstract class InRequestBase {
