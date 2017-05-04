@@ -351,11 +351,11 @@ export abstract class BaseDatastore {
   }
 
   private async getFiltersWithTransaction(rc : RunContextServer, filters: {[index : string] : any}, transaction : any, ignoreRNF ?: boolean) : Promise<void> {
-    let query = transaction.createQuery(this.namespace, this.kindName)
+    let query = this._datastore.createQuery(this.namespace, this.kindName)
     filters.forEach ((value : any, key : string) => {
         query = query.filter (key, value)
     })
-    let res = await query.run ()
+    let res = await this._datastore.runQuery (query)
     const entityRec = res[0],
           key       = res[this._datastore.KEY].path   
 
