@@ -78,9 +78,10 @@ export class Repl {
     const rc:any = this.rc
 
     const irb = rc.router.getNewInRequest()
+    const irc = rc.router.getNewInConnection()
     irb.setApi(apiName)
     irb.setParam(param)
 
-    this.pr = rc.router.routeRequest(rc, irb)
+    this.pr = rc.router.routeRequest(rc, irc, irb)
   }
 }
