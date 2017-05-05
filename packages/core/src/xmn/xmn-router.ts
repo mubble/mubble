@@ -56,6 +56,12 @@ export abstract class InRequestBase {
   initialize(rc: RunContextBase, inParams: {[index: string]: any}): void {
 
   }
+  setApi(api : string) {
+      this.api = api;
+  }
+  setParam(param : object) {
+      this.param = param;
+  }
 }
 
 export abstract class InEventBase {
