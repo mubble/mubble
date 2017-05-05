@@ -48,7 +48,6 @@ export abstract class InConnectionBase {
 }
 
 export abstract class InRequestBase {
-
   api         : string
   param       : object
   startTs     : number
@@ -57,7 +56,7 @@ export abstract class InRequestBase {
 
   }
   setApi(api : string) {
-      this.api = api;
+      this.api = api
   }
   setParam(param : object) {
       this.param = param;

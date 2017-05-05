@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Access point from which all the _datastore functionalities are
+   About      : Access point from which all the datastore functionalities are
                 accessed. 
    
    Created on : Mon Apr 24 2017
@@ -20,17 +20,16 @@ export abstract class BaseDatastore {
   [index : string] : any
   protected _id          : number | string
   protected createTS     : number
-  protected deleted      : boolean
+  protected deleted      : boolean = false
      
   // holds most recent values for create, modify or delete
   protected modTS        : number
   protected modUid       : number
+  protected _datastore   : any
+  protected _namespace   : string
+  protected _kindName    : string
 
   // Internal references
-  protected _datastore     : any
-  protected _namespace     : string       
-  protected _kindName      : string
-  
   private _autoFields    : Array<string> = ['createTS', 'deleted', 'modTS', 'modUid']
   private _indexedFields : Array<string> = ['createTS', 'deleted', 'modTS']
   private _childEntities : {
