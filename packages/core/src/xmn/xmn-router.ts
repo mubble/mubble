@@ -35,16 +35,7 @@ export abstract class InConnectionBase {
    * 
    * @param rc 
    */
-  abstract async verifyConnection(rc: RunContextBase) : Promise<object>
-
-  /**
-   * This will be called on the client with when server has verified the connection
-   * Results are available in conResult
-   * 
-   * @param rc 
-   * @param conResult
-   */
-  abstract connected(rc: RunContextBase, conResult: {[index: string]: string | number}) : void
+  abstract async verifyConnection(rc: RunContextBase) : Promise<void>
 }
 
 export abstract class InRequestBase {

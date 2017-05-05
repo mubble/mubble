@@ -98,7 +98,7 @@ export const WS_ERROR = {
 }
 
 export const WS_CONST = {
-  CONNECTION_COOKIE: 'CONNECTION_COOKIE'
+  CONNECTION_KEY: 'CONNECTION_KEY'
 }
 
 // export abstract class BaseWs {
