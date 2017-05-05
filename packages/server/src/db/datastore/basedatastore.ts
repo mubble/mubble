@@ -27,9 +27,10 @@ export abstract class BaseDatastore {
   protected modUid       : number
 
   // Internal references
-  private _datastore     : any
-  private _namespace     : string       
-  private _kindName      : string
+  protected _datastore     : any
+  protected _namespace     : string       
+  protected _kindName      : string
+  
   private _autoFields    : Array<string> = ['createTS', 'deleted', 'modTS', 'modUid']
   private _indexedFields : Array<string> = ['createTS', 'deleted', 'modTS']
   private _childEntities : {
