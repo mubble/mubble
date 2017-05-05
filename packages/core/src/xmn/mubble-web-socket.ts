@@ -404,7 +404,8 @@ export class MubbleWebSocket {
   }
 
   private _send(rc: RunContextBase, obj: any) {
-    rc.isDebug() && rc.debug(rc.getName(this), `Sending msg ${obj.type} with ${obj.api || obj.name || obj.seq}`)
+    rc.isDebug() && rc.debug(rc.getName(this), `Sending msg ${obj.type} with ${obj.api || obj.name || obj.seq} data ${
+      JSON.stringify(obj.data).substr(0, 100)}`)
     this.platformWs.send(JSON.stringify(obj))
   }
 }
