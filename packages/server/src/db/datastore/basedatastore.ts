@@ -206,7 +206,7 @@ export abstract class BaseDatastore {
 
       for(const rec of recs) {
         this.deserialize(rc, rec)
-        await this.setUnique (rc)
+        await this.setUnique (rc, ignoreDupRec)
         await this.insertWithTransaction(rc, null, transaction, insertTime, ignoreDupRec )
       }
       await transaction.commit()
@@ -311,6 +311,13 @@ export abstract class BaseDatastore {
   protected async runQuery(rc : RunContextServer, query : string) {
     return await this._datastore.runQuery(query)
   }
+
+/*------------------------------------------------------------------------------
+  - Validate Collection
+------------------------------------------------------------------------------*/
+  protected async validateCollection(rc : RunContextServer) {
+    
+  }
   
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             INTERNAL FUNCTIONS
@@ -395,7 +402,7 @@ export abstract class BaseDatastore {
           datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)  
 
     try {
-      await this.setUnique (rc)
+      await this.setUnique (rc, ignoreDupRec)
       if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
         await this._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
         this._id = datastoreKey.path[datastoreKey.path.length - 1]
@@ -575,7 +582,7 @@ export abstract class BaseDatastore {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  private async setUnique(rc : RunContextServer) : Promise<boolean> {
+  private async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
@@ -585,10 +592,12 @@ export abstract class BaseDatastore {
       }
       catch (err) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-        if (err.toString().split(':')[1] !== ' entity already exists') {
-          throw(new Error(ERROR_CODES.GCP_ERROR))
-        } else {
-          throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
+        if(!ignoreDupRec) {
+          if (err.toString().split(':')[1] !== ' entity already exists') {
+            throw(new Error(ERROR_CODES.GCP_ERROR))
+          } else {
+            throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
+          }
         }
       }
     }
