@@ -591,13 +591,15 @@ export abstract class BaseDatastore {
         await this._datastore.insert({key: uniqueEntityKey, data: ''})
       }
       catch (err) {
-        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         if(!ignoreDupRec) {
+          rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
           if (err.toString().split(':')[1] !== ' entity already exists') {
             throw(new Error(ERROR_CODES.GCP_ERROR))
           } else {
             throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
           }
+        } else {
+          return false
         }
       }
     }
