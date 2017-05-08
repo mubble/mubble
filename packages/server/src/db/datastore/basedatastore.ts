@@ -293,7 +293,7 @@ export abstract class BaseDatastore {
   - Get ID from result
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
-  protected getIdFromResult(rc : RunContextServer, res : any) : number | string {
+  getIdFromResult(rc : RunContextServer, res : any) : number | string {
     const key = res[this._datastore.KEY].path   
     return key[key.length - 1]
   }
