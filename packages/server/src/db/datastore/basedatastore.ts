@@ -206,8 +206,8 @@ export abstract class BaseDatastore {
 
       for(const rec of recs) {
         this.deserialize(rc, rec)
-        await this.setUnique (rc, ignoreDupRec)
-        await this.insertWithTransaction(rc, null, transaction, insertTime, ignoreDupRec )
+        const res = await this.setUnique (rc, ignoreDupRec)
+        if(res) await this.insertWithTransaction(rc, null, transaction, insertTime, ignoreDupRec )
       }
       await transaction.commit()
       return true
@@ -402,16 +402,20 @@ export abstract class BaseDatastore {
           datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)  
 
     try {
-      await this.setUnique (rc, ignoreDupRec)
-      if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
-        await this._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
-        this._id = datastoreKey.path[datastoreKey.path.length - 1]
-        return true
+      const res = await this.setUnique (rc, ignoreDupRec)
+      if(res) {
+        if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
+          await this._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
+          this._id = datastoreKey.path[datastoreKey.path.length - 1]
+          return true
+        } else {
+          await transaction.run()
+          await this.insertWithTransaction(rc, parentKey, transaction, insertTime, ignoreDupRec)
+          await transaction.commit()
+          return true
+        }
       } else {
-        await transaction.run()
-        await this.insertWithTransaction(rc, parentKey, transaction, insertTime, ignoreDupRec)
-        await transaction.commit()
-        return true
+        return false
       }
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
