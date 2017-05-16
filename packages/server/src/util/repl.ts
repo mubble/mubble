@@ -79,6 +79,7 @@ export class Repl {
 
     const irb = rc.router.getNewInRequest()
     const irc = rc.router.getNewInConnection()
+    irc.params = { appName: 'NCAPP', channel: 'ANDROID', appVersion: '0.9.0', jsVersion: '0.2.0' }
     irb.setApi(apiName)
     irb.setParam(param)
 
