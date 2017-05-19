@@ -108,7 +108,7 @@ export class GcloudEnv {
     if (instanceEnv && instanceEnv == 'PROD' && instanceEnv == projectEnv) {
       return RUN_MODE.PROD
     }
-    else if (instanceEnv && instanceEnv !== projectEnv) {
+    else if ((instanceEnv || projectEnv) && instanceEnv !== projectEnv) {
       throw Error ('RUN MODE Mismatch - Project Run Mode != Instance Run Mode')
     }
     return RUN_MODE.DEV
