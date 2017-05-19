@@ -14,9 +14,11 @@ import {
        }                      from '../rc-server'
 import {execCmd}              from '../util/execute'
 import {getSystemUserId}      from '../util/user-info'
+import * as url               from 'url'
+import * as http              from 'http'
 
 const Credentials = {
-  AUTH_KEY : {
+  AUTH_KEY   : {
     type                        : 'service_account',
     project_id                  : 'mubble-playground',
     private_key_id              : '6f590e2b09fd8e38160547f5fcdb758862079dbf',
@@ -30,6 +32,20 @@ const Credentials = {
   }, 
   PROJECT_ID : 'mubble-playground'
 }
+
+  const metadataPathPrefix     = '/computeMetadata/v1/',
+        metadataProjectIdCmd   = '/project/project-id',
+        metadataInstanceEnvCmd = '/instance/attributes/MUBBLE_ENV',
+        metadataProjectEnvCmd  = '/project/attributes/projectEnv',
+        metadataOptions : http.RequestOptions   = {
+          host: 'metadata.google.internal',
+          port: 80,
+          path: this.pathPrefix + this.projectIdCmd,
+          method: 'GET',
+          headers: {
+            "Metadata-Flavor": 'Google'
+          }
+        }
 
 export class GcloudEnv {
 
@@ -72,11 +88,51 @@ export class GcloudEnv {
     }
   }
 
+
   public datastore : any  
 
   constructor(public projectId  : string,
               public namespace  : string,
               public authKey   ?: object) {
 
+  }
+
+  // Static Functions to get Metadata Info
+  static async getProjectId (rc: RunContextServer): Promise<any> {
+    return this.getMetadata (rc, metadataProjectIdCmd)
+  }
+
+  static async getRunMode (rc : RunContextServer): Promise<RUN_MODE> {
+    const instanceEnv = await this.getMetadata (rc, metadataInstanceEnvCmd),
+          projectEnv  = await this.getMetadata (rc, metadataProjectEnvCmd)
+    if (instanceEnv && instanceEnv == 'PROD' && instanceEnv == projectEnv) {
+      return RUN_MODE.PROD
+    }
+    else if (instanceEnv && instanceEnv !== projectEnv) {
+      throw Error ('RUN MODE Mismatch - Project Run Mode != Instance Run Mode')
+    }
+    return RUN_MODE.DEV
+  }
+
+  static async getMetadata (rc: RunContextServer, urlSuffix: string): Promise<any> {
+    return new Promise((resolve, reject) => {
+
+      metadataOptions.path = metadataPathPrefix + urlSuffix
+      const req = http.request(metadataOptions, (outputStream: any) => {
+
+        let response = ''
+        outputStream.on('data', (chunk: any) => {
+          response += chunk
+        })
+        outputStream.on('end', () => {
+          return resolve(response)
+        })
+      })
+
+      req.on('error', (err: any) => {
+        return reject(err)
+      })
+      req.end()
+    })
   }
 }
