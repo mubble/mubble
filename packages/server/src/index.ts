@@ -13,6 +13,7 @@ export *                      from './rc-server'
 export {Repl}                 from './util/repl'
 export *                      from './util/user-info'
 export *                      from './util/execute'
+export *                      from './util/https-request'
 export *                      from './gcp/gcloud-env'
 export *                      from './db/datastore/basedatastore'
 

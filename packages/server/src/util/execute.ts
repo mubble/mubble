@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : <Write about the file here>
+   About      : Execute a linux command
    
    Created on : Thu Apr 20 2017
    Author     : Akash Dathan

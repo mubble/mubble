@@ -13,6 +13,7 @@ const datastore : any = require('@google-cloud/datastore')
 import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
+import {DSQuery}          from './ds-query'
 
 export abstract class BaseDatastore {
 
@@ -25,6 +26,7 @@ export abstract class BaseDatastore {
   // holds most recent values for create, modify or delete
   protected modTS        : number
   protected modUid       : number
+  protected _query       : any
   protected _datastore   : any
   protected _namespace   : string
   protected _kindName    : string
@@ -99,6 +101,7 @@ export abstract class BaseDatastore {
     this._kindName      = kindName.toLowerCase()
     this._childEntities = this.getChildEntities(rc)
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
+    this._query         = new DSQuery(rc, gcloudEnv, kindName)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -128,43 +131,6 @@ export abstract class BaseDatastore {
         transaction = this._datastore.transaction()
         await transaction.run()
         await this.getWithTransaction (rc, key, transaction, ignoreRNF)
-        await transaction.commit()
-        return true
-      }
-    }
-    catch (err) {
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      if (transaction) await transaction.rollback()
-      throw(new Error(ERROR_CODES.GCP_ERROR))
-    }
-  }
-
-/*------------------------------------------------------------------------------
-  - Get by Filters
-------------------------------------------------------------------------------*/                  
-  protected async getFilters (rc : RunContextServer, filters: {[index : string] : any}, ignoreRNF ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    let transaction : any
-
-    try {
-      if (!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren) {   
-        let query = this._datastore.createQuery(this.namespace, this.kindName)
-        filters.forEach ((value : any, key : string) => {
-            query = query.filter (key, value)
-        })
-        let res = await this._datastore.runQuery(query)
-        const entityRec = res[0]
-
-        if (!entityRec.length) {
-          if (ignoreRNF) return false
-          throw (ERROR_CODES.RECORD_NOT_FOUND)
-        }
-        this._id = this.getIdFromResult(rc, entityRec[0])
-        this.deserialize(rc, entityRec[0])
-        return true       
-      } else {
-        transaction = this._datastore.transaction()
-        await transaction.run()
-        await this.getFiltersWithTransaction (rc, filters, transaction, ignoreRNF)
         await transaction.commit()
         return true
       }
@@ -325,46 +291,6 @@ export abstract class BaseDatastore {
 
   private async getWithTransaction(rc : RunContextServer, key : Array<any>, transaction : any, ignoreRNF ?: boolean) : Promise<void> {
     const entityRec  = await transaction.get(key)
-
-    if (!entityRec.length) {
-      if (!ignoreRNF) throw(ERROR_CODES.RECORD_NOT_FOUND)
-      return
-    }
-
-    this._id = this.getIdFromResult(rc, entityRec[0])
-    this.deserialize(rc, entityRec[0])
-    
-    for (let childEntity  in this._childEntities) {
-      const model = this._childEntities[childEntity].model,
-            query = this._datastore.createQuery(this._namespace, model._kindName).hasAncestor(key),
-            val   = await this._datastore.runQuery(query)
-
-      if (this._childEntities[childEntity].isArray === false) {
-        const dataModel = new model.constructor()
-        
-        dataModel.getWithTransaction(rc, val[0][0][this._datastore.KEY], transaction, ignoreRNF)
-        this.setChildEntity(rc, childEntity, dataModel.serialize(rc))
-      } else {
-        const resArr    = [],
-              dataModel = new model.constructor()
-
-        for (let i in val[0]) {
-          dataModel.getWithTransaction(rc, val[0][i][this._datastore.KEY], transaction, ignoreRNF)
-          resArr.push(dataModel.serialize(rc))
-        }
-        this.setChildEntity(rc, childEntity, resArr)
-      }
-    }
-  }
-
-  private async getFiltersWithTransaction(rc : RunContextServer, filters: {[index : string] : any}, transaction : any, ignoreRNF ?: boolean) : Promise<void> {
-    let query = this._datastore.createQuery(this.namespace, this.kindName)
-    filters.forEach ((value : any, key : string) => {
-        query = query.filter (key, value)
-    })
-    let res = await this._datastore.runQuery (query)
-    const entityRec = res[0],
-          key       = res[this._datastore.KEY].path   
 
     if (!entityRec.length) {
       if (!ignoreRNF) throw(ERROR_CODES.RECORD_NOT_FOUND)

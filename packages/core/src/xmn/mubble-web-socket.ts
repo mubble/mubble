@@ -56,11 +56,13 @@ will be defined later.
 
 
 ------------------------------------------------------------------------------*/
-import {  XmnRouter, 
-          Protocol,
-          InConnectionBase, 
-          InRequestBase, 
-          InEventBase} from './xmn-router'
+import {  
+  XmnRouter, 
+  Protocol,
+  InConnectionBase, 
+  InRequestBase, 
+  InEventBase
+}                       from './xmn-router'
 
 import {RunContextBase} from '../rc-base'
 
