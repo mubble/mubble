@@ -47,7 +47,7 @@ export async function startCluster( rc      : RunContextServer,
   return cluster.isMaster
 }
 
-export async function isClusterMaster () { 
+export function isClusterMaster () { 
   return cluster.isMaster
 }
 

@@ -6,7 +6,8 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-export {startCluster}         from './cluster/master'
+export {startCluster, isClusterMaster}
+                              from './cluster/master'
 export {web}                  from './xmn/web'
 export *                      from './rc-server'
 export {Repl}                 from './util/repl'
