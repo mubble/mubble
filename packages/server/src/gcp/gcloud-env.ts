@@ -12,7 +12,6 @@ import {
         RunContextServer,
         RUN_MODE,
        }                      from '../rc-server'
-import {execCmd}              from '../util/execute'
 import {getSystemUserId}      from '../util/user-info'
 import * as url               from 'url'
 import * as http              from 'http'
@@ -33,19 +32,20 @@ const Credentials = {
   PROJECT_ID : 'mubble-playground'
 }
 
-  const metadataPathPrefix     = '/computeMetadata/v1/',
-        metadataProjectIdCmd   = '/project/project-id',
-        metadataInstanceEnvCmd = '/instance/attributes/MUBBLE_ENV',
-        metadataProjectEnvCmd  = '/project/attributes/projectEnv',
-        metadataOptions : http.RequestOptions   = {
-          host: 'metadata.google.internal',
-          port: 80,
-          path: this.pathPrefix + this.projectIdCmd,
-          method: 'GET',
-          headers: {
-            "Metadata-Flavor": 'Google'
-          }
+const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/v1/',
+      metadataProjectIdCmd   = 'project/project-id',
+      metadataHostName       = 'instance/hostname',
+      metadataInstanceEnvCmd = 'instance/attributes/MUBBLE_ENV',
+      metadataProjectEnvCmd  = 'project/attributes/PROJECT_ENV',
+      metadataOptions : http.RequestOptions   = {
+        host: 'metadata.google.internal',
+        port: 80,
+        path: this.pathPrefix + this.projectIdCmd,
+        method: 'GET',
+        headers: {
+          "Metadata-Flavor": 'Google'
         }
+      }
 
 export class GcloudEnv {
 
@@ -57,25 +57,25 @@ export class GcloudEnv {
 
           projIdCmd   = curlPrefix + 'project/project-id -H "Metadata-Flavor: Google"',
           hostNameCmd = curlPrefix + 'instance/hostname -H "Metadata-Flavor: Google"',
-          instanceEnv = await execCmd(instanceCmd, true, true)
+          instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
 
     if (rc.getRunMode() === RUN_MODE.PROD) {
       if (instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
-      if (await execCmd(projAttrCmd, true, true) !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
+      if (await this.getMetadata(rc, metadataProjectEnvCmd) !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
 
-      const projectName = await execCmd(projIdCmd, true, true)
+      const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
       return new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
 
     } else {
 
       if (instanceEnv) { // running at google
 
-        const projectName = await execCmd(projIdCmd, true, true)
+        const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
 
-        if (await execCmd(projAttrCmd, true, true) === RUN_MODE[RUN_MODE.PROD]) {
+        if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
           return new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
         } else {
-          const hostname = await execCmd(hostNameCmd, true, true)
+          const hostname = await this.getMetadata(rc, metadataHostName)
           return new GcloudEnv(projectName, hostname.split('.')[0])
         }
 
@@ -86,8 +86,7 @@ export class GcloudEnv {
       }
     }
   }
-
-
+  
   public datastore : any  
 
   constructor(public projectId  : string,
@@ -97,13 +96,13 @@ export class GcloudEnv {
   }
 
   // Static Functions to get Metadata Info
-  static async getProjectId (rc: RunContextServer): Promise<any> {
-    return this.getMetadata (rc, metadataProjectIdCmd)
+  static async getProjectId(rc: RunContextServer): Promise<any> {
+    return this.getMetadata(rc, metadataProjectIdCmd)
   }
 
-  static async checkGcpEnv (rc : RunContextServer): Promise<RUN_MODE> {
-    const instanceEnv = await this.getMetadata (rc, metadataInstanceEnvCmd),
-          projectEnv  = await this.getMetadata (rc, metadataProjectEnvCmd)
+  static async checkGcpEnv(rc : RunContextServer): Promise<RUN_MODE> {
+    const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd),
+          projectEnv  = await this.getMetadata(rc, metadataProjectEnvCmd)
     if (instanceEnv && instanceEnv == 'PROD' && instanceEnv == projectEnv) {
       return RUN_MODE.PROD
     }
@@ -113,7 +112,7 @@ export class GcloudEnv {
     return RUN_MODE.DEV
   }
 
-  static async getMetadata (rc: RunContextServer, urlSuffix: string): Promise<any> {
+  static async getMetadata(rc: RunContextServer, urlSuffix: string): Promise<any> {
     return new Promise((resolve, reject) => {
 
       metadataOptions.path = metadataPathPrefix + urlSuffix
