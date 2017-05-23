@@ -34,7 +34,7 @@ const Credentials = {
 
 const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/v1/',
       metadataProjectIdCmd   = 'project/project-id',
-      metadataHostName       = 'instance/hostname',
+      metadataHostNameCmd    = 'instance/hostname',
       metadataInstanceEnvCmd = 'instance/attributes/MUBBLE_ENV',
       metadataProjectEnvCmd  = 'project/attributes/PROJECT_ENV',
       metadataOptions : http.RequestOptions   = {
@@ -51,13 +51,7 @@ export class GcloudEnv {
 
   static async init(rc : RunContextServer): Promise<GcloudEnv> {
     
-    const curlPrefix  = 'curl --fail metadata.google.internal/computeMetadata/v1/',
-          instanceCmd = curlPrefix + 'instance/attributes/MUBBLE_ENV -H "Metadata-Flavor: Google"',
-          projAttrCmd = curlPrefix + 'project/attributes/projectEnv -H "Metadata-Flavor: Google"',
-
-          projIdCmd   = curlPrefix + 'project/project-id -H "Metadata-Flavor: Google"',
-          hostNameCmd = curlPrefix + 'instance/hostname -H "Metadata-Flavor: Google"',
-          instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
+    const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
 
     if (rc.getRunMode() === RUN_MODE.PROD) {
       if (instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
@@ -75,7 +69,7 @@ export class GcloudEnv {
         if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
           return new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
         } else {
-          const hostname = await this.getMetadata(rc, metadataHostName)
+          const hostname = await this.getMetadata(rc, metadataHostNameCmd)
           return new GcloudEnv(projectName, hostname.split('.')[0])
         }
 
