@@ -47,6 +47,9 @@ export async function startCluster( rc      : RunContextServer,
   return cluster.isMaster
 }
 
+export async function isClusterMaster () { 
+  return cluster.isMaster
+}
 
 interface UserInfo {
   uid: number
