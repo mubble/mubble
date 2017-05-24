@@ -109,25 +109,21 @@ export class GcloudEnv {
   static async getMetadata(rc: RunContextServer, urlSuffix: string): Promise<any> {
     return new Promise((resolve, reject) => {
 
-      let code = 200
       metadataOptions.path = metadataPathPrefix + urlSuffix
-      const req = http.request(metadataOptions, (outputStream: any) => {
 
-        if (code != 200) {
-          return resolve (undefined)
-        }
-        else {
-          let response = ''
-          outputStream.on('data', (chunk: any) => {
-            response += chunk
-          })
-          outputStream.on('end', () => {
-            return resolve(response)
-          })
-        }
+      const req = http.request(metadataOptions, (outputStream : any) => {
+        let response = ''
+        outputStream.on('data', (chunk: any) => {
+          response += chunk
+        })
+        outputStream.on('end', () => {
+          return resolve(response)
+        })     
       })
       req.on('response', (res: any) => {
-        code = res.statusCode
+        if (res.statusCode != 200) {
+          return resolve(undefined)
+        }
       })
       req.on('error', (err: any) => {
         rc.isStatus() && rc.status (err)
