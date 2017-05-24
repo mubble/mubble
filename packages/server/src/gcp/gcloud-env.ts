@@ -113,14 +113,18 @@ export class GcloudEnv {
       metadataOptions.path = metadataPathPrefix + urlSuffix
       const req = http.request(metadataOptions, (outputStream: any) => {
 
-        let response = ''
-        outputStream.on('data', (chunk: any) => {
-          response += chunk
-        })
-        outputStream.on('end', () => {
-          if (code != 200) return resolve (undefined)
-          return resolve(response)
-        })
+        if (code != 200) {
+          return resolve (undefined)
+        }
+        else {
+          let response = ''
+          outputStream.on('data', (chunk: any) => {
+            response += chunk
+          })
+          outputStream.on('end', () => {
+            return resolve(response)
+          })
+        }
       })
       req.on('response', (res: any) => {
         code = res.statusCode
