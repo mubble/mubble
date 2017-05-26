@@ -22,7 +22,13 @@ export abstract class RedisInstance {
     
   }
 
-  async abstract connect(url : string) : Promise<AsyncResp> ;
+  /**
+   * 
+   * @param url 
+   */
+  async connect(url : string) : Promise <void> {
+
+  }
 
   async abstract subscribe(args: any[] ): Promise<AsyncResp> ;
 

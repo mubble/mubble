@@ -57,13 +57,13 @@ export abstract class RedisBase {
 
 export abstract class MasterBase extends RedisBase {
 
-  constructor(context : RunContextServer , name : string , pkType : PKType){
+  constructor(context : RunContextServer , name : string , pkType : PKType) {
 
     super(context , name , pkType)
 
   }
 
-  public validateBeforeSourceSync (context : RunContextServer , mgr : MasterMgr ,  source : Array<JSON> , data : Array<MasterBase> ) : boolean {
+  public validateBeforeSourceSync (context: RunContextServer , mgr : MasterMgr ,  source : Array<JSON> , data : Array<MasterBase> ) : boolean {
     return true
   }
 
