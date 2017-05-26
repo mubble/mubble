@@ -7,7 +7,6 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {MasterBase} from './masterbase'
 import {RunContextServer} from '../rc-server'
 
 
@@ -23,7 +22,6 @@ export type syncInfo = {
 
 export abstract class MasterMgr {
 
-async abstract init(rc : RunContextServer , models : MasterBase [] , refresh : boolean ) : Promise<any> ;
 
 async abstract reloadFromRedis(rc : RunContextServer) : Promise<any> ;
 

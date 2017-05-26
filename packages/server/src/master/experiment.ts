@@ -10,7 +10,7 @@ var ma:any
 })
 
 
-class Experiment extends MasterBase {
+class Experiment {
 
   @ma.key 
     operator : string

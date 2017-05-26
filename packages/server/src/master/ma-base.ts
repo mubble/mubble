@@ -8,7 +8,6 @@
 ------------------------------------------------------------------------------*/
 
 import {RunContextServer} from '../rc-server'
-import {MasterMgr} from './mastermgr'
 
 export enum PKType {
   OBJECT ,
@@ -61,14 +60,6 @@ export abstract class MasterBase extends RedisBase {
 
     super(context , name , pkType)
 
-  }
-
-  public validateBeforeSourceSync (context: RunContextServer , mgr : MasterMgr ,  source : Array<JSON> , data : Array<MasterBase> ) : boolean {
-    return true
-  }
-
-  public verifyRecords (context : RunContextServer , mgr : MasterMgr ,  source : Array<JSON>) : boolean {
-    return true
   }
 
 

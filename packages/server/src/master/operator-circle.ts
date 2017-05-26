@@ -9,7 +9,7 @@ var ma:any
   dependencies: []
 
 })
-class OperatorCircle extends MasterBase {
+class OperatorCircle {
 
   @ma.key 
     operator : string
