@@ -81,7 +81,8 @@ export class GcloudEnv {
     }
   }
   
-  public datastore : any  
+  public datastore    : any
+  public cloudStorage : any  
 
   constructor(public projectId  : string,
               public namespace  : string,

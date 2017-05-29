@@ -6,8 +6,10 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-export {startCluster, isClusterMaster}
-                              from './cluster/master'
+export {
+        startCluster,
+        isClusterMaster
+      }                       from './cluster/master'
 export {web}                  from './xmn/web'
 export *                      from './rc-server'
 export {Repl}                 from './util/repl'
@@ -16,6 +18,7 @@ export *                      from './util/execute'
 export *                      from './util/https-request'
 export *                      from './gcp/gcloud-env'
 export *                      from './db/datastore/basedatastore'
+export *                      from './db/cloudstorage/cloudstorage-base'
 
 /* TODO:
 
