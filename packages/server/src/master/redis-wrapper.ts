@@ -10,7 +10,9 @@
 import {RedisClient , createClient , ResCallbackT , Multi} from 'redis'
 
 //import {RedisBase , MasterBase}  from './masterbase'
-function log(...args : any[] ) : void {}
+function log(...args : any[] ) : void {
+  console.log(LOG_ID , ...args)
+}
 const LOG_ID = 'RedisWrapper'
 
 //export type AsyncResp = {error : string , success : boolean}
@@ -64,9 +66,9 @@ function add(name : string)  {
 
 export class RedisWrapper {
 
-  public  redis       : RedisClient
-  public  monitoring  : false
-  private info        : { [index : string] : string }
+  public redis       : RedisClient
+  public monitoring  : true
+  public info        : { [index : string] : string } = {}
 
   constructor(private name : string ){
     
@@ -82,7 +84,8 @@ export class RedisWrapper {
   async connect(url : string) {
     const _ = this
     return new Promise ((resolve : any , reject : any) => {
-      
+      this.redis = createClient(url)
+
       this.redis.on("connect" , ()=>{
         log('connected to redis . Checking version')
         //await this._info()
@@ -96,7 +99,7 @@ export class RedisWrapper {
         reject(error)
       })
 
-      this.redis = createClient(url)
+      
     })
     
   }
@@ -134,7 +137,7 @@ export class RedisWrapper {
 
   async _execute(cmd : redis_command , args ?: any[]) {
     const redisw = this.redis as any
-    if(!redisw[cmd] || redisw[cmd]!== Function) throw Error('redis command '+cmd + ' invalid')
+    if(!redisw[cmd] || typeof redisw[cmd]!== 'function' ) throw Error('redis command '+cmd + ' invalid')
     
     return new Promise<any> ((resolve : any , reject : any) =>{
       
