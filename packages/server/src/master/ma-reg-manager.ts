@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import {RunContextServer} from '../rc-server'
-import {ModelConfig , MasterBase} from './ma-base'
+import {Master , MasterBase} from './ma-base'
 import {SourceSyncData} from './ma-manager'
 
 
@@ -30,7 +30,7 @@ export class MasterRegistry {
   
   optFields                 : string[] 
   
-  config                    : ModelConfig
+  config                    : Master.ModelConfig
 
   nonSerializeFields        : string[]      
   
