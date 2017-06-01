@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : <Write about the file here>
+   About      : Google vision access
    
    Created on : Thu Jun 01 2017
    Author     : Akash Dathan
