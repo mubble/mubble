@@ -7,21 +7,16 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {RedisClient , createClient , ResCallbackT , Multi} from 'redis'
+import {RedisClient , createClient , 
+        ResCallbackT , Multi}           from 'redis'
+import {log , concat}                   from './ma-util' 
 
 //import {RedisBase , MasterBase}  from './masterbase'
-function log(...args : any[] ) : void {
-  console.log(LOG_ID , ...args)
+function redisLog(...args : any[] ) : void {
+  log(LOG_ID , ...args)
 }
 const LOG_ID = 'RedisWrapper'
 
-function concat(...args : any[]) : string {
-  let buff : string = ''
-  args.forEach((item : any)=>{
-    buff += item + ' '
-  })
-  return buff
-}
 //export type AsyncResp = {error : string , success : boolean}
 
 export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
@@ -94,16 +89,16 @@ export class RedisWrapper {
       
       this.redis = createClient(url , options)
       this.redis.on("connect" , ()=>{
-        log(this.name , 'connected to redis', url)
+        redisLog(this.name , 'connected to redis', url)
         resolve()
       })
 
       this.redis.on("error" , (error : any)=>{
-        log(this.name , 'Could not connect to redis ',url , error)
+        redisLog(this.name , 'Could not connect to redis ',url , error)
         reject(error)
       })
     })
-    log('checking redis version')
+    redisLog('checking redis version')
     await this._info()
     const redis_ver : string = this.info['redis_version']
     // Get this from env config
@@ -118,7 +113,7 @@ export class RedisWrapper {
     return new Promise ((resolve : any , reject : any) => {
       
       this.redis.on('subscribe' , (channel : string , count : number)=>{
-        log(this.name , ' subscribed to channel ' , channel , count)
+        redisLog(this.name , ' subscribed to channel ' , channel , count)
         // resolve when ? all events are subscribed
       })
 
@@ -126,7 +121,7 @@ export class RedisWrapper {
         callback(channel , message)
       })
 
-      log('redis ',this.name , 'subscribing to channels ',events)
+      redisLog('redis ',this.name , 'subscribing to channels ',events)
       this.redis.subscribe(events)
 
     })
@@ -152,10 +147,10 @@ export class RedisWrapper {
       
       redisw[cmd](args , (err : Error , res : any) =>{
         if(err){
-          if(this.monitoring) log(this.name , cmd  , args , 'failed ',err)
+          if(this.monitoring) redisLog(this.name , cmd  , args , 'failed ',err)
           reject(err)
         }
-        if(this.monitoring) log(this.name , cmd  , args , 'success ', res)
+        if(this.monitoring) redisLog(this.name , cmd  , args , 'success ', res)
         resolve(res)
       })
     })
@@ -232,7 +227,7 @@ export class RedisWrapper {
     return new Promise(function(resolve, reject) {
       
       batchOrMulti.exec(function(err, results) {
-        if (_.monitoring)  log ('multi/batch', {err}, 'results', results)
+        if (_.monitoring)  redisLog ('multi/batch', {err}, 'results', results)
         if (err) return reject(err)
         resolve(results)
       })

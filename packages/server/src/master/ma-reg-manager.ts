@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Class maintaing all the registry information (through decorators) of all master base models
+   About      : Class maintaing all the registry information (through decorators) of all masterbase models
    
    Created on : Wed May 31 2017
    Author     : Gaurav Kulshreshtha
@@ -11,6 +11,28 @@ import {RunContextServer} from '../rc-server'
 import {Master , MasterBase} from './ma-base'
 import {SourceSyncData} from './ma-manager'
 
+
+export type MasterFieldType = 'string' | 'object' | 'number' | 'boolean'
+
+export class FieldInfo {
+  
+  name    : string
+  
+  type    : MasterFieldType
+  
+  masType : Master.FieldType
+
+  target  : object
+
+  constructor(name : string , type : MasterFieldType , masType : Master.FieldType , target : object) {
+    // Dont like using public specifier. For class members visibility
+    this.name     = name
+    this.type     = type
+    this.masType  = masType
+    this.target   = target
+  }
+
+}
 
 export class MasterRegistry {
   
@@ -24,16 +46,12 @@ export class MasterRegistry {
   
   masterInstance            : MasterBase
   
-  idFields                  : string[]
+  pkFields                  : string[]
   
-  idFieldsOrdered           : string[]  
-  
-  optFields                 : string[] 
+  fieldsMap                 : {[fieldName : string] : FieldInfo}
   
   config                    : Master.ModelConfig
 
-  nonSerializeFields        : string[]      
-  
   // Rules to verify Array
   rules             : ((obj : object) => string) []
 
@@ -47,17 +65,27 @@ export class MasterRegistry {
 
 
 /**
+ * Class Maintaining the Registry of all masters & their field types
  * All Methods are static 
  */
 export class MasterRegistryMgr {
 
   static regMap : {[mastername : string] : MasterRegistry}
 
-  static idField (mastername : string , prototype : any , propKey : string) : void {
+  /*
+  static pkField (target : any , propKey : string) : void {
+
+  }*/
+  
+  static masterField (target : any , propKey : string , maType : Master.FieldType) : void {
 
   }
 
-  static rules (mastername : string , rule : (obj : object) => string) : void {
+  static addMaster (target : any , config : Master.ModelConfig) : void {
+
+  }
+
+  static fieldValidationRule (target : any , propKey : string , rule : (obj : any) => void ) : void {
 
   }
   
