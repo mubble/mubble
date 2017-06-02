@@ -15,6 +15,13 @@ function log(...args : any[] ) : void {
 }
 const LOG_ID = 'RedisWrapper'
 
+function concat(...args : any[]) : string {
+  let buff : string = ''
+  args.forEach((item : any)=>{
+    buff += item + ' '
+  })
+  return buff
+}
 //export type AsyncResp = {error : string , success : boolean}
 
 export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
@@ -67,7 +74,7 @@ function add(name : string)  {
 export class RedisWrapper {
 
   public redis       : RedisClient
-  public monitoring  : true
+  public monitoring  : boolean = false
   public info        : { [index : string] : string } = {}
 
   constructor(private name : string ){
@@ -81,27 +88,29 @@ export class RedisWrapper {
     }
   }
 
-  async connect(url : string) {
+  async connect(url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<any>{
     const _ = this
-    return new Promise ((resolve : any , reject : any) => {
-      this.redis = createClient(url)
-
+    await new Promise ((resolve : any , reject : any) => {
+      
+      this.redis = createClient(url , options)
       this.redis.on("connect" , ()=>{
-        log('connected to redis . Checking version')
-        //await this._info()
-        
+        log(this.name , 'connected to redis', url)
         resolve()
       })
 
       this.redis.on("error" , (error : any)=>{
-        log('Could not connect to redis ',url , error)
-
+        log(this.name , 'Could not connect to redis ',url , error)
         reject(error)
       })
-
-      
     })
+    log('checking redis version')
+    await this._info()
+    const redis_ver : string = this.info['redis_version']
+    // Get this from env config
+    const exp_redi_ver : string = '3.2.0'
     
+    return (redis_ver === exp_redi_ver) ? Promise.resolve(redis_ver) : Promise.reject(concat('Incorrect Redis Version. Found:', redis_ver ,'Expected:', exp_redi_ver) )
+    //return Promise.resolve(this.redis.server_info)
   }
 
   async subscribe(events : any[] , callback : (channel : string , message : string) => void ) {
