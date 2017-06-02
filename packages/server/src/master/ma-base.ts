@@ -90,6 +90,14 @@ export namespace Master{
 
   export function objectStructure(struc : any) {
     return function(prototype : any , propKey : string) {
+      
+      function objectStructureCheck(rec : any) {
+        const mastername : string = prototype.constructor.name
+        const val : any = rec[propKey]
+        assert( val!=null , masterDesc(mastername,propKey,val) , 'is null')
+        assert( val instanceof struc , masterDesc(mastername,propKey,val) , 'is null')  
+      } 
+      MasterRegistryMgr.fieldValidationRule(prototype , propKey , objectStructureCheck)
 
     }
   }
@@ -183,7 +191,7 @@ export class MasterBase {
    * Load the model object from redis
    */
   async get(id : Master.IDType) {
-
+    
   }
 
   async insert() {
