@@ -11,6 +11,7 @@ const gVision : any = require('@google-cloud/vision')
 
 import {RunContextServer} from '../../rc-server'
 import {GcloudEnv}        from '../gcloud-env'
+import * as jimp          from 'jimp'
 
 export class VisionBase {
 
@@ -33,11 +34,40 @@ export class VisionBase {
   }
 
   constructor(rc : RunContextServer, gcloudEnv : GcloudEnv) {
-    this._vision = gcloudEnv.cloudStorage
+    this._vision = gcloudEnv.vision
   }
 
-  async detectCrops(rc : RunContextServer,imagePath : string) : Promise<string> {
+  async detectCrops(rc : RunContextServer, imagePath : string, ratio : number) : Promise<string> {
     //Image path can be a local path or a URL
-    return await this._vision.detectCrops(imagePath)
+    return await this._vision.detectCrops(imagePath, 
+          // PARAMS 
+          { 
+            verbose : true, 
+            imageContext : {
+                cropHintsParams : {
+                  aspectRatios : [ratio]
+                }
+            }
+          })
+  }
+
+  async process(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) {
+    //Image path can be a local path or a URL
+    const crops  : any  = await this.detectCrops(rc, imagePath, ratio || 1.78),
+          image  : any  = await jimp.read(imagePath)
+
+    if(crops && crops.length && crops[0].bounds) {
+      const b = crops[0].bounds,
+            x = b[0].x,
+            y = b[0].y,
+            h = b[3].y - b[0].y,
+            w = b[1].x - b[0].x
+      
+      image.crop( x, y, w, h)
+      if(shrink) image.resize(shrink.w, shrink.h)
+      
+      return await image.getBase64(image.getMIME())
+    }
+    return ''
   }
 }
