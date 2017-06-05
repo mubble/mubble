@@ -24,6 +24,7 @@ export class DSQuery {
     return res
   }
 
+  // https://cloud.google.com/datastore/docs/concepts/queries#datastore-basic-query-nodejs [Check Cursors]
   async runCursor(rc : RunContextServer, pageCursor: string) : Promise<any> {
     this._query = this._query.start (pageCursor)
     const res = await this.datastore.runQuery(this._query)
@@ -54,8 +55,9 @@ export class DSQuery {
     return this
   }
 
-  hasAncestor(key : any) : void {
+  hasAncestor(key : any) : DSQuery {
     this._query = this._query.hasAncestor(key)
+    return this
   }
 
   limit(val : number) : DSQuery {
