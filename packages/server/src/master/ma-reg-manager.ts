@@ -60,6 +60,10 @@ export class FieldInfo {
     this.target   = target
   }
 
+  public toString() : string {
+    return JSON.stringify({name : this.name, type : this.type , masType : this.masType}) 
+  }
+
 }
 
 export class MasterRegistry {
@@ -75,15 +79,15 @@ export class MasterRegistry {
   
   masterInstance            : MasterBase
   
-  pkFields                  : string[]
+  pkFields                  : string[] = []
   
-  fieldsMap                 : {[fieldName : string] : FieldInfo}
+  fieldsMap                 : {[fieldName : string] : FieldInfo} = {}
   
-  config                    : ModelConfig
+  config                    : ModelConfig 
 
-  autoFields                : string []
+  autoFields                : string [] = []
 
-  optionalFields            : string []
+  optionalFields            : string [] = []
   
   // Rules to verify Array
   // Equivalent of MasterConfig rules verification
@@ -104,6 +108,10 @@ export class MasterRegistry {
   public verify(context : RunContextServer) {
     
     MaRegMgrLog('Verifying ',this.mastername)
+    if(this.mastername === 'masterbase') {
+      //todo : 0. add all the masterbase fields info in all the classes
+    
+    }
     
     // Todo
     /*
@@ -112,7 +120,9 @@ export class MasterRegistry {
     3. PK Fields can not be object
     4. Populate autofields + other populations
     5. It must be an Instance of MasterBase
-
+    6. constructor must be present
+    7. config must be present 
+    8. verify configuration
     */
     assert(this.pkFields.length > 0 , 'PK not set for master ', this.mastername)
     
@@ -141,11 +151,14 @@ export class MasterRegistry {
       return finfo.masType === Master.FieldType.OPTIONAL
     }).map(info=>info.name)
     
+    assert(this.construct != null && this.config !=null , 'master class ',this.mastername , 'modelType definition missing')
     // In end create instance
     this.masterInstance = new this.construct(context , this.mastername)
 
     // check if this is an instance of master base
     assert(this.masterInstance instanceof MasterBase , this.mastername , 'is not an masterbase impl ')
+
+    MaRegMgrLog(this.mastername , this.fieldsMap)
   }
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
@@ -169,7 +182,7 @@ export class MasterRegistry {
  */
 export class MasterRegistryMgr {
 
-  static regMap : {[mastername : string] : MasterRegistry}
+  static regMap : {[mastername : string] : MasterRegistry} = {}
 
   /*
   static pkField (target : any , propKey : string) : void {
@@ -221,7 +234,7 @@ export class MasterRegistryMgr {
   }
   
   // Verify all the MasterRegistry for data sanity
-  public init (context : RunContextServer ) : void {
+  public static init (context : RunContextServer ) : void {
     MaRegMgrLog('starting init')
     for(const master of Object.keys(MasterRegistryMgr.regMap) ){
       const maReg : MasterRegistry = MasterRegistryMgr.regMap[master]

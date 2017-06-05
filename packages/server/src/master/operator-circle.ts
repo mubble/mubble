@@ -7,16 +7,17 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {Master , MasterBase} from './ma-base'
+import {RunContextServer}     from '../rc-server'
+import {Master , MasterBase}  from './ma-base'
 
 @Master.modelType(Master.getDefaultConfig({} , '2.3.4' , '3.5.6'))
-class operator extends MasterBase {
+export class operator extends MasterBase {
   @Master.primaryKey()
   name : string
 }
 
 @Master.modelType(Master.getDefaultConfig({} , '2.3.4' , '3.5.6'))
-class circle extends MasterBase {
+export class circle extends MasterBase {
   @Master.primaryKey()
   name : string
 }
@@ -28,7 +29,7 @@ class circle extends MasterBase {
   }
 ))
 
-class operatorcircle extends MasterBase {
+export class operatorcircle extends MasterBase {
   @Master.primaryKey()
   operator : string
   
@@ -45,7 +46,7 @@ class operatorcircle extends MasterBase {
   }
 
 ))
-class SampleOperatorPlan extends MasterBase {
+export class SampleOperatorPlan extends MasterBase {
 
   // Please declare your primary keys first
   // ensure that you observe the order of keys
@@ -75,5 +76,10 @@ class SampleOperatorPlan extends MasterBase {
   
   @Master.field()
   public validTill : number
+
+  public constructor() {
+    
+    super(null as any as RunContextServer , SampleOperatorPlan.constructor.name.toLowerCase())
+  }
 
 }

@@ -35,11 +35,23 @@ export namespace Master{
   }
 
   // Check if these are required or not
-  export enum FieldType {
-    PRIMARY ,
+  export class FieldType {
+    
+    /*PRIMARY ,
     MANDATORY ,
     OPTIONAL ,
-    AUTO 
+    AUTO*/
+
+    private constructor(private name : string){}
+
+    public static  PRIMARY : FieldType = new FieldType('PRIMARY')
+    public static  MANDATORY : FieldType = new FieldType('MANDATORY')
+    public static  OPTIONAL : FieldType = new FieldType('OPTIONAL')
+    public static  AUTO : FieldType = new FieldType('AUTO')
+
+    public toString() {
+      return this.name
+    }
   }
 
   export function field(type ?: FieldType ) {
