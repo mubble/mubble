@@ -13,62 +13,63 @@ import {GcloudEnv}        from '../../gcp/gcloud-env'
 
 export class DSQuery {
 
-  private _datastore : any
-  private _namespace : string
-  private _kindName  : string
   private _query     : any
 
-  constructor(rc : RunContextServer, gcloudEnv : GcloudEnv, kindName : string) {
-    this._namespace = gcloudEnv.namespace
-    this._datastore = gcloudEnv.datastore
-    this._kindName  = kindName.toLowerCase()
-    this._query     = this._datastore.createQuery(this._namespace, this._kindName)
+  constructor(rc : RunContextServer, private datastore: any, private namespace : any, private kindName: any ) {
+    this._query     = this.datastore.createQuery(namespace, kindName)
   }
 
   async run(rc : RunContextServer) : Promise<any> {
-    const res = await this._datastore.runQuery(this._query)
-    this.init(rc)
+    const res = await this.datastore.runQuery(this._query)
     return res
   }
 
-  init(rc : RunContextServer) : void {
-    this._query = this._datastore.createQuery(this._namespace, this._kindName)
+  async runCursor(rc : RunContextServer, pageCursor: string) : Promise<any> {
+    this._query = this._query.start (pageCursor)
+    const res = await this.datastore.runQuery(this._query)
   }
 
-  filter(key : string, value : any, symbol ?: string) : void {
+  filter(key : string, value : any, symbol ?: string) : DSQuery {
     if(!symbol) symbol = '='
     this._query = this._query.filter(key, symbol, value)
+    return this
   }
 
-  multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: string}}>) : void {
+  multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: string}}>) : DSQuery {
     for(let filter of keyPairs) {
       this._query = this._query.filter(filter.key, filter.symbol || '=', filter.value)
     }
+    return this
   }
 
-  order(key : string, value : any) : void {
+  order(key : string, value : any) : DSQuery {
     this._query = this._query.order(key, value)
+    return this
   }
 
-  multiOrder(keyPairs: Array<{[index : string] : {key : string, value : any}}>) : void {
+  multiOrder(keyPairs: Array<{[index : string] : {key : string, value : any}}>) : DSQuery {
     for(let filter of keyPairs) {
       this._query = this._query.order(filter.key, filter.value)
     }
+    return this
   }
 
   hasAncestor(key : any) : void {
     this._query = this._query.hasAncestor(key)
   }
 
-  limit(val : number) : void {
+  limit(val : number) : DSQuery {
     this._query = this._query.limit(val)
+    return this
   }
   
-  groupBy(val : string) : void {
+  groupBy(val : string) : DSQuery {
     this._query = this._query.groupBy(val)
+    return this
   }
 
-  select(val : Array<string>) : void {
+  select(val : Array<string>) : DSQuery {
     this._query = this._query.select(val)
+    return this
   }
 }

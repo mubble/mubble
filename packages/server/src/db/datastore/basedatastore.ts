@@ -26,7 +26,6 @@ export abstract class BaseDatastore {
   // holds most recent values for create, modify or delete
   protected modTS        : number
   protected modUid       : number
-  protected _query       : any
   protected _datastore   : any
   protected _namespace   : string
   protected _kindName    : string
@@ -101,7 +100,6 @@ export abstract class BaseDatastore {
     this._kindName      = kindName.toLowerCase()
     this._childEntities = this.getChildEntities(rc)
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
-    this._query         = new DSQuery(rc, gcloudEnv, kindName)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,15 +266,16 @@ export abstract class BaseDatastore {
   - Create Query 
 ------------------------------------------------------------------------------*/
   protected createQuery (rc : RunContextServer) {
-    return this._datastore.createQuery(this._namespace, this._kindName)
+    return new DSQuery (rc, this._datastore, this._namespace, this._kindName)
+    //return this._datastore.createQuery(this._namespace, this._kindName)
   }
 
 /*------------------------------------------------------------------------------
   - Run Query 
 ------------------------------------------------------------------------------*/
-  protected async runQuery(rc : RunContextServer, query : string) {
-    return await this._datastore.runQuery(query)
-  }
+  // protected async runQuery(rc : RunContextServer, query : string) {
+  //   return await this._datastore.runQuery(query)
+  // }
 
 /*------------------------------------------------------------------------------
   - Validate Collection

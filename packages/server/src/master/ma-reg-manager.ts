@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import "reflect-metadata"
+import 'reflect-metadata'
 import {RunContextServer} from '../rc-server'
 import {Master , MasterBase} from './ma-base'
 import {SourceSyncData} from './ma-manager'
