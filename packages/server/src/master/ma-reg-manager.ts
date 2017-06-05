@@ -8,9 +8,10 @@
 ------------------------------------------------------------------------------*/
 
 import "reflect-metadata"
-import {RunContextServer} from '../rc-server'
-import {Master , MasterBase} from './ma-base'
-import {SourceSyncData} from './ma-manager'
+import {RunContextServer}     from '../rc-server'
+import {Master , MasterBase}  from './ma-base'
+import {ModelConfig}          from './ma-model-config'  
+import {SourceSyncData}       from './ma-manager'
 import {masterDesc , assert , log}                from './ma-util'   
 
 const LOG_ID : string = 'MasterRegistryMgr'
@@ -23,14 +24,14 @@ export type MasterFieldType = 'string' | 'object' | 'number' | 'boolean' | 'arra
 function getType(t : any) : MasterFieldType {
   switch(t){
     
-    case Number : return 'number'
-    case String : return 'string'
-    case Boolean : return 'boolean'
-    case Object : return 'object'
-    case Array  : return 'array'
+    case Number     : return 'number'
+    case String     : return 'string'
+    case Boolean    : return 'boolean'
+    case Object     : return 'object'
+    case Array      : return 'array'
 
     default :
-      assert(false , 'unknown field type ',t)
+      assert(false , 'Unknown field type ',t)
 
   }
   // Never reachable
@@ -66,7 +67,7 @@ export class MasterRegistry {
 
   mastername                : string
   
-  construct                 : new (rc : any) => MasterBase
+  construct                 : new (rc : any , ...args : any[]) => MasterBase
   
   masterInstance            : MasterBase
   
@@ -74,18 +75,29 @@ export class MasterRegistry {
   
   fieldsMap                 : {[fieldName : string] : FieldInfo}
   
-  config                    : Master.ModelConfig
+  config                    : ModelConfig
 
   // Rules to verify Array
   rules             : ((obj : any) => void) []
 
+  // Get id string from master rec
+  public getIdStr(src : any) : string {
+    const id : any = {}
+    
+    this.pkFields.forEach(pk =>{
+      id[pk] = src[pk]
+    })
+
+    return JSON.stringify(id)
+  }
+  
   public verify(context : RunContextServer) {
     MaRegMgrLog('Verifying ',this.mastername)
     // Todo
     
 
     // In end create instance
-    this.masterInstance = new this.construct(context)
+    this.masterInstance = new this.construct(context , '' , '')
   }
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
@@ -98,7 +110,6 @@ export class MasterRegistry {
     
     let type : MasterFieldType = getType(t)
     this.fieldsMap[fieldName] = new FieldInfo(fieldName , type , masType ,  target)
-
   }
 
 }
@@ -130,7 +141,7 @@ export class MasterRegistryMgr {
     }
   }
 
-  static addMaster (constructor : any , config : Master.ModelConfig) : void {
+  static addMaster (constructor : any , config : ModelConfig) : void {
     const master : string = constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
 
@@ -168,19 +179,28 @@ export class MasterRegistryMgr {
   }
 
 
-  public static validateBeforeSourceSync (mastername : string , source : Array<object> , redisData : Array<object> ) : SourceSyncData {
+  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : Array<object> ) : SourceSyncData {
     
     return new Object() as SourceSyncData
   
   }
 
-  public static verifyAllDependency (mastername : string , masterCache : {master : string , data : object[] }) {
+  public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : {master : string , data : object[] }) {
 
 
   }
   
   // Private methods
-  private static verifySourceRecords (source : Array<object>) : (string | undefined) {
+  private static verifySourceRecords (rc : RunContextServer , maReg : MasterRegistry ,  source : Array<{[prop:string] : any}>) : (string | undefined) {
+    const mastername : string = maReg.mastername
+
+    // remove deleted recoreds
+    source  = source.filter((src)=>{
+      // todo get id
+      if(src.deleted) MaRegMgrLog('master',mastername , 'verifySourceRecords', 'removed from src')
+      return !(src.deleted === true)
+    })
+    
     return 
   }
   

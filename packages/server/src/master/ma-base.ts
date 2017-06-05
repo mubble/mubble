@@ -8,10 +8,15 @@
 ------------------------------------------------------------------------------*/
 
 //import {RedisWrapper}       from './redis-wrapper'
+import * as lo                from 'lodash'
+import * as semver            from 'semver'
+
 import {RunContextServer}     from '../rc-server'
+import {ModelConfig,MasterModelConfig}          from './ma-model-config'  
 import {MasterRegistryMgr}    from './ma-reg-manager'
 import {assert , masterDesc,
-        log , concat}       from './ma-util'
+        log , concat ,
+        MaType      }         from './ma-util'
 
 const LOG_ID : string = 'MasterBase'
 function mbLog(...args : any[] ) : void {
@@ -60,13 +65,17 @@ export namespace Master{
   
   // field level Rule
   export function versionField(prototype : any , propKey : string) {
-    return function(rec : any) {
+    function versionFieldCheck(rec : any) {
       const mastername : string = prototype.constructor.name
-      const val : number = rec[propKey]
-
-      // Todo : use lodash for version parsing
+      const val : any = rec[propKey]
+      assert( semver.valid(val)!=null , masterDesc(mastername,propKey,val) , 'is not a version field' )
+      
+      /*
+      if(MaType.isString(val) && semver.valid(val)) return
+      throw (new Error(concat('property',propKey , 'value' , val , 'is not a version field')))
+      */
     } 
-    
+    MasterRegistryMgr.fieldValidationRule(prototype , propKey , versionFieldCheck)
   }
   
   export function withinList(list : any[]) {
@@ -82,9 +91,20 @@ export namespace Master{
     }
   }
   
-  export function objPropertiesIn(list : any[]) {
+  export function objPropertiesIn(list : string[]) {
     return function(prototype : any , propKey : string) {
-
+      assert(list.length >0 ,'Object Properties is empty' )
+      
+      function objPropertiesInCheck(rec : any) {
+        const mastername : string = prototype.constructor.name
+        const val : any = rec[propKey]
+        
+        assert( MaType.isObject(val)!=null , masterDesc(mastername,propKey,val) , 'is not an object')
+        for(const key of Object.keys(val)){
+          assert(list.indexOf(key)!==-1 , masterDesc(mastername,propKey,val) , 'key:',key , 'is missing in the properties list',list)
+        }
+      }
+      MasterRegistryMgr.fieldValidationRule(prototype , propKey , objPropertiesInCheck)
     }
   }
 
@@ -95,7 +115,8 @@ export namespace Master{
         const mastername : string = prototype.constructor.name
         const val : any = rec[propKey]
         assert( val!=null , masterDesc(mastername,propKey,val) , 'is null')
-        assert( val instanceof struc , masterDesc(mastername,propKey,val) , 'is null')  
+        // This is wrong. Have to check each field manually , recursively
+        //assert( val instanceof struc , masterDesc(mastername,propKey,val) , 'is null')  
       } 
       MasterRegistryMgr.fieldValidationRule(prototype , propKey , objectStructureCheck)
 
@@ -117,24 +138,23 @@ export namespace Master{
   
 
   export type ForeignKeys = {[master : string] : {[masterField : string] : string }}
-
-  export interface ModelConfig {
-    cache                 ?: boolean 
-    segment               ?: object  
-    startVersion          ?: string  
-    endVersion            ?: string
-    fkConstrains          ?: ForeignKeys
-    dependencyMasters     ?: string []
-    masterTsField         ?: string
-    cachedFields          ?: {fields :  string [] , cache : boolean}
-    destSynFields         ?: {fields :  string [] , cache : boolean} 
-    validationrules       ?: ((rec : object)=> string)[]
-  }
+  
 
   export function getDefaultConfig (segment : object , startVersion : string , endVersion : string , fk ?: ForeignKeys )  : ModelConfig {
-    return {segment : segment , startVersion : startVersion , endVersion : endVersion , fkConstrains : fk}
+    //const masConfig : ModelConfig = new MasterModelConfig('Sample')
+    
+    const masConfig : ModelConfig = new class TestModelConfig extends MasterModelConfig {
+      constructor(){
+        super('Sample')
+        this.segment = segment
+        this.startVersion = startVersion
+        this.endVersion = endVersion
+        this.fkConstrains = fk
+      }
+    }
+    //return {segment : segment , startVersion : startVersion , endVersion : endVersion , fkConstrains : fk }
+    return masConfig
   }
-
 }
 
 export class MasterBase {
