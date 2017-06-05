@@ -20,20 +20,19 @@ export abstract class BaseDatastore {
   // Common fields in all the tables
   [index : string] : any
   protected _id          : number | string
-  protected createTS     : number
+  protected createTs     : number
   protected deleted      : boolean = false
      
   // holds most recent values for create, modify or delete
-  protected modTS        : number
+  protected modTs        : number
   protected modUid       : number
-  protected _query       : any
   protected _datastore   : any
   protected _namespace   : string
   protected _kindName    : string
 
   // Internal references
-  private _autoFields    : Array<string> = ['createTS', 'deleted', 'modTS', 'modUid']
-  private _indexedFields : Array<string> = ['createTS', 'deleted', 'modTS']
+  private _autoFields    : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
+  private _indexedFields : Array<string> = ['createTs', 'deleted', 'modTs']
   private _childEntities : {
     [index : string] : { model : any, isArray : boolean }
   }
@@ -101,7 +100,6 @@ export abstract class BaseDatastore {
     this._kindName      = kindName.toLowerCase()
     this._childEntities = this.getChildEntities(rc)
     this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
-    this._query         = new DSQuery(rc, gcloudEnv, kindName)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -268,14 +266,7 @@ export abstract class BaseDatastore {
   - Create Query 
 ------------------------------------------------------------------------------*/
   protected createQuery (rc : RunContextServer) {
-    return this._datastore.createQuery(this._namespace, this._kindName)
-  }
-
-/*------------------------------------------------------------------------------
-  - Run Query 
-------------------------------------------------------------------------------*/
-  protected async runQuery(rc : RunContextServer, query : string) {
-    return await this._datastore.runQuery(query)
+    return new DSQuery (rc, this._datastore, this._namespace, this._kindName)
   }
 
 /*------------------------------------------------------------------------------
@@ -449,14 +440,14 @@ export abstract class BaseDatastore {
     
     if(Array.isArray(insertRec)) {
       for(let rec of insertRec) {
-        rec.createTS = insertTime
-        rec.modTS    = insertTime
+        rec.createTs = insertTime
+        rec.modTs    = insertTime
         retArr       = retArr.concat(this.serialize(rc, rec))
       }
       return retArr
     } else {
-      insertRec.createTS = insertTime
-      insertRec.modTS    = insertTime
+      insertRec.createTs = insertTime
+      insertRec.modTs    = insertTime
       return this.serialize(rc, insertRec) 
     }
   }
@@ -471,12 +462,12 @@ export abstract class BaseDatastore {
     
     if(Array.isArray(updateRec)) {
       for(let rec of updateRec) {
-        rec.modTS     = updateTime || Date.now()
+        rec.modTs     = updateTime || Date.now()
         retArr        = retArr.concat(this.serialize(rc, rec))
       }
       return retArr
     } else {
-      updateRec.modTS    = updateTime || Date.now()
+      updateRec.modTs    = updateTime || Date.now()
       return this.serialize(rc, updateRec) 
     }
   }

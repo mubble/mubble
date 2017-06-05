@@ -149,7 +149,7 @@ export namespace Master{
         this.segment = segment
         this.startVersion = startVersion
         this.endVersion = endVersion
-        this.fkConstrains = fk
+        if(MaType.isObject(fk)) this.fkConstrains = fk
       }
     }
     //return {segment : segment , startVersion : startVersion , endVersion : endVersion , fkConstrains : fk }
@@ -159,11 +159,11 @@ export namespace Master{
 
 export class MasterBase {
 
-  @Master.field()
-  public insertTS : number
+  @Master.field(Master.FieldType.AUTO)
+  public createTs : number
   
-  @Master.field()
-  public modTS  : number
+  @Master.field(Master.FieldType.AUTO)
+  public modTs  : number
   
   /*
   @field()
@@ -173,7 +173,7 @@ export class MasterBase {
   public modLoc  : number
   */
   
-  @Master.field()
+  @Master.field(Master.FieldType.AUTO)
   public deleted : boolean
   
   public _mastername : string
@@ -240,6 +240,11 @@ export class MasterBase {
     // Each master can override this
   public verifyAllDependency (context : RunContextServer , masterCache : Map<string , {[pk : string] : object}> ) : (string | undefined) {
     return 
+  }
+
+  // not used - remove
+  public prepareSource(context : RunContextServer , rec : any){
+
   }
   
 }

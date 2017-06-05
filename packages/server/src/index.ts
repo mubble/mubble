@@ -18,7 +18,9 @@ export *                      from './util/execute'
 export *                      from './util/https-request'
 export *                      from './gcp/gcloud-env'
 export *                      from './db/datastore/basedatastore'
-export *                      from './db/cloudstorage/cloudstorage-base'
+export *                      from './db/datastore/ds-query'
+export *                      from './gcp/cloudstorage/cloudstorage-base'
+export *                      from './gcp/vision/vision-base'
 
 /* TODO:
 

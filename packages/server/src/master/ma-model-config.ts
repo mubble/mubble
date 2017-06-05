@@ -11,19 +11,29 @@ import {Master}               from './ma-base'
 import {MasterRegistry , 
         FieldInfo}            from './ma-reg-manager'
 
-export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistry , rec : object) => void
+import * as lo                from 'lodash'
+import {concat , masterDesc }              from './ma-util'
+
+        
+
+export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistry , rec : any[]) => void
+export const MasterTsField = 'modTs'
 
 export abstract class ModelConfig {
   protected cache                 ?: boolean = false
   protected segment               ?: object  
-  protected startVersion          ?: string|null  = null
-  protected endVersion            ?: string|null  = null
-  protected fkConstrains          ?: Master.ForeignKeys = {}
-  protected dependencyMasters     ?: string [] = []
-  protected masterTsField         ?: string = 'modTs'
+  protected startVersion          : string|null  = null
+  protected endVersion            : string|null  = null
+  protected fkConstrains          : Master.ForeignKeys = {}
+  protected dependencyMasters     : string [] = []
+  protected masterTsField         : string = MasterTsField
   protected cachedFields          ?: {fields :  string [] , cache : boolean} 
   protected destSynFields         ?: {fields :  string [] , cache : boolean} 
   protected srcValidationrules     : MasterValidationRule []
+
+  public getMasterTsField() : string {
+    return this.masterTsField
+  }
 }
 
 export class MasterModelConfig extends ModelConfig {
@@ -35,7 +45,7 @@ export class MasterModelConfig extends ModelConfig {
     // Todo
     this.segment = {}
     
-    this.srcValidationrules = [deletionCheck , fieldTypeCheck]
+    this.srcValidationrules = [fieldTypeCheck]
   }
 
 
@@ -45,11 +55,42 @@ export class MasterModelConfig extends ModelConfig {
 
 }
 
+function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records : any[]) {
+  
+  const autoCols : string [] = lo.clone(reg.autoFields) ,
+        masterTsField : string = reg.config.getMasterTsField() ,
+        fieldsMap : {[field : string] : FieldInfo} = lo.clone(reg.fieldsMap) ,
+        optionalFields : string[] = lo.clone(reg.optionalFields),
+        pkeys  = lo.clone(reg.pkFields),
+        pkeysMap : {[field : string] : FieldInfo} = {}
+        
+        lo.filter(fieldsMap , (finfo : FieldInfo , key : string)=>{
+          return finfo.masType === Master.FieldType.PRIMARY
+        }).forEach(finfo =>{
+          pkeysMap[finfo.name] = finfo
+        })
+        
 
-function deletionCheck(rc : RunContextServer ,  reg : MasterRegistry , rec : object) {
+  records.forEach(rec => {
+    
+    lo.forEach(rec  , (value : any , key : string  )=> {
+      
+      const fInfo : FieldInfo = fieldsMap[key]
 
-}
+      // Todo : If field is OPTIONAL allow
+      if(!fInfo) throw (lo.concat(masterDesc(reg.mastername , key , value) ,'unknown field:' , key ,  reg.getIdStr(rec)))
+      if(optionalFields.indexOf(key) !== -1) throw (lo.concat(masterDesc(reg.mastername , key , value) ,'can set auto field' , key ,  reg.getIdStr(rec)))
+      
 
-function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , rec : object) {
+      // string , number , boolean , array check
+      
+
+    })
+
+  })      
+
+  
+
+
 
 }

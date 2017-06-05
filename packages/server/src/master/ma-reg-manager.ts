@@ -8,6 +8,8 @@
 ------------------------------------------------------------------------------*/
 
 import "reflect-metadata"
+import * as lo                from 'lodash'
+
 import {RunContextServer}     from '../rc-server'
 import {Master , MasterBase}  from './ma-base'
 import {ModelConfig}          from './ma-model-config'  
@@ -77,7 +79,12 @@ export class MasterRegistry {
   
   config                    : ModelConfig
 
+  autoFields                : string []
+
+  optionalFields            : string []
+  
   // Rules to verify Array
+  // Equivalent of MasterConfig rules verification
   rules             : ((obj : any) => void) []
 
   // Get id string from master rec
@@ -94,8 +101,38 @@ export class MasterRegistry {
   public verify(context : RunContextServer) {
     MaRegMgrLog('Verifying ',this.mastername)
     // Todo
-    
+    /*
+    1. verify that field name must not contain the .
+    2. PK Consistency in pk fields
+    3. Populate autofields + other populations
+    4. MasterTs field if set must exists in all fields
 
+    */
+
+    // set auto fields
+    /*
+    this.autoFields = lo.valuesIn(this.fieldsMap).filter(fInfo=>{
+                          return fInfo.masType === Master.FieldType.AUTO 
+                        }).map(fInfo=>{
+                          return fInfo.name
+                        })
+    */
+
+    this.autoFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
+      return finfo.masType === Master.FieldType.AUTO
+    }).map(info=>info.name)
+                        
+    const masterTsField : string = this.config.getMasterTsField()                    
+    if(this.autoFields.indexOf(masterTsField)===-1){
+      this.autoFields.push(masterTsField)
+    } 
+
+
+    // set optional fields
+    this.optionalFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
+      return finfo.masType === Master.FieldType.OPTIONAL
+    }).map(info=>info.name)
+    
     // In end create instance
     this.masterInstance = new this.construct(context , '' , '')
   }
@@ -192,12 +229,12 @@ export class MasterRegistryMgr {
   
   // Private methods
   private static verifySourceRecords (rc : RunContextServer , maReg : MasterRegistry ,  source : Array<{[prop:string] : any}>) : (string | undefined) {
-    const mastername : string = maReg.mastername
+    const mastername : string = maReg.mastername 
 
     // remove deleted recoreds
     source  = source.filter((src)=>{
       // todo get id
-      if(src.deleted) MaRegMgrLog('master',mastername , 'verifySourceRecords', 'removed from src')
+      if(src.deleted) MaRegMgrLog('master',mastername , 'verifySourceRecords', 'removed from src',maReg.getIdStr(src))
       return !(src.deleted === true)
     })
     
