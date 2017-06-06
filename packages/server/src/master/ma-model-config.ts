@@ -21,8 +21,8 @@ export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistr
 export const MasterTsField = 'modTs'
 
 export abstract class ModelConfig {
-  protected cache                 ?: boolean = false
-  protected segment               ?: object  
+  protected cache                 : boolean = false
+  protected segment               : object  
   protected startVersion          : string|null  = null
   protected endVersion            : string|null  = null
   protected fkConstrains          : Master.ForeignKeys = {}
@@ -118,6 +118,9 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
           if(value === undefined) throw (concat(reg.mastername , 'default column value not set for column',key , rec))
         }
       }
+
+      // todo : object field nested value can't be null or undefined
+
 
     })
 

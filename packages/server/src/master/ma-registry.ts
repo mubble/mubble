@@ -98,20 +98,29 @@ export class MasterRegistry {
 
   optionalFields            : string [] = []
   
+  // Not inherited from masterbase
+  ownFields                 : string [] = []
+
+  allFields                 : string [] = []
+  
   // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
   rules                     : ((obj : any) => void) []
 
   // Get id string from master rec
   public getIdStr(src : any) : string {
-    if(this.pkFields.length === 1) return src[this.pkFields[0]]
+    if(this.pkFields.length === 1) {
+      assert(src[this.pkFields[0]] != null , 'Id field value can not be null ', this.mastername , this.pkFields[0] , src)
+      return lo.toString(src[this.pkFields[0]])
+    }
 
     const id : any = {}
     this.pkFields.forEach(pk =>{
+      assert(src[pk] != null , 'Id field value can not be null ', this.mastername , pk , src )
       id[pk] = src[pk]
     })
 
-    return JSON.stringify(id)
+    return lo.toString(id)
   }
   
   public verify(context : RunContextServer) {
@@ -143,6 +152,8 @@ export class MasterRegistry {
 
     })
 
+    this.allFields = lo.keysIn(this.fieldsMap)
+
     this.autoFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
       return finfo.masType === Master.FieldType.AUTO
     }).map(info=>info.name)
@@ -158,6 +169,11 @@ export class MasterRegistry {
       return finfo.masType === Master.FieldType.OPTIONAL
     }).map(info=>info.name)
     
+    this.ownFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
+      return !finfo.isMasterBaseField()
+    }).map(info=>info.name)
+    
+
     assert(this.construct != null && this.config !=null , 'master class ',this.mastername , 'modelType definition missing')
     // In end create instance
     this.masterInstance = new this.construct(context , this.mastername)

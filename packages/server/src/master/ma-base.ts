@@ -170,6 +170,13 @@ export namespace Master{
   }
 }
 
+export class MasterBaseFields 
+{
+  public static Deleted : string  = 'deleted' 
+  public static CreateTs : string  = 'createTs' 
+  public static ModTs : string  = 'modTs'
+}
+
 export class MasterBase {
 
   @Master.field(Master.FieldType.AUTO)
@@ -246,11 +253,11 @@ export class MasterBase {
     return Promise.resolve(1)
   }
 
-  verify (rc : RunContextServer , oldObj : object , nObj : object) : boolean {
+  verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) {
     return true
   }
 
-    // Each master can override this
+  // Each master can override this
   public verifyAllDependency (context : RunContextServer , masterCache : Map<string , {[pk : string] : object}> ) : (string | undefined) {
     return 
   }
