@@ -9,8 +9,9 @@
 
 const cloudStorage : any = require('@google-cloud/storage')
 
-import {RunContextServer} from '../../rc-server'
-import {GcloudEnv}        from '../../gcp/gcloud-env'
+import {RunContextServer}    from '../../rc-server'
+import {GcloudEnv}           from '../../gcp/gcloud-env'
+import {v4 as UUIDv4}        from 'node-uuid'
 
 export class CloudStorageBase {
 
@@ -34,6 +35,20 @@ export class CloudStorageBase {
 
   constructor(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     this._cloudStorage = gcloudEnv.cloudStorage
+  }
+
+  async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
+    var id        = UUIDv4()
+
+    while(true) {
+      const filePath = `${path}/${id}.${extension}`,
+            res      = await cloudStorage.fileExists(rc, bucketName, filePath)
+      if(res) {
+        id = UUIDv4()
+      } else {
+        return id
+      }
+    }
   }
 
   async upload(rc : RunContextServer, bucketName: string, filePath : string, destination : string) : Promise<string> {
