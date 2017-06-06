@@ -24,7 +24,7 @@ export class DSTransaction {
     this._datastore   = datastore
   }
 
-  public async start() { // Needed only if we use a transaction outside models.
+  async start(rc : RunContextServer) { // Needed only if we use a transaction outside models.
     try {
       await this._transaction.run()
     } catch(err) {
@@ -32,7 +32,7 @@ export class DSTransaction {
     }
   }
 
-  public async commit() { // Needed only if we use a transaction outside models.
+  async commit(rc : RunContextServer) { // Needed only if we use a transaction outside models.
     try {
       await this._transaction.commit()
     } catch(err) {
@@ -43,17 +43,17 @@ export class DSTransaction {
 
   async get(rc         : RunContextServer, 
             model      : BaseDatastore, 
-            key        : Array<any>, 
+            id         : number | string, 
             ignoreRNF ?: boolean) : Promise<void> {
 
-    const entityRec     = await this._transaction.get(key),
+    const key           = model.getDatastoreKey(rc, id),
+          entityRec     = await this._transaction.get(key),
           childEntities = model._childEntities
 
     if (!entityRec.length) {
       if (!ignoreRNF) throw(ERROR_CODES.RECORD_NOT_FOUND)
       return
     }
-    model.setIdFromResult (rc, entityRec[0])
     model.deserialize(rc, entityRec[0])
     
     for (let childEntity in childEntities) {
@@ -140,11 +140,11 @@ export class DSTransaction {
 
   public async bdGet(rc         : RunContextServer, 
                      model      : BaseDatastore, 
-                     key        : any, 
+                     id         : string | number, 
                      ignoreRNF ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
-      await this.get (rc, model, key, ignoreRNF)
+      await this.get (rc, model, id, ignoreRNF)
       await this._transaction.commit()
       return true
     } catch (err) {

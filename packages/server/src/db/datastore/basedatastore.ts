@@ -19,7 +19,7 @@ import {DSTransaction}    from './ds-transaction'
 export abstract class BaseDatastore {
 
   // Common fields in all the tables
-  [index : string] : any
+  [index : string]       : any
   public    _id          : number | string
   protected createTs     : number
   protected deleted      : boolean = false
@@ -122,13 +122,12 @@ export abstract class BaseDatastore {
           if (ignoreRNF) return false
           throw (ERROR_CODES.RECORD_NOT_FOUND)
         }
-        this._id = this.getIdFromResult(rc, entityRec[0])
         this.deserialize(rc, entityRec[0])
 
         return true       
       } else {
         const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
-        return transaction.bdGet (rc, this, key, ignoreRNF)
+        return transaction.bdGet (rc, this, id, ignoreRNF)
       }
     }
     catch (err) { // TODO: (AD) Should we catch transaction errors here ? Print in DSTransaction itself... 
@@ -240,15 +239,6 @@ getId (rc : RunContextServer ) : number | string {
   }
 
 /*------------------------------------------------------------------------------
-  - Set ID from result
-------------------------------------------------------------------------------*/
-  setIdFromResult (rc : RunContextServer, res : any) {
-    const id = this.getIdFromResult(rc, res)
-
-    this._id = id
-  }
-
-/*------------------------------------------------------------------------------
   - Get KEY from result
 ------------------------------------------------------------------------------*/
   getKeyFromResult(rc : RunContextServer, res : any) {
@@ -258,8 +248,15 @@ getId (rc : RunContextServer ) : number | string {
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  createQuery (rc : RunContextServer) {
-    return new DSQuery (rc, this._datastore, this._namespace, this._kindName)
+  createQuery(rc : RunContextServer) {
+    return new DSQuery(rc, this._datastore, this._namespace, this._kindName)
+  }
+
+/*------------------------------------------------------------------------------
+  - Create Transaction 
+------------------------------------------------------------------------------*/
+  createTransaction(rc : RunContextServer) {
+    return new DSTransaction(rc, this._datastore, this._namespace)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -271,6 +268,8 @@ getId (rc : RunContextServer ) : number | string {
 ------------------------------------------------------------------------------*/
   deserialize(rc : RunContextServer, value : any) : void {
     
+    if(!this._id) this._id = this.getIdFromResult(rc, value)
+
     for (let prop in value) { 
       let val     = value[prop],
           dVal    = this[prop]
