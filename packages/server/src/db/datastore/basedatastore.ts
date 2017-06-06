@@ -14,12 +14,13 @@ import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {DSQuery}          from './ds-query'
+import {DSTransaction}    from './ds-transaction'
 
 export abstract class BaseDatastore {
 
   // Common fields in all the tables
   [index : string] : any
-  protected _id          : number | string
+  public    _id          : number | string
   protected createTs     : number
   protected deleted      : boolean = false
      
@@ -28,12 +29,13 @@ export abstract class BaseDatastore {
   protected modUid       : number
   protected _datastore   : any
   protected _namespace   : string
-  protected _kindName    : string
+  public    _kindName    : string
 
   // Internal references
   private _autoFields    : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
   private _indexedFields : Array<string> = ['createTs', 'deleted', 'modTs']
-  private _childEntities : {
+
+  public  _childEntities : {
     [index : string] : { model : any, isArray : boolean }
   }
 
@@ -109,11 +111,10 @@ export abstract class BaseDatastore {
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
   protected async get(rc : RunContextServer, id : number | string, ignoreRNF ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    const key = this.getDatastoreKey(rc, id)
-
-    let transaction : any
 
     try {
+      const key = this.getDatastoreKey(rc, id)
+
       if (!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren) {   
         const entityRec = await this._datastore.get(key)
 
@@ -123,18 +124,19 @@ export abstract class BaseDatastore {
         }
         this._id = this.getIdFromResult(rc, entityRec[0])
         this.deserialize(rc, entityRec[0])
+
         return true       
       } else {
-        transaction = this._datastore.transaction()
-        await transaction.run()
-        await this.getWithTransaction (rc, key, transaction, ignoreRNF)
-        await transaction.commit()
-        return true
+        const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+        return transaction.get (rc, this, key, ignoreRNF)
       }
     }
-    catch (err) {
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      if (transaction) await transaction.rollback()
+    catch (err) { // TODO: (AD) Should we catch transaction errors here ? Print in DSTransaction itself... 
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
   }
@@ -169,26 +171,12 @@ getId (rc : RunContextServer ) : number | string {
   - Insert a multiple objects in a go. provided, the objects are in an array
 ------------------------------------------------------------------------------*/ 
   protected async bulkInsert(rc : RunContextServer, recs : Array<any>, noChildren ?: boolean, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean> {
-    const transaction = this._datastore.transaction()
-
     try {
-      await transaction.run()
-
-      for(const rec of recs) {
-        this.deserialize(rc, rec)
-        const res = await this.setUnique (rc, ignoreDupRec)
-        if(res) await this.insertWithTransaction(rc, null, transaction, insertTime, ignoreDupRec )
-      }
-      await transaction.commit()
-      return true
+      const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+      return transaction.bulkInsert(rc, this, recs, noChildren, insertTime, ignoreDupRec)
     }
     catch(err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      await transaction.rollback()
-      for (let i in recs) { 
-        this.deserialize(rc, recs[i])
-        await this.deleteUnique(rc) 
-      }
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
   }
@@ -197,16 +185,11 @@ getId (rc : RunContextServer ) : number | string {
   - Update
 ------------------------------------------------------------------------------*/ 
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<boolean> {
-    const transaction = this._datastore.transaction()
-
     try {
-      await transaction.run()
-      await this.updateWithTransaction(rc, id, updRec, transaction, ignoreRNF )
-      await transaction.commit()
-      return true
+      const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+      return transaction.update(rc, this, id, updRec, ignoreRNF)
     } 
     catch (err) {
-      await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
   }
@@ -217,19 +200,13 @@ getId (rc : RunContextServer ) : number | string {
   - The object should contain its ID in the "_id" parameter
 ------------------------------------------------------------------------------*/ 
   protected async bulkUpdate(rc : RunContextServer, updRecs : Array<any>, insertTime ?: number, ignoreRNF ?: boolean) : Promise<boolean>{
-    const transaction = this._datastore.transaction()
 
     try {
-      await transaction.run()
-      for(const rec of updRecs) {
-        await this.updateWithTransaction(rc, rec._id, rec, transaction, ignoreRNF)
-      } 
-      await transaction.commit()
-      return true
+      const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+      return transaction.bulkUpdate(rc, this, updRecs, insertTime, ignoreRNF)
     }
     catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }   
   }
@@ -241,20 +218,14 @@ getId (rc : RunContextServer ) : number | string {
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
   protected async softDelete(rc : RunContextServer, id : number | string, params : any) : Promise<boolean> {
-    const transaction = this._datastore.transaction()
-  
     if(!params) params = {}   
     params.deleted = true
     try {
-      await transaction.run()
-      await this.updateWithTransaction (rc, id, params, transaction, false)
-      await this.deleteUnique(rc)
-      await transaction.commit()
-      return true
+      const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+      return transaction.softDelete(rc, this, id, params)
     } 
     catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      await transaction.rollback()
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
   }
@@ -269,154 +240,36 @@ getId (rc : RunContextServer ) : number | string {
   }
 
 /*------------------------------------------------------------------------------
+  - Set ID from result
+------------------------------------------------------------------------------*/
+  setIdFromResult (rc : RunContextServer, res : any) {
+    const id = this.getIdFromResult(rc, res)
+
+    this._id = id
+  }
+
+/*------------------------------------------------------------------------------
+  - Get KEY from result
+------------------------------------------------------------------------------*/
+  getKeyFromResult(rc : RunContextServer, res : any) {
+    return res[this._datastore.KEY]
+  }
+
+/*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  protected createQuery (rc : RunContextServer) {
+  createQuery (rc : RunContextServer) {
     return new DSQuery (rc, this._datastore, this._namespace, this._kindName)
   }
 
-/*------------------------------------------------------------------------------
-  - Validate Collection
-------------------------------------------------------------------------------*/
-  protected async validateCollection(rc : RunContextServer) {
-    
-  }
-  
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            INTERNAL FUNCTIONS
+                            UTILITY FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
-  private async getWithTransaction(rc : RunContextServer, key : Array<any>, transaction : any, ignoreRNF ?: boolean) : Promise<void> {
-    const entityRec  = await transaction.get(key)
-
-    if (!entityRec.length) {
-      if (!ignoreRNF) throw(ERROR_CODES.RECORD_NOT_FOUND)
-      return
-    }
-
-    this._id = this.getIdFromResult(rc, entityRec[0])
-    this.deserialize(rc, entityRec[0])
-    
-    for (let childEntity  in this._childEntities) {
-      const model = this._childEntities[childEntity].model,
-            query = this._datastore.createQuery(this._namespace, model._kindName).hasAncestor(key),
-            val   = await this._datastore.runQuery(query)
-
-      if (this._childEntities[childEntity].isArray === false) {
-        const dataModel = new model.constructor()
-        
-        dataModel.getWithTransaction(rc, val[0][0][this._datastore.KEY], transaction, ignoreRNF)
-        this.setChildEntity(rc, childEntity, dataModel.serialize(rc))
-      } else {
-        const resArr    = [],
-              dataModel = new model.constructor()
-
-        for (let i in val[0]) {
-          dataModel.getWithTransaction(rc, val[0][i][this._datastore.KEY], transaction, ignoreRNF)
-          resArr.push(dataModel.serialize(rc))
-        }
-        this.setChildEntity(rc, childEntity, resArr)
-      }
-    }
-  }
-
-  private async insertInternal(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    const transaction  = this._datastore.transaction(),
-          datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)  
-
-    try {
-      const res = await this.setUnique (rc, ignoreDupRec)
-      if(res) {
-        if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
-          await this._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
-          this._id = datastoreKey.path[datastoreKey.path.length - 1]
-          return true
-        } else {
-          await transaction.run()
-          await this.insertWithTransaction(rc, parentKey, transaction, insertTime, ignoreDupRec)
-          await transaction.commit()
-          return true
-        }
-      } else {
-        return false
-      }
-    } catch (err) {
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      if (transaction) await transaction.rollback()
-      await this.deleteUnique (rc)
-      if (err.toString().split(':')[1] !== ' entity already exists') {
-        throw(new Error(ERROR_CODES.GCP_ERROR))
-      } else {
-        if (ignoreDupRec) {
-          return true
-        }
-        throw(new Error(ERROR_CODES.RECORD_ALREADY_EXISTS))
-      }
-    }
-  }
-
-  private async insertWithTransaction(rc : RunContextServer, parentKey : any, transaction : any, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean>{
-    const newRec = this.getInsertRec(rc, insertTime)
-          
-    let datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)
-
-    if (!this._id) { // If we already have a key, no need to allocate
-      const key = await transaction.allocateIds(datastoreKey, 1) 
-
-      this._id     = key[0][0].path[key[0][0].path.length - 1]
-      datastoreKey = key[0][0]
-    }
-
-    transaction.save({key: datastoreKey, data: newRec})
-
-    // Check for Child Entities
-    for (let childEntity in this._childEntities) {
-      const isArray    = this._childEntities[childEntity].isArray,
-            dsObjArray = (isArray) ? this[childEntity] : [ this[childEntity] ] // Put in an array if 'object'
-
-      for(let dsObj of dsObjArray) {
-        const model = this._childEntities[childEntity].model,
-              obj   = new model.constructor()
-
-        dsObj = obj.deserialize(rc, dsObj)
-        await dsObj.insertWithTransaction(rc, insertTime, ignoreDupRec, datastoreKey, transaction)
-      }
-    }
-    return true
-  }
-
-  private async updateWithTransaction (rc : RunContextServer, id : number | string, updRec : any, transaction : any, ignoreRNF ?: boolean) : Promise<void>{
-    const key = this.getDatastoreKey(rc, id)
-
-    await this.getWithTransaction(rc, key, transaction, ignoreRNF)
-    Object.assign(this, updRec)
-    transaction.save({key: key, data: this.getUpdateRec(rc)})
-  }
-
 /*------------------------------------------------------------------------------
-  - Serialize is towards Datastore. Need to convert it to Data format
+  - Deserialize: Assign the values of the object passed to the respective fields
 ------------------------------------------------------------------------------*/
-  private serialize(rc : RunContextServer, value : any) : Array<any> { 
-    const rec = []
-
-    for (let prop in value) { 
-      let val = value[prop]
-      if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
-      if (val && typeof(val) === 'object' && val.serialize instanceof Function) {
-        val = val.serialize(rc)
-      }
-      
-      if(!(prop in this._childEntities)){
-        rec.push ({ name: prop, value: val, excludeFromIndexes: (this._indexedFields.indexOf(prop) === -1) })
-      }
-    }
-    return rec
-  }
-
-/*------------------------------------------------------------------------------
-  - Assign the values of the object passed to the respective fields
-------------------------------------------------------------------------------*/
-  private deserialize(rc : RunContextServer, value : any) : void {
+  deserialize(rc : RunContextServer, value : any) : void {
     
     for (let prop in value) { 
       let val     = value[prop],
@@ -432,13 +285,13 @@ getId (rc : RunContextServer ) : number | string {
     }
   }
   
-/*------------------------------------------------------------------------------
+ /*------------------------------------------------------------------------------
   - Records are to be converted to a format accepted by datastore
   - 'insertRec' can be a model rec or a normal object
   - The whole model class along with fixed params defined in datastore is
     taken if 'insertRec' is not provided 
 ------------------------------------------------------------------------------*/
-  private getInsertRec(rc : RunContextServer, insertTime ?: number, insertRec ?: any) : Array<any> {
+  getInsertRec(rc : RunContextServer, insertTime ?: number, insertRec ?: any) : Array<any> {
     let retArr : Array<any> = []
         
     insertRec  = insertRec  || this
@@ -461,7 +314,7 @@ getId (rc : RunContextServer ) : number | string {
 /*------------------------------------------------------------------------------
   - Records are to be converted to a format accepted by datastore
 ------------------------------------------------------------------------------*/
-  private getUpdateRec(rc : RunContextServer, updateRec ?: any, updateTime ?: number) : Array<any> {
+  getUpdateRec(rc : RunContextServer, updateRec ?: any, updateTime ?: number) : Array<any> {
     let retArr : Array<any> = []
         
     if (!updateRec) updateRec = this
@@ -486,7 +339,7 @@ getId (rc : RunContextServer ) : number | string {
       path      : [The complete path]
     }
 ------------------------------------------------------------------------------*/
-  private getDatastoreKey(rc : RunContextServer, id ?: number | string | null , kindName ?: string, parentPath ?: Array<any>) {
+  getDatastoreKey(rc : RunContextServer, id ?: number | string | null , kindName ?: string, parentPath ?: Array<any>) {
     let datastoreKey
 
     if (!kindName) kindName = this._kindName
@@ -509,7 +362,7 @@ getId (rc : RunContextServer ) : number | string {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  private async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolean> {
+  async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
@@ -539,7 +392,7 @@ getId (rc : RunContextServer ) : number | string {
 /*------------------------------------------------------------------------------
   - The unique keys are to be deleted when the corresponding entity is deleted
 ------------------------------------------------------------------------------*/
-  private async deleteUnique(rc : RunContextServer) : Promise<boolean> {
+  async deleteUnique(rc : RunContextServer) : Promise<boolean> {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
@@ -556,4 +409,57 @@ getId (rc : RunContextServer ) : number | string {
     }
     return true
   } 
-}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            INTERNAL FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+
+  private async insertInternal(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
+    const datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)  
+
+    try {
+      const res = await this.setUnique (rc, ignoreDupRec)
+      if(res) {
+        if ((!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren)) {
+          await this._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
+          this._id = datastoreKey.path[datastoreKey.path.length - 1]
+          return true
+        } else {
+          const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+          return await transaction.insertInternal(rc, this, parentKey, insertTime, ignoreDupRec)
+        }
+      } else {
+        return false
+      }
+    } catch (err) {
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      await this.deleteUnique (rc)
+      if (err.toString().split(':')[1] !== ' entity already exists') {
+        throw(new Error(ERROR_CODES.GCP_ERROR))
+      } else {
+        if (ignoreDupRec) return true
+        throw(new Error(ERROR_CODES.RECORD_ALREADY_EXISTS))
+      }
+    }
+  }
+
+/*------------------------------------------------------------------------------
+  - Serialize is towards Datastore. Need to convert it to Data format
+------------------------------------------------------------------------------*/
+  private serialize(rc : RunContextServer, value : any) : Array<any> { 
+    const rec = []
+
+    for (let prop in value) { 
+      let val = value[prop]
+      if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
+      if (val && typeof(val) === 'object' && val.serialize instanceof Function) {
+        val = val.serialize(rc)
+      }
+      
+      if(!(prop in this._childEntities)){
+        rec.push ({ name: prop, value: val, excludeFromIndexes: (this._indexedFields.indexOf(prop) === -1) })
+      }
+    }
+    return rec
+  }
+} 

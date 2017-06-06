@@ -13,10 +13,10 @@ import {GcloudEnv}        from '../../gcp/gcloud-env'
 
 export class DSQuery {
 
-  private _query     : any
+  private _query : any
 
   constructor(rc : RunContextServer, private datastore: any, private namespace : any, private kindName: any ) {
-    this._query     = this.datastore.createQuery(namespace, kindName)
+    this._query = this.datastore.createQuery(namespace, kindName)
   }
 
   async run(rc : RunContextServer) : Promise<any> {
