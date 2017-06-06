@@ -98,9 +98,9 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
         //[null , undefined , '' , 0] check only allowed for OPTIONAL Fields
         if(!value) throw (concat(reg.mastername , 'column ',key , 'can not be null/empty', rec))
 
-        if(fInfo.type === 'array' && lo.isEqual(value , [])) {
+        if(fInfo.type === 'array' && lo.isEmpty(value)) {
           throw (concat(reg.mastername , 'column ',key , 'can not be empty array', rec))
-        }else if(fInfo.type === 'object' && lo.isEqual(value , {})) {
+        }else if(fInfo.type === 'object' && lo.isEmpty(value)) {
           throw (concat(reg.mastername , 'column ',key , 'can not be empty object', rec))
         }
 

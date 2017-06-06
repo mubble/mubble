@@ -23,6 +23,8 @@ function MaRegMgrLog(...args : any[] ) : void {
   log(LOG_ID , ...args)
 }
 
+export const MASTERBASE : string = MasterBase.constructor.name.toLowerCase()
+
 export type MasterFieldType = 'string' | 'object' | 'number' | 'boolean' | 'array'
 //export type MasterFieldType = String | Number | Boolean | Object
 function getType(t : any) : MasterFieldType {
@@ -89,9 +91,9 @@ export class MasterRegistry {
 
   optionalFields            : string [] = []
   
-  // Rules to verify Array
+  // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
-  rules             : ((obj : any) => void) []
+  rules                     : ((obj : any) => void) []
 
   // Get id string from master rec
   public getIdStr(src : any) : string {
@@ -108,9 +110,9 @@ export class MasterRegistry {
   public verify(context : RunContextServer) {
     
     MaRegMgrLog('Verifying ',this.mastername)
-    if(this.mastername === 'masterbase') {
+    if(this.mastername === MASTERBASE) {
       //todo : 0. add all the masterbase fields info in all the classes
-    
+      
     }
     
     // Todo
@@ -236,6 +238,7 @@ export class MasterRegistryMgr {
   // Verify all the MasterRegistry for data sanity
   public static init (context : RunContextServer ) : void {
     MaRegMgrLog('starting init')
+    // add the masterbase registry data to all
     for(const master of Object.keys(MasterRegistryMgr.regMap) ){
       const maReg : MasterRegistry = MasterRegistryMgr.regMap[master]
       maReg.verify(context)

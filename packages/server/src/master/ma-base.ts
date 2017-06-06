@@ -37,6 +37,7 @@ export namespace Master{
   // Check if these are required or not
   export class FieldType {
     
+    // Not good for logging(debug) reasons.
     /*PRIMARY ,
     MANDATORY ,
     OPTIONAL ,
