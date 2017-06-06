@@ -118,8 +118,6 @@ export class MasterMgr {
       
   }
   
-  //async applyMasterData (rc : RunContextServer , data : Array<masterdatainfo> ) : Promise<any>
-  
   public async applyFileData(context : RunContextServer , arModels : {master : string , source: string} []) /*: {name : string , error:string} []*/ {
     
     const result : {name : string , error:string} [] = []
@@ -149,9 +147,9 @@ export class MasterMgr {
       
       
     }
-
     
-    return result
+    
+    return Promise.resolve(result)
   }
 
   // Used for all source sync apis (partial , full , multi)

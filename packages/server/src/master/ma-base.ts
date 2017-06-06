@@ -170,11 +170,11 @@ export namespace Master{
   }
 }
 
-export class MasterBaseFields 
+export var MasterBaseFields =
 {
-  public static Deleted : string  = 'deleted' 
-  public static CreateTs : string  = 'createTs' 
-  public static ModTs : string  = 'modTs'
+  Deleted   : 'deleted' ,
+  CreateTs  : 'createTs' ,
+  ModTs     : 'modTs'
 }
 
 export class MasterBase {
