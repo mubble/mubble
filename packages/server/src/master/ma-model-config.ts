@@ -21,6 +21,8 @@ export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistr
 export const MasterTsField = 'modTs'
 
 export abstract class ModelConfig {
+  
+  protected hasFileSource         : boolean = false
   protected cache                 : boolean = false
   protected segment               : object  
   protected startVersion          : string|null  = null
@@ -37,6 +39,10 @@ export abstract class ModelConfig {
   }
   public getSrcValidationrules() : MasterValidationRule [] {
     return this.srcValidationrules
+  }
+
+  public getHasFileSource() {
+    return this.hasFileSource
   }
 }
 

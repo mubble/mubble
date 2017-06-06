@@ -20,7 +20,10 @@ import {ModelConfig ,
 import {SourceSyncData}       from './ma-manager'
 import {masterDesc , assert , 
         concat , log ,
-        maArrayMap}                from './ma-util'   
+        maArrayMap}           from './ma-util' 
+import {StringValMap , 
+        GenValMap}            from './ma-types'              
+          
 
 const LOG_ID : string = 'MasterRegistryMgr'
 function MaRegMgrLog(...args : any[] ) : void {
@@ -84,6 +87,13 @@ export class MasterRegistryMgr {
     return MasterRegistryMgr.regMap[master]
   }
   
+  public static isAllowedFileUpload(master : string) {
+    
+    const registry : MasterRegistry = this.getMasterRegistry(master)
+    assert(registry!=null , 'Unknow master ',master , 'for file upload')
+    assert(registry.config.getHasFileSource() , 'master',master , 'is not file sourced')
+
+  }
   // Verify all the MasterRegistry for data sanity
   public static init (context : RunContextServer ) : void {
     MaRegMgrLog('starting init')
@@ -112,7 +122,7 @@ export class MasterRegistryMgr {
   }
 
 
-  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : Map<string , any> ) : SourceSyncData {
+  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : GenValMap ) : SourceSyncData {
     
     this.verifySourceRecords(rc , this.getMasterRegistry(mastername) , source )
 
@@ -153,7 +163,7 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceRecs : Array<any> , targetMap : Map<string , any> ) : SourceSyncData {
+  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceRecs : Array<any> , targetMap : {[key : string] : any} ) : SourceSyncData {
     
     MaRegMgrLog('verifyModifications' , registry.mastername ,'source:' , sourceRecs.length , 'target:', targetMap.size )
 
@@ -185,7 +195,7 @@ export class MasterRegistryMgr {
         
         if(lo.hasIn(fldMap , MasterBaseFields.Deleted )) srcRec[MasterBaseFields.Deleted] = false
         srcRec[masTsField] = now
-        ssd.inserts.push(srcRec)
+        ssd.inserts.set(pk , srcRec)
 
       }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , allFields , ownFields , masTsField , ref , srcRec ) ){
         
@@ -195,7 +205,7 @@ export class MasterRegistryMgr {
         srcRec[masTsField] = now
         srcRec[MasterBaseFields.CreateTs] = ref[MasterBaseFields.CreateTs]
 
-        ssd.updates.push(srcRec)
+        ssd.updates.set(pk , srcRec)
       }
 
     })
@@ -204,15 +214,15 @@ export class MasterRegistryMgr {
     target.forEach((ref : any)=>{
       // Ignore already deleted
       if(ref[MasterBaseFields.Deleted]) return
-
-      const src : any = sourceIdsMap[registry.getIdStr(ref)]
+      const id : string = registry.getIdStr(ref)
+      const src : any = sourceIdsMap[id]
       if(!src) {
         // This record is deleted
         const delRec : any = lo.cloneDeep(ref)
         
         delRec[MasterBaseFields.Deleted] = true
         delRec[masTsField] = now
-        ssd.updates.push(delRec)
+        ssd.updates.set(id , delRec)
       }
     })
     

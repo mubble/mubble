@@ -27,26 +27,29 @@ export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' 
                             'watch' | 'unwatch' |
                             'scan' | 'sscan' | 'hscan' | 'zscan'
 
-export const redis_commands : string[] =  ['del' , 'expire' , 'get']                            
+export const redis_commands : string[] =  
+['del' , 'expire' , 'get' , 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset']                            
                              
-export type redis_async_func      = (args : any[]) => void
-export type redis_async_func_mult = (args : any[]) => any[]
+export type redis_async_func        = (...args : string[]) => void
+export type redis_async_func_str    = (...args : string[]) => string[]
+export type redis_async_func_arr    = (key: string , ...args : string[]) => string []
+export type redis_async_func_map    = (key : string) => {[key:string] : string}  //Map<string , string>
 
 export interface RedisCmds {
   
-  del       : redis_async_func
-  expire    : redis_async_func
-  get       : redis_async_func
-  incr      : redis_async_func
-  mget      : redis_async_func_mult
+  del       : (...args : string[]) => void
+  expire    : redis_async_func // check
+  get       : (key: string ) => string
+  incr      : redis_async_func // check
+  mget      : (...args : string[]) => string []
   mset      : redis_async_func
 
-  hdel      : redis_async_func
-  hget      : redis_async_func
-  hgetall   : redis_async_func_mult
-  hmget     : redis_async_func_mult
-  hmset     : redis_async_func
-  hset      : redis_async_func
+  hdel      : (args : string[]) => void
+  hget      : (key : string , field : string) => string 
+  hgetall   : (key : string) => {[key:string] : string}
+  hmget     : (key: string , ...args : string[]) => string []
+  hmset     : (key: string , ...args : string[] ) => void
+  hset      : (key: string , field : string , value : string ) => void
 
   
 }
@@ -247,7 +250,7 @@ export class RedisWrapper {
     this.redis.scan()
     this.redis.hscan()
 
-    await this.redisCommand().del([])
+    await this.redisCommand().del(...['key1','key2'])
     await this.command('del' , [])
     await this.del('gk1' , 'gk2' )
     await this.del(...['gk1' , 'gk2'] )

@@ -8,12 +8,42 @@
 ------------------------------------------------------------------------------*/
 
 import * as lo                from 'lodash'
+import * as crypto            from 'crypto'
+
 
 import {RedisWrapper}         from './redis-wrapper'
 import {MasterBase}           from './ma-base'
 import {RunContextServer}     from '../rc-server'
+import {masterDesc , assert , 
+        concat , log ,
+        maArrayMap , MaType}  from './ma-util'
+        
+import {ModelConfig}          from './ma-model-config'             
+import {MasterRegistry}       from './ma-registry'             
+import {MasterRegistryMgr}    from './ma-reg-manager'
+import {StringValMap , 
+        GenValMap}            from './ma-types'              
+
+const LOG_ID : string = 'MasterMgr'
+function MaRegMgrLog(...args : any[] ) : void {
+  log(LOG_ID , ...args)
+}
+
+var CONST = {
+  REDIS_NS          : 'master:',
+  REDIS_TS_SET      : 'ts:',      // example 'master:ts:operator'
+  REDIS_DATA_HASH   : 'data:',    // example 'master:data:operator'
+  REDIS_DIGEST_KEY  : 'digest',   // key for digest hash
+  REDIS_CHANNEL     : 'master:updates',
+
+  DIGEST_REMOTE     : 'remote'
+}
 
 
+/*
+export function getMapObj<T> () : any {
+  const t : any = typeof  {[key: string] : T} 
+}*/
 
 export type masterdatainfo = {
   mastername : string 
@@ -31,7 +61,7 @@ export type syncInfo = {
 export class MasterData {
   
   public constructor(public mastername : string) {
-
+    
   }
 
   public records    : object [] = []
@@ -53,14 +83,15 @@ export class SourceSyncData {
   
   mastername : string
   source     : any []
-  redisData  : Map<string , any>
+  redisData  : GenValMap
   
  
-  inserts    : {pk : string , obj : any} [] = []
-  updates    : {pk : string , obj : any} [] = []
+  inserts    : Map<string , any> = new Map<string , any>()
+  updates    : Map<string , any> = new Map<string , any>()
+
   modifyTS   : number = lo.now()
 
-  public constructor(master : string , source : any [] , target : Map<string , any> ) {
+  public constructor(master : string , source : any [] , target : GenValMap ) {
     this.mastername = master
     this.source = source
     this.redisData = target
@@ -89,8 +120,38 @@ export class MasterMgr {
   
   //async applyMasterData (rc : RunContextServer , data : Array<masterdatainfo> ) : Promise<any>
   
-  public async applyFileData(context : RunContextServer , arModels : {master : string , source: string} []) {
+  public async applyFileData(context : RunContextServer , arModels : {master : string , source: string} []) /*: {name : string , error:string} []*/ {
     
+    const result : {name : string , error:string} [] = []
+    
+    const ssdArr : SourceSyncData[] = [] ,
+          digestKey : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
+          digestMap : {[key:string] : string} =  await this.hgetall(digestKey) 
+
+    for(let i : number = 0 ; i <arModels.length ; i++ ){
+      const oModel : {master : string , source: string} = arModels[i] 
+      MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
+
+      const master  : string              = oModel.master.toLowerCase() ,
+            mDigest : string              = digestMap[master] ,
+            fDigest : string              = crypto.createHash('md5').update(oModel.source).digest('hex') , 
+            json    : object              = JSON.parse(oModel.source)
+
+     assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
+     
+     if(lo.isEqual(mDigest , fDigest)){
+        result.push({name : master , error : 'skipping as file is unchanged'}) 
+        return
+     }
+
+     const redisData : GenValMap = await this.listAllMasterData(context , master) ,
+           ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(context , master , json as Array<object> , redisData )       
+      
+      
+    }
+
+    
+    return result
   }
 
   // Used for all source sync apis (partial , full , multi)
@@ -119,15 +180,14 @@ export class MasterMgr {
     // Just for compilation
     const params = [key , field]
     const redis : RedisWrapper = this.mredis
-    const res : any = await redis.redisCommand().hget(params)
+    const res : any = await redis.redisCommand().hget(key , field)
     return Promise.resolve(res)
   }
   
   async hmget(key : string , fields : string[]) : Promise<Array<object>> {
     
-    const params = [key].concat(fields)
     const redis : RedisWrapper = this.mredis
-    const res : any[] = await redis.redisCommand().hmget(params)
+    const res : any[] = await redis.redisCommand().hmget(key , ...fields)
 
     return Promise.resolve(res.map(item => {
       return JSON.parse(item)
@@ -135,15 +195,10 @@ export class MasterMgr {
   }
 
 
-  async hgetall(key : string) : Promise< Array<object> > {
+  async hgetall(key : string) {
     
-    const params = [key]
     const redis : RedisWrapper = this.mredis
-    const res : any[] = await redis.redisCommand().hgetall(params)
-
-    return Promise.resolve(res.map(item => {
-      return JSON.parse(item)
-    }))
+    return await redis.redisCommand().hgetall(key)
   }
 
   //hash set functions
@@ -151,17 +206,27 @@ export class MasterMgr {
     const params = [key].concat([JSON.stringify(item.getId()) , JSON.stringify(item) ])
     const redis : RedisWrapper = this.mredis
     
-    return redis.redisCommand().hset(params)
+    return redis.redisCommand().hset(key , JSON.stringify(item.getId()) , JSON.stringify(item) )
   }
 
   async hmset<T extends MasterBase>(key : string , items : T[]) {
-    const params = [key]
+    const params = []
     for(const item of items){
       params.push(JSON.stringify(item.getId()) , JSON.stringify(item))
     }
     
     const redis : RedisWrapper = this.mredis
-    return redis.redisCommand().hmset(params)
+    return redis.redisCommand().hmset(key , ...params)
+  }
+
+  
+  public async listAllMasterData(rc : RunContextServer , master : string) : Promise<any> {
+    const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
+    const map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
+    
+    return Promise.resolve(lo.mapValues(map , (val : string)=>{
+      return JSON.parse(val)
+    }))
   }
 
 }
