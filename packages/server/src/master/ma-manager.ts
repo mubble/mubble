@@ -53,14 +53,14 @@ export class SourceSyncData {
   
   mastername : string
   source     : any []
-  redisData  : any []
+  redisData  : Map<string , any>
   
  
   inserts    : {pk : string , obj : any} [] = []
   updates    : {pk : string , obj : any} [] = []
   modifyTS   : number = lo.now()
 
-  public constructor(master : string , source : any [] , target : any[] ) {
+  public constructor(master : string , source : any [] , target : Map<string , any> ) {
     this.mastername = master
     this.source = source
     this.redisData = target

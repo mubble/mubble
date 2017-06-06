@@ -9,6 +9,18 @@
 
 const LOG_ID = 'Master-Util'
 
+// create a map from array based on mapping function for each item
+export function maArrayMap<T> (arr : T[] , mapFn : (rec : T) => {key : string , value : T} ) : {[key : string] : T} {
+  
+  const res : {[key : string] : T} = {}
+  arr.forEach((item : T)=> {
+    const val : {key : string , value : T} = mapFn(item)
+    res[val.key] = val.value
+  })
+  return res
+} 
+
+
 export function concat(...args : any[]) : string {
   let buff : string = ''
   args.forEach((item : any)=>{
