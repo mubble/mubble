@@ -9,10 +9,11 @@
 import {RunContextServer}     from '../rc-server'
 import {Master}               from './ma-base'
 import {MasterRegistry , 
-        FieldInfo}            from './ma-reg-manager'
+        FieldInfo}            from './ma-registry'
 
 import * as lo                from 'lodash'
-import {concat , masterDesc }              from './ma-util'
+import {concat , masterDesc , 
+        assert }              from './ma-util'
 
         
 
@@ -65,11 +66,17 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
         fieldsMap : {[field : string] : FieldInfo} = lo.clone(reg.fieldsMap) ,
         optionalFields : string[] = lo.clone(reg.optionalFields),
         instance  : any = reg.masterInstance,
-        pkeys : string [] = lo.clone(reg.pkFields)
+        pkeys : string [] = lo.clone(reg.pkFields),
+        ids   : string [] = []
         
 
   records.forEach(rec => {
     
+    // check all ids
+    const idStr : string = reg.getIdStr(rec)
+    assert(ids.indexOf(idStr) === -1 , reg.mastername , 'id is present more than once' , idStr , rec)
+    ids.push(idStr)
+
     lo.forEach(rec  , (value : any , key : string  )=> {
       
       const fInfo : FieldInfo = fieldsMap[key]
@@ -111,8 +118,6 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
           if(value === undefined) throw (concat(reg.mastername , 'default column value not set for column',key , rec))
         }
       }
-
-      // todo : Duplicate records check
 
     })
 

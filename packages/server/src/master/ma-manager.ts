@@ -7,9 +7,11 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {RedisWrapper} from './redis-wrapper'
-import {MasterBase} from './ma-base'
-import {RunContextServer} from '../rc-server'
+import * as lo                from 'lodash'
+
+import {RedisWrapper}         from './redis-wrapper'
+import {MasterBase}           from './ma-base'
+import {RunContextServer}     from '../rc-server'
 
 
 
@@ -47,20 +49,23 @@ export class MasterData {
 
 }
 
-export interface SourceSyncData {
-  mastername : string
-  source     : object []
-  redisData  : object []
+export class SourceSyncData {
   
-  // insert and update api is same for redis
-  /*
-  inserts    : object []
-  updates    : object []
-  */
+  mastername : string
+  source     : any []
+  redisData  : any []
+  
+ 
+  inserts    : {pk : string , obj : any} [] = []
+  updates    : {pk : string , obj : any} [] = []
+  modifyTS   : number = lo.now()
 
-  inserts    : {pk : string , obj : object} []
-  updates    : {pk : string , obj : object} []
-  modifyTS   : number
+  public constructor(master : string , source : any [] , target : any[] ) {
+    this.mastername = master
+    this.source = source
+    this.redisData = target
+  }
+
 }
 
 export class MasterMgr {
