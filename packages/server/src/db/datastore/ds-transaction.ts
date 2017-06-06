@@ -24,98 +24,28 @@ export class DSTransaction {
     this._datastore   = datastore
   }
 
-  public async runFunctions () {
-
-  }
-
-  public async get(rc : RunContextServer, model: BaseDatastore, key : any, ignoreRNF ?: boolean) : Promise<boolean> {
+  public async start() { // Needed only if we use a transaction outside models.
     try {
       await this._transaction.run()
-      await this.getWithTransaction (rc, model, key, ignoreRNF)
-      await this._transaction.commit()
-      return true
-    } catch (err) {
-      await this._transaction.rollback()
+    } catch(err) {
       throw(err)
     }
   }
 
-  public async insertInternal(rc : RunContextServer, model : BaseDatastore, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean) {
+  public async commit() { // Needed only if we use a transaction outside models.
     try {
-      await this._transaction.run()
-      await this.insertWithTransaction(rc, model, parentKey, insertTime, ignoreDupRec)
       await this._transaction.commit()
-      return true
     } catch(err) {
       await this._transaction.rollback()
       throw(err)
     }
   }
 
-  public async bulkInsert(rc : RunContextServer, model : BaseDatastore, recs : Array<any>, noChildren ?: boolean, insertTime ?: number, ignoreDupRec ?: boolean) {
-    try {
-      await this._transaction.run()
-      for(const rec of recs) {
-        model.deserialize(rc, rec)
-        const res = await model.setUnique (rc, ignoreDupRec)
-        if(res) await this.insertWithTransaction(rc, model, null, insertTime, ignoreDupRec )
-      }
-      await this._transaction.commit()
-      return true
-    } catch(err) {
-      for (let i in recs) { 
-        model.deserialize(rc, recs[i])
-        await model.deleteUnique(rc) 
-      }
-      await this._transaction.rollback()
-      throw(err)
-    }
-  }
+  async get(rc         : RunContextServer, 
+            model      : BaseDatastore, 
+            key        : Array<any>, 
+            ignoreRNF ?: boolean) : Promise<void> {
 
-  public async update(rc : RunContextServer, model : BaseDatastore, id : number | string, updRec : any, ignoreRNF ?: boolean) {
-    try {
-      await this._transaction.run()
-      await this.updateWithTransaction(rc, model, id, updRec, ignoreRNF)
-      await this._transaction.commit()
-      return true
-    } catch(err) {
-      await this._transaction.rollback()
-      throw(err)
-    }
-  }
-
-  public async bulkUpdate(rc : RunContextServer, model : BaseDatastore, updRecs : Array<any>, insertTime ?: number, ignoreRNF ?: boolean) {
-    try {
-      await this._transaction.run()
-      for(const rec of updRecs) {
-        await this.updateWithTransaction(rc, model, rec._id, rec, ignoreRNF)
-      } 
-      await this._transaction.commit()
-      return true
-    } catch(err) {
-      await this._transaction.rollback()
-      throw(err)
-    }
-  }
-
-  public async softDelete(rc : RunContextServer, model : BaseDatastore, id : number | string, params : any) {
-    try {
-      await this._transaction.run()
-      await this.updateWithTransaction (rc, model, id, params, false)
-      await model.deleteUnique(rc)
-      await this._transaction.commit()
-      return true
-    } catch(err) {
-      await this._transaction.rollback()
-      throw(err)
-    }
-  }
-
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            INTERNAL FUNCTIONS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
-
-  private async getWithTransaction(rc : RunContextServer, model : BaseDatastore, key : Array<any>, ignoreRNF ?: boolean) : Promise<void> {
     const entityRec     = await this._transaction.get(key),
           childEntities = model._childEntities
 
@@ -154,11 +84,17 @@ export class DSTransaction {
     }
   }
 
-  private async insertWithTransaction(rc : RunContextServer, model : BaseDatastore, parentKey ?: any, insertTime ?: number, ignoreDupRec ?: boolean) {
+  async insert(rc            : RunContextServer, 
+               model         : BaseDatastore, 
+               parentKey    ?: any, 
+               insertTime   ?: number, 
+               ignoreDupRec ?: boolean) : Promise<boolean> {
+
     const newRec        = model.getInsertRec(rc, insertTime),
           childEntities = model._childEntities
           
-    let datastoreKey = (parentKey) ? model.getDatastoreKey(rc, null, model._kindName, parentKey.path) : model.getDatastoreKey(rc)
+    let datastoreKey = (parentKey) ? model.getDatastoreKey(rc, null, model._kindName, parentKey.path) 
+                        : model.getDatastoreKey(rc)
 
     if (!model._id) { // If we already have a key, no need to allocate
       const key = await this._transaction.allocateIds(datastoreKey, 1) 
@@ -185,13 +121,126 @@ export class DSTransaction {
     return true
   }
 
-  private async updateWithTransaction(rc : RunContextServer, model : BaseDatastore, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<void>{
+  async update(rc         : RunContextServer, 
+               model      : BaseDatastore, 
+               id         : number | string, 
+               updRec     : any, 
+               ignoreRNF ?: boolean) : Promise<void> {
+                                
     const key = model.getDatastoreKey(rc, id)
 
-    await this.getWithTransaction(rc, model, key, ignoreRNF)
+    await this.get(rc, model, key, ignoreRNF)
     Object.assign(this, updRec)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }
 
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                      FUNCTIONS USED FROM BASEDATASTORE
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
+  public async bdGet(rc         : RunContextServer, 
+                     model      : BaseDatastore, 
+                     key        : any, 
+                     ignoreRNF ?: boolean) : Promise<boolean> {
+    try {
+      await this._transaction.run()
+      await this.get (rc, model, key, ignoreRNF)
+      await this._transaction.commit()
+      return true
+    } catch (err) {
+      await this._transaction.rollback()
+      throw(err)
+    }
+  }
+
+  public async bdInsert(rc            : RunContextServer, 
+                      model         : BaseDatastore, 
+                      parentKey     : any, 
+                      insertTime   ?: number, 
+                      ignoreDupRec ?: boolean) : Promise<boolean> {
+    try {
+      await this._transaction.run()
+      await this.insert(rc, model, parentKey, insertTime, ignoreDupRec)
+      await this._transaction.commit()
+      return true
+    } catch(err) {
+      await this._transaction.rollback()
+      throw(err)
+    }
+  }
+
+  public async bulkInsert(rc            : RunContextServer, 
+                          model         : BaseDatastore, 
+                          recs          : Array<any>, 
+                          noChildren   ?: boolean, 
+                          insertTime   ?: number, 
+                          ignoreDupRec ?: boolean) : Promise<boolean> {
+    try {
+      await this._transaction.run()
+      for(const rec of recs) {
+        model.deserialize(rc, rec)
+        const res = await model.setUnique (rc, ignoreDupRec)
+        if(res) await this.insert(rc, model, null, insertTime, ignoreDupRec )
+      }
+      await this._transaction.commit()
+      return true
+    } catch(err) {
+      for (let i in recs) { 
+        model.deserialize(rc, recs[i])
+        await model.deleteUnique(rc) 
+      }
+      await this._transaction.rollback()
+      throw(err)
+    }
+  }
+
+  public async bdUpdate(rc         : RunContextServer,
+                      model      : BaseDatastore, 
+                      id         : number | string, 
+                      updRec     : any, 
+                      ignoreRNF ?: boolean) : Promise<boolean> {
+    try {
+      await this._transaction.run()
+      await this.update(rc, model, id, updRec, ignoreRNF)
+      await this._transaction.commit()
+      return true
+    } catch(err) {
+      await this._transaction.rollback()
+      throw(err)
+    }
+  }
+
+  public async bulkUpdate(rc          : RunContextServer, 
+                          model       : BaseDatastore, 
+                          updRecs     : Array<any>, 
+                          insertTime ?: number, 
+                          ignoreRNF  ?: boolean) : Promise<boolean> {
+    try {
+      await this._transaction.run()
+      for(const rec of updRecs) {
+        await this.update(rc, model, rec._id, rec, ignoreRNF)
+      } 
+      await this._transaction.commit()
+      return true
+    } catch(err) {
+      await this._transaction.rollback()
+      throw(err)
+    }
+  }
+
+  public async softDelete(rc     : RunContextServer, 
+                          model  : BaseDatastore, 
+                          id     : number | string, 
+                          params : any) : Promise<boolean> {
+    try {
+      await this._transaction.run()
+      await this.update (rc, model, id, params, false)
+      await model.deleteUnique(rc)
+      await this._transaction.commit()
+      return true
+    } catch(err) {
+      await this._transaction.rollback()
+      throw(err)
+    }
+  }
 }

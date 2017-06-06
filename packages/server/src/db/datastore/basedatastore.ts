@@ -128,7 +128,7 @@ export abstract class BaseDatastore {
         return true       
       } else {
         const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
-        return transaction.get (rc, this, key, ignoreRNF)
+        return transaction.bdGet (rc, this, key, ignoreRNF)
       }
     }
     catch (err) { // TODO: (AD) Should we catch transaction errors here ? Print in DSTransaction itself... 
@@ -187,7 +187,7 @@ getId (rc : RunContextServer ) : number | string {
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<boolean> {
     try {
       const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
-      return transaction.update(rc, this, id, updRec, ignoreRNF)
+      return transaction.bdUpdate(rc, this, id, updRec, ignoreRNF)
     } 
     catch (err) {
       throw(new Error(ERROR_CODES.GCP_ERROR))
@@ -426,7 +426,7 @@ getId (rc : RunContextServer ) : number | string {
           return true
         } else {
           const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
-          return await transaction.insertInternal(rc, this, parentKey, insertTime, ignoreDupRec)
+          return await transaction.bdInsert(rc, this, parentKey, insertTime, ignoreDupRec)
         }
       } else {
         return false
