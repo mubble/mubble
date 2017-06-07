@@ -232,4 +232,10 @@ export class MasterMgr {
     }))
   }
 
+  public async _getLatestRec(redis : RedisWrapper , master : string)  {
+    
+
+    return Promise.resolve({key : 'key1' , ts: 1234})
+  }
+
 }

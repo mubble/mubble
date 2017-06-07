@@ -21,7 +21,7 @@ export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistr
 export const MasterTsField = 'modTs'
 
 export abstract class ModelConfig {
-  
+  //protected allowClientSync       : boolean = true
   protected hasFileSource         : boolean = false
   protected cache                 : boolean = false
   protected segment               : object  
@@ -44,6 +44,16 @@ export abstract class ModelConfig {
   public getHasFileSource() {
     return this.hasFileSource
   }
+
+  public getDependencyMasters() : string [] {
+    let res : string[] = []
+    res = res.concat(this.dependencyMasters)
+          .concat(lo.keysIn(this.fkConstrains))
+          .map(ma=>ma.toLowerCase())
+    
+    return lo.uniq(res)
+  }
+  
 }
 
 export class MasterModelConfig extends ModelConfig {

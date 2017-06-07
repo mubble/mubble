@@ -102,7 +102,7 @@ export class MasterRegistry {
   ownFields                 : string [] = []
 
   allFields                 : string [] = []
-  
+
   // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
   rules                     : ((obj : any) => void) []

@@ -37,11 +37,59 @@ function MaRegMgrLog(...args : any[] ) : void {
 export class MasterRegistryMgr {
 
   static regMap : {[mastername : string] : MasterRegistry} = {}
-
+  static dependencyMap : {[mastername : string] : string[]} = {}
+  static revDepMap : {[mastername : string] : string[]} = {}
   /*
   static pkField (target : any , propKey : string) : void {
 
   }*/
+
+  private static buildDependencyMap() : void {
+    const dMap : {[master : string] : string[]} = this.dependencyMap
+    const rdMap : {[master : string] : string[]} = this.revDepMap
+    
+    function getDepMasters(mas : string) : string[] {
+      if(dMap[mas]) return dMap[mas]
+      return MasterRegistryMgr.regMap[mas].config.getDependencyMasters()
+    }
+
+    lo.keysIn(this.regMap).filter(ma=> ma!== MASTERBASE).forEach(mas => {
+      
+      let dArr : string[] = getDepMasters(mas)
+      let dlen = dArr.length ,
+          mdlen = 0 
+      
+      while(dlen !== mdlen){
+        dlen = dArr.length
+        lo.clone(dArr).forEach(dep=>{
+          const depMas : string[] = getDepMasters(dep)
+          //dArr = lo.uniq(dArr.concat(depMas))
+          depMas.forEach(depM =>{
+            if(dArr.indexOf(depM)===-1) dArr.push(depM)
+          })
+        })
+        mdlen = dArr.length
+      }
+      
+      dMap[mas] = dArr
+      MaRegMgrLog('buildDependencyMap 1',mas , dArr)
+      MaRegMgrLog('buildDependencyMap 2',dMap)
+      
+      // Reverse Mapping
+      dArr.forEach(depMas=>{
+        let rArr : string[] = rdMap[depMas]
+        if(rArr==null){
+          rArr = []
+          rdMap[depMas] = rArr
+        }
+        rArr.push(mas)
+      })
+
+    })
+    // Todo : remove empty array values masters / master with no dependency
+    MaRegMgrLog('build Dependency Map finished\r\n',this.dependencyMap)
+    MaRegMgrLog('build Reverse DependencyMap finished\r\n',this.revDepMap)
+  }
   
   static masterField (target : any , propKey : string , maType : Master.FieldType) : void {
     const master : string = target.constructor.name.toLowerCase() ,
@@ -119,6 +167,7 @@ export class MasterRegistryMgr {
       maReg.verify(context)
     })
 
+    this.buildDependencyMap()
   }
 
 
