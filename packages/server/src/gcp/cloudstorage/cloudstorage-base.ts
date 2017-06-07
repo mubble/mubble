@@ -42,7 +42,7 @@ export class CloudStorageBase {
 
     while(true) {
       const filePath = `${path}/${id}.${extension}`,
-            res      = await cloudStorage.fileExists(rc, bucketName, filePath)
+            res      = await this.fileExists(rc, bucketName, filePath)
       if(res) {
         id = UUIDv4()
       } else {
