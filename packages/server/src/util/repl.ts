@@ -57,7 +57,7 @@ export class Repl {
   
   print(pr: Promise<any>) {
     
-    var _       = this,
+    let _       = this,
         ts      = Date.now()
         
     return pr.then( function() {

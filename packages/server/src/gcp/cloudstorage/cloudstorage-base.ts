@@ -38,7 +38,7 @@ export class CloudStorageBase {
   }
 
   async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
-    var id        = UUIDv4()
+    let id        = UUIDv4()
 
     while(true) {
       const filePath = `${path}/${id}.${extension}`,
