@@ -126,10 +126,10 @@ export class DSTransaction {
                id         : number | string, 
                updRec     : any, 
                ignoreRNF ?: boolean) : Promise<void> {
-                                
+                         
     const key = model.getDatastoreKey(rc, id)
 
-    await this.get(rc, model, key, ignoreRNF)
+    await this.get(rc, model, id, ignoreRNF)
     Object.assign(this, updRec)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }

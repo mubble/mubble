@@ -335,6 +335,7 @@ export abstract class BaseDatastore {
 ------------------------------------------------------------------------------*/
   getDatastoreKey(rc : RunContextServer, id ?: number | string | null , kindName ?: string, parentPath ?: Array<any>) {
     let datastoreKey
+
     if (!kindName) kindName = this._kindName || (this.constructor as any)._kindName
     if(!parentPath) {
       datastoreKey = BaseDatastore._datastore.key({
