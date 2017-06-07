@@ -6,20 +6,9 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
+import * as lo                from 'lodash'
 
 const LOG_ID = 'Master-Util'
-
-// create a map from array based on mapping function for each item
-export function maArrayMap<T> (arr : T[] , mapFn : (rec : T) => {key : string , value : T} ) : {[key : string] : T} {
-  
-  const res : {[key : string] : T} = {}
-  arr.forEach((item : T)=> {
-    const val : {key : string , value : T} = mapFn(item)
-    res[val.key] = val.value
-  })
-  return res
-} 
-
 
 export function concat(...args : any[]) : string {
   let buff : string = ''
@@ -67,6 +56,44 @@ export namespace MaType{
   export function isObject(x: any): x is object {
       return typeof x === "object"
   }
+
+}
+
+export namespace FuncUtil {
+  
+  // create a map from array based on mapping function for each item
+  export function maArrayMap<T> (arr : T[] , mapFn : (rec : T) => {key : string , value : T} ) : {[key : string] : T} {
+    
+    const res : {[key : string] : T} = {}
+    arr.forEach((item : T)=> {
+      const val : {key : string , value : T} = mapFn(item)
+      res[val.key] = val.value
+    })
+    return res
+  } 
+  
+  /**
+   * Select only those properties from a object which satisfy the criteria 
+   */
+  export function reduce<T>(obj : {[key : string] : T} , reduceFn : (value : T , key ?: string) => boolean ) : {[key : string] : T} {
+    
+    return lo.reduce(obj , (memo : {[key : string] : T} , value : T, key : string ) : {} => {
+      // If key value pairs satisfy the condition
+      // set them in result function
+      if(reduceFn(value , key)) memo[key] = value
+      return memo
+    } , {}  )
+
+  }
+
+  export function toMap<T>(obj : {[key : string] : T}) : Map<string , T> {
+    const map : Map<string , T> = new Map()
+    lo.forEach(obj , (value : T , key : string)=>{
+      map.set(key , value)
+    })
+    return map
+  }
+
 
 }
 

@@ -16,7 +16,8 @@ import {MasterBase}           from './ma-base'
 import {RunContextServer}     from '../rc-server'
 import {masterDesc , assert , 
         concat , log ,
-        maArrayMap , MaType}  from './ma-util'
+        MaType ,
+        FuncUtil }            from './ma-util'
         
 import {ModelConfig}          from './ma-model-config'             
 import {MasterRegistry}       from './ma-registry'             
@@ -25,7 +26,7 @@ import {StringValMap ,
         GenValMap}            from './ma-types'              
 
 const LOG_ID : string = 'MasterMgr'
-function MaRegMgrLog(...args : any[] ) : void {
+function MaMgrLog(...args : any[] ) : void {
   log(LOG_ID , ...args)
 }
 
@@ -60,6 +61,12 @@ export type syncInfo = {
   // add more
 }
 
+export class MasterCache {
+  rc : RunContextServer
+
+
+}
+
 /**
  * In Memory cache used to store store data for each master
  */
@@ -87,16 +94,16 @@ export class MasterData {
 export class SourceSyncData {
   
   mastername : string
-  source     : any []
+  source     : Map<string , any>
   redisData  : GenValMap
   
  
   inserts    : Map<string , any> = new Map<string , any>()
   updates    : Map<string , any> = new Map<string , any>()
 
-  modifyTS   : number = lo.now()
+  modifyTs   : number = lo.now()
 
-  public constructor(master : string , source : any [] , target : GenValMap ) {
+  public constructor(master : string , source : Map<string , any> , target : GenValMap ) {
     this.mastername = master
     this.source = source
     this.redisData = target
@@ -123,13 +130,15 @@ export class MasterMgr {
       
   }
   
-  public async applyFileData(context : RunContextServer , arModels : {master : string , source: string} []) /*: {name : string , error:string} []*/ {
+  public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
     
-    const result : {name : string , error:string} [] = []
+    const results : {name : string , error:string} [] = []
     
-    const ssdArr : SourceSyncData[] = [] ,
-          digestKey : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
-          digestMap : {[key:string] : string} =  await this.hgetall(digestKey) 
+    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
+          digestMap   : {[key:string] : string} =  await this.hgetall(digestKey) ,
+          depData     : {[master:string] : any | null} = {} ,
+          todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} = {},
+          now         : number = lo.now()
 
     for(let i : number = 0 ; i <arModels.length ; i++ ){
       const oModel : {master : string , source: string} = arModels[i] 
@@ -143,18 +152,41 @@ export class MasterMgr {
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
      
      if(lo.isEqual(mDigest , fDigest)){
-        result.push({name : master , error : 'skipping as file is unchanged'}) 
-        return
+        results.push({name : master , error : 'skipping as file is unchanged'}) 
+        continue
      }
 
-     const redisData : GenValMap = await this.listAllMasterData(context , master) ,
-           ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(context , master , json as Array<object> , redisData )       
-      
-      
+     const redisData : GenValMap = await this.listAllMasterData(rc , master) ,
+           ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData )       
+     
+     MaMgrLog('applyFileData' , master , ssd.inserts.size , ssd.updates.size )
+     // set all ssd modifying time as same
+     ssd.modifyTs = now      
+     this.setParentMapData(master , depData , ssd) 
+     todoModelz[master] = {ssd : ssd , fDigest : fDigest}     
     }
 
+    return await this.applyData(rc , results , depData , todoModelz)
+  }
+
+  private setParentMapData(master : string , depData : {[master:string] : any | null} , ssd : SourceSyncData) : void {
+     
+     // master dependency data settings      
+     if(!(lo.hasIn(depData , master) && depData[master] )){
+        MaMgrLog(master , 'overriding source ', depData[master].length , ssd.source.size )
+        depData[master] = ssd.source
+     }else{
+       depData[master] = ssd.source
+       MaMgrLog(master , 'source size' , ssd.source.size )
+     }
+     
+     if(lo.hasIn( MasterRegistryMgr.dependencyMap , master)){
+       const depMasters : string [] = MasterRegistryMgr.dependencyMap[master]
+       depMasters.forEach((depMas : string)=>{
+         if(!lo.hasIn(depData ,depMas)) depData[depMas] = null
+       })
+     }
     
-    return Promise.resolve(result)
   }
 
   // Used for all source sync apis (partial , full , multi)
@@ -169,7 +201,16 @@ export class MasterMgr {
 
 
   // Update the mredis with required changes 
-  private async applyData(context : RunContextServer , data : SourceSyncData[] ) {
+  private async applyData(rc : RunContextServer , results : any[] , depData : {[master:string] : any | null}  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
+    
+    MaMgrLog('applyData' , results , lo.keysIn(depData) , lo.keysIn(todoModelz) )
+    
+    for(const depKey of lo.keysIn(depData)){
+      if(depData[depKey]) return
+      depData[depKey] = await this.listActiveMasterData(rc , depKey)
+    }
+
+
 
   }
 
@@ -230,6 +271,23 @@ export class MasterMgr {
     return Promise.resolve(lo.mapValues(map , (val : string)=>{
       return JSON.parse(val)
     }))
+  }
+
+  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<any> {
+    const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
+    let map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
+    
+    // Parse the string value to object
+    let pMap : GenValMap = lo.mapValues(map , (val : string)=>{
+      return JSON.parse(val)
+    })
+    // remove deleted
+    pMap = FuncUtil.reduce(pMap , (val : any , key : string) => {
+      return !(val['deleted'] === true)
+    })
+    // convert to map and return 
+    return Promise.resolve( FuncUtil.toMap(pMap) )
+
   }
 
   public async _getLatestRec(redis : RedisWrapper , master : string)  {

@@ -20,7 +20,7 @@ import {ModelConfig ,
 import {SourceSyncData}       from './ma-manager'
 import {masterDesc , assert , 
         concat , log ,
-        maArrayMap}           from './ma-util' 
+        FuncUtil}           from './ma-util' 
 import {StringValMap , 
         GenValMap}            from './ma-types'              
           
@@ -172,12 +172,16 @@ export class MasterRegistryMgr {
 
 
   public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : GenValMap ) : SourceSyncData {
-    
-    this.verifySourceRecords(rc , this.getMasterRegistry(mastername) , source )
+    const registry : MasterRegistry = this.getMasterRegistry(mastername)
+    this.verifySourceRecords(rc , registry , source )
 
     //todo : accompny master check
+    const sourceIdsMap : {[key : string] : object} = FuncUtil.maArrayMap<any>(source , (rec : any)=>{
+      return {key : registry.getIdStr(rec) , value : rec}
+    })
+    
 
-    return this.verifyModifications(rc , this.getMasterRegistry(mastername) , source , redisData)
+    return this.verifyModifications(rc , this.getMasterRegistry(mastername) , FuncUtil.toMap(sourceIdsMap)  , redisData)
   }
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : {master : string , data : object[] }) {
@@ -212,30 +216,24 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceRecs : Array<any> , targetMap : {[key : string] : any} ) : SourceSyncData {
+  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIdsMap : Map<string  , object> , targetMap : {[key : string] : any} ) : SourceSyncData {
     
-    MaRegMgrLog('verifyModifications' , registry.mastername ,'source:' , sourceRecs.length , 'target:', targetMap.size )
+    MaRegMgrLog('verifyModifications' , registry.mastername ,'source:' , sourceIdsMap.size , 'target:', targetMap.size )
 
     const config : ModelConfig = registry.config , 
           masTsField : string  = config.getMasterTsField() ,
           now : number         = lo.now() ,
           fldMap : {[field : string] : FieldInfo}    = registry.fieldsMap ,
-          ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceRecs , targetMap) ,
+          ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIdsMap , targetMap) ,
           instanceObj : MasterBase = registry.masterInstance , 
           allFields : string [] = registry.allFields ,
-          ownFields : string [] = registry.ownFields ,
-          target : Array<any> = lo.valuesIn(targetMap)
+          ownFields : string [] = registry.ownFields 
 
 
-    const sourceIdsMap : {[key : string] : any} = maArrayMap<any>(sourceRecs , (rec : any)=>{
-      return {key : registry.getIdStr(rec) , value : rec}
-    })
-    
-    sourceRecs.forEach((srcRec : any) => {
-      const pk : string = registry.getIdStr(srcRec) , 
-            ref : any   = targetMap.get(pk)
-
-
+    sourceIdsMap.forEach((srcRec : any , pk: string) => {
+      
+      const ref : any   = targetMap.get(pk)
+      
       if(!ref) {
         // this is an new record
         // check allow insert . allow all
@@ -260,11 +258,11 @@ export class MasterRegistryMgr {
     })
 
     // Check if there are any records deleted
-    target.forEach((ref : any)=>{
+    lo.forEach(targetMap , (ref : any , id : string)=>{
       // Ignore already deleted
       if(ref[MasterBaseFields.Deleted]) return
-      const id : string = registry.getIdStr(ref)
-      const src : any = sourceIdsMap[id]
+      
+      const src : any = sourceIdsMap.get(id)
       if(!src) {
         // This record is deleted
         const delRec : any = lo.cloneDeep(ref)
@@ -273,7 +271,8 @@ export class MasterRegistryMgr {
         delRec[masTsField] = now
         ssd.updates.set(id , delRec)
       }
-    })
+    } )
+    targetMap.forEach()
     
     return ssd
   }
