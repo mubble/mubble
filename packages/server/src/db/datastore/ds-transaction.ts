@@ -195,10 +195,10 @@ export class DSTransaction {
   }
 
   public async bdUpdate(rc         : RunContextServer,
-                      model      : BaseDatastore, 
-                      id         : number | string, 
-                      updRec     : any, 
-                      ignoreRNF ?: boolean) : Promise<boolean> {
+                        model      : BaseDatastore, 
+                        id         : number | string, 
+                        updRec     : any, 
+                        ignoreRNF ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
       await this.update(rc, model, id, updRec, ignoreRNF)

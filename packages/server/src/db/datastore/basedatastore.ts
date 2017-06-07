@@ -27,13 +27,13 @@ export abstract class BaseDatastore {
   // holds most recent values for create, modify or delete
   protected modTs        : number
   protected modUid       : number
-  protected _datastore   : any
-  protected _namespace   : string
-  public    _kindName    : string
 
-  // Internal references
-  private _autoFields    : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
-  private _indexedFields : Array<string> = ['createTs', 'deleted', 'modTs']
+  // Static Variables
+  protected static _kindName : string
+  static _datastore          : any
+  static _namespace          : string
+  static _autoFields         : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
+  static _indexedFields      : Array<string> = ['createTs', 'deleted', 'modTs']
 
   public  _childEntities : {
     [index : string] : { model : any, isArray : boolean }
@@ -94,15 +94,9 @@ export abstract class BaseDatastore {
         projectId   : gcloudEnv.projectId
       })
     }
-  }
-
-  constructor(rc : RunContextServer, gcloudEnv : GcloudEnv, kindName : string) {
-    this._namespace     = gcloudEnv.namespace
-    this._datastore     = gcloudEnv.datastore
-    this._kindName      = kindName.toLowerCase()
-    this._childEntities = this.getChildEntities(rc)
-    this._indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
-  }
+    this._namespace = gcloudEnv.namespace
+    this._datastore = gcloudEnv.datastore
+}
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             BASIC DB OPERATIONS
@@ -111,9 +105,8 @@ export abstract class BaseDatastore {
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
   protected async get(rc : RunContextServer, id : number | string, ignoreRNF ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-
     try {
-      const key = this.getDatastoreKey(rc, id)
+      const key = BaseDatastore.getDatastoreKey(rc, id)
 
       if (!this._childEntities || Object.keys(this._childEntities).length === 0 || noChildren) {   
         const entityRec = await this._datastore.get(key)
@@ -143,9 +136,9 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Get the primary key 
 ------------------------------------------------------------------------------*/                  
-getId (rc : RunContextServer ) : number | string {
-  return this._id
-}
+  getId (rc : RunContextServer ) : number | string {
+    return this._id
+  }
 
 /*------------------------------------------------------------------------------
   - Insert to datastore 
@@ -169,10 +162,12 @@ getId (rc : RunContextServer ) : number | string {
 /*------------------------------------------------------------------------------
   - Insert a multiple objects in a go. provided, the objects are in an array
 ------------------------------------------------------------------------------*/ 
-  protected async bulkInsert(rc : RunContextServer, recs : Array<any>, noChildren ?: boolean, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean> {
+  protected static async bulkInsert(rc : RunContextServer, recs : Array<any>, noChildren ?: boolean, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean> {
     try {
-      const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
-      return transaction.bulkInsert(rc, this, recs, noChildren, insertTime, ignoreDupRec)
+      const model       : any           = Object.getPrototypeOf(this).constructor(),
+            transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+
+      return transaction.bulkInsert(rc, model, recs, noChildren, insertTime, ignoreDupRec)
     }
     catch(err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
@@ -198,11 +193,13 @@ getId (rc : RunContextServer ) : number | string {
   - Input should be an an array of objects to be updated
   - The object should contain its ID in the "_id" parameter
 ------------------------------------------------------------------------------*/ 
-  protected async bulkUpdate(rc : RunContextServer, updRecs : Array<any>, insertTime ?: number, ignoreRNF ?: boolean) : Promise<boolean>{
+  protected static async bulkUpdate(rc : RunContextServer, updRecs : Array<any>, insertTime ?: number, ignoreRNF ?: boolean) : Promise<boolean>{
 
     try {
-      const transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
-      return transaction.bulkUpdate(rc, this, updRecs, insertTime, ignoreRNF)
+      const model       : any           = Object.getPrototypeOf(this).constructor(),
+            transaction : DSTransaction = new DSTransaction(rc, this._datastore, this._namespace)
+
+      return transaction.bulkUpdate(rc, model, updRecs, insertTime, ignoreRNF)
     }
     catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
@@ -233,7 +230,7 @@ getId (rc : RunContextServer ) : number | string {
   - Get ID from result
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
-  getIdFromResult(rc : RunContextServer, res : any) : number | string {
+  static getIdFromResult(rc : RunContextServer, res : any) : number | string {
     const key = res[this._datastore.KEY].path   
     return key[key.length - 1]
   }
@@ -241,21 +238,22 @@ getId (rc : RunContextServer ) : number | string {
 /*------------------------------------------------------------------------------
   - Get KEY from result
 ------------------------------------------------------------------------------*/
-  getKeyFromResult(rc : RunContextServer, res : any) {
+  static getKeyFromResult(rc : RunContextServer, res : any) {
     return res[this._datastore.KEY]
   }
 
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  createQuery(rc : RunContextServer) {
+  static createQuery(rc : RunContextServer) {    
+    if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
     return new DSQuery(rc, this._datastore, this._namespace, this._kindName)
   }
 
 /*------------------------------------------------------------------------------
   - Create Transaction 
 ------------------------------------------------------------------------------*/
-  createTransaction(rc : RunContextServer) {
+  static createTransaction(rc : RunContextServer) {
     return new DSTransaction(rc, this._datastore, this._namespace)
   }
 
@@ -268,7 +266,7 @@ getId (rc : RunContextServer ) : number | string {
 ------------------------------------------------------------------------------*/
   deserialize(rc : RunContextServer, value : any) : void {
     
-    if(!this._id) this._id = this.getIdFromResult(rc, value)
+    if(!this._id) this._id = BaseDatastore.getIdFromResult(rc, value)
 
     for (let prop in value) { 
       let val     = value[prop],
@@ -338,7 +336,7 @@ getId (rc : RunContextServer ) : number | string {
       path      : [The complete path]
     }
 ------------------------------------------------------------------------------*/
-  getDatastoreKey(rc : RunContextServer, id ?: number | string | null , kindName ?: string, parentPath ?: Array<any>) {
+  static getDatastoreKey(rc : RunContextServer, id ?: number | string | null , kindName ?: string, parentPath ?: Array<any>) {
     let datastoreKey
 
     if (!kindName) kindName = this._kindName
@@ -365,7 +363,7 @@ getId (rc : RunContextServer ) : number | string {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
-      let uniqueEntityKey = this.getDatastoreKey(rc, this[constraint], this._kindName + '_unique')
+      let uniqueEntityKey = BaseDatastore.getDatastoreKey(rc, this[constraint], this._kindName + '_unique')
       try {
         await this._datastore.insert({key: uniqueEntityKey, data: ''})
       }
@@ -395,7 +393,7 @@ getId (rc : RunContextServer ) : number | string {
     const uniqueConstraints = this.getUniqueConstraints(rc)
 
     for( const constraint of uniqueConstraints) {
-      let uniqueEntityKey = this.getDatastoreKey(rc, this[constraint], this._kindName + '_unique')
+      let uniqueEntityKey = BaseDatastore.getDatastoreKey(rc, this[constraint], this._kindName + '_unique')
       try {
         await this._datastore.delete(uniqueEntityKey)
       } catch (err) {
@@ -414,7 +412,7 @@ getId (rc : RunContextServer ) : number | string {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
   private async insertInternal(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    const datastoreKey = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc)  
+    const datastoreKey = (parentKey) ? BaseDatastore.getDatastoreKey(rc, null, this._kindName, parentKey.path) : BaseDatastore.getDatastoreKey(rc)  
 
     try {
       const res = await this.setUnique (rc, ignoreDupRec)
@@ -449,14 +447,16 @@ getId (rc : RunContextServer ) : number | string {
     const rec = []
 
     for (let prop in value) { 
-      let val = value[prop]
+      const indexedFields = this._indexedFields.concat(this.getIndexedFields(rc))
+      let   val           = value[prop]
+
       if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
       if (val && typeof(val) === 'object' && val.serialize instanceof Function) {
         val = val.serialize(rc)
       }
       
       if(!(prop in this._childEntities)){
-        rec.push ({ name: prop, value: val, excludeFromIndexes: (this._indexedFields.indexOf(prop) === -1) })
+        rec.push ({ name: prop, value: val, excludeFromIndexes: (indexedFields.indexOf(prop) === -1) })
       }
     }
     return rec
