@@ -28,7 +28,10 @@ export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' 
                             'scan' | 'sscan' | 'hscan' | 'zscan'
 
 export const redis_commands : string[] =  
-['del' , 'expire' , 'get' , 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset']                            
+['del' , 'expire' , 'get' , 
+ 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' ,
+ 'zadd' , 'zrange' , 'zrangebyscore' , 'zrem'
+ ]                            
                              
 export type redis_async_func        = (...args : string[]) => void
 export type redis_async_func_str    = (...args : string[]) => string[]
@@ -51,6 +54,11 @@ export interface RedisCmds {
   hmset     : (key: string , ...args : string[] ) => void
   hset      : (key: string , field : string , value : string ) => void
 
+  // z sorted set apis 
+  zadd            : (key: string , option : string , ...scoreValuePairs : any[]  ) => void
+  zrange          : (key: string , start : number , end : number , withscore ?: string ) => string[]
+  zrangebyscore   : (key: string , startscore : number | string , endscore : number | string , withscore ?: string ) => string[]
+  zrem            : (key: string , ...keys : string[]  ) => void // check
   
 }
 

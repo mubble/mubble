@@ -36,7 +36,12 @@ var CONST = {
   REDIS_DIGEST_KEY  : 'digest',   // key for digest hash
   REDIS_CHANNEL     : 'master:updates',
 
-  DIGEST_REMOTE     : 'remote'
+  DIGEST_REMOTE     : 'remote' ,
+  
+  // Redis Commands options consts
+  WITHSCORES        : 'WITHSCORES' ,
+  MINUS_INFINITY    : '-inf' ,
+  PLUS_INFINITY     : '+inf' 
 }
 
 
@@ -147,7 +152,7 @@ export class MasterMgr {
       
       
     }
-    
+
     
     return Promise.resolve(result)
   }
