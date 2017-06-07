@@ -249,8 +249,10 @@ export class RedisWrapper {
     return this._execute('del' , keys)
   }
 
+  // todo : this
+  async publish(channel : string , data : any) {
 
-  
+  }
 
   // Ignore
   async test()  {

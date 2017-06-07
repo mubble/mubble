@@ -111,7 +111,7 @@ export class MasterRegistry {
   public getIdStr(src : any) : string {
     if(this.pkFields.length === 1) {
       assert(src[this.pkFields[0]] != null , 'Id field value can not be null ', this.mastername , this.pkFields[0] , src)
-      return lo.toString(src[this.pkFields[0]])
+      return String(src[this.pkFields[0]])
     }
 
     const id : any = {}
@@ -120,7 +120,7 @@ export class MasterRegistry {
       id[pk] = src[pk]
     })
 
-    return lo.toString(id)
+    return JSON.stringify(id)
   }
   
   public verify(context : RunContextServer) {

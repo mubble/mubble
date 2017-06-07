@@ -10,6 +10,7 @@
 import * as lo                from 'lodash'
 import * as crypto            from 'crypto'
 
+import {Multi}                from 'redis'
 
 import {RedisWrapper}         from './redis-wrapper'
 import {MasterBase}           from './ma-base'
@@ -23,7 +24,8 @@ import {ModelConfig}          from './ma-model-config'
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
 import {StringValMap , 
-        GenValMap}            from './ma-types'              
+        GenValMap , 
+       MasterCache }          from './ma-types'              
 
 const LOG_ID : string = 'MasterMgr'
 function MaMgrLog(...args : any[] ) : void {
@@ -59,12 +61,6 @@ export type masterdatainfo = {
 export type syncInfo = {
   ts : number 
   // add more
-}
-
-export class MasterCache {
-  rc : RunContextServer
-
-
 }
 
 /**
@@ -136,11 +132,12 @@ export class MasterMgr {
     
     const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
           digestMap   : {[key:string] : string} =  await this.hgetall(digestKey) ,
-          depData     : {[master:string] : any | null} = {} ,
+          masterCache : MasterCache = {} ,
           todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} = {},
           now         : number = lo.now()
 
     for(let i : number = 0 ; i <arModels.length ; i++ ){
+      
       const oModel : {master : string , source: string} = arModels[i] 
       MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
 
@@ -162,28 +159,29 @@ export class MasterMgr {
      MaMgrLog('applyFileData' , master , ssd.inserts.size , ssd.updates.size )
      // set all ssd modifying time as same
      ssd.modifyTs = now      
-     this.setParentMapData(master , depData , ssd) 
+     this.setParentMapData(master , masterCache , ssd) 
      todoModelz[master] = {ssd : ssd , fDigest : fDigest}     
     }
 
-    return await this.applyData(rc , results , depData , todoModelz)
+    return await this.applyData(rc , results , masterCache , todoModelz)
   }
 
-  private setParentMapData(master : string , depData : {[master:string] : any | null} , ssd : SourceSyncData) : void {
+  private setParentMapData(master : string , masterCache : MasterCache , ssd : SourceSyncData) : void {
      
      // master dependency data settings      
-     if(!(lo.hasIn(depData , master) && depData[master] )){
-        MaMgrLog(master , 'overriding source ', depData[master].length , ssd.source.size )
-        depData[master] = ssd.source
+     if(!(lo.hasIn(masterCache , master) && masterCache[master] )){
+        const depMap : any = masterCache[master]
+        MaMgrLog(master , 'overriding source ',  MaType.isNull(depMap) ? 0 : depMap.size , ssd.source.size )
+        masterCache[master] = ssd.source
      }else{
-       depData[master] = ssd.source
+       masterCache[master] = ssd.source
        MaMgrLog(master , 'source size' , ssd.source.size )
      }
      
      if(lo.hasIn( MasterRegistryMgr.dependencyMap , master)){
        const depMasters : string [] = MasterRegistryMgr.dependencyMap[master]
        depMasters.forEach((depMas : string)=>{
-         if(!lo.hasIn(depData ,depMas)) depData[depMas] = null
+         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as Map<string , any>
        })
      }
     
@@ -201,17 +199,59 @@ export class MasterMgr {
 
 
   // Update the mredis with required changes 
-  private async applyData(rc : RunContextServer , results : any[] , depData : {[master:string] : any | null}  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
+  private async applyData(rc : RunContextServer , results : any[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
     
-    MaMgrLog('applyData' , results , lo.keysIn(depData) , lo.keysIn(todoModelz) )
+    MaMgrLog('applyData' , results , lo.keysIn(masterCache) , lo.keysIn(todoModelz) )
     
-    for(const depKey of lo.keysIn(depData)){
-      if(depData[depKey]) return
-      depData[depKey] = await this.listActiveMasterData(rc , depKey)
+    for(const depMaster of lo.keysIn(masterCache)){
+      if(masterCache[depMaster]) return
+      // Populate the dependent masters
+      masterCache[depMaster] = await this.listActiveMasterData(rc , depMaster)
     }
 
+    // verify all dependencies
+    lo.forEach(todoModelz , (value : any , master : string) =>{
+      
+      MasterRegistryMgr.verifyAllDependency(rc , master , masterCache)
 
+    })
+    
+    // verification done . Update the redis
+    await this.updateMRedis(results , todoModelz)
+    
+    return Promise.resolve(results)
+  }
 
+  private async updateMRedis(results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} ) {
+    
+    const multi : Multi = this.mredis.multi()
+      
+    for(const master  of lo.keysIn(todoModelz) ){
+      
+      const modData : {ssd : SourceSyncData , fDigest : string} = todoModelz[master] ,
+            inserts : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
+            updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
+            ts      : number = modData.ssd.modifyTs
+
+      const modifications : {[key : string] : any} = lo.assign(inserts , updates)
+
+      lo.forEach(modifications , (value : any , pk : string) => {
+        
+        const recStr : string = JSON.stringify(value)
+        multi.zadd([CONST.REDIS_NS + CONST.REDIS_TS_SET + master , 'CH', ts, pk ])
+        multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
+
+      })
+      // result objects with info
+      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates)})    
+    }
+    
+    MaMgrLog('updating MRedis')
+    await this.mredis.execMulti(multi)
+
+    MaMgrLog('mredis publishing to channel' , CONST.REDIS_CHANNEL)
+    await this.mredis.publish(CONST.REDIS_CHANNEL , JSON.stringify(lo.keysIn(todoModelz)) )
+ 
   }
 
   private async buildInMemoryCache() {

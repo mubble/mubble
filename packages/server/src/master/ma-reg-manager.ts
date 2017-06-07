@@ -20,9 +20,10 @@ import {ModelConfig ,
 import {SourceSyncData}       from './ma-manager'
 import {masterDesc , assert , 
         concat , log ,
-        FuncUtil}           from './ma-util' 
+        FuncUtil}             from './ma-util' 
 import {StringValMap , 
-        GenValMap}            from './ma-types'              
+        GenValMap , 
+        MasterCache}          from './ma-types'              
           
 
 const LOG_ID : string = 'MasterRegistryMgr'
@@ -184,7 +185,7 @@ export class MasterRegistryMgr {
     return this.verifyModifications(rc , this.getMasterRegistry(mastername) , FuncUtil.toMap(sourceIdsMap)  , redisData)
   }
 
-  public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : {master : string , data : object[] }) {
+  public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
 
 
   }
@@ -272,7 +273,6 @@ export class MasterRegistryMgr {
         ssd.updates.set(id , delRec)
       }
     } )
-    targetMap.forEach()
     
     return ssd
   }

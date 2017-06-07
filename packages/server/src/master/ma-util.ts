@@ -57,6 +57,10 @@ export namespace MaType{
       return typeof x === "object"
   }
 
+  export function isNull(x: any): x is null   {
+      return (x === null)
+  }
+
 }
 
 export namespace FuncUtil {
@@ -71,7 +75,7 @@ export namespace FuncUtil {
     })
     return res
   } 
-  
+
   /**
    * Select only those properties from a object which satisfy the criteria 
    */
@@ -93,6 +97,16 @@ export namespace FuncUtil {
     })
     return map
   }
+
+ export function toObject<T> (map : Map<string , T>) : {[key : string] : T} {
+  const res : {[key : string] : T} = {}
+
+  map.forEach((value : T , key : string)=>{
+    res[key] = value
+  })
+
+  return res
+ } 
 
 
 }

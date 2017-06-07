@@ -9,3 +9,5 @@
 
 export type StringValMap = {[key : string] : string}
 export type GenValMap    = {[key : string] : any}
+
+export type MasterCache  = {[master:string] : Map<string , any> } 
