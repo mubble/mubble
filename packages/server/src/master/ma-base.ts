@@ -81,11 +81,6 @@ export namespace Master{
       const mastername : string = prototype.constructor.name
       const val : any = rec[propKey]
       assert( semver.valid(val)!=null , masterDesc(mastername,propKey,val) , 'is not a version field' )
-      
-      /*
-      if(MaType.isString(val) && semver.valid(val)) return
-      throw (new Error(concat('property',propKey , 'value' , val , 'is not a version field')))
-      */
     } 
     MasterRegistryMgr.fieldValidationRule(prototype , propKey , versionFieldCheck)
   }
@@ -162,6 +157,7 @@ export namespace Master{
         this.startVersion = startVersion
         this.endVersion = endVersion
         if(MaType.isObject(fk)) this.fkConstrains = fk
+        this.hasFileSource = true
       }
     }
     //return {segment : segment , startVersion : startVersion , endVersion : endVersion , fkConstrains : fk }

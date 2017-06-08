@@ -15,7 +15,8 @@ import {Master , MasterBase}  from './ma-base'
 import {ModelConfig , 
   MasterValidationRule}       from './ma-model-config'  
 import {masterDesc , assert , 
-        concat , log}         from './ma-util'   
+        concat , log ,
+        throwError}           from './ma-util'   
 
 const LOG_ID : string = 'MasterRegistry'
 function MaRegMgrLog(...args : any[] ) : void {
@@ -147,7 +148,7 @@ export class MasterRegistry {
       assert( key.length > 0 && key.indexOf('.') === -1 , 'Invalid key ',key , masterDesc(this.mastername , key , null))
 
       if(finfo.masType === Master.FieldType.PRIMARY && finfo.type === 'object'){
-        throw (concat('PK ',key , 'can not be object ',this.mastername))
+        throwError('PK ',key , 'can not be object ',this.mastername)
       }
 
     })

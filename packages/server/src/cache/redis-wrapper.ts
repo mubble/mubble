@@ -128,7 +128,7 @@ export class RedisWrapper {
     return this.info['redis_version']
   }
 
-  async subscribe(events : any[] , callback : (channel : string , message : string) => void ) {
+  async subscribe(events : string[] , callback : (channel : string , message : string) => void ) {
     
     return new Promise ((resolve : any , reject : any) => {
       
@@ -271,9 +271,9 @@ export class RedisWrapper {
     return this._execute('del' , keys)
   }
 
-  // todo : this
-  async publish(channel : string , data : any) {
-
+  // This is not an async api
+  publish(channel : string , data : any) {
+    this.redis.publish(channel , data)
   }
 
   async command(cmd : redis_command , args : any[]) {

@@ -21,13 +21,17 @@ export function concat(...args : any[]) : string {
   return buff
 }
 
+export function throwError(...args : any[]){
+  throw new Error(concat(...args))
+}
 // assertion 
 export function assert(assertion : boolean , ...errorMsg : any[]) : void {
   if(assertion) return
 
   const errStr : string = concat(...errorMsg)
-  log(LOG_ID , errStr)
-  throw(errStr)
+  logErr(LOG_ID , errStr)
+  //log(LOG_ID , new Error().stack)
+  throw(new Error(errStr))
 }
 
 // Util logging function
@@ -40,6 +44,10 @@ export function masterDesc(master: string , prop : string , value: any) : string
 export function log(logId : string , ...args : any[] ) : void {
   console.log(logId , ...args)
 }
+export function logErr(logId : string , ...args : any[] ) : void {
+  console.trace(logId , ...args)
+}
+
 
 // type checking
 export namespace MaType{

@@ -117,6 +117,7 @@ export class MasterMgr {
 
   /*
   Actions : 
+  0. MasterRegistry init
   1. redis wrapper init
   2. setup mredis (connect)
   3. setup sredis (connect)
@@ -129,6 +130,8 @@ export class MasterMgr {
   public async init(rc : RunContextServer) : Promise<any> {
       
       this.rc = rc
+
+      MasterRegistryMgr.init(rc)
       // Init the redis wrapper
       RedisWrapper.init(rc)
       
@@ -137,7 +140,7 @@ export class MasterMgr {
       const sredisUrl : string = 'redis://localhost:25128'
       
       this.mredis = await RedisWrapper.connect(rc , 'MasterRedis' , mredisUrl )
-      this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , mredisUrl )
+      this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , sredisUrl )
       
       assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
       
@@ -154,8 +157,8 @@ export class MasterMgr {
     MaMgrLog('checkSlaveMasterSync started')
     for(const master of MasterRegistryMgr.masterList()){
       
-      const mDetail : ts_info = await this._getLatestRec(this.mredis , master)
-      const sDetail : ts_info = await this._getLatestRec(this.sredis , master)
+      const mDetail : ts_info = await MasterMgr._getLatestRec(this.mredis , master)
+      const sDetail : ts_info = await MasterMgr._getLatestRec(this.sredis , master)
       if(lo.isEmpty(mDetail) && lo.isEmpty(sDetail)){
         MaMgrLog('Master Slave Sync No records for master',master)
       }
@@ -167,7 +170,7 @@ export class MasterMgr {
         await FuncUtil.sleep(15*1000)
         return this.checkSlaveMasterSync(false)
       }
-      MaMgrLog('Master Slave Sync', mDetail)
+      MaMgrLog('Master Slave Sync', mDetail , master)
     }
 
     MaMgrLog('checkSlaveMasterSync finished')
@@ -232,9 +235,8 @@ export class MasterMgr {
       
       const oModel : {master : string , source: string} = arModels[i] 
       MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
-
       const master  : string              = oModel.master.toLowerCase() ,
-            mDigest : string              = digestMap[master] ,
+            mDigest : string              = digestMap ? digestMap[master] : '' ,
             fDigest : string              = crypto.createHash('md5').update(oModel.source).digest('hex') , 
             json    : object              = JSON.parse(oModel.source)
 
@@ -418,10 +420,14 @@ export class MasterMgr {
 
   }
 
-  public async _getLatestRec(redis : RedisWrapper , master : string) : Promise<{key ?: string , ts ?: number}>  {
-    
+  private static async _getLatestRec(redis : RedisWrapper , master : string) : Promise<{key ?: string , ts ?: number}>  {
+    const redisTskey : string = CONST.REDIS_NS + CONST.REDIS_TS_SET + master
+    const res : string[] = redis.redisCommand().zrange(redisTskey , -1 , -1 , CONST.WITHSCORES)
+    if(res.length) assert(res.length === 2 , '_getLatestRec invalid result ',res , master)
+    else return {}
 
-    return {key : 'key1' , ts: 1234}
+    assert(lo.isNumber(res[1]) , '_getLatestRec invalid result ', res , master)
+    return {key : res[0] , ts: lo.toNumber(res[1])}
   }
 
 }
