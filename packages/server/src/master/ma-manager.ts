@@ -33,11 +33,11 @@ function MaMgrLog(...args : any[] ) : void {
 }
 
 var CONST = {
-  REDIS_NS          : 'master:',
+  REDIS_NS          : 'ncmaster:',
   REDIS_TS_SET      : 'ts:',      // example 'master:ts:operator'
   REDIS_DATA_HASH   : 'data:',    // example 'master:data:operator'
   REDIS_DIGEST_KEY  : 'digest',   // key for digest hash
-  REDIS_CHANNEL     : 'master:updates',
+  REDIS_CHANNEL     : 'ncmaster:updates',
 
   DIGEST_REMOTE     : 'remote' ,
   
@@ -113,21 +113,109 @@ export class MasterMgr {
   sredis : RedisWrapper
 
   masterCache : Map<string , MasterData>
+  rc : RunContextServer
 
+  /*
+  Actions : 
+  1. redis wrapper init
+  2. setup mredis (connect)
+  3. setup sredis (connect)
+  4. mredis and sredis data sync verify
+  5. sredis subscribe to events master changes
+  6. xxx setup auto refresh 
+  7. build cache from sredis
+  */
 
   public async init(rc : RunContextServer) : Promise<any> {
       
+      this.rc = rc
       // Init the redis wrapper
       RedisWrapper.init(rc)
       
+      // Todo : take these values from config / rc
+      const mredisUrl : string = 'redis://localhost:13107'
+      const sredisUrl : string = 'redis://localhost:25128'
       
-      //  setup mredis (connect)
-      //  setup sredis (connect)
-      //  mredis and sredis data sync verify
-      //  sredis subscribe to events master changes
-      //  setup auto refresh 
-      //  build cache from sredis
+      this.mredis = await RedisWrapper.connect(rc , 'MasterRedis' , mredisUrl )
+      this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , mredisUrl )
       
+      assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
+      
+      await this.checkSlaveMasterSync(false)
+
+      await this.setSubscriptions()
+
+      await this.buildInMemoryCache()
+  }
+
+  async checkSlaveMasterSync(assertCheck : boolean) : Promise<any> {
+    type ts_info =  {key ?: string , ts ?: number}
+    
+    MaMgrLog('checkSlaveMasterSync started')
+    for(const master of MasterRegistryMgr.masterList()){
+      
+      const mDetail : ts_info = await this._getLatestRec(this.mredis , master)
+      const sDetail : ts_info = await this._getLatestRec(this.sredis , master)
+      if(lo.isEmpty(mDetail) && lo.isEmpty(sDetail)){
+        MaMgrLog('Master Slave Sync No records for master',master)
+      }
+      else if(!lo.isEqual(mDetail , sDetail) ){
+        // should not happen
+        if(assertCheck) assert(false , 'master slave data sync mismatch', mDetail , sDetail)
+        
+        MaMgrLog('Master-Slave sync mismatch for' , mDetail , sDetail , master , 'will wait for 15 seconds')
+        await FuncUtil.sleep(15*1000)
+        return this.checkSlaveMasterSync(false)
+      }
+      MaMgrLog('Master Slave Sync', mDetail)
+    }
+
+    MaMgrLog('checkSlaveMasterSync finished')
+  }
+
+  // sRedis subscribing to master publish records
+  async setSubscriptions() {
+    MaMgrLog("Subscribing sredis to master ",CONST.REDIS_CHANNEL)
+    await this.sredis.subscribe([CONST.REDIS_CHANNEL] , (channel : string , msg : string)=>{
+      MaMgrLog('Sredis','on', channel, 'channel received message', msg)
+      const masters : string[] = JSON.parse(msg) as string[]
+      assert(Array.isArray(masters) , 'invalid masters array received ',msg)
+
+      this.refreshSelectModels(masters)
+    })
+  }
+
+  async refreshSelectModels(masters : string[]) {
+    MaMgrLog('refreshing masters list',masters)
+    const all : string[] = MasterRegistryMgr.masterList()
+    masters.forEach((mas : string)=>{
+      assert(all.indexOf(mas)!==-1 , 'Invalid Master Obtained from Publish',mas , masters)
+    })
+
+    for(const mas of masters){
+      await this.refreshAModel(mas)
+    }
+  }
+
+  async refreshAModel(mastername : string) {
+    MaMgrLog('refreshing master', mastername)
+
+    const redis : RedisWrapper = this.sredis ,
+          redisTsKey : string  = CONST.REDIS_NS + CONST.REDIS_TS_SET + mastername ,
+          redisDataKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + mastername ,
+          lastTs   : number  = 0 , // Todo get from store
+          resultWithTsScore : string [] = await redis.rwZrangebyscore(redisTsKey , lastTs , CONST.PLUS_INFINITY, true) ,
+          resultKeys :string [] = resultWithTsScore.filter((val : any , index : number)=>{ return index%2 ===0 })
+
+    if(!resultKeys.length){
+      MaMgrLog('refreshAModel no records to update')
+      return
+    }
+    MaMgrLog('refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
+
+    const recs : string[] = await redis.redisCommand().hmget(redisDataKey , ...resultKeys)
+
+    // todo : Data store Impl
   }
   
   public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
@@ -215,9 +303,7 @@ export class MasterMgr {
 
     // verify all dependencies
     lo.forEach(todoModelz , (value : any , master : string) =>{
-      
       MasterRegistryMgr.verifyAllDependency(rc , master , masterCache)
-
     })
     
     // verification done . Update the redis
@@ -259,7 +345,8 @@ export class MasterMgr {
   }
 
   private async buildInMemoryCache() {
-
+    //Todo :
+    MaMgrLog('buildInMemoryCache')
   }
 
   // hash get functions 

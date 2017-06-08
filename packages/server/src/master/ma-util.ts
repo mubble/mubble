@@ -68,6 +68,14 @@ export namespace MaType{
 
 export namespace FuncUtil {
   
+  export async function sleep(ms : number) {
+    await new Promise((resolve : any , reject : any) =>{
+      setTimeout(()=>{
+        resolve()
+      } , ms)
+    })
+  }
+
   // create a map from array based on mapping function for each item
   export function maArrayMap<T> (arr : T[] , mapFn : (rec : T) => {key : string , value : T} ) : {[key : string] : T} {
     
@@ -109,7 +117,7 @@ export namespace FuncUtil {
   map.forEach((value : T , key : string)=>{
     res[key] = value
   })
-  
+
   return res
  } 
 

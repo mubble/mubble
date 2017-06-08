@@ -102,7 +102,7 @@ export class RedisWrapper {
 
   private async _connect (url : string , options ?: {max_attempts ?: number , connect_timeout ?: number}) {
     
-    return new Promise ((resolve : any , reject : any) => {
+    await new Promise ((resolve : any , reject : any) => {
       
       this.redis = createClient(url , options)
       this.redis.on("connect" , ()=>{
@@ -115,6 +115,7 @@ export class RedisWrapper {
         reject(error)
       })
     })
+    await this._info()
   }
 
   async getRedisVersion() : Promise<string> {
@@ -134,6 +135,7 @@ export class RedisWrapper {
       this.redis.on('subscribe' , (channel : string , count : number)=>{
         redisLog(null as any as RunContextServer , this.name , ' subscribed to channel ' , channel , count)
         // resolve when ? all events are subscribed
+        resolve()
       })
 
       this.redis.on('message' , (channel : string , message : string) => {
@@ -177,14 +179,12 @@ export class RedisWrapper {
 
   }
 
-  isMaster() {
-    const _ = this
-    return _.info['role'] === 'master'
+  isMaster() : boolean {
+    return this.info['role'] === 'master'
   }
 
-  isSlave() {
-    const _ = this
-    return _.info['role'] === 'slave'
+  isSlave() : boolean {
+    return this.info['role'] === 'slave'
   }
 
   async rwScan (pattern ?: string   , count ?: number) : Promise<Set<string>> {
@@ -276,20 +276,6 @@ export class RedisWrapper {
 
   }
 
-  // Ignore
-  async test()  {
-    this.redis.subscribe()
-    this.redis.scan()
-    this.redis.hscan()
-
-    await this.redisCommand().del(...['key1','key2'])
-    await this.command('del' , [])
-    await this.del('gk1' , 'gk2' )
-    await this.del(...['gk1' , 'gk2'] )
-    
-
-  }
-  
   async command(cmd : redis_command , args : any[]) {
     return this._execute(cmd , args)
   }

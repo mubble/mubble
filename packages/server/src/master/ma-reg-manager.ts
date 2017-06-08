@@ -40,11 +40,13 @@ export class MasterRegistryMgr {
   static regMap : {[mastername : string] : MasterRegistry} = {}
   static dependencyMap : {[mastername : string] : string[]} = {}
   static revDepMap : {[mastername : string] : string[]} = {}
-  /*
-  static pkField (target : any , propKey : string) : void {
-
-  }*/
-
+  
+  public static masterList() : string[] {
+    return lo.keysIn(this.regMap).filter((mas : string)=> {
+      return mas !== MASTERBASE
+    })
+  }
+  
   private static buildDependencyMap() : void {
     const dMap : {[master : string] : string[]} = this.dependencyMap
     const rdMap : {[master : string] : string[]} = this.revDepMap
