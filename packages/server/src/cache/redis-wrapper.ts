@@ -83,7 +83,7 @@ export class RedisWrapper {
   public monitoring  : boolean = false
   public info        : { [index : string] : string } = {}
 
-  constructor(private name : string, private redis_version ?: string){
+  constructor(private name : string, private rc : RunContextServer , private redis_version ?: string){
     if (!this.redis_version) this.redis_version = '3.2.0'
   }
   // Unfortunately there is no static initializer like java in ts/js
@@ -95,7 +95,7 @@ export class RedisWrapper {
   }
 
   static async connect(rc : RunContextServer , name : string , url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<RedisWrapper>{
-    const redisWrapper : RedisWrapper = new RedisWrapper(name)
+    const redisWrapper : RedisWrapper = new RedisWrapper(name , rc)
     await new Promise ((resolve : any , reject : any) => {
       
       redisWrapper.redis = createClient(url , options)
