@@ -10,18 +10,15 @@
 import {RedisClient , createClient , 
         ResCallbackT , Multi}           from 'redis'
 import {log , concat}                   from '../master/ma-util' 
-import {RunContextServer}     from '../rc-server'
+import {RunContextServer}               from '../rc-server'
 
 
 
-//import {RedisBase , MasterBase}  from './masterbase'
 function redisLog(rc : RunContextServer , ...args : any[] ) : void {
   log(LOG_ID , ...args)
   rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
 }
 const LOG_ID = 'RedisWrapper'
-
-//export type AsyncResp = {error : string , success : boolean}
 
 export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
                             'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'exists' |
@@ -177,36 +174,36 @@ export class RedisWrapper {
     return _.info['role'] === 'slave'
   }
 
-  async scan (pattern ?: string   , count ?: number) : Promise<Set<string>> {
+  async rwScan (pattern ?: string   , count ?: number) : Promise<Set<string>> {
     
     return this._scan('scan' , '' , 0 , pattern , count)
   }
 
-  async sscan (key : string , pattern ?: string , count ?: number) : Promise<Set<string>> {
+  async rwSscan (key : string , pattern ?: string , count ?: number) : Promise<Set<string>> {
     
     return this._scan('sscan' , key , 0 , pattern , count)
   }
 
-  async hscan(key : string , pattern ?: string , count ?: number) : Promise<Map<string , object >> {
+  async rwHscan(key : string , pattern ?: string , count ?: number) : Promise<Map<string , object >> {
     return this._hscan('hscan' , key , 0 , pattern , count)
   }
   
-  async zscan(key : string , pattern ?: string , count ?: number) : Promise<Map<string , object>> {
+  async rwZscan(key : string , pattern ?: string , count ?: number) : Promise<Map<string , object>> {
     return this._hscan('zscan' , key , 0 , pattern , count)
   }
 
-  async zrevrange (key: string , start : number , end : number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
+  async rwZrevrange (key: string , start : string|number  , end : string|number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
     if (withscore) redis_cmd.push ('WITHSCORES')
     if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
-    return await this._execute ('zrevrange', redis_cmd) 
+    return this._execute ('zrevrange', redis_cmd) 
   }
 
-  async zrangebyscore (key: string , start : number , end : number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
+  async rwZrangebyscore (key: string , start : string|number , end : string|number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
     if (withscore) redis_cmd.push ('WITHSCORES')
     if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
-    return await this._execute ('zrangebyscore', redis_cmd) 
+    return this._execute ('zrangebyscore', redis_cmd) 
   }
 
   async _scan(cmd : redis_command , key : string , cursor : number ,  pattern ?: string , count ?: number , out ?: Set<string>) : Promise<Set<string> > {
