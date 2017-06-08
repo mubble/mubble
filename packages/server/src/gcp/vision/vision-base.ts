@@ -66,8 +66,18 @@ export class VisionBase {
       image.crop( x, y, w, h)
       if(shrink) image.resize(shrink.w, shrink.h)
       
-      return await image.getBase64(image.getMIME())
+      return new Promise((resolve, reject) => {
+        image.getBase64(image.getMIME(), (err : any, res : any) => {
+          if(err) return reject(err)
+          return resolve(res)
+        })
+      })
     }
-    return ''
+    return new Promise((resolve, reject) => {
+        image.getBase64(image.getMIME(), (err : any, res : any) => {
+          if(err) return reject(err)
+          return resolve(res)
+        })
+      })
   }
 }
