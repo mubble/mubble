@@ -46,7 +46,7 @@ export class MasterRegistryMgr {
       return mas !== MASTERBASE
     })
   }
-  
+
   private static buildDependencyMap() : void {
     const dMap : {[master : string] : string[]} = this.dependencyMap
     const rdMap : {[master : string] : string[]} = this.revDepMap
@@ -235,7 +235,7 @@ export class MasterRegistryMgr {
 
     sourceIdsMap.forEach((srcRec : any , pk: string) => {
       
-      const ref : any   = targetMap.get(pk)
+      const ref : any   = targetMap[pk]
       
       if(!ref) {
         // this is an new record

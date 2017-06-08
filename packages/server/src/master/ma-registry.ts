@@ -106,7 +106,7 @@ export class MasterRegistry {
 
   // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
-  rules                     : ((obj : any) => void) []
+  rules                     : ((obj : any) => void) [] = []
 
   // Get id string from master rec
   public getIdStr(src : any) : string {

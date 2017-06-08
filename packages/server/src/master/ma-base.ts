@@ -137,7 +137,7 @@ export namespace Master{
         const mastername : string = prototype.constructor.name
         const val : number = rec[propKey]
         if(defaultIgnoreVal!=null && val===defaultIgnoreVal) return
-        assert( val>=minVal && val<=maxVal , masterDesc(mastername,propKey,val) , 'not in range', minVal , maxVal )
+        assert( val>=minVal && val<=maxVal , masterDesc(mastername,propKey,val) , 'Not in range', minVal+'-'+maxVal , rec )
       } 
       MasterRegistryMgr.fieldValidationRule(prototype , propKey , inRangeCheck)
     }

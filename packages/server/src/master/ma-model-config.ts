@@ -97,7 +97,7 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       
       const fInfo : FieldInfo = fieldsMap[key]
 
-      if(!fInfo) throwError (masterDesc(reg.mastername , key , value) ,'unknown field:' , key ,  reg.getIdStr(rec))
+      if(!fInfo) throwError (masterDesc(reg.mastername , key , value) ,'unknown field:' , key ,  'for pk',reg.getIdStr(rec))
       if(autoCols.indexOf(key) !== -1) throwError(masterDesc(reg.mastername , key , value) ,'can not set auto field' , key ,  reg.getIdStr(rec))
       
 
@@ -107,11 +107,11 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       (typeof(value) === 'boolean' && fInfo.type !== 'boolean') || 
       (typeof(value) === 'number' && fInfo.type !== 'number') || 
       (Array.isArray(value) && fInfo.type !== 'array')   )
-      throwError (reg.mastername , 'has invalid value for colum ',key , rec)
+      throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
       
       // Object check
       if(value && typeof(value) === 'object' && fInfo.type !== 'object') {
-        throwError (reg.mastername , 'has invalid value for colum ',key , rec)
+        throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
       }
 
       // PK Fields type can not object . Checked in verify
@@ -119,12 +119,12 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       // check PK and Mandatory Fields
       if(fInfo.masType !== Master.FieldType.OPTIONAL) {
         //[null , undefined , '' , 0] check only allowed for OPTIONAL Fields
-        if(!value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec)
+        if(!value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec , idStr)
 
         if(fInfo.type === 'array' && lo.isEmpty(value)) {
-          throwError(reg.mastername , 'column ',key , 'can not be empty array', rec)
+          throwError(reg.mastername , 'column ',key , 'can not be empty array', rec , idStr)
         }else if(fInfo.type === 'object' && lo.isEmpty(value)) {
-          throwError(reg.mastername , 'column ',key , 'can not be empty object', rec)
+          throwError(reg.mastername , 'column ',key , 'can not be empty object', rec , idStr)
         }
 
       }else{

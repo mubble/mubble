@@ -16,7 +16,7 @@ const LOG_ID = 'Master-Util'
 export function concat(...args : any[]) : string {
   let buff : string = ''
   args.forEach((item : any)=>{
-    buff += item + ' '
+    buff += typeof(item)!=='object' ? item + ' ' : JSON.stringify(item) + ' '
   })
   return buff
 }
