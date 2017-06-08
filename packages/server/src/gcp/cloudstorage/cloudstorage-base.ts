@@ -13,6 +13,9 @@ import {RunContextServer}    from '../../rc-server'
 import {GcloudEnv}           from '../../gcp/gcloud-env'
 import {v4 as UUIDv4}        from 'node-uuid'
 
+import * as mime             from 'mime-types'
+import * as fs               from 'fs'
+
 export class CloudStorageBase {
 
   _cloudStorage : any
@@ -35,6 +38,22 @@ export class CloudStorageBase {
 
   constructor(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     this._cloudStorage = gcloudEnv.cloudStorage
+  }
+
+  async uploadDataToCloudStorage(rc : RunContextServer,  bucket : string, path : string, data : any, mimeVal : string | false) : Promise<string> {
+    if(!mimeVal) return ''
+
+    const extension = mime.extension(mimeVal),
+          filename  = await this.getFileName(rc, bucket, extension, path),
+          modPath   = (path) ? (path + '/') : ''
+   
+    const res     = await fs.writeFile(`/tmp/${filename}.${extension}`, data, 'binary'),
+          fileUrl = await cloudStorage.upload(rc, bucket, 
+                              `/tmp/${filename}.${extension}`,
+                              `${modPath}${filename}.${extension}`)
+                       
+    await fs.unlinkSync(`/tmp/${filename}.${extension}`)
+    return fileUrl
   }
 
   async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
