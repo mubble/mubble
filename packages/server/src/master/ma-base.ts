@@ -7,7 +7,6 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-//import {RedisWrapper}       from './redis-wrapper'
 import * as lo                from 'lodash'
 import * as semver            from 'semver'
 
@@ -246,11 +245,11 @@ export class MasterBase {
 
   
   async list(selectCrit : object) : Promise<Array<object>> {
-    return Promise.resolve([])
+    return []
   }
 
   async count (selectCrit : object) : Promise<number> {
-    return Promise.resolve(1)
+    return 0
   }
 
   verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) {

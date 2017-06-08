@@ -228,7 +228,7 @@ export class RedisWrapper {
     cursor  = Number(res[0])
     if(!out) out = new Set<string>()
     for (const mem of <string[]> res[1]) out.add(mem)
-    if(cursor === 0) return Promise.resolve(out)
+    if(cursor === 0) return out
 
     return this._scan(cmd , key , cursor , pattern , count , out)
   }
@@ -245,7 +245,7 @@ export class RedisWrapper {
     for(let i=0 ; i<resMapArr.length ; i = i+2){
       out.set(resMapArr[i] , JSON.parse(resMapArr[i+1]))
     }
-    if(cursor === 0) return Promise.resolve(out)
+    if(cursor === 0) return out
 
     return this._hscan(cmd , key , cursor , pattern , count , out)
   }

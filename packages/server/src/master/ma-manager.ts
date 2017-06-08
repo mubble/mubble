@@ -117,6 +117,10 @@ export class MasterMgr {
 
   public async init(rc : RunContextServer) : Promise<any> {
       
+      // Init the redis wrapper
+      RedisWrapper.init(rc)
+      
+      
       //  setup mredis (connect)
       //  setup sredis (connect)
       //  mredis and sredis data sync verify
@@ -219,7 +223,7 @@ export class MasterMgr {
     // verification done . Update the redis
     await this.updateMRedis(results , todoModelz)
     
-    return Promise.resolve(results)
+    return results
   }
 
   private async updateMRedis(results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} ) {
@@ -259,13 +263,12 @@ export class MasterMgr {
   }
 
   // hash get functions 
-  async hget (key : string , field : string) : Promise<object> {
+  async hget (key : string , field : string) : Promise<string> {
     
     // Just for compilation
     const params = [key , field]
     const redis : RedisWrapper = this.mredis
-    const res : any = await redis.redisCommand().hget(key , field)
-    return Promise.resolve(res)
+    return await redis.redisCommand().hget(key , field)
   }
   
   async hmget(key : string , fields : string[]) : Promise<Array<object>> {
@@ -273,9 +276,9 @@ export class MasterMgr {
     const redis : RedisWrapper = this.mredis
     const res : any[] = await redis.redisCommand().hmget(key , ...fields)
 
-    return Promise.resolve(res.map(item => {
-      return JSON.parse(item)
-    }))
+    return res.map(item => {
+        return JSON.parse(item)
+      })
   }
 
 
@@ -308,9 +311,9 @@ export class MasterMgr {
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     const map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
-    return Promise.resolve(lo.mapValues(map , (val : string)=>{
+    return lo.mapValues(map , (val : string)=>{
       return JSON.parse(val)
-    }))
+    })
   }
 
   public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<any> {
@@ -326,14 +329,14 @@ export class MasterMgr {
       return !(val['deleted'] === true)
     })
     // convert to map and return 
-    return Promise.resolve( FuncUtil.toMap(pMap) )
+    return FuncUtil.toMap(pMap)
 
   }
 
-  public async _getLatestRec(redis : RedisWrapper , master : string)  {
+  public async _getLatestRec(redis : RedisWrapper , master : string) : Promise<{key ?: string , ts ?: number}>  {
     
 
-    return Promise.resolve({key : 'key1' , ts: 1234})
+    return {key : 'key1' , ts: 1234}
   }
 
 }
