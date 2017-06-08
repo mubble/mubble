@@ -7,6 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import * as lo                          from 'lodash'
 import {RedisClient , createClient , 
         ResCallbackT , Multi}           from 'redis'
 import {log , concat}                   from '../master/ma-util' 
@@ -80,8 +81,8 @@ export class RedisWrapper {
   public monitoring  : boolean = false
   public info        : { [index : string] : string } = {}
 
-  constructor(private name : string, private rc : RunContextServer , private redis_version ?: string){
-    if (!this.redis_version) this.redis_version = '3.2.0'
+  constructor(private name : string, private rc : RunContextServer ){
+    
   }
   // Unfortunately there is no static initializer like java in ts/js
   static init(rc : RunContextServer) : void {
@@ -92,26 +93,38 @@ export class RedisWrapper {
   }
 
   static async connect(rc : RunContextServer , name : string , url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<RedisWrapper>{
+    
     const redisWrapper : RedisWrapper = new RedisWrapper(name , rc)
-    await new Promise ((resolve : any , reject : any) => {
+    await redisWrapper._connect(url , options)
+    return redisWrapper
+    
+  }
+
+  private async _connect (url : string , options ?: {max_attempts ?: number , connect_timeout ?: number}) {
+    
+    return new Promise ((resolve : any , reject : any) => {
       
-      redisWrapper.redis = createClient(url , options)
-      redisWrapper.redis.on("connect" , ()=>{
-        redisLog(rc, this.name , 'connected to redis', url)
+      this.redis = createClient(url , options)
+      this.redis.on("connect" , ()=>{
+        redisLog(this.rc , this.name , 'connected to redis', url)
         resolve()
       })
 
-      redisWrapper.redis.on("error" , (error : any)=>{
-        redisLog(rc, this.name , 'Could not connect to redis ',url , error)
+      this.redis.on("error" , (error : any)=>{
+        redisLog(this.rc , this.name , 'Could not connect to redis ',url , error)
         reject(error)
       })
     })
-    redisLog(rc, 'checking redis version')
-    await redisWrapper._info()
-    const redis_ver : string = redisWrapper.info['redis_version']
-    // return (redis_ver === this.redis_version) ? Promise.resolve(redis_ver) : Promise.reject(concat('Incorrect Redis Version. Found:', redis_ver ,'Expected:', this.redis_version) )
-    //return Promise.resolve(this.redis.server_info)
-    return redisWrapper
+  }
+
+  async getRedisVersion() : Promise<string> {
+    if(lo.size(this.info)){
+      return this.info['redis_version']
+    }
+    
+    redisLog(this.rc , 'checking redis version')
+    await this._info()
+    return this.info['redis_version']
   }
 
   async subscribe(events : any[] , callback : (channel : string , message : string) => void ) {
