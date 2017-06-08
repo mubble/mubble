@@ -15,8 +15,9 @@ import {RunContextServer}     from '../rc-server'
 
 
 //import {RedisBase , MasterBase}  from './masterbase'
-function redisLog(...args : any[] ) : void {
+function redisLog(rc : RunContextServer , ...args : any[] ) : void {
   log(LOG_ID , ...args)
+  rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
 }
 const LOG_ID = 'RedisWrapper'
 
@@ -25,7 +26,7 @@ const LOG_ID = 'RedisWrapper'
 export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
                             'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'exists' |
                             'lpush' | 'rpush' | 'lrange' |
-                            'zadd' | 'zrange' | 'zrangebyscore' | 'zrem' |
+                            'zadd' | 'zrange' | 'zrevrange' | 'zrangebyscore' | 'zrem' |
                             'publish' | 'unsubscribe' | 
                             'watch' | 'unwatch' |
                             'scan' | 'sscan' | 'hscan' | 'zscan'
@@ -33,7 +34,7 @@ export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' 
 export const redis_commands : string[] =  
 ['del' , 'expire' , 'get' , 
  'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' ,
- 'zadd' , 'zrange' , 'zrangebyscore' , 'zrem'
+ 'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem'
  ]                            
                              
 export type redis_async_func        = (...args : string[]) => void
@@ -58,9 +59,8 @@ export interface RedisCmds {
   hset      : (key: string , field : string , value : string ) => void
 
   // z sorted set apis 
-  zadd            : (key: string , option : string , ...scoreValuePairs : any[]  ) => void
+  zadd            : (key: string , option : string , ...scoreValuePairs : any[]  ) => number
   zrange          : (key: string , start : number , end : number , withscore ?: string ) => string[]
-  zrangebyscore   : (key: string , startscore : number | string , endscore : number | string , withscore ?: string ) => string[]
   zrem            : (key: string , ...keys : string[]  ) => void // check
   
 }
@@ -83,40 +83,38 @@ export class RedisWrapper {
   public monitoring  : boolean = false
   public info        : { [index : string] : string } = {}
 
-  constructor(private name : string ){
-    
+  constructor(private name : string, private redis_version ?: string){
+    if (!this.redis_version) this.redis_version = '3.2.0'
   }
   // Unfortunately there is no static initializer like java in ts/js
-  static initialize(rc : RunContextServer) : void {
+  static init(rc : RunContextServer) : void {
     for(const cmd of redis_commands){
       // we can find all the function (name) of RedisClient from reflection . check signature type
       add(cmd)
     }
   }
 
-  async connect(url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<any>{
-    const _ = this
+  static async connect(rc : RunContextServer , name : string , url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<RedisWrapper>{
+    const redisWrapper : RedisWrapper = new RedisWrapper(name)
     await new Promise ((resolve : any , reject : any) => {
       
-      this.redis = createClient(url , options)
-      this.redis.on("connect" , ()=>{
-        redisLog(this.name , 'connected to redis', url)
+      redisWrapper.redis = createClient(url , options)
+      redisWrapper.redis.on("connect" , ()=>{
+        redisLog(rc, this.name , 'connected to redis', url)
         resolve()
       })
 
-      this.redis.on("error" , (error : any)=>{
-        redisLog(this.name , 'Could not connect to redis ',url , error)
+      redisWrapper.redis.on("error" , (error : any)=>{
+        redisLog(rc, this.name , 'Could not connect to redis ',url , error)
         reject(error)
       })
     })
-    redisLog('checking redis version')
-    await this._info()
-    const redis_ver : string = this.info['redis_version']
-    // Get this from env config
-    const exp_redi_ver : string = '3.2.0'
-    
-    return (redis_ver === exp_redi_ver) ? Promise.resolve(redis_ver) : Promise.reject(concat('Incorrect Redis Version. Found:', redis_ver ,'Expected:', exp_redi_ver) )
+    redisLog(rc, 'checking redis version')
+    await redisWrapper._info()
+    const redis_ver : string = redisWrapper.info['redis_version']
+    // return (redis_ver === this.redis_version) ? Promise.resolve(redis_ver) : Promise.reject(concat('Incorrect Redis Version. Found:', redis_ver ,'Expected:', this.redis_version) )
     //return Promise.resolve(this.redis.server_info)
+    return redisWrapper
   }
 
   async subscribe(events : any[] , callback : (channel : string , message : string) => void ) {
@@ -124,7 +122,7 @@ export class RedisWrapper {
     return new Promise ((resolve : any , reject : any) => {
       
       this.redis.on('subscribe' , (channel : string , count : number)=>{
-        redisLog(this.name , ' subscribed to channel ' , channel , count)
+        redisLog(null as any as RunContextServer , this.name , ' subscribed to channel ' , channel , count)
         // resolve when ? all events are subscribed
       })
 
@@ -132,12 +130,13 @@ export class RedisWrapper {
         callback(channel , message)
       })
 
-      redisLog('redis ',this.name , 'subscribing to channels ',events)
+      redisLog(null as any as RunContextServer , 'redis ',this.name , 'subscribing to channels ',events)
       this.redis.subscribe(events)
 
     })
   }
   
+
   async _info() {
     const _             = this,
           info : string = await this._execute('info'),
@@ -158,10 +157,10 @@ export class RedisWrapper {
       
       redisw[cmd](args , (err : Error , res : any) =>{
         if(err){
-          if(this.monitoring) redisLog(this.name , cmd  , args , 'failed ',err)
+          if(this.monitoring) redisLog(null as any as RunContextServer , this.name , cmd  , args , 'failed ',err)
           reject(err)
         }
-        if(this.monitoring) redisLog(this.name , cmd  , args , 'success ', res)
+        if(this.monitoring) redisLog(null as any as RunContextServer , this.name , cmd  , args , 'success ', res)
         resolve(res)
       })
     })
@@ -196,6 +195,19 @@ export class RedisWrapper {
     return this._hscan('zscan' , key , 0 , pattern , count)
   }
 
+  async zrevrange (key: string , start : number , end : number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
+    let redis_cmd = [key, start, end] as Array<any>
+    if (withscore) redis_cmd.push ('WITHSCORES')
+    if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
+    return await this._execute ('zrevrange', redis_cmd) 
+  }
+
+  async zrangebyscore (key: string , start : number , end : number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
+    let redis_cmd = [key, start, end] as Array<any>
+    if (withscore) redis_cmd.push ('WITHSCORES')
+    if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
+    return await this._execute ('zrangebyscore', redis_cmd) 
+  }
 
   async _scan(cmd : redis_command , key : string , cursor : number ,  pattern ?: string , count ?: number , out ?: Set<string>) : Promise<Set<string> > {
     const args : any[] = cmd === 'scan' ? [cursor] : [key , cursor]
@@ -238,7 +250,7 @@ export class RedisWrapper {
     return new Promise(function(resolve, reject) {
       
       batchOrMulti.exec(function(err, results) {
-        if (_.monitoring)  redisLog ('multi/batch', {err}, 'results', results)
+        if (_.monitoring)  redisLog (null as any as RunContextServer , 'multi/batch', {err}, 'results', results)
         if (err) return reject(err)
         resolve(results)
       })
