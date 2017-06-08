@@ -12,7 +12,7 @@ import * as crypto            from 'crypto'
 
 import {Multi}                from 'redis'
 
-import {RedisWrapper}         from './redis-wrapper'
+import {RedisWrapper}         from '../cache/redis-wrapper'
 import {MasterBase}           from './ma-base'
 import {RunContextServer}     from '../rc-server'
 import {masterDesc , assert , 

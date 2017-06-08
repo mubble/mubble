@@ -9,7 +9,10 @@
 
 import {RedisClient , createClient , 
         ResCallbackT , Multi}           from 'redis'
-import {log , concat}                   from './ma-util' 
+import {log , concat}                   from '../master/ma-util' 
+import {RunContextServer}     from '../rc-server'
+
+
 
 //import {RedisBase , MasterBase}  from './masterbase'
 function redisLog(...args : any[] ) : void {
@@ -66,12 +69,9 @@ function add(name : string)  {
   
   name = name.toLowerCase()
   const rw = (RedisWrapper.prototype as any)
-  rw[name] = function() {
+  rw[name] = function(...params: any[]) {
     
-    const _     = this,
-          keys  = Array.prototype.slice.call(arguments)
-          
-    return _._execute(name , keys)
+    return this._execute(name , params)
   }
   return add
 }
@@ -87,7 +87,7 @@ export class RedisWrapper {
     
   }
   // Unfortunately there is no static initializer like java in ts/js
-  static initialize() : void {
+  static initialize(rc : RunContextServer) : void {
     for(const cmd of redis_commands){
       // we can find all the function (name) of RedisClient from reflection . check signature type
       add(cmd)

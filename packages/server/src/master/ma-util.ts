@@ -90,6 +90,7 @@ export namespace FuncUtil {
 
   }
 
+  // Object to map
   export function toMap<T>(obj : {[key : string] : T}) : Map<string , T> {
     const map : Map<string , T> = new Map()
     lo.forEach(obj , (value : T , key : string)=>{
@@ -98,6 +99,7 @@ export namespace FuncUtil {
     return map
   }
 
+ // Map to object
  export function toObject<T> (map : Map<string , T>) : {[key : string] : T} {
   const res : {[key : string] : T} = {}
 
