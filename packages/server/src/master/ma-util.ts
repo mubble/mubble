@@ -8,6 +8,9 @@
 ------------------------------------------------------------------------------*/
 import * as lo                from 'lodash'
 
+import {StringValMap ,
+        GenValMap }           from './ma-types'  
+
 const LOG_ID = 'Master-Util'
 
 export function concat(...args : any[]) : string {
@@ -106,10 +109,21 @@ export namespace FuncUtil {
   map.forEach((value : T , key : string)=>{
     res[key] = value
   })
-
+  
   return res
  } 
 
+ export function toParseObjectMap(srcObj : StringValMap) : GenValMap {
+  return lo.mapValues(srcObj , (val : string)=>{
+    return JSON.parse(val)
+  })
+ }
+
+ export function toStringifyMap(srcObj : GenValMap) : StringValMap {
+  return lo.mapValues(srcObj , (val : any)=>{
+    return JSON.stringify(val)
+  })
+ }
 
 }
 

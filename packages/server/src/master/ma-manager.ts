@@ -237,11 +237,11 @@ export class MasterMgr {
             updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
             ts      : number = modData.ssd.modifyTs
 
-      const modifications : {[key : string] : any} = lo.assign(inserts , updates)
+      const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign(inserts , updates))  
 
-      lo.forEach(modifications , (value : any , pk : string) => {
+      lo.forEach(modifications , (recStr : string , pk : string) => {
         
-        const recStr : string = JSON.stringify(value)
+        //const recStr : string = JSON.stringify(value)
         multi.zadd([CONST.REDIS_NS + CONST.REDIS_TS_SET + master , 'CH', ts, pk ])
         multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
 
@@ -307,23 +307,21 @@ export class MasterMgr {
   }
 
   
-  public async listAllMasterData(rc : RunContextServer , master : string) : Promise<any> {
+  public async listAllMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     const map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
-    return lo.mapValues(map , (val : string)=>{
-      return JSON.parse(val)
-    })
+    // Parse the string value to object
+    return FuncUtil.toParseObjectMap(map)
   }
 
-  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<any> {
+  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<Map<string , any>> {
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     let map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
     // Parse the string value to object
-    let pMap : GenValMap = lo.mapValues(map , (val : string)=>{
-      return JSON.parse(val)
-    })
+    let pMap : GenValMap = FuncUtil.toParseObjectMap(map)
+    
     // remove deleted
     pMap = FuncUtil.reduce(pMap , (val : any , key : string) => {
       return !(val['deleted'] === true)
