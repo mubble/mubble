@@ -182,7 +182,7 @@ export class MasterRegistry {
     // check if this is an instance of master base
     assert(this.masterInstance instanceof MasterBase , this.mastername , 'is not an masterbase impl ')
 
-    MaRegMgrLog(this.mastername , this.fieldsMap)
+    //MaRegMgrLog(this.mastername , this.fieldsMap)
   }
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {

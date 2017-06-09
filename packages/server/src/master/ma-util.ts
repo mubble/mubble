@@ -79,7 +79,7 @@ export namespace FuncUtil {
   export async function sleep(ms : number) {
     await new Promise((resolve : any , reject : any) =>{
       setTimeout(()=>{
-        resolve()
+        resolve(ms)
       } , ms)
     })
   }

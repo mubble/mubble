@@ -75,8 +75,8 @@ export class MasterRegistryMgr {
       }
       
       dMap[mas] = dArr
-      MaRegMgrLog('buildDependencyMap 1',mas , dArr)
-      MaRegMgrLog('buildDependencyMap 2',dMap)
+      //MaRegMgrLog('buildDependencyMap 1',mas , dArr)
+      //MaRegMgrLog('buildDependencyMap 2',dMap)
       
       // Reverse Mapping
       dArr.forEach(depMas=>{
@@ -90,8 +90,8 @@ export class MasterRegistryMgr {
 
     })
     // Todo : remove empty array values masters / master with no dependency
-    MaRegMgrLog('build Dependency Map finished\r\n',this.dependencyMap)
-    MaRegMgrLog('build Reverse DependencyMap finished\r\n',this.revDepMap)
+    //MaRegMgrLog('build Dependency Map finished\r\n',this.dependencyMap)
+    //MaRegMgrLog('build Reverse DependencyMap finished\r\n',this.revDepMap)
   }
   
   static masterField (target : any , propKey : string , maType : Master.FieldType) : void {
@@ -111,7 +111,7 @@ export class MasterRegistryMgr {
     const master : string = constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
 
-    MaRegMgrLog('addMaster ',master , constructor)
+    //MaRegMgrLog('addMaster ',master , constructor)
     MaRegMgrLog('addMaster config ',master , config)
 
     assert(maReg.construct == null && maReg.config == null && maReg.masterInstance == null  , 'master ',master , 'registered twice')
@@ -188,7 +188,7 @@ export class MasterRegistryMgr {
   }
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
-
+    MaRegMgrLog('verifyAllDependency for master' , mastername )
 
   }
   
@@ -219,9 +219,9 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIdsMap : Map<string  , object> , targetMap : {[key : string] : any} ) : SourceSyncData {
+  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIdsMap : Map<string  , object> , targetMap : GenValMap ) : SourceSyncData {
     
-    MaRegMgrLog('verifyModifications' , registry.mastername ,'source:' , sourceIdsMap.size , 'target:', targetMap.size )
+    MaRegMgrLog('verifyModifications' , registry.mastername ,'source size:' , sourceIdsMap.size , 'target size:', lo.size(targetMap) )
 
     const config : ModelConfig = registry.config , 
           masTsField : string  = config.getMasterTsField() ,

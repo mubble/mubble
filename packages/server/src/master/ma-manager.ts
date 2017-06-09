@@ -111,6 +111,10 @@ export class MasterMgr {
   
   mredis : RedisWrapper 
   sredis : RedisWrapper
+  // sredis for subscription
+  // pub & sub need to have a seprate connection
+  // sub redis can only issue limited commands
+  subRedis : RedisWrapper
 
   masterCache : Map<string , MasterData>
   rc : RunContextServer
@@ -141,6 +145,7 @@ export class MasterMgr {
       
       this.mredis = await RedisWrapper.connect(rc , 'MasterRedis' , mredisUrl )
       this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , sredisUrl )
+      this.subRedis = await RedisWrapper.connect(rc , 'SubscriptionRedis' , sredisUrl )
       
       assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
       
@@ -179,12 +184,14 @@ export class MasterMgr {
   // sRedis subscribing to master publish records
   async setSubscriptions() {
     MaMgrLog("Subscribing sredis to master ",CONST.REDIS_CHANNEL)
-    await this.sredis.subscribe([CONST.REDIS_CHANNEL] , (channel : string , msg : string)=>{
+    
+    await this.subRedis.subscribe([CONST.REDIS_CHANNEL] , (channel : string , msg : string)=>{
       MaMgrLog('Sredis','on', channel, 'channel received message', msg)
       const masters : string[] = JSON.parse(msg) as string[]
       assert(Array.isArray(masters) , 'invalid masters array received ',msg)
 
       this.refreshSelectModels(masters)
+
     })
   }
 
@@ -217,13 +224,13 @@ export class MasterMgr {
     MaMgrLog('refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
 
     const recs : string[] = await redis.redisCommand().hmget(redisDataKey , ...resultKeys)
-
+    MaMgrLog('refreshAModel ',mastername , 'refreshed records:',recs.length , recs)
     // todo : Data store Impl
   }
   
   public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
     
-    const results : {name : string , error:string} [] = []
+    const results : object [] = []
     
     const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
           digestMap   : {[key:string] : string} =  await this.hgetall(digestKey) ,
@@ -250,7 +257,7 @@ export class MasterMgr {
      const redisData : GenValMap = await this.listAllMasterData(rc , master) ,
            ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData )       
      
-     MaMgrLog('applyFileData' , master , ssd.inserts.size , ssd.updates.size )
+     MaMgrLog('applyFileData' , master ,'inserts:' ,ssd.inserts.size ,'updates:', ssd.updates.size )
      // set all ssd modifying time as same
      ssd.modifyTs = now      
      this.setParentMapData(master , masterCache , ssd) 
@@ -263,13 +270,13 @@ export class MasterMgr {
   private setParentMapData(master : string , masterCache : MasterCache , ssd : SourceSyncData) : void {
      
      // master dependency data settings      
-     if(!(lo.hasIn(masterCache , master) && masterCache[master] )){
-        const depMap : any = masterCache[master]
-        MaMgrLog(master , 'overriding source ',  MaType.isNull(depMap) ? 0 : depMap.size , ssd.source.size )
+     if((lo.hasIn(masterCache , master) && masterCache[master] )){
+        const depMap : Map<string , any> = masterCache[master]
+        MaMgrLog(master , 'overriding source ',  depMap.size , ssd.source.size )
         masterCache[master] = ssd.source
      }else{
        masterCache[master] = ssd.source
-       MaMgrLog(master , 'source size' , ssd.source.size )
+       MaMgrLog('setParentMapData' , master , 'source size' , ssd.source.size )
      }
      
      if(lo.hasIn( MasterRegistryMgr.dependencyMap , master)){
@@ -293,12 +300,12 @@ export class MasterMgr {
 
 
   // Update the mredis with required changes 
-  private async applyData(rc : RunContextServer , results : any[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
+  private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
     
-    MaMgrLog('applyData' , results , lo.keysIn(masterCache) , lo.keysIn(todoModelz) )
+    MaMgrLog('applyData' , 'results',results , 'mastercache keys:',lo.keysIn(masterCache) ,'TodoModels keys:' ,lo.keysIn(todoModelz) )
     
     for(const depMaster of lo.keysIn(masterCache)){
-      if(masterCache[depMaster]) return
+      if(masterCache[depMaster]) continue
       // Populate the dependent masters
       masterCache[depMaster] = await this.listActiveMasterData(rc , depMaster)
     }
@@ -311,6 +318,7 @@ export class MasterMgr {
     // verification done . Update the redis
     await this.updateMRedis(results , todoModelz)
     
+    MaMgrLog('applyData' , 'results',results)
     return results
   }
 
@@ -322,7 +330,7 @@ export class MasterMgr {
       
       const modData : {ssd : SourceSyncData , fDigest : string} = todoModelz[master] ,
             inserts : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
-            updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
+            updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.updates) ,
             ts      : number = modData.ssd.modifyTs
 
       const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign(inserts , updates))  
