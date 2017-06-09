@@ -31,6 +31,9 @@ const LOG_ID : string = 'MasterMgr'
 function MaMgrLog(...args : any[] ) : void {
   log(LOG_ID , ...args)
 }
+function debug(...args : any[] ) : void {
+  log(LOG_ID , ...args)
+}
 
 var CONST = {
   REDIS_NS          : 'ncmaster:',
@@ -96,13 +99,16 @@ export class SourceSyncData {
  
   inserts    : Map<string , any> = new Map<string , any>()
   updates    : Map<string , any> = new Map<string , any>()
+  deletes    : Map<string , any> = new Map<string , any>()
+
 
   modifyTs   : number = lo.now()
 
-  public constructor(master : string , source : Map<string , any> , target : GenValMap ) {
+  public constructor(master : string , source : Map<string , any> , target : GenValMap , now : number ) {
     this.mastername = master
     this.source = source
     this.redisData = target
+    this.modifyTs = now
   }
 
 }
@@ -121,7 +127,7 @@ export class MasterMgr {
 
   /*
   Actions : 
-  0. MasterRegistry init
+  0. MasterRegistry init. Verify all master registries
   1. redis wrapper init
   2. setup mredis (connect)
   3. setup sredis (connect)
@@ -224,7 +230,7 @@ export class MasterMgr {
     MaMgrLog('refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
 
     const recs : string[] = await redis.redisCommand().hmget(redisDataKey , ...resultKeys)
-    MaMgrLog('refreshAModel ',mastername , 'refreshed records:',recs.length , recs)
+    MaMgrLog('refreshAModel ',mastername , 'refreshed records:',recs.length /*, recs*/)
     // todo : Data store Impl
   }
   
@@ -233,38 +239,44 @@ export class MasterMgr {
     const results : object [] = []
     
     const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
-          digestMap   : {[key:string] : string} =  await this.hgetall(digestKey) ,
+          digestMap   : {[key:string] : string} =  await this.mredis.redisCommand().hgetall(digestKey) ,
           masterCache : MasterCache = {} ,
           todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} = {},
+          // all masters update records will have same timestamp
           now         : number = lo.now()
-
+    
+    debug('digestMap:',digestMap)     
+    
     for(let i : number = 0 ; i <arModels.length ; i++ ){
       
       const oModel : {master : string , source: string} = arModels[i] 
       MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
+      
       const master  : string              = oModel.master.toLowerCase() ,
+            //testing remove that
             mDigest : string              = digestMap ? digestMap[master] : '' ,
-            fDigest : string              = crypto.createHash('md5').update(oModel.source).digest('hex') , 
-            json    : object              = JSON.parse(oModel.source)
-
+            json    : object              = JSON.parse(oModel.source),
+            fDigest : string              = crypto.createHash('md5').update(JSON.stringify(json) /*oModel.source*/).digest('hex')
+            
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
-     
+     debug(master , 'mDigest:',mDigest , 'fDigest:',fDigest)
      if(lo.isEqual(mDigest , fDigest)){
         results.push({name : master , error : 'skipping as file is unchanged'}) 
         continue
      }
 
      const redisData : GenValMap = await this.listAllMasterData(rc , master) ,
-           ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData )       
+           ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData , now )       
      
-     MaMgrLog('applyFileData' , master ,'inserts:' ,ssd.inserts.size ,'updates:', ssd.updates.size )
-     // set all ssd modifying time as same
-     ssd.modifyTs = now      
+     MaMgrLog('applyFileData' , master ,'inserts:' ,ssd.inserts.size ,'updates:', ssd.updates.size , 'deletes:',ssd.deletes.size )
      this.setParentMapData(master , masterCache , ssd) 
-     todoModelz[master] = {ssd : ssd , fDigest : fDigest}     
+     todoModelz[master] = {ssd : ssd , fDigest : fDigest} 
+
+     //debug('todoModelz',master, ssd.inserts.size , ssd.updates.size , ssd.deletes.size )    
     }
 
-    return await this.applyData(rc , results , masterCache , todoModelz)
+    if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
+    MaMgrLog('applyData' , 'results',results)
   }
 
   private setParentMapData(master : string , masterCache : MasterCache , ssd : SourceSyncData) : void {
@@ -302,7 +314,7 @@ export class MasterMgr {
   // Update the mredis with required changes 
   private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
     
-    MaMgrLog('applyData' , 'results',results , 'mastercache keys:',lo.keysIn(masterCache) ,'TodoModels keys:' ,lo.keysIn(todoModelz) )
+    MaMgrLog('applyData results',results , 'mastercache keys:',lo.keysIn(masterCache) ,'TodoModels keys:' ,lo.keysIn(todoModelz) )
     
     for(const depMaster of lo.keysIn(masterCache)){
       if(masterCache[depMaster]) continue
@@ -318,7 +330,6 @@ export class MasterMgr {
     // verification done . Update the redis
     await this.updateMRedis(results , todoModelz)
     
-    MaMgrLog('applyData' , 'results',results)
     return results
   }
 
@@ -331,9 +342,10 @@ export class MasterMgr {
       const modData : {ssd : SourceSyncData , fDigest : string} = todoModelz[master] ,
             inserts : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
             updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.updates) ,
+            deletes : {[key : string] : any} = FuncUtil.toObject(modData.ssd.deletes) ,
             ts      : number = modData.ssd.modifyTs
 
-      const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign(inserts , updates))  
+      const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign({} , inserts , updates , deletes))  
 
       lo.forEach(modifications , (recStr : string , pk : string) => {
         
@@ -342,8 +354,9 @@ export class MasterMgr {
         multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
 
       })
+      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, modData.fDigest])
       // result objects with info
-      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates)})    
+      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes)})    
     }
     
     MaMgrLog('updating MRedis')
@@ -379,11 +392,13 @@ export class MasterMgr {
   }
 
 
+  /*
   async hgetall(key : string) {
     
     const redis : RedisWrapper = this.mredis
     return await redis.redisCommand().hgetall(key)
   }
+  */
 
   //hash set functions
   async hset<T extends MasterBase>(key : string , item : T) {

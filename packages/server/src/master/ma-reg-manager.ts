@@ -30,6 +30,9 @@ const LOG_ID : string = 'MasterRegistryMgr'
 function MaRegMgrLog(...args : any[] ) : void {
   log(LOG_ID , ...args)
 }
+function debug(...args : any[] ) : void {
+  log(LOG_ID , ...args)
+}
 
 /**
  * Class Maintaining the Registry of all masters & their field types
@@ -124,7 +127,7 @@ export class MasterRegistryMgr {
     const master : string = target.constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master , true)
 
-    MaRegMgrLog('fieldValidationRule ',master , propKey , rule)
+    //MaRegMgrLog('fieldValidationRule ',master , propKey , rule)
     maReg.rules.push(rule)      
   }
 
@@ -174,7 +177,7 @@ export class MasterRegistryMgr {
   }
 
 
-  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : GenValMap ) : SourceSyncData {
+  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : GenValMap , now : number ) : SourceSyncData {
     const registry : MasterRegistry = this.getMasterRegistry(mastername)
     this.verifySourceRecords(rc , registry , source )
 
@@ -184,7 +187,7 @@ export class MasterRegistryMgr {
     })
     
 
-    return this.verifyModifications(rc , this.getMasterRegistry(mastername) , FuncUtil.toMap(sourceIdsMap)  , redisData)
+    return this.verifyModifications(rc , this.getMasterRegistry(mastername) , FuncUtil.toMap(sourceIdsMap)  , redisData , now)
   }
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
@@ -219,15 +222,14 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIdsMap : Map<string  , object> , targetMap : GenValMap ) : SourceSyncData {
+  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIdsMap : Map<string  , object> , targetMap : GenValMap , now : number ) : SourceSyncData {
     
     MaRegMgrLog('verifyModifications' , registry.mastername ,'source size:' , sourceIdsMap.size , 'target size:', lo.size(targetMap) )
 
     const config : ModelConfig = registry.config , 
           masTsField : string  = config.getMasterTsField() ,
-          now : number         = lo.now() ,
           fldMap : {[field : string] : FieldInfo}    = registry.fieldsMap ,
-          ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIdsMap , targetMap) ,
+          ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIdsMap , targetMap , now) ,
           instanceObj : MasterBase = registry.masterInstance , 
           allFields : string [] = registry.allFields ,
           ownFields : string [] = registry.ownFields 
@@ -243,15 +245,17 @@ export class MasterRegistryMgr {
         
         instanceObj.verifyRecord(rc , srcRec )
         
-        if(lo.hasIn(fldMap , MasterBaseFields.Deleted )) srcRec[MasterBaseFields.Deleted] = false
-        srcRec[masTsField] = now
+        //if(lo.hasIn(fldMap , MasterBaseFields.Deleted )) srcRec[MasterBaseFields.Deleted] = false
+        srcRec[MasterBaseFields.Deleted] = false
+        srcRec[MasterBaseFields.CreateTs] = srcRec[masTsField] = now
         ssd.inserts.set(pk , srcRec)
 
       }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , allFields , ownFields , masTsField , ref , srcRec ) ){
         
         instanceObj.verifyRecord(rc , srcRec , ref)
 
-        if(lo.hasIn(fldMap , MasterBaseFields.Deleted)) srcRec[MasterBaseFields.Deleted] = false
+        //if(lo.hasIn(fldMap , MasterBaseFields.Deleted)) srcRec[MasterBaseFields.Deleted] = false
+        srcRec[MasterBaseFields.Deleted] = false
         srcRec[masTsField] = now
         srcRec[MasterBaseFields.CreateTs] = ref[MasterBaseFields.CreateTs]
 
@@ -272,7 +276,7 @@ export class MasterRegistryMgr {
         
         delRec[MasterBaseFields.Deleted] = true
         delRec[masTsField] = now
-        ssd.updates.set(id , delRec)
+        ssd.deletes.set(id , delRec)
       }
     } )
     
@@ -280,20 +284,24 @@ export class MasterRegistryMgr {
   }
 
   private static isModified(rc : RunContextServer , allFields : string[] , ownFields : string[] , masterTs : string , ref : any , src : any ) : boolean {
-
+    //debug('isModified', 'all:',allFields , 'own:',ownFields , 'masterTs:',masterTs)
     let res : boolean = ownFields.some((key : string) : boolean => {
-      if(key === masterTs) false 
+      if(key === masterTs) return false 
       const val = src[key] , refVal = ref[key] 
       if(lo.isUndefined(val)) return true
 
       return !lo.isEqual(val , refVal)
 
     } )
+    //if(res) debug('isModified results 1',src , ref)
     if(res) return true
 
-    return lo.some(ref , (refval : any , refKey : string)=>{
+    res = lo.some(ref , (refval : any , refKey : string)=>{
       return allFields.indexOf(refKey) === -1
     })
+    //if(res) debug('isModified results 2',src , ref)
+    
+    return res
   }
 
 }

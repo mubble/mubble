@@ -19,7 +19,7 @@ import {masterDesc , assert ,
         throwError}           from './ma-util'   
 
 const LOG_ID : string = 'MasterRegistry'
-function MaRegMgrLog(...args : any[] ) : void {
+function MaRegistryLog(...args : any[] ) : void {
   log(LOG_ID , ...args)
 }
 
@@ -67,9 +67,9 @@ export class FieldInfo {
     return JSON.stringify({name : this.name, type : this.type , masType : this.masType}) 
   }
 
-  // Is field ingerited from master base
+  // Is field inherited from master base
   public isMasterBaseField() : boolean {
-    return this.target.constructor.name === MASTERBASE
+    return this.target.constructor.name.toLowerCase() === MASTERBASE
   }
 
 }
@@ -79,7 +79,7 @@ export class FieldInfo {
 export class MasterRegistry {
   
   constructor(master : string) {
-    MaRegMgrLog('Creating Master ',master)
+    MaRegistryLog('Creating Master ',master)
     this.mastername = master
   }
 
@@ -126,7 +126,7 @@ export class MasterRegistry {
   
   public verify(context : RunContextServer) {
     
-    MaRegMgrLog('Verifying ',this.mastername)
+    MaRegistryLog('Verifying ',this.mastername)
     
     // Todo
     /*
@@ -187,7 +187,7 @@ export class MasterRegistry {
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     
-    MaRegMgrLog('addField', this.mastername , fieldName , masType )
+    MaRegistryLog('addField', this.mastername , fieldName , masType )
     
     assert( !lo.hasIn(this.fieldsMap , fieldName)  , masterDesc(this.mastername , fieldName , null) , 'added again')
     var t = Reflect.getMetadata("design:type", target, fieldName)
