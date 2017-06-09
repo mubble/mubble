@@ -193,6 +193,38 @@ export class MasterRegistryMgr {
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
     MaRegMgrLog('verifyAllDependency for master' , mastername )
 
+    const registry : MasterRegistry = this.getMasterRegistry(mastername) ,
+          fkConst  : Master.ForeignKeys = registry.config.getForeignKeys() ,
+          selfData : Map<string , any> = masterCache[mastername] 
+    debug('fk for master',mastername , fkConst)
+
+    lo.forEach(fkConst , (props : GenValMap , parent : string)=> {
+
+      assert(lo.hasIn(masterCache , parent) , 'parent mastercache', parent , 'is missing for master',mastername)
+      const parentData : Map<string , any> = masterCache[parent] ,
+            parentVals : any[] = lo.valuesIn(parentData)
+      
+      lo.forEach(props , (selfField : string , parentField : string)=>{
+        debug('selfField',selfField , 'parent', parentField , selfData)
+      
+        // verify self data field with parent data
+        selfData.forEach((selfRec : any , pk : string)=>{
+          debug('selfRec',selfRec , 'pk',pk)
+          const selfVal : any =  selfRec[selfField]
+          assert(selfVal!=null , 'dependency field data null', selfRec , pk , selfField)
+
+          const found : boolean = parentVals.some( (parentRec : any)=>{
+            return lo.isEqual(selfVal , parentRec[parentField])
+          })
+          assert(found , 'dependency field ',selfField , pk , mastername , 'not found in parent ',parent , 'field:',parentField)
+        })
+
+      })
+
+    })      
+          
+
+
   }
   
   // Private methods

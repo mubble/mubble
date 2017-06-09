@@ -10,6 +10,10 @@
 import * as lo                from 'lodash'
 import * as semver            from 'semver'
 
+import {StringValMap , 
+        GenValMap , 
+       MasterCache }          from './ma-types'              
+
 import {RunContextServer}     from '../rc-server'
 import {ModelConfig,MasterModelConfig}          from './ma-model-config'  
 import {MasterRegistryMgr}    from './ma-reg-manager'
@@ -144,7 +148,7 @@ export namespace Master{
   }
   
 
-  export type ForeignKeys = {[master : string] : {[masterField : string] : string }}
+  export type ForeignKeys = {[master : string] : GenValMap}
   
 
   export function getDefaultConfig (segment : object , startVersion : string , endVersion : string , fk ?: ForeignKeys )  : ModelConfig {

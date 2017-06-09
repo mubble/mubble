@@ -53,6 +53,10 @@ export abstract class ModelConfig {
     
     return lo.uniq(res)
   }
+
+  public getForeignKeys() : Master.ForeignKeys {
+    return this.fkConstrains
+  }
   
 }
 
@@ -66,11 +70,6 @@ export class MasterModelConfig extends ModelConfig {
     this.segment = {}
     
     this.srcValidationrules = [fieldTypeCheck]
-  }
-
-
-  test() : void {
-    //this.
   }
 
 }
