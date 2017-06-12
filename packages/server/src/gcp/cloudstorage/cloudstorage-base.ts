@@ -48,7 +48,7 @@ export class CloudStorageBase {
           modPath   = (path) ? (path + '/') : ''
    
     const res     = await fs.writeFile(`/tmp/${filename}.${extension}`, data, 'binary'),
-          fileUrl = await cloudStorage.upload(rc, bucket, 
+          fileUrl = await this.upload(rc, bucket, 
                               `/tmp/${filename}.${extension}`,
                               `${modPath}${filename}.${extension}`)
                        
@@ -56,7 +56,7 @@ export class CloudStorageBase {
     return fileUrl
   }
 
-  async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
+  private async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
     let id        = UUIDv4()
 
     while(true) {

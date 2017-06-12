@@ -51,7 +51,7 @@ export class VisionBase {
           })
   }
 
-  async process(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) {
+  async processToBase64(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) {
     //Image path can be a local path or a URL
     const crops  : any  = await this.detectCrops(rc, imagePath, ratio || 1.78),
           image  : any  = await jimp.read(imagePath)
@@ -69,14 +69,44 @@ export class VisionBase {
       return new Promise((resolve, reject) => {
         image.getBase64(image.getMIME(), (err : any, res : any) => {
           if(err) return reject(err)
-          return resolve(res)
+          return resolve({data : res, mime : image.getMIME()})
         })
       })
     }
     return new Promise((resolve, reject) => {
         image.getBase64(image.getMIME(), (err : any, res : any) => {
           if(err) return reject(err)
-          return resolve(res)
+          return resolve({data : res, mime : image.getMIME()})
+        })
+      })
+  }
+
+  async processToBinary(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) {
+    //Image path can be a local path or a URL
+    const crops  : any  = await this.detectCrops(rc, imagePath, ratio || 1.78),
+          image  : any  = await jimp.read(imagePath)
+
+    if(crops && crops.length && crops[0].bounds) {
+      const b = crops[0].bounds,
+            x = b[0].x,
+            y = b[0].y,
+            h = b[3].y - b[0].y,
+            w = b[1].x - b[0].x
+      
+      image.crop( x, y, w, h)
+      if(shrink) image.resize(shrink.w, shrink.h)
+      
+      return new Promise((resolve, reject) => {
+        image.getBuffer(image.getMIME(), (err : any, res : any) => {
+          if(err) return reject(err)
+          return resolve({data : res, mime : image.getMIME()})
+        })
+      })
+    }
+    return new Promise((resolve, reject) => {
+        image.getBuffer(image.getMIME(), (err : any, res : any) => {
+          if(err) return reject(err)
+          return resolve({data : res, mime : image.getMIME()})
         })
       })
   }
