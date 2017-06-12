@@ -133,7 +133,7 @@ export class MasterRegistryMgr {
     maReg.rules.push(rule)      
   }
 
-  private static getMasterRegistry(master : string , create : boolean = false) : MasterRegistry {
+  static getMasterRegistry(master : string , create : boolean = false) : MasterRegistry {
     if(MasterRegistryMgr.regMap[master]) return MasterRegistryMgr.regMap[master]
     
     if(create){
@@ -200,7 +200,7 @@ export class MasterRegistryMgr {
           selfData : GenValMap = masterCache[mastername] 
     //debug('fk for master',mastername , fkConst)
 
-    lo.forEach(fkConst , (props : GenValMap , parent : string)=> {
+    lo.forEach(fkConst , (props : StringValMap , parent : string)=> {
 
       assert(lo.hasIn(masterCache , parent) , 'parent mastercache', parent , 'is missing for master',mastername)
       const parentData : GenValMap = masterCache[parent] 

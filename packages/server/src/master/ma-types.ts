@@ -7,7 +7,9 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-export type StringValMap = {[key : string] : string}
-export type GenValMap    = {[key : string] : object}
+export type MaMap<T>    = {[key : string] : T}
 
-export type MasterCache  = {[master:string] : GenValMap } 
+export type StringValMap = MaMap<string>
+export type GenValMap    = MaMap<object>
+
+export type MasterCache  = MaMap<GenValMap>
