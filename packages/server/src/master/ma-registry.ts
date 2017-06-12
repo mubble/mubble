@@ -11,12 +11,18 @@ import "reflect-metadata"
 import * as lo                from 'lodash'
 
 import {RunContextServer}     from '../rc-server'
-import {Master , MasterBase}  from './ma-base'
-import {ModelConfig , 
-  MasterValidationRule}       from './ma-model-config'  
+import {StringValMap , 
+        GenValMap , 
+       MasterCache }          from './ma-types'              
 import {masterDesc , assert , 
         concat , log ,
         throwError}           from './ma-util'   
+
+import {Master , MasterBase}  from './ma-base'
+import {ModelConfig , 
+  MasterValidationRule}       from './ma-model-config'
+import {MasterRegistryMgr}    from './ma-reg-manager'  
+
 
 const LOG_ID : string = 'MasterRegistry'
 function MaRegistryLog(...args : any[] ) : void {
@@ -183,7 +189,42 @@ export class MasterRegistry {
     assert(this.masterInstance instanceof MasterBase , this.mastername , 'is not an masterbase impl ')
 
     //MaRegMgrLog(this.mastername , this.fieldsMap)
-  }
+
+    lo.forEach(this.config.getDependencyMasters() , (parent : string)=>{
+      assert(MasterRegistryMgr.getMasterRegistry(parent)!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
+    })
+
+    // check FK contrains are okay
+    const fkConst  : Master.ForeignKeys = this.config.getForeignKeys()
+
+    lo.forEach(fkConst , (props : StringValMap , parent : string)=>{
+
+      const parentRegistry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(parent)
+      // parent master must exists
+      assert(parentRegistry!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
+      lo.forEach(props , (selfField : string , parentField : string)=>{
+        // self field must exist
+        assert(this.ownFields.indexOf(selfField)!==-1 , 'FK field ',selfField , 'is not present in master ',this.mastername)
+        // parent master field must exists
+        assert(parentRegistry.ownFields.indexOf(parentField)!==-1 , 'Parent FK field ',parentField , 'is not present in parent ',parent)
+
+        const selfInfo : FieldInfo = this.fieldsMap[selfField]
+
+        // can not make masterbase fields (automatic fields) as PK
+        assert(!selfInfo.isMasterBaseField() , 'cant make master base fields as FK',selfField , this.mastername) 
+        // can not be an optional field
+        assert(selfInfo.masType !== Master.FieldType.OPTIONAL && selfInfo.masType !== Master.FieldType.AUTO , 'FK field cant be optional or automatic',selfField , this.mastername )
+
+        // can not be an array or object
+        assert(selfInfo.type !== 'object' && selfInfo.type !== 'array' , 'FK field cant be object/array',selfField , this.mastername )
+        
+        // self field type must be same as parent field type
+        assert(selfInfo.type === parentRegistry.fieldsMap[parentField].type , 'FK field type must match parent field type ', selfField , selfInfo.type , this.mastername , parent ,parentRegistry.fieldsMap[parentField].type  )
+
+      })
+
+    })
+}
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     

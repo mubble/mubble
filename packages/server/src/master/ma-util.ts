@@ -109,6 +109,7 @@ export namespace FuncUtil {
 
   }
 
+  /*
   // Object to map
   export function toMap<T>(obj : {[key : string] : T}) : Map<string , T> {
     const map : Map<string , T> = new Map()
@@ -128,6 +129,7 @@ export namespace FuncUtil {
 
   return res
  } 
+ */
 
  export function toParseObjectMap(srcObj : StringValMap) : GenValMap {
   return lo.mapValues(srcObj , (val : string)=>{
