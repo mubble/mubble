@@ -11,15 +11,25 @@ import {RunContextServer}     from '../rc-server'
 import {Master , MasterBase}  from './ma-base'
 
 @Master.modelType(Master.getDefaultConfig({} , '2.3.4' , '3.5.6'))
-export class operator extends MasterBase {
+export class Operator extends MasterBase {
   @Master.primaryKey()
   name : string
+
+  public constructor(opr : string) {
+    super(null as any as RunContextServer , Operator.constructor.name.toLowerCase())
+    this.name = opr
+  }
 }
 
 @Master.modelType(Master.getDefaultConfig({} , '2.3.4' , '3.5.6'))
-export class circle extends MasterBase {
+export class Circle extends MasterBase {
   @Master.primaryKey()
   name : string
+
+  public constructor(circle : string) {
+    super(null as any as RunContextServer , Circle.constructor.name.toLowerCase())
+    this.name = circle
+  }
 }
 
 @Master.modelType(Master.getDefaultConfig ({} , '2.3.4' , '3.5.6' , 
@@ -29,12 +39,19 @@ export class circle extends MasterBase {
   }
 ))
 
-export class operatorcircle extends MasterBase {
+export class OperatorCircle extends MasterBase {
   @Master.primaryKey()
   operator : string
   
   @Master.primaryKey()
   circle   : string 
+
+  public constructor(opr : string , cir: string) {
+    super(null as any as RunContextServer , OperatorCircle.constructor.name.toLowerCase())
+    this.operator = opr
+    this.circle   = cir
+  }
+  
 }
 
 @Master.modelType(Master.getDefaultConfig ({} , '2.3.4' , '3.5.6' , 

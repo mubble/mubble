@@ -148,7 +148,7 @@ export namespace Master{
   }
   
 
-  export type ForeignKeys = {[master : string] : GenValMap}
+  export type ForeignKeys = {[master : string] : StringValMap}
   
 
   export function getDefaultConfig (segment : object , startVersion : string , endVersion : string , fk ?: ForeignKeys )  : ModelConfig {

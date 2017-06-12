@@ -51,11 +51,6 @@ var CONST = {
 }
 
 
-/*
-export function getMapObj<T> () : any {
-  const t : any = typeof  {[key: string] : T} 
-}*/
-
 export type masterdatainfo = {
   mastername : string 
   masterdata : string
@@ -93,7 +88,7 @@ export class MasterData {
 export class SourceSyncData {
   
   mastername : string
-  source     : Map<string , any>
+  source     : GenValMap = {}
   //source     : GenValMap
   redisData  : GenValMap
   
@@ -104,7 +99,7 @@ export class SourceSyncData {
 
   modifyTs   : number = lo.now()
 
-  public constructor(master : string , source : Map<string , any> , target : GenValMap , now : number ) {
+  public constructor(master : string , source : GenValMap , target : GenValMap , now : number ) {
     this.mastername = master
     this.source = source
     this.redisData = target
@@ -268,11 +263,9 @@ export class MasterMgr {
      const redisData : GenValMap = await this.listAllMasterData(rc , master) ,
            ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData , now )       
      
-     MaMgrLog('applyFileData' , master ,'inserts:' ,ssd.inserts.size ,'updates:', ssd.updates.size , 'deletes:',ssd.deletes.size )
+     MaMgrLog('applyFileData' , master ,'inserts:' , lo.size(ssd.inserts) ,'updates:', lo.size(ssd.updates) , 'deletes:',lo.size(ssd.deletes) )
      this.setParentMapData(master , masterCache , ssd) 
      todoModelz[master] = {ssd : ssd , fDigest : fDigest} 
-
-     //debug('todoModelz',master, ssd.inserts.size , ssd.updates.size , ssd.deletes.size )    
     }
 
     if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
@@ -283,18 +276,18 @@ export class MasterMgr {
      
      // master dependency data settings      
      if((lo.hasIn(masterCache , master) && masterCache[master] )){
-        const depMap : Map<string , any> = masterCache[master]
-        MaMgrLog(master , 'overriding source ',  depMap.size , ssd.source.size )
+        const depMap : GenValMap = masterCache[master]
+        MaMgrLog(master , 'overriding source ',  lo.size(depMap) , lo.size(ssd.source)  )
         masterCache[master] = ssd.source
      }else{
        masterCache[master] = ssd.source
-       MaMgrLog('setParentMapData' , master , 'source size' , ssd.source.size )
+       MaMgrLog('setParentMapData' , master , 'source size' , lo.size(ssd.source) )
      }
      
      if(lo.hasIn( MasterRegistryMgr.dependencyMap , master)){
        const depMasters : string [] = MasterRegistryMgr.dependencyMap[master]
        depMasters.forEach((depMas : string)=>{
-         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as Map<string , any>
+         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as GenValMap
        })
      }
     
@@ -320,6 +313,7 @@ export class MasterMgr {
       if(masterCache[depMaster]) continue
       // Populate the dependent masters
       masterCache[depMaster] = await this.listActiveMasterData(rc , depMaster)
+      //debug('dependent master ',depMaster , 'size:', lo.size(masterCache[depMaster]) )
     }
 
     // verify all dependencies
@@ -427,25 +421,17 @@ export class MasterMgr {
     return FuncUtil.toParseObjectMap(map)
   }
 
-  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<Map<string , any>> {
+  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     let map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
     // Parse the string value to object
     let pMap : GenValMap = FuncUtil.toParseObjectMap(map)
     
-    /*
-    pMap = FuncUtil.reduce(pMap , (val : any , key : string) => {
-      return !(val['deleted'] === true)
-    })*/
-
     // remove deleted
-    pMap = lo.omit(pMap , (val : any , key : string) => {
+    return lo.omitBy(pMap , (val : any , key : string) => {
       return (val['deleted'] === true)
-    })
-    
-    // convert to map and return 
-    return FuncUtil.toMap(pMap , )
+    }) as GenValMap
 
   }
 

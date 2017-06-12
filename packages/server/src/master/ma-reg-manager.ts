@@ -65,6 +65,8 @@ export class MasterRegistryMgr {
       let dlen = dArr.length ,
           mdlen = 0 
       
+      // we need to get all dependencies of nth level 
+      // (dependencies of dependencies of ...) recursively
       while(dlen !== mdlen){
         dlen = dArr.length
         lo.clone(dArr).forEach(dep=>{
@@ -182,49 +184,46 @@ export class MasterRegistryMgr {
     this.verifySourceRecords(rc , registry , source )
 
     //todo : accompny master check
-    const sourceIdsMap : {[key : string] : object} = FuncUtil.maArrayMap<any>(source , (rec : any)=>{
+    const sourceIdsMap : GenValMap = FuncUtil.maArrayMap<any>(source , (rec : any)=>{
       return {key : registry.getIdStr(rec) , value : rec}
     })
     
 
-    return this.verifyModifications(rc , this.getMasterRegistry(mastername) , FuncUtil.toMap(sourceIdsMap)  , redisData , now)
+    return this.verifyModifications(rc , this.getMasterRegistry(mastername) , sourceIdsMap  , redisData , now)
   }
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
     MaRegMgrLog('verifyAllDependency for master' , mastername )
-    if(lo.stubTrue()) return
+    //if(lo.stubTrue()) return
     const registry : MasterRegistry = this.getMasterRegistry(mastername) ,
           fkConst  : Master.ForeignKeys = registry.config.getForeignKeys() ,
-          selfData : Map<string , any> = masterCache[mastername] 
-    debug('fk for master',mastername , fkConst)
+          selfData : GenValMap = masterCache[mastername] 
+    //debug('fk for master',mastername , fkConst)
 
     lo.forEach(fkConst , (props : GenValMap , parent : string)=> {
 
       assert(lo.hasIn(masterCache , parent) , 'parent mastercache', parent , 'is missing for master',mastername)
-      const parentData : Map<string , any> = masterCache[parent] ,
-            parentVals : any[] = lo.valuesIn(parentData)
+      const parentData : GenValMap = masterCache[parent] 
       
+      //debug('parent size ',lo.size(parentData))
       lo.forEach(props , (selfField : string , parentField : string)=>{
-        debug('selfField',selfField , 'parent', parentField , selfData)
+        //debug('selfField',selfField , 'parent', parentField , selfData)
       
         // verify self data field with parent data
-        selfData.forEach((selfRec : any , pk : string)=>{
-          debug('selfRec',selfRec , 'pk',pk)
+        lo.forEach(selfData , (selfRec : any , pk : string)=>{
+          //debug('selfRec',selfRec , 'pk',pk)
           const selfVal : any =  selfRec[selfField]
           assert(selfVal!=null , 'dependency field data null', selfRec , pk , selfField)
 
-          const found : boolean = parentVals.some( (parentRec : any)=>{
+          const found : boolean = lo.some(parentData, (parentRec : any , parentPk : string)=>{
             return lo.isEqual(selfVal , parentRec[parentField])
           })
-          assert(found , 'dependency field ',selfField , pk , mastername , 'not found in parent ',parent , 'field:',parentField)
+          assert(found , 'dependency field ',selfField ,'value:',selfVal, 'for master:',mastername, 'pk:',pk , 'not found in parent master:',parent , 'field:',parentField)
         })
 
       })
 
-    })      
-          
-
-
+    }) 
   }
   
   // Private methods
@@ -233,9 +232,9 @@ export class MasterRegistryMgr {
 
     // remove deleted recoreds
     source  = source.filter((src)=>{
-      // todo get id
-      if(src.deleted) MaRegMgrLog('master',mastername , 'verifySourceRecords', 'removed from src',maReg.getIdStr(src))
-      return !(src.deleted === true)
+      
+      if(src[MasterBaseFields.Deleted]) MaRegMgrLog('master',mastername , 'verifySourceRecords', 'removed from src',maReg.getIdStr(src))
+      return !(src[MasterBaseFields.Deleted] === true)
     })
 
     // Field Type sanity validation rules
@@ -254,20 +253,20 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIdsMap : Map<string  , object> , targetMap : GenValMap , now : number ) : SourceSyncData {
+  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIds : GenValMap , targetMap : GenValMap , now : number ) : SourceSyncData {
     
-    MaRegMgrLog('verifyModifications' , registry.mastername ,'source size:' , sourceIdsMap.size , 'target size:', lo.size(targetMap) )
+    MaRegMgrLog('verifyModifications' , registry.mastername ,'source size:' , lo.size(sourceIds) , 'target size:', lo.size(targetMap) )
 
     const config : ModelConfig = registry.config , 
           masTsField : string  = config.getMasterTsField() ,
           fldMap : {[field : string] : FieldInfo}    = registry.fieldsMap ,
-          ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIdsMap , targetMap , now) ,
+          ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIds , targetMap , now) ,
           instanceObj : MasterBase = registry.masterInstance , 
           allFields : string [] = registry.allFields ,
           ownFields : string [] = registry.ownFields 
 
 
-    sourceIdsMap.forEach((srcRec : any , pk: string) => {
+    lo.forEach(sourceIds , (srcRec : any , pk: string) => {
       
       const ref : any   = targetMap[pk]
       
@@ -301,7 +300,7 @@ export class MasterRegistryMgr {
       // Ignore already deleted
       if(ref[MasterBaseFields.Deleted]) return
       
-      const src : any = sourceIdsMap.get(id)
+      const src : any = sourceIds[id]
       if(!src) {
         // This record is deleted
         const delRec : any = lo.cloneDeep(ref)
