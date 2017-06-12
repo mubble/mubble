@@ -192,7 +192,7 @@ export class MasterRegistryMgr {
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
     MaRegMgrLog('verifyAllDependency for master' , mastername )
-
+    if(lo.stubTrue()) return
     const registry : MasterRegistry = this.getMasterRegistry(mastername) ,
           fkConst  : Master.ForeignKeys = registry.config.getForeignKeys() ,
           selfData : Map<string , any> = masterCache[mastername] 
@@ -280,7 +280,7 @@ export class MasterRegistryMgr {
         //if(lo.hasIn(fldMap , MasterBaseFields.Deleted )) srcRec[MasterBaseFields.Deleted] = false
         srcRec[MasterBaseFields.Deleted] = false
         srcRec[MasterBaseFields.CreateTs] = srcRec[masTsField] = now
-        ssd.inserts.set(pk , srcRec)
+        ssd.inserts[pk] = srcRec
 
       }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , allFields , ownFields , masTsField , ref , srcRec ) ){
         
@@ -291,7 +291,7 @@ export class MasterRegistryMgr {
         srcRec[masTsField] = now
         srcRec[MasterBaseFields.CreateTs] = ref[MasterBaseFields.CreateTs]
 
-        ssd.updates.set(pk , srcRec)
+        ssd.updates[pk] = srcRec
       }
 
     })
@@ -308,7 +308,7 @@ export class MasterRegistryMgr {
         
         delRec[MasterBaseFields.Deleted] = true
         delRec[masTsField] = now
-        ssd.deletes.set(id , delRec)
+        ssd.deletes[id] = delRec
       }
     } )
     

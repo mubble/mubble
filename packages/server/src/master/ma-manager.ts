@@ -94,12 +94,12 @@ export class SourceSyncData {
   
   mastername : string
   source     : Map<string , any>
+  //source     : GenValMap
   redisData  : GenValMap
   
- 
-  inserts    : Map<string , any> = new Map<string , any>()
-  updates    : Map<string , any> = new Map<string , any>()
-  deletes    : Map<string , any> = new Map<string , any>()
+  inserts    : GenValMap = {}
+  updates    : GenValMap = {}
+  deletes    : GenValMap = {}
 
 
   modifyTs   : number = lo.now()
@@ -340,9 +340,9 @@ export class MasterMgr {
     for(const master  of lo.keysIn(todoModelz) ){
       
       const modData : {ssd : SourceSyncData , fDigest : string} = todoModelz[master] ,
-            inserts : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
-            updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.updates) ,
-            deletes : {[key : string] : any} = FuncUtil.toObject(modData.ssd.deletes) ,
+            inserts : GenValMap = modData.ssd.inserts ,
+            updates : GenValMap = modData.ssd.updates ,
+            deletes : GenValMap = modData.ssd.deletes ,
             ts      : number = modData.ssd.modifyTs
 
       const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign({} , inserts , updates , deletes))  
@@ -434,12 +434,18 @@ export class MasterMgr {
     // Parse the string value to object
     let pMap : GenValMap = FuncUtil.toParseObjectMap(map)
     
-    // remove deleted
+    /*
     pMap = FuncUtil.reduce(pMap , (val : any , key : string) => {
       return !(val['deleted'] === true)
+    })*/
+
+    // remove deleted
+    pMap = lo.omit(pMap , (val : any , key : string) => {
+      return (val['deleted'] === true)
     })
+    
     // convert to map and return 
-    return FuncUtil.toMap(pMap)
+    return FuncUtil.toMap(pMap , )
 
   }
 
