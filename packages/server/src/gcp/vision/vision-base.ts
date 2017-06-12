@@ -15,7 +15,7 @@ import * as jimp          from 'jimp'
 
 export class VisionBase {
 
-  _vision : any
+  static _vision : any
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -31,15 +31,13 @@ export class VisionBase {
         projectId   : gcloudEnv.projectId
       })
     }
-  }
 
-  constructor(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     this._vision = gcloudEnv.vision
   }
 
-  async detectCrops(rc : RunContextServer, imagePath : string, ratio : number) : Promise<string> {
+  static async detectCrops(rc : RunContextServer, imagePath : string, ratio : number) : Promise<string> {
     //Image path can be a local path or a URL
-    return await this._vision.detectCrops(imagePath, 
+    return await VisionBase._vision.detectCrops(imagePath, 
           // PARAMS 
           { 
             verbose : true, 
@@ -51,9 +49,9 @@ export class VisionBase {
           })
   }
 
-  async processToBase64(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) {
+  static async processToBase64(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) : Promise<any> {
     //Image path can be a local path or a URL
-    const crops  : any  = await this.detectCrops(rc, imagePath, ratio || 1.78),
+    const crops  : any  = await VisionBase.detectCrops(rc, imagePath, ratio || 1.78),
           image  : any  = await jimp.read(imagePath)
 
     if(crops && crops.length && crops[0].bounds) {
@@ -81,9 +79,9 @@ export class VisionBase {
       })
   }
 
-  async processToBinary(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) {
+  static async processToBinary(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) : Promise<any>{
     //Image path can be a local path or a URL
-    const crops  : any  = await this.detectCrops(rc, imagePath, ratio || 1.78),
+    const crops  : any  = await VisionBase.detectCrops(rc, imagePath, ratio || 1.78),
           image  : any  = await jimp.read(imagePath)
 
     if(crops && crops.length && crops[0].bounds) {
