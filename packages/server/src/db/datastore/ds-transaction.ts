@@ -96,10 +96,10 @@ export class DSTransaction {
     let datastoreKey = (parentKey) ? model.getDatastoreKey(rc, null, model._kindName, parentKey.path) 
                         : model.getDatastoreKey(rc)
 
-    if (!model._id) { // If we already have a key, no need to allocate
+    if (!model.getId(rc)) { // If we already have a key, no need to allocate
       const key = await this._transaction.allocateIds(datastoreKey, 1) 
 
-      model._id    = model.getIdFromResult(rc, key[0][0])
+      model.setIdFromResult(rc, key[0][0])
       datastoreKey = key[0][0]
     }
 
@@ -154,10 +154,10 @@ export class DSTransaction {
   }
 
   public async bdInsert(rc            : RunContextServer, 
-                      model         : BaseDatastore, 
-                      parentKey     : any, 
-                      insertTime   ?: number, 
-                      ignoreDupRec ?: boolean) : Promise<boolean> {
+                        model         : BaseDatastore, 
+                        parentKey     : any, 
+                        insertTime   ?: number, 
+                        ignoreDupRec ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
       await this.insert(rc, model, parentKey, insertTime, ignoreDupRec)
@@ -171,7 +171,7 @@ export class DSTransaction {
 
   public async bulkInsert(rc            : RunContextServer, 
                           model         : BaseDatastore, 
-                          recs          : Array<any>, 
+                          recs          : Array<BaseDatastore>, 
                           noChildren   ?: boolean, 
                           insertTime   ?: number, 
                           ignoreDupRec ?: boolean) : Promise<boolean> {
@@ -197,7 +197,7 @@ export class DSTransaction {
   public async bdUpdate(rc         : RunContextServer,
                         model      : BaseDatastore, 
                         id         : number | string, 
-                        updRec     : any, 
+                        updRec     : BaseDatastore, 
                         ignoreRNF ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
@@ -212,13 +212,13 @@ export class DSTransaction {
 
   public async bulkUpdate(rc          : RunContextServer, 
                           model       : BaseDatastore, 
-                          updRecs     : Array<any>, 
+                          updRecs     : Array<BaseDatastore>, 
                           insertTime ?: number, 
                           ignoreRNF  ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
       for(const rec of updRecs) {
-        await this.update(rc, model, rec._id, rec, ignoreRNF)
+        await this.update(rc, model, rec.getId(rc), rec, ignoreRNF)
       } 
       await this._transaction.commit()
       return true

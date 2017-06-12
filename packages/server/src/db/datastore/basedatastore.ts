@@ -20,7 +20,7 @@ export abstract class BaseDatastore {
 
   // Common fields in all the tables
   [index : string]           : any
-  public    _id              : number | string
+  protected _id              : number | string
   protected createTs         : number
   protected deleted          : boolean = false
      
@@ -131,13 +131,6 @@ export abstract class BaseDatastore {
   }
 
 /*------------------------------------------------------------------------------
-  - Get the primary key 
-------------------------------------------------------------------------------*/                  
-  getId (rc : RunContextServer ) : number | string {
-    return this._id
-  }
-
-/*------------------------------------------------------------------------------
   - Insert to datastore 
 
   Parameters:
@@ -237,6 +230,21 @@ export abstract class BaseDatastore {
 ------------------------------------------------------------------------------*/
   static getKeyFromResult(rc : RunContextServer, res : any) {
     return res[BaseDatastore._datastore.KEY]
+  }
+
+/*------------------------------------------------------------------------------
+  - Get the primary key 
+------------------------------------------------------------------------------*/                  
+  getId(rc : RunContextServer ) : number | string {
+    return this._id
+  }
+
+/*------------------------------------------------------------------------------
+  - Set the primary key 
+------------------------------------------------------------------------------*/                  
+  setIdFromResult(rc : RunContextServer , key : any) : void {
+    const id = this.getIdFromResult(rc, key)
+    this._id = id
   }
 
 /*------------------------------------------------------------------------------

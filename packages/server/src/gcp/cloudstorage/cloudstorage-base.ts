@@ -47,7 +47,7 @@ export class CloudStorageBase {
           filename  = await this.getFileName(rc, bucket, extension, path),
           modPath   = (path) ? (path + '/') : ''
    
-    const res     = await fs.writeFile(`/tmp/${filename}.${extension}`, data, 'binary'),
+    const res     = await fs.writeFileSync(`/tmp/${filename}.${extension}`, data, 'binary'),
           fileUrl = await this.upload(rc, bucket, 
                               `/tmp/${filename}.${extension}`,
                               `${modPath}${filename}.${extension}`)
