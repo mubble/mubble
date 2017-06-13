@@ -27,7 +27,7 @@ export class VisionBase {
         credentials : gcloudEnv.authKey
       })
     } else {
-      gcloudEnv.cloudStorage = gVision ({
+      gcloudEnv.vision = gVision ({
         projectId   : gcloudEnv.projectId
       })
     }
@@ -37,7 +37,7 @@ export class VisionBase {
 
   static async detectCrops(rc : RunContextServer, imagePath : string, ratio : number) : Promise<string> {
     //Image path can be a local path or a URL
-    return await VisionBase._vision.detectCrops(imagePath, 
+    return VisionBase._vision.detectCrops(imagePath, 
           // PARAMS 
           { 
             verbose : true, 
