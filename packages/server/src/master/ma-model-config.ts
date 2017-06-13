@@ -21,7 +21,7 @@ export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistr
 export const MasterTsField = 'modTs'
 
 export abstract class ModelConfig {
-  //protected allowClientSync       : boolean = true
+  
   protected hasFileSource         : boolean = false
   protected cache                 : boolean = false
   protected segment               : object  
@@ -55,7 +55,9 @@ export abstract class ModelConfig {
   }
 
   public getForeignKeys() : Master.ForeignKeys {
-    return this.fkConstrains
+    return lo.mapKeys(this.fkConstrains , (prop : any , parent: string)=>{
+      return parent.toLowerCase()
+    })
   }
   
 }
@@ -82,7 +84,8 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
         optionalFields : string[] = lo.clone(reg.optionalFields),
         instance  : any = reg.masterInstance,
         pkeys : string [] = lo.clone(reg.pkFields),
-        ids   : string [] = []
+        ids   : string [] = [],
+        ownFields : string [] = lo.clone(reg.ownFields)
         
 
   records.forEach(rec => {
@@ -135,9 +138,13 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       }
 
       // todo : object field nested value can't be null or undefined
-
-
     })
+
+    // check all the mandatory fields are present
+    ownFields.forEach((ownField : string) =>{
+      assert(lo.hasIn(rec , ownField) , 'field',ownField , 'is missing in record ',idStr)
+    })
+
 
   })      
 

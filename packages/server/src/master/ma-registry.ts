@@ -32,8 +32,10 @@ function MaRegistryLog(...args : any[] ) : void {
 export const MASTERBASE : string = 'masterbase' //MasterBase.constructor.name.toLowerCase()
 
 export type MasterFieldType = 'string' | 'object' | 'number' | 'boolean' | 'array'
+
 //export type MasterFieldType = String | Number | Boolean | Object
-export function getType(t : any) : MasterFieldType {
+function getType(t : any) : MasterFieldType {
+  
   switch(t){
     
     case Number     : return 'number'

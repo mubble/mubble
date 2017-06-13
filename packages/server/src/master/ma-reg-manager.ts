@@ -41,7 +41,9 @@ function debug(...args : any[] ) : void {
 export class MasterRegistryMgr {
 
   static regMap : {[mastername : string] : MasterRegistry} = {}
+  
   static dependencyMap : {[mastername : string] : string[]} = {}
+  
   static revDepMap : {[mastername : string] : string[]} = {}
   
   public static masterList() : string[] {
@@ -51,6 +53,7 @@ export class MasterRegistryMgr {
   }
 
   private static buildDependencyMap() : void {
+    
     const dMap : {[master : string] : string[]} = this.dependencyMap
     const rdMap : {[master : string] : string[]} = this.revDepMap
     
@@ -100,6 +103,7 @@ export class MasterRegistryMgr {
   }
   
   static masterField (target : any , propKey : string , maType : Master.FieldType) : void {
+    
     const master : string = target.constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master , true)
 
@@ -113,6 +117,7 @@ export class MasterRegistryMgr {
   }
 
   static addMaster (constructor : any , config : ModelConfig) : void {
+    
     const master : string = constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
 
@@ -126,6 +131,7 @@ export class MasterRegistryMgr {
   }
 
   static fieldValidationRule (target : any , propKey : string , rule : (obj : any) => void ) : void {
+    
     const master : string = target.constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master , true)
 
@@ -134,6 +140,7 @@ export class MasterRegistryMgr {
   }
 
   static getMasterRegistry(master : string , create : boolean = false) : MasterRegistry {
+    
     if(MasterRegistryMgr.regMap[master]) return MasterRegistryMgr.regMap[master]
     
     if(create){
@@ -152,6 +159,7 @@ export class MasterRegistryMgr {
   }
   // Verify all the MasterRegistry for data sanity
   public static init (context : RunContextServer ) : void {
+    
     MaRegMgrLog('starting init')
     
     // check masterbase registry exists
@@ -180,6 +188,7 @@ export class MasterRegistryMgr {
 
 
   public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : GenValMap , now : number ) : SourceSyncData {
+    
     const registry : MasterRegistry = this.getMasterRegistry(mastername)
     this.verifySourceRecords(rc , registry , source )
 
@@ -193,6 +202,7 @@ export class MasterRegistryMgr {
   }
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
+    
     MaRegMgrLog('verifyAllDependency for master' , mastername )
     //if(lo.stubTrue()) return
     const registry : MasterRegistry = this.getMasterRegistry(mastername) ,
@@ -228,8 +238,8 @@ export class MasterRegistryMgr {
   
   // Private methods
   private static verifySourceRecords (rc : RunContextServer , maReg : MasterRegistry ,  source : Array<any>) {
-    const mastername : string = maReg.mastername 
-
+    
+    const mastername : string = maReg.mastername
     // remove deleted recoreds
     source  = source.filter((src)=>{
       
@@ -315,6 +325,7 @@ export class MasterRegistryMgr {
   }
 
   private static isModified(rc : RunContextServer , allFields : string[] , ownFields : string[] , masterTs : string , ref : any , src : any ) : boolean {
+    
     //debug('isModified', 'all:',allFields , 'own:',ownFields , 'masterTs:',masterTs)
     let res : boolean = ownFields.some((key : string) : boolean => {
       if(key === masterTs) return false 

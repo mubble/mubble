@@ -23,9 +23,10 @@ import {masterDesc , assert ,
 import {ModelConfig}          from './ma-model-config'             
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
-import {StringValMap , 
+import {MaMap, StringValMap , 
         GenValMap , 
-       MasterCache }          from './ma-types'              
+       MasterCache }          from './ma-types'
+import {MasterInMemCache}     from './ma-mem-cache'                     
 
 const LOG_ID : string = 'MasterMgr'
 function MaMgrLog(...args : any[] ) : void {
@@ -51,45 +52,15 @@ var CONST = {
 }
 
 
-export type masterdatainfo = {
-  mastername : string 
-  masterdata : string
-}
-
 export type syncInfo = {
   ts : number 
   // add more
 }
 
-/**
- * In Memory cache used to store store data for each master
- */
-export class MasterData {
-  
-  public constructor(public mastername : string) {
-    
-  }
-
-  public records    : object [] = []
-  public modTSField : string
-
-  public getMaxTS() : number {
-    return 0
-  } 
-  public getMinTS() : number {
-    return 0
-  }
-
-  public refTS          : number
-  public lastUpdateTS   : number
-
-}
-
 export class SourceSyncData {
   
   mastername : string
-  source     : GenValMap = {}
-  //source     : GenValMap
+  source     : GenValMap
   redisData  : GenValMap
   
   inserts    : GenValMap = {}
@@ -97,7 +68,7 @@ export class SourceSyncData {
   deletes    : GenValMap = {}
 
 
-  modifyTs   : number = lo.now()
+  modifyTs   : number 
 
   public constructor(master : string , source : GenValMap , target : GenValMap , now : number ) {
     this.mastername = master
@@ -117,7 +88,8 @@ export class MasterMgr {
   // sub redis can only issue limited commands
   subRedis : RedisWrapper
 
-  masterCache : Map<string , MasterData>
+  masterCache : MaMap<MasterInMemCache> = {}
+
   rc : RunContextServer
 
   /*
@@ -158,13 +130,16 @@ export class MasterMgr {
   }
 
   async checkSlaveMasterSync(assertCheck : boolean) : Promise<any> {
+    
     type ts_info =  {key ?: string , ts ?: number}
     
     MaMgrLog('checkSlaveMasterSync started')
+    
     for(const master of MasterRegistryMgr.masterList()){
       
       const mDetail : ts_info = await MasterMgr._getLatestRec(this.mredis , master)
       const sDetail : ts_info = await MasterMgr._getLatestRec(this.sredis , master)
+      
       if(lo.isEmpty(mDetail) && lo.isEmpty(sDetail)){
         MaMgrLog('Master Slave Sync No records for master',master)
       }
@@ -176,6 +151,7 @@ export class MasterMgr {
         await FuncUtil.sleep(15*1000)
         return this.checkSlaveMasterSync(false)
       }
+
       MaMgrLog('Master Slave Sync', mDetail , master)
     }
 
@@ -184,6 +160,7 @@ export class MasterMgr {
 
   // sRedis subscribing to master publish records
   async setSubscriptions() {
+    
     MaMgrLog("Subscribing sredis to master ",CONST.REDIS_CHANNEL)
     
     await this.subRedis.subscribe([CONST.REDIS_CHANNEL] , (channel : string , msg : string)=>{
@@ -197,7 +174,9 @@ export class MasterMgr {
   }
 
   async refreshSelectModels(masters : string[]) {
+    
     MaMgrLog('refreshing masters list',masters)
+    
     const all : string[] = MasterRegistryMgr.masterList()
     masters.forEach((mas : string)=>{
       assert(all.indexOf(mas)!==-1 , 'Invalid Master Obtained from Publish',mas , masters)
@@ -266,6 +245,7 @@ export class MasterMgr {
      MaMgrLog('applyFileData' , master ,'inserts:' , lo.size(ssd.inserts) ,'updates:', lo.size(ssd.updates) , 'deletes:',lo.size(ssd.deletes) )
      this.setParentMapData(master , masterCache , ssd) 
      todoModelz[master] = {ssd : ssd , fDigest : fDigest} 
+     
     }
 
     if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
@@ -396,6 +376,7 @@ export class MasterMgr {
 
   //hash set functions
   async hset<T extends MasterBase>(key : string , item : T) {
+
     const params = [key].concat([JSON.stringify(item.getId()) , JSON.stringify(item) ])
     const redis : RedisWrapper = this.mredis
     
@@ -403,7 +384,9 @@ export class MasterMgr {
   }
 
   async hmset<T extends MasterBase>(key : string , items : T[]) {
+
     const params = []
+
     for(const item of items){
       params.push(JSON.stringify(item.getId()) , JSON.stringify(item))
     }
@@ -414,6 +397,7 @@ export class MasterMgr {
 
   
   public async listAllMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
+
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     const map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
@@ -422,6 +406,7 @@ export class MasterMgr {
   }
 
   public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
+
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     let map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
@@ -436,6 +421,7 @@ export class MasterMgr {
   }
 
   private static async _getLatestRec(redis : RedisWrapper , master : string , oldest : boolean = false) : Promise<{key ?: string , ts ?: number}>  {
+    
     const redisTskey : string = CONST.REDIS_NS + CONST.REDIS_TS_SET + master
     const position : number = oldest ? 0 : -1
     const res : string[] = redis.redisCommand().zrange(redisTskey , position , position , CONST.WITHSCORES)

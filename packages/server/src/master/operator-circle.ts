@@ -68,7 +68,7 @@ export class SampleOperatorPlan extends MasterBase {
   // Please declare your primary keys first
   // ensure that you observe the order of keys
   // order of keys once declared cannnot be changed
-
+  public static checksum : string = '7543a7ad90a863d71d04173bfb552e20280676e7'
   
   @Master.primaryKey()
   public operator : string
