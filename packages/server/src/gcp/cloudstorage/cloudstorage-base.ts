@@ -18,7 +18,7 @@ import * as fs               from 'fs'
 
 export class CloudStorageBase {
 
-  _cloudStorage : any
+  static _cloudStorage : any
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -34,13 +34,11 @@ export class CloudStorageBase {
         projectId   : gcloudEnv.projectId
       })
     }
-  }
 
-  constructor(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-  async uploadDataToCloudStorage(rc : RunContextServer,  bucket : string, path : string, data : any, mimeVal : string | false) : Promise<string> {
+  static async uploadDataToCloudStorage(rc : RunContextServer,  bucket : string, path : string, data : any, mimeVal : string | false) : Promise<string> {
     if(!mimeVal) return ''
 
     const extension = mime.extension(mimeVal),
@@ -56,8 +54,8 @@ export class CloudStorageBase {
     return fileUrl
   }
 
-  private async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
-    let id        = UUIDv4()
+  private static async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
+    let id = UUIDv4()
 
     while(true) {
       const filePath = `${path}/${id}.${extension}`,
@@ -70,22 +68,22 @@ export class CloudStorageBase {
     }
   }
 
-  async upload(rc : RunContextServer, bucketName: string, filePath : string, destination : string) : Promise<string> {
-    const bucket : any = this._cloudStorage.bucket(bucketName),
+  static async upload(rc : RunContextServer, bucketName: string, filePath : string, destination : string) : Promise<string> {
+    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
           data   : any = await bucket.upload(filePath, {destination})
   
     return data[0].metadata.mediaLink
   }
 
-  async bucketExists(rc : RunContextServer, bucketName: string) {
-    const bucket : any = this._cloudStorage.bucket(bucketName),
+  static async bucketExists(rc : RunContextServer, bucketName: string) {
+    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
           data   : any = await bucket.exists()
 
     return data[0]
   }
 
-  async fileExists(rc : RunContextServer, bucketName: string, filePath : string) {
-    const bucket : any = this._cloudStorage.bucket(bucketName),
+  static async fileExists(rc : RunContextServer, bucketName: string, filePath : string) {
+    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
           file   : any = bucket.file(filePath),
           data   : any = await file.exists()
 
