@@ -25,10 +25,8 @@ export abstract class ModelConfig {
   protected hasFileSource         : boolean = false
   protected cache                 : boolean = false
   protected segment               : object  
-  protected startVersion          : string|null  = null
-  protected endVersion            : string|null  = null
   protected fkConstrains          : Master.ForeignKeys = {}
-  protected dependencyMasters     : string [] = []
+  protected accompanyMasters     : string [] = []
   protected masterTsField         : string = MasterTsField
   protected cachedFields          ?: {fields :  string [] , cache : boolean} 
   protected destSynFields         ?: {fields :  string [] , cache : boolean} 
@@ -47,7 +45,7 @@ export abstract class ModelConfig {
 
   public getDependencyMasters() : string [] {
     let res : string[] = []
-    res = res.concat(this.dependencyMasters)
+    res = res.concat(this.accompanyMasters)
           .concat(lo.keysIn(this.fkConstrains))
           .map(ma=>ma.toLowerCase())
     
@@ -119,7 +117,7 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       // PK Fields type can not object . Checked in verify
 
       // check PK and Mandatory Fields
-      if(fInfo.masType !== Master.FieldType.OPTIONAL) {
+      if(fInfo.constraint !== Master.FieldType.OPTIONAL) {
         //[null , undefined , '' , 0] check only allowed for OPTIONAL Fields
         if(!value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec , idStr)
 

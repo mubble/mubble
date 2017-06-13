@@ -85,6 +85,11 @@ export namespace MaType{
       return (x === null)
   }
 
+  export function isPresent<T>(x : any): x is T {
+
+    return !(x === undefined)
+  }
+
 }
 
 export namespace FuncUtil {

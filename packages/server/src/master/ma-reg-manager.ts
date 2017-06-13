@@ -124,10 +124,11 @@ export class MasterRegistryMgr {
     //MaRegMgrLog('addMaster ',master , constructor)
     MaRegMgrLog('addMaster config ',master , config)
 
-    assert(maReg.construct == null && maReg.config == null && maReg.masterInstance == null  , 'master ',master , 'registered twice')
+    assert(maReg.config == null && maReg.masterInstance == null  , 'master ',master , 'registered twice')
     
-    maReg.construct = constructor
     maReg.config    = config
+    
+    maReg.verifyInternal(constructor)
   }
 
   static fieldValidationRule (target : any , propKey : string , rule : (obj : any) => void ) : void {
@@ -136,7 +137,9 @@ export class MasterRegistryMgr {
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master , true)
 
     //MaRegMgrLog('fieldValidationRule ',master , propKey , rule)
-    maReg.rules.push(rule)      
+    //maReg.rules.push(rule)
+    maReg.addFieldRule(propKey , target , rule)
+
   }
 
   static getMasterRegistry(master : string , create : boolean = false) : MasterRegistry {
@@ -249,17 +252,30 @@ export class MasterRegistryMgr {
 
     // Field Type sanity validation rules
     maReg.config.getSrcValidationrules().forEach( (srcValidationRule : MasterValidationRule)=>{
-      MaRegMgrLog('applying SrcValidation Rule rule ', srcValidationRule.constructor.name , 'on master', maReg.mastername)
+      MaRegMgrLog('applying SrcValidation Rule rule ', srcValidationRule.name , 'on master', maReg.mastername)
       srcValidationRule(rc , maReg , source)
     })
 
-    // Config Rules Check
+    // class level Config Rules Check
+    /*
     maReg.rules.forEach(  (configRule : (obj : any) => void ) => {
       MaRegMgrLog('applying Config rule ', configRule.constructor.name , 'on master', maReg.mastername)
       source.forEach((rec:any)=>{
         configRule(rec)
       })
-    } )
+    } )*/
+
+    lo.valuesIn(maReg.fieldsMap).forEach((finfo : FieldInfo) => {
+
+      finfo.rules.forEach((fieldRule : (obj : any) => void ) => {
+        MaRegMgrLog('applying Field rule ', fieldRule.name , 'on field', finfo.name, ' master', maReg.mastername)
+        source.forEach((rec:any)=>{
+          fieldRule(rec)
+        })
+
+      })
+
+    })
 
   }
   

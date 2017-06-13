@@ -10,7 +10,7 @@
 import {RunContextServer}     from '../rc-server'
 import {Master , MasterBase}  from './ma-base'
 
-@Master.modelType(Master.getDefaultConfig({} , '2.3.4' , '3.5.6'))
+@Master.modelType(Master.getDefaultConfig({}))
 export class Operator extends MasterBase {
   @Master.primaryKey()
   name : string
@@ -21,7 +21,7 @@ export class Operator extends MasterBase {
   }
 }
 
-@Master.modelType(Master.getDefaultConfig({} , '2.3.4' , '3.5.6'))
+@Master.modelType(Master.getDefaultConfig({}))
 export class Circle extends MasterBase {
   @Master.primaryKey()
   name : string
@@ -32,7 +32,7 @@ export class Circle extends MasterBase {
   }
 }
 
-@Master.modelType(Master.getDefaultConfig ({} , '2.3.4' , '3.5.6' , 
+@Master.modelType(Master.getDefaultConfig ({} , 
   {
     operator         : {name : 'operator'} ,
     circle           : {name : 'circle'}   
@@ -54,7 +54,7 @@ export class OperatorCircle extends MasterBase {
   
 }
 
-@Master.modelType(Master.getDefaultConfig ({} , '2.3.4' , '3.5.6' , 
+@Master.modelType(Master.getDefaultConfig ({} , 
   
   {
     operator         : {name : 'operator'} ,
@@ -83,13 +83,13 @@ export class SampleOperatorPlan extends MasterBase {
   public mode     : string
 
   @Master.field()
-  public currentPlan : object 
+  public currentPlan :  object
   
   @Master.field(Master.FieldType.OPTIONAL)
   public currentPlanEdited : object 
 
   @Master.field()
-  @Master.inRange(2000 , 2018)
+  @Master.inRange(2010 , 2018)
   public validFrom : number
   
   @Master.field()

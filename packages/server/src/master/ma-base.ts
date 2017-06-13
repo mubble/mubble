@@ -51,7 +51,8 @@ export namespace Master{
     public static  PRIMARY : FieldType = new FieldType('PRIMARY')
     public static  MANDATORY : FieldType = new FieldType('MANDATORY')
     public static  OPTIONAL : FieldType = new FieldType('OPTIONAL')
-    public static  AUTO : FieldType = new FieldType('AUTO')
+    
+    //public static  AUTO : FieldType = new FieldType('AUTO')
 
     public toString() {
       return this.name
@@ -154,7 +155,7 @@ export namespace Master{
         if(defaultIgnoreVal!=null && val===defaultIgnoreVal) return
         assert( val>=minVal && val<=maxVal , masterDesc(mastername,propKey,val) , 'Not in range', minVal+'-'+maxVal , rec )
       } 
-      
+
       MasterRegistryMgr.fieldValidationRule(prototype , propKey , inRangeCheck)
     }
   }
@@ -163,15 +164,13 @@ export namespace Master{
   export type ForeignKeys = {[master : string] : StringValMap}
   
 
-  export function getDefaultConfig (segment : object , startVersion : string , endVersion : string , fk ?: ForeignKeys )  : ModelConfig {
+  export function getDefaultConfig (segment : object  , fk ?: ForeignKeys )  : ModelConfig {
     //const masConfig : ModelConfig = new MasterModelConfig('Sample')
     
     const masConfig : ModelConfig = new class TestModelConfig extends MasterModelConfig {
       constructor(){
         super('Sample')
         this.segment = segment
-        this.startVersion = startVersion
-        this.endVersion = endVersion
         if(MaType.isObject(fk)) this.fkConstrains = fk
         this.hasFileSource = true
       }
@@ -190,21 +189,13 @@ export var MasterBaseFields =
 
 export class MasterBase {
 
-  @Master.field(Master.FieldType.AUTO)
+  @Master.field()
   public createTs : number
   
-  @Master.field(Master.FieldType.AUTO)
+  @Master.field()
   public modTs  : number
   
-  /*
-  @field()
-  public modUid  : number
-  
-  @field()
-  public modLoc  : number
-  */
-  
-  @Master.field(Master.FieldType.AUTO)
+  @Master.field()
   public deleted : boolean
   
   public _mastername : string
