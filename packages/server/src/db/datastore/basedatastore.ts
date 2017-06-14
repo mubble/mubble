@@ -120,7 +120,7 @@ export abstract class BaseDatastore {
         return transaction.bdGet (rc, this, id, ignoreRNF)
       }
     }
-    catch (err) { // TODO: (AD) Should we catch transaction errors here ? Print in DSTransaction itself... 
+    catch (err) {
       if(err.code) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       } else {

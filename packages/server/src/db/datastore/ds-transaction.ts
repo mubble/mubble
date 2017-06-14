@@ -28,7 +28,12 @@ export class DSTransaction {
     try {
       await this._transaction.run()
     } catch(err) {
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -37,7 +42,12 @@ export class DSTransaction {
       await this._transaction.commit()
     } catch(err) {
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -149,7 +159,12 @@ export class DSTransaction {
       return true
     } catch (err) {
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -165,7 +180,12 @@ export class DSTransaction {
       return true
     } catch(err) {
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -190,7 +210,12 @@ export class DSTransaction {
         await model.deleteUnique(rc) 
       }
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -206,7 +231,12 @@ export class DSTransaction {
       return true
     } catch(err) {
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -224,7 +254,12 @@ export class DSTransaction {
       return true
     } catch(err) {
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 
@@ -240,7 +275,12 @@ export class DSTransaction {
       return true
     } catch(err) {
       await this._transaction.rollback()
-      throw(err)
+      if(err.code) {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      } else {
+        rc.isError() && rc.error(err)
+      }
+      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
     }
   }
 }
