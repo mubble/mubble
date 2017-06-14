@@ -12,6 +12,7 @@ import {Master , MasterBase}  from './ma-base'
 
 @Master.modelType(Master.getDefaultConfig({}))
 export class Operator extends MasterBase {
+  
   @Master.primaryKey()
   name : string
 
@@ -23,6 +24,7 @@ export class Operator extends MasterBase {
 
 @Master.modelType(Master.getDefaultConfig({}))
 export class Circle extends MasterBase {
+  
   @Master.primaryKey()
   name : string
 
@@ -40,6 +42,7 @@ export class Circle extends MasterBase {
 ))
 
 export class OperatorCircle extends MasterBase {
+  
   @Master.primaryKey()
   operator : string
   

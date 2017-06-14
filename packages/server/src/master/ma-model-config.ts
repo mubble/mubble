@@ -107,11 +107,14 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       (typeof(value) === 'boolean' && fInfo.type !== 'boolean') || 
       (typeof(value) === 'number' && fInfo.type !== 'number') || 
       (Array.isArray(value) && fInfo.type !== 'array')   )
+      
       throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
       
       // Object check
       if(value && typeof(value) === 'object' && fInfo.type !== 'object') {
+
         throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
+
       }
 
       // PK Fields type can not object . Checked in verify
@@ -122,16 +125,22 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
         if(!value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec , idStr)
 
         if(fInfo.type === 'array' && lo.isEmpty(value)) {
+
           throwError(reg.mastername , 'column ',key , 'can not be empty array', rec , idStr)
+        
         }else if(fInfo.type === 'object' && lo.isEmpty(value)) {
+          
           throwError(reg.mastername , 'column ',key , 'can not be empty object', rec , idStr)
+        
         }
 
       }else{
         // set value of optional fields if not found
         if(value === undefined){
+          
           rec[key] = value = instance[key]
           if(value === undefined) throwError(reg.mastername , 'default column value not set for column', key , rec)
+
         }
       }
 
@@ -140,7 +149,9 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
 
     // check all the mandatory fields are present
     ownFields.forEach((ownField : string) =>{
+
       assert(lo.hasIn(rec , ownField) , 'field',ownField , 'is missing in record ',idStr)
+      
     })
 
 

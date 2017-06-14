@@ -10,10 +10,6 @@
 
 export class MasterInMemCache {
   
-  public constructor(public mastername : string , public cache : boolean) {
-    
-  }
-
   public records    : object [] = []
   public modTSField : string
 
@@ -27,5 +23,9 @@ export class MasterInMemCache {
   public refTS          : number
   public lastUpdateTS   : number
   public digest         : string
+
+  public constructor(public mastername : string , public cache : boolean) {
+    
+  }
 
 }
