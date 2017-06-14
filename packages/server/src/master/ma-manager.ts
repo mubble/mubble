@@ -240,32 +240,53 @@ export class MasterMgr {
     masters.forEach((mas : string)=>{
       assert(all.indexOf(mas)!==-1 , 'Invalid Master Obtained from Publish',mas , masters)
     })
-
+    
+    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap()
+    
     for(const mas of masters){
-      await this.refreshAModel(mas)
+      await this.refreshAModel(mas , digestMap[mas] )
     }
   }
 
-  async refreshAModel(mastername : string) {
+  async refreshAModel(mastername : string , dinfo : DigestInfo) {
+    
     MaMgrLog('refreshing master', mastername)
-
+    
     const redis : RedisWrapper = this.sredis ,
+          memcache : MasterInMemCache = this.masterCache[mastername],
           redisTsKey : string  = CONST.REDIS_NS + CONST.REDIS_TS_SET + mastername ,
           redisDataKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + mastername ,
-          lastTs   : number  = 0 , // Todo get from store
-          resultWithTsScore : string [] = await redis.rwZrangebyscore(redisTsKey , lastTs , CONST.PLUS_INFINITY, true) ,
-          resultKeys :string [] = resultWithTsScore.filter((val : any , index : number)=>{ return index%2 ===0 })
+          lastTs   : number  = memcache.getMaxTS() , 
+          resultWithTsScore : string [] = await redis.rwZrangebyscore(redisTsKey , '('+lastTs , CONST.PLUS_INFINITY, true) ,
+          resultKeys :string [] = resultWithTsScore.filter((val : any , index : number)=>{ return index%2 ===0 }) ,
+          resultScores : string [] =  resultWithTsScore.filter((val : any , index : number)=>{ return index%2 !==0 }) 
 
     if(!resultKeys.length){
       MaMgrLog('refreshAModel no records to update')
       return
     }
+    const uniqueScores : string[] = lo.uniq(resultScores)
+    assert(uniqueScores.length === 1 , 'model refresh inconsistency ' , mastername , uniqueScores , dinfo)
+    assert(lo.toNumber(uniqueScores[0]) === dinfo.modTs , 'model refresh inconsistency ' , mastername , uniqueScores , dinfo )
+
     MaMgrLog('refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
 
     const recs : string[] = await redis.redisCommand().hmget(redisDataKey , ...resultKeys)
     MaMgrLog('refreshAModel ',mastername , 'refreshed records:',recs.length /*, recs*/)
-    // todo : Data store Impl
-  }
+
+    assert(resultKeys.length === recs.length , 'invalid result from refresg redis' , resultKeys.length , recs.length)
+    
+    const newData : GenValMap = {}
+    for(let i=0 ; i<resultKeys.length ; i++) {
+      const pk : string = resultKeys[i] ,
+            val : object = JSON.parse(recs[i])
+      
+      newData[pk] = val      
+    }
+
+    const res : any = memcache.update(newData , dinfo)
+    MaMgrLog('refreshAModel result ',res)
+ }
   
   public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
     
@@ -277,7 +298,7 @@ export class MasterMgr {
           // all masters update records will have same timestamp
           now         : number = lo.now()
     
-    debug('digestMap:',digestMap)     
+    debug('digestMap:',digestMap , arModels.map((x)=> x.master) )     
     
     for(let i : number = 0 ; i <arModels.length ; i++ ){
       
@@ -291,6 +312,7 @@ export class MasterMgr {
             
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
      debug(master , 'mDigest:',mDigest , 'fDigest:',fDigest)
+     
      if(lo.isEqual(mDigest , fDigest)){
         results.push({name : master , error : 'skipping as file is unchanged'}) 
         continue
@@ -307,21 +329,6 @@ export class MasterMgr {
 
     if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
     MaMgrLog('applyData' , 'results',results)
-  }
-
-  private async getDigestMap() : Promise<MaMap<DigestInfo>> {
-    
-    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
-          stringMap   : StringValMap =  await this.mredis.redisCommand().hgetall(digestKey),
-          genMap      : GenValMap = FuncUtil.toParseObjectMap(stringMap)
-    
-    // Empty      
-    if(!stringMap) return {}
-
-    return lo.mapValues(genMap , (val : any , masterKey : string)=>{
-        
-        return DigestInfo.getDigest(val , masterKey)
-    })
   }
 
   private setParentMapData(master : string , masterCache : MasterCache , ssd : SourceSyncData) : void {
@@ -432,7 +439,6 @@ export class MasterMgr {
     }
 
     MaMgrLog('buildInMemoryCache finished')
-
   }
 
   // hash get functions 
@@ -484,7 +490,21 @@ export class MasterMgr {
     return redis.redisCommand().hmset(key , ...params)
   }
 
-  
+  private async getDigestMap() : Promise<MaMap<DigestInfo>> {
+    
+    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
+          stringMap   : StringValMap =  await this.mredis.redisCommand().hgetall(digestKey),
+          genMap      : GenValMap = FuncUtil.toParseObjectMap(stringMap)
+    
+    // Empty      
+    if(!stringMap) return {}
+
+    return lo.mapValues(genMap , (val : any , masterKey : string)=>{
+        
+        return DigestInfo.getDigest(val , masterKey)
+    })
+  }
+
   public async listAllMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
 
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
