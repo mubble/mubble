@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Dummy Master Data Classes using master decoraters
+   About      : Dummy Master Data Classes using master decorators
    
    Created on : Thu Jun 01 2017
    Author     : Gaurav Kulshreshtha
@@ -62,7 +62,7 @@ export class OperatorCircle extends MasterBase {
   {
     operator         : {name : 'operator'} ,
     circle           : {name : 'circle'}   ,
-    operatorcircle   : {operator : 'operator' , circle : 'circle'}
+    operatorCircle   : {operator : 'operator' , circle : 'circle'}
   }
 
 ))
@@ -70,7 +70,7 @@ export class SampleOperatorPlan extends MasterBase {
 
   // Please declare your primary keys first
   // ensure that you observe the order of keys
-  // order of keys once declared cannnot be changed
+  // order of keys once declared cannot be changed
   public static checksum : string = '7543a7ad90a863d71d04173bfb552e20280676e7'
   
   @Master.primaryKey()

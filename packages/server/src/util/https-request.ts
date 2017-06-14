@@ -11,8 +11,9 @@ import * as https            from 'https'
 import * as http             from 'http'
 import * as zlib             from 'zlib'
 import * as url              from 'url'
+import {RunContextServer}    from '../rc-server'
 
-export function executeHttpsRequest(urlStr: string): Promise<string> {
+export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
 
     return new Promise((resolve, reject) => {
 
@@ -44,6 +45,39 @@ export function executeHttpsRequest(urlStr: string): Promise<string> {
       req.on('error', (err: any) => {
         return reject(err)
       })
+      req.end()
+    })
+  }
+
+  export function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
+
+    return new Promise((resolve, reject) => {
+      const httpObj: any = urlObj.protocol === 'http:' ? http : https
+
+      const req = httpObj.request(urlObj, (outputStream: any) => {
+
+        switch (outputStream.headers['content-encoding']) {
+        case 'gzip':
+          outputStream = outputStream.pipe(zlib.createGunzip())
+          break
+        case 'deflate':
+          outputStream = outputStream.pipe(zlib.createInflate())
+          break
+        }
+
+        let response = ''
+        outputStream.on('data', (chunk: any) => {
+          response += chunk
+        })
+        outputStream.on('end', () => {
+          return resolve(response)
+        })
+      })
+
+      req.on('error', (err: any) => {
+        return reject(err)
+      })
+      if (inputData) req.write (inputData)
       req.end()
     })
   }
