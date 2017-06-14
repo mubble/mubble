@@ -26,7 +26,8 @@ import {MasterRegistryMgr}    from './ma-reg-manager'
 import {MaMap, StringValMap , 
         GenValMap , 
        MasterCache }          from './ma-types'
-import {MasterInMemCache}     from './ma-mem-cache'                     
+import {MasterInMemCache , 
+        DigestInfo}           from './ma-mem-cache'                     
 
 const LOG_ID : string = 'MasterMgr'
 function MaMgrLog(...args : any[] ) : void {
@@ -92,6 +93,11 @@ export class MasterMgr {
 
   rc : RunContextServer
 
+  dependencyMap : {[mastername : string] : string[]} = {}
+  
+  revDepMap : {[mastername : string] : string[]} = {}
+  
+
   /*
   Actions : 
   0. MasterRegistry init. Verify all master registries
@@ -122,12 +128,65 @@ export class MasterMgr {
       
       assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
       
+      this.buildDependencyMap()
+
       await this.checkSlaveMasterSync(false)
 
       await this.setSubscriptions()
 
-      await this.buildInMemoryCache()
+      await this.buildInMemoryCache(rc)
   }
+
+  private buildDependencyMap() : void {
+    
+    const dMap : {[master : string] : string[]} = this.dependencyMap
+    const rdMap : {[master : string] : string[]} = this.revDepMap
+    
+    function getDepMasters(mas : string) : string[] {
+      if(dMap[mas]) return dMap[mas]
+      return MasterRegistryMgr.regMap[mas].config.getDependencyMasters()
+    }
+
+    MasterRegistryMgr.masterList().forEach(mas => {
+      
+      let dArr : string[] = getDepMasters(mas)
+      let dlen = dArr.length ,
+          mdlen = 0 
+      
+      // we need to get all dependencies of nth level 
+      // (dependencies of dependencies of ...) recursively
+      while(dlen !== mdlen){
+        dlen = dArr.length
+        lo.clone(dArr).forEach(dep=>{
+          const depMas : string[] = getDepMasters(dep)
+          //dArr = lo.uniq(dArr.concat(depMas))
+          depMas.forEach(depM =>{
+            if(dArr.indexOf(depM)===-1) dArr.push(depM)
+          })
+        })
+        mdlen = dArr.length
+      }
+      
+      dMap[mas] = dArr
+      //MaRegMgrLog('buildDependencyMap 1',mas , dArr)
+      //MaRegMgrLog('buildDependencyMap 2',dMap)
+      
+      // Reverse Mapping
+      dArr.forEach(depMas=>{
+        let rArr : string[] = rdMap[depMas]
+        if(rArr==null){
+          rArr = []
+          rdMap[depMas] = rArr
+        }
+        rArr.push(mas)
+      })
+
+    })
+    // Todo : remove empty array values masters / master with no dependency
+    MaMgrLog('build Dependency Map finished\r\n',this.dependencyMap)
+    MaMgrLog('build Reverse DependencyMap finished\r\n',this.revDepMap)
+  }
+    
 
   async checkSlaveMasterSync(assertCheck : boolean) : Promise<any> {
     
@@ -212,8 +271,7 @@ export class MasterMgr {
     
     const results : object [] = []
     
-    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
-          digestMap   : {[key:string] : string} =  await this.mredis.redisCommand().hgetall(digestKey) ,
+    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() ,
           masterCache : MasterCache = {} ,
           todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} = {},
           // all masters update records will have same timestamp
@@ -227,8 +285,7 @@ export class MasterMgr {
       MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
       
       const master  : string              = oModel.master.toLowerCase() ,
-            //testing remove that
-            mDigest : string              = digestMap ? digestMap[master] : '' ,
+            mDigest : string              = digestMap[master] ? digestMap[master].fileDigest  : '' ,
             json    : object              = JSON.parse(oModel.source),
             fDigest : string              = crypto.createHash('md5').update(JSON.stringify(json) /*oModel.source*/).digest('hex')
             
@@ -252,20 +309,38 @@ export class MasterMgr {
     MaMgrLog('applyData' , 'results',results)
   }
 
+  private async getDigestMap() : Promise<MaMap<DigestInfo>> {
+    
+    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
+          stringMap   : StringValMap =  await this.mredis.redisCommand().hgetall(digestKey),
+          genMap      : GenValMap = FuncUtil.toParseObjectMap(stringMap)
+    
+    // Empty      
+    if(!stringMap) return {}
+
+    return lo.mapValues(genMap , (val : any , masterKey : string)=>{
+        
+        return DigestInfo.getDigest(val , masterKey)
+    })
+  }
+
   private setParentMapData(master : string , masterCache : MasterCache , ssd : SourceSyncData) : void {
      
      // master dependency data settings      
      if((lo.hasIn(masterCache , master) && masterCache[master] )){
+        
         const depMap : GenValMap = masterCache[master]
         MaMgrLog(master , 'overriding source ',  lo.size(depMap) , lo.size(ssd.source)  )
         masterCache[master] = ssd.source
      }else{
+       
        masterCache[master] = ssd.source
        MaMgrLog('setParentMapData' , master , 'source size' , lo.size(ssd.source) )
      }
      
-     if(lo.hasIn( MasterRegistryMgr.dependencyMap , master)){
-       const depMasters : string [] = MasterRegistryMgr.dependencyMap[master]
+     if(lo.hasIn(this.dependencyMap , master)){
+       
+       const depMasters : string [] = this.dependencyMap[master]
        depMasters.forEach((depMas : string)=>{
          if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as GenValMap
        })
@@ -328,9 +403,10 @@ export class MasterMgr {
         multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
 
       })
-      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, modData.fDigest])
+      // todo : Calculate Data Digest
+      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, JSON.stringify(new DigestInfo(modData.fDigest , ts , '' , {} )) ])
       // result objects with info
-      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes)})    
+      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes) , modTs : ts })    
     }
     
     MaMgrLog('updating MRedis')
@@ -341,9 +417,22 @@ export class MasterMgr {
  
   }
 
-  private async buildInMemoryCache() {
-    //Todo :
-    MaMgrLog('buildInMemoryCache')
+  private async buildInMemoryCache(rc : RunContextServer) {
+    
+    MaMgrLog('buildInMemoryCache started')
+    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() 
+    
+    for(const mastername of MasterRegistryMgr.masterList()) {
+      
+      MaMgrLog('Building InMemory Cache for ',mastername)
+      assert(!lo.hasIn(this.masterCache , mastername) , 'mastercache already present for ',mastername)
+      
+      const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+      this.masterCache[mastername] = new MasterInMemCache(mastername , masterData , digestMap[mastername])
+    }
+
+    MaMgrLog('buildInMemoryCache finished')
+
   }
 
   // hash get functions 

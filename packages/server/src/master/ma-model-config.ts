@@ -26,11 +26,11 @@ export abstract class ModelConfig {
   protected cache                 : boolean = false
   protected segment               : object  
   protected fkConstrains          : Master.ForeignKeys = {}
-  protected accompanyMasters     : string [] = []
+  protected accompanyMasters      : string [] = []
   protected masterTsField         : string = MasterTsField
-  protected cachedFields          ?: {fields :  string [] , cache : boolean} 
-  protected destSynFields         ?: {fields :  string [] , cache : boolean} 
-  protected srcValidationrules     : MasterValidationRule []
+  protected cachedFields         ?: {fields :  string [] , cache : boolean} 
+  protected destSynFields        ?: {fields :  string [] , cache : boolean} 
+  protected srcValidationrules    : MasterValidationRule []
 
   public getMasterTsField() : string {
     return this.masterTsField
@@ -56,6 +56,18 @@ export abstract class ModelConfig {
     return lo.mapKeys(this.fkConstrains , (prop : any , parent: string)=>{
       return parent.toLowerCase()
     })
+  }
+
+  public getCached() : boolean {
+    return this.cache
+  }
+
+  public getCachedFields() : {fields :  string [] , cache : boolean} {
+    return this.cachedFields || {fields : [] , cache : false}
+  }
+
+  public getDestSynFields() : {fields :  string [] , cache : boolean} {
+    return this.destSynFields || {fields : [] , cache : false}
   }
   
 }

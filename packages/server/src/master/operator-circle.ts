@@ -92,7 +92,7 @@ export class SampleOperatorPlan extends MasterBase {
   public currentPlanEdited : object 
 
   @Master.field()
-  @Master.inRange(2010 , 2018)
+  @Master.inRange(2000 , 2018)
   public validFrom : number
   
   @Master.field()
