@@ -29,15 +29,27 @@ function debug(...args : any[] ) : void {
   log(LOG_ID , ...args)
 }
 
+export class SyncInfo  {
+  
+  ts            : number 
+  seg           : object 
+  dataDigest    : string
+  modelDigest   : string
+
+}
+
+
 export class DigestInfo {
   
   fileDigest      : string
+  modelDigest     : string 
   modTs           : number
   dataDigest      : string
   segDigestMap    : StringValMap  = {}
 
-  public constructor(fDigest : string , ts : number , dDigest : string , segMap : StringValMap ) {
+  public constructor(fDigest : string , modeldigest : string , ts : number , dDigest : string , segMap : StringValMap ) {
     this.fileDigest   = fDigest
+    this.modelDigest  = modeldigest
     this.modTs        = ts 
     this.dataDigest   = dDigest
     this.segDigestMap = segMap
@@ -45,12 +57,13 @@ export class DigestInfo {
 
   public static getDigest(val : any , masterKey : string) : DigestInfo {
     
-    assert(lo.hasIn(val , 'fileDigest') && lo.hasIn(val , 'modTs') && lo.hasIn(val , 'dataDigest') && lo.hasIn(val , 'segDigestMap') , 'DigestInfo ',val , 'is corrept for master ',masterKey)
+    assert(lo.hasIn(val , 'fileDigest') && lo.hasIn(val , 'modelDigest') && lo.hasIn(val , 'modTs') && lo.hasIn(val , 'dataDigest') && lo.hasIn(val , 'segDigestMap') , 'DigestInfo ',val , 'is corrept for master ',masterKey)
     assert( MaType.isString(val['fileDigest'])  && 
+            MaType.isString(val['modelDigest'])  && 
             MaType.isNumber(val['modTs']) &&
             MaType.isString(val['dataDigest']) , 'DigestInfo ', val , 'is corrept for master ',masterKey)
 
-    return new DigestInfo(val['fileDigest'] , val['modTs'] , val['dataDigest'] , val['segDigestMap'])      
+    return new DigestInfo(val['fileDigest'] , val['modelDigest'] , val['modTs'] , val['dataDigest'] , val['segDigestMap'])      
   }
 }
 
@@ -69,15 +82,23 @@ export class MasterInMemCache {
   public cachedFields        : {fields :  string [] , cache : boolean} 
   public destSynFields       : {fields :  string [] , cache : boolean} 
   
-  public digestInfo          : DigestInfo = new DigestInfo('',0 , '' , {})
-  public lastUpdateTS        : number = lo.now()
+  public digestInfo          : DigestInfo = new DigestInfo('','',0 , '' , {})
+  //public lastUpdateTS        : number = lo.now()
 
-  public getMaxTS() : number {
+  private getMaxTS() : number {
     return this.records.length ?  lo.nth(this.records , 0)[this.modTSField] : 0
   } 
   
   public getMinTS() : number {
     return this.records.length ?  lo.nth(this.records , -1)[this.modTSField] : 0
+  }
+
+  public hasRecords() : boolean {
+    return (this.records.length > 0)
+  }
+
+  public latestRecTs() : number {
+    return this.digestInfo.modTs
   }
 
   public constructor(public mastername : string , data : GenValMap , dInfo : DigestInfo) {
@@ -158,6 +179,11 @@ export class MasterInMemCache {
 
     MaInMemCacheLog('MasterInMemCache update finished', this.mastername , this.records)
     return result
+  }
+
+  public syncData(syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+
+
   }
 
 }

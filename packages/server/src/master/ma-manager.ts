@@ -27,7 +27,8 @@ import {MaMap, StringValMap ,
         GenValMap , 
        MasterCache }          from './ma-types'
 import {MasterInMemCache , 
-        DigestInfo}           from './ma-mem-cache'                     
+        DigestInfo , 
+        SyncInfo}             from './ma-mem-cache'                     
 
 const LOG_ID : string = 'MasterMgr'
 function MaMgrLog(...args : any[] ) : void {
@@ -52,11 +53,6 @@ var CONST = {
   PLUS_INFINITY     : '+inf' 
 }
 
-
-export type syncInfo = {
-  ts : number 
-  // add more
-}
 
 export class SourceSyncData {
   
@@ -256,7 +252,7 @@ export class MasterMgr {
           memcache : MasterInMemCache = this.masterCache[mastername],
           redisTsKey : string  = CONST.REDIS_NS + CONST.REDIS_TS_SET + mastername ,
           redisDataKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + mastername ,
-          lastTs   : number  = memcache.getMaxTS() , 
+          lastTs   : number  = memcache.latestRecTs() , 
           resultWithTsScore : string [] = await redis.rwZrangebyscore(redisTsKey , '('+lastTs , CONST.PLUS_INFINITY, true) ,
           resultKeys :string [] = resultWithTsScore.filter((val : any , index : number)=>{ return index%2 ===0 }) ,
           resultScores : string [] =  resultWithTsScore.filter((val : any , index : number)=>{ return index%2 !==0 }) 
@@ -294,7 +290,7 @@ export class MasterMgr {
     
     const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() ,
           masterCache : MasterCache = {} ,
-          todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} = {},
+          todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}} = {},
           // all masters update records will have same timestamp
           now         : number = lo.now()
     
@@ -303,7 +299,10 @@ export class MasterMgr {
     for(let i : number = 0 ; i <arModels.length ; i++ ){
       
       const oModel : {master : string , source: string} = arModels[i] 
-      MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
+      const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(oModel.master.toLowerCase())
+
+      assert(registry!=null , 'Unknow master ',oModel.master.toLowerCase() , 'for file upload')
+      registry.isAllowedFileUpload()
       
       const master  : string              = oModel.master.toLowerCase() ,
             mDigest : string              = digestMap[master] ? digestMap[master].fileDigest  : '' ,
@@ -323,7 +322,7 @@ export class MasterMgr {
      
      MaMgrLog('applyFileData' , master ,'inserts:' , lo.size(ssd.inserts) ,'updates:', lo.size(ssd.updates) , 'deletes:',lo.size(ssd.deletes) )
      this.setParentMapData(master , masterCache , ssd) 
-     todoModelz[master] = {ssd : ssd , fDigest : fDigest} 
+     todoModelz[master] = {ssd : ssd , fDigest : fDigest , modelDigest : registry.getModelDigest()} 
      
     }
 
@@ -360,14 +359,62 @@ export class MasterMgr {
 
   }
 
-  // 
-  public destinationSync (rc : RunContextServer , sync : Array<syncInfo> ) {
-      // Get destSynFields from Registry
+  public async destinationSync (rc : RunContextServer , syncMap : MaMap<SyncInfo> ) {
+    
+    const response : {syncHash : GenValMap , syncData : GenValMap} = {syncHash : {} , syncData : {}}
+    
+    // check if there is any new data sync required
+    const dataSyncRequired : string [] = [] ,
+          purgeRequired    : string [] = []
+    
+    lo.forEach(syncMap , (synInfo : SyncInfo , mastername : string) =>{
+      
+      const memcache : MasterInMemCache = this.masterCache[mastername]
+
+      assert(memcache!=null , 'Unknown master data sync request ',mastername)
+      assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
+      
+      if(!memcache.hasRecords()){
+        // No Data in this master
+        assert(synInfo.ts ===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
+
+      }else if( synInfo.modelDigest !== memcache.digestInfo.modelDigest ||
+                synInfo.ts < memcache.getMinTS()) 
+      {
+        MaMgrLog('master digest change purging all',mastername , synInfo.modelDigest , memcache.digestInfo.modelDigest)
+        synInfo.ts = 0
+        dataSyncRequired.push(mastername)
+        purgeRequired.push(mastername)
+
+      }else if(synInfo.ts < memcache.latestRecTs()) {
+        // sync required
+        dataSyncRequired.push(mastername)
+      
+      }else {
+        // Both are in sync
+        assert(synInfo.ts === memcache.latestRecTs())
+      }
+
+    })
+
+    if(!dataSyncRequired.length) return response
+
+    for(const mastername of dataSyncRequired) {
+      
+      const memcache : MasterInMemCache = this.masterCache[mastername]
+      if(memcache.cache){
+        memcache.syncData(response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+      }else{
+        // No caching . Todo
+
+      }
+    }
+    
   }
 
 
   // Update the mredis with required changes 
-  private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
+  private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}}  ) {
     
     MaMgrLog('applyData results',results , 'mastercache keys:',lo.keysIn(masterCache) ,'TodoModels keys:' ,lo.keysIn(todoModelz) )
     
@@ -389,13 +436,13 @@ export class MasterMgr {
     return results
   }
 
-  private async updateMRedis(results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} ) {
+  private async updateMRedis(results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest: string}} ) {
     
     const multi : Multi = this.mredis.multi()
       
     for(const master  of lo.keysIn(todoModelz) ){
       
-      const modData : {ssd : SourceSyncData , fDigest : string} = todoModelz[master] ,
+      const modData : {ssd : SourceSyncData , fDigest : string , modelDigest : string } = todoModelz[master] ,
             inserts : GenValMap = modData.ssd.inserts ,
             updates : GenValMap = modData.ssd.updates ,
             deletes : GenValMap = modData.ssd.deletes ,
@@ -410,8 +457,8 @@ export class MasterMgr {
         multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
 
       })
-      // todo : Calculate Data Digest
-      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, JSON.stringify(new DigestInfo(modData.fDigest , ts , '' , {} )) ])
+      // todo : Calculate Data Digest and other digest
+      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, JSON.stringify(new DigestInfo(modData.fDigest , modData.modelDigest , ts , '' , {} )) ])
       // result objects with info
       results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes) , modTs : ts })    
     }
