@@ -99,13 +99,6 @@ export class MasterRegistryMgr {
     return MasterRegistryMgr.regMap[master]
   }
   
-  public static isAllowedFileUpload(master : string) {
-    
-    const registry : MasterRegistry = this.getMasterRegistry(master)
-    assert(registry!=null , 'Unknow master ',master , 'for file upload')
-    assert(registry.config.getHasFileSource() , 'master',master , 'is not file sourced')
-
-  }
   // Verify all the MasterRegistry for data sanity
   public static init (context : RunContextServer ) : void {
     

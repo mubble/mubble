@@ -282,5 +282,14 @@ export class MasterRegistry {
     assert(finfo.targetName === targetName && finfo.type === type , 'mismatch in field rule validation ',this.mastername , fieldName)
   }
 
+  public isAllowedFileUpload() {
+    assert(this.config.getHasFileSource() , 'master', this.mastername , 'is not file sourced')
+  }
+
+  // Todo : create a model checksum
+  public getModelDigest() : string {
+    return 'newschat:'+this.mastername
+  }
+
 }
 
