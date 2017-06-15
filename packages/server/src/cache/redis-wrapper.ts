@@ -22,7 +22,7 @@ function redisLog(rc : RunContextServer , ...args : any[] ) : void {
 const LOG_ID = 'RedisWrapper'
 
 export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
-                            'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'exists' |
+                            'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'hincrby' | 'exists' |
                             'lpush' | 'rpush' | 'lrange' |
                             'zadd' | 'zrange' | 'zrevrange' | 'zrangebyscore' | 'zrem' |
                             'publish' | 'unsubscribe' | 
@@ -31,7 +31,7 @@ export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' 
 
 export const redis_commands : string[] =  
 ['del' , 'expire' , 'get' , 
- 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' ,
+ 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' , 'hincrby' ,
  'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem'
  ]                            
                              
@@ -55,7 +55,8 @@ export interface RedisCmds {
   hmget     : (key: string , ...args : string[]) => string []
   hmset     : (key: string , ...args : string[] ) => void
   hset      : (key: string , field : string , value : string ) => void
-
+  hincrby   : (key : string , field : string, incr: number) => number 
+  
   // z sorted set apis 
   zadd            : (key: string , option : string , ...scoreValuePairs : any[]  ) => number
   zrange          : (key: string , start : number , end : number , withscore ?: string ) => string[]
