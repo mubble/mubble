@@ -140,14 +140,14 @@ export abstract class BaseDatastore {
   - noChildren     = Default is true [No Children]
 ------------------------------------------------------------------------------*/ 
   protected async insert(rc : RunContextServer, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    return await this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
+    return this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
   - Insert a child, provided the parent key 
 ------------------------------------------------------------------------------*/ 
   protected async insertChild(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    return await this.insertInternal (rc, parentKey, insertTime, ignoreDupRec, noChildren)
+    return this.insertInternal (rc, parentKey, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
