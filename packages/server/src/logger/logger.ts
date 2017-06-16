@@ -10,12 +10,13 @@
 import * as path                           from 'path' 
 import * as fs                             from 'fs'
 import {WriteStream}                       from 'fs'   
-import * as mkdirp                         from 'mkdirp' 
 
 import {LOG_LEVEL , RunContextBase 
-        , format}                          from '@mubble/core'
+        , format , set}                          from '@mubble/core'
 import {RunContextServer}                  from '../rc-server'
- 
+
+const ONE_DAY_MS  : number  = 1 * 24 * 60 * 60 * 1000 
+
 function asNumber(level : LOG_LEVEL) : number {
   return level as number 
 }
@@ -30,13 +31,13 @@ export class GlobalLogger {
 
   private loggerMap   : FileEntry[] = []
   
-  init (rc : RunContextServer , level : LOG_LEVEL){
+  async init (rc : RunContextServer , level : LOG_LEVEL){
     
     // Get logging directory from rc env : TODO
     
-    mkdirp.sync(path.join(this.logPath , 'debug'))
-    mkdirp.sync(path.join(this.logPath , 'error'))
-    mkdirp.sync(path.join(this.logPath , 'access'))
+    await fs.mkdirSync(path.join(this.logPath , 'debug'))
+    await fs.mkdirSync(path.join(this.logPath , 'error'))
+    await fs.mkdirSync(path.join(this.logPath , 'access'))
     
     Log_Level_Map[asNumber(LOG_LEVEL.DEBUG)]  = [asNumber(LOG_LEVEL.DEBUG)]
     Log_Level_Map[asNumber(LOG_LEVEL.STATUS)] = [asNumber(LOG_LEVEL.DEBUG)]
@@ -47,6 +48,16 @@ export class GlobalLogger {
 
     this.setLogger()
 
+  }
+
+  private setRotationTimer() {
+    const dateStr : string = format(new Date() , '%yy%-%mm%-%dd%') ,
+          currDate : Date  = new Date()
+    
+    set(currDate , dateStr , '%yy%-%mm%-%dd%')
+    const nextDateMs : number = currDate.getTime() + ONE_DAY_MS 
+
+    setTimeout( this.setLogger.bind(this) , nextDateMs - Date.now())
   }
 
   private setLogger() {
@@ -67,23 +78,20 @@ export class GlobalLogger {
      this.loggerMap[asNumber(LOG_LEVEL.NONE)]  =  accLogEntry
 
       oldLoggerMap.forEach((entry : FileEntry) => {
-        entry.close()
-        entry.reset()
+        entry.closeEntry()
       })
-     
+    this.setRotationTimer() 
   }
 
   private getNewFileEntry(dateStr : string , loglevel : string ) : FileEntry {
     
-    const filename : string = path.join(this.logPath , loglevel , dateStr) + '.log' ,
-    stream : WriteStream =  fs.createWriteStream(filename , {flags : 'a'}),
-    entry : FileEntry = new FileEntry(filename , dateStr , stream)
-    return entry
+    const filename : string = path.join(this.logPath , loglevel , dateStr) + '.log' 
+    return new FileEntry(filename , dateStr)
   }
 
   public log(level : LOG_LEVEL , logMsg: string ) {
+    
     const loggerIndexes : number[] = Log_Level_Map[asNumber(level)]
-
     loggerIndexes.forEach((index : number)=>{
       
       const entry : FileEntry = this.loggerMap[index]
@@ -94,11 +102,21 @@ export class GlobalLogger {
       }
       const stream : WriteStream = entry.stream
       
-      if(stream){
+      if(!entry.distroyed && stream){
         // Todo : Put try catch
         stream.write(logMsg)
       }else{
         // create again the stream which might have been closed
+        if(entry.distroyed) {
+          console.error('entry distroyed',logMsg)
+          return
+        }else if(!stream){
+          console.error('write stream closed. creating again',entry.fileName)
+          
+          if(entry.createStream(entry.fileName)){
+            entry.stream.write(logMsg)
+          }
+        }
 
       }
     })
@@ -110,33 +128,56 @@ export class GlobalLogger {
 
 class FileEntry {
 
- fileName : string | null
- dateStr  : string | null
- stream   : WriteStream 
+ fileName   : string 
+ dateStr    : string 
+ stream     : WriteStream
+ distroyed  : boolean 
 
- constructor(filename : string , dateStr : string , stream : WriteStream) {
+ constructor(filename : string , dateStr : string) {
    
-   this.fileName = filename 
-   this.dateStr  = dateStr 
-   this.stream   = stream
+   this.fileName  = filename 
+   this.dateStr   = dateStr 
+   this.distroyed = false
+   this.createStream(this.fileName)
+ }
 
-   this.stream.on('error' , (err :any)=> {
-     console.error('received error:' + err, 'while writing log:' + this.fileName)
-     this.reset()
-   })
+ public createStream(filename : string ) : WriteStream {
+   
+  let stream : WriteStream = null as any
+  try{
+
+      stream =  fs.createWriteStream(filename , {flags : 'a'})
+    
+      stream.on('error' , (err :any)=> {
+    
+      console.error('received error:' + err, 'while writing log:' + this.fileName)
+      if(this.stream){
+        try{
+          this.stream.close()
+        }catch(err){
+          console.error('stream closing error ',err , this.fileName)
+        }
+      }
+      this.stream = null as any
+    })
+  }catch(err)
+  {
+    console.error('Write stream creation error ',err , filename)
+    return null as any
+  }
+  
+  this.stream = stream
+  return stream
 
  }
 
- reset() : void {
-   
-   this.fileName = null
-   this.dateStr  = null
-   this.stream   = null as any
- }
-
- close() : void {
+ closeEntry() : void {
   
   try{
+    
+    this.distroyed = true
+    this.fileName = null as any
+    this.dateStr  = null as any
     
     if(this.stream){
       this.stream.end()

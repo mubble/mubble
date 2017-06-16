@@ -11,7 +11,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
                 'July', 'August', 'September', 'October', 'November', 'December']
     
 
-export function format(dt:number|Date, formatStr: string, tzOffset?: number) {
+export function format(dt:number|Date, formatStr: string, tzOffset?: number) : string {
   
   const date = dt instanceof Date ? dt as Date : new Date(dt as number)
   if (tzOffset !== undefined) {
@@ -89,7 +89,7 @@ export function format(dt:number|Date, formatStr: string, tzOffset?: number) {
 
 // var dt = new Date(0)
 // mu(dt).set("27/10/2015 00:00", "%dd%/%mm%/%yyyy% %HH%:%MM%")
-export function set(dt: number | Date, str: string, formatStr: string, tzOffset ?: number) {
+export function set(dt: number | Date, str: string, formatStr: string, tzOffset ?: number) : Date {
 
   const date: Date = dt instanceof Date ? dt as Date : new Date(dt as number)
 
@@ -218,6 +218,6 @@ export function set(dt: number | Date, str: string, formatStr: string, tzOffset 
     date.setTime(time)
   }
   
-  return this
+  return date
 }
 
