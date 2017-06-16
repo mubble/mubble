@@ -51,6 +51,10 @@ export class DSTransaction {
     }
   }
 
+  async createQuery(rc : RunContextServer, namespace : string, kindName : string) {
+    return this._transaction.createQuery(namespace, kindName)
+  }
+
   async get(rc         : RunContextServer, 
             model      : BaseDatastore, 
             id         : number | string, 
