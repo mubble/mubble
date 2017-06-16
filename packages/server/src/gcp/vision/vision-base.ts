@@ -66,7 +66,7 @@ export class VisionBase {
       width  = b[1].x - b[0].x
       height = b[3].y - b[0].y,
       
-      image.crop( x, y, width, height)
+      await image.crop( x, y, width, height)
       if(shrink) image.resize(shrink.w, shrink.h)
     }
 
@@ -101,7 +101,7 @@ export class VisionBase {
       width  = b[1].x - b[0].x
       height = b[3].y - b[0].y,
       
-      image.crop( x, y, width, height)
+      await image.crop( x, y, width, height)
       if(shrink) image.resize(shrink.w, shrink.h)
     }
     return new Promise<{data : string, mime: string | false, height : number, width : number}>((resolve, reject) => {
