@@ -9,9 +9,10 @@
 
 import * as path                           from 'path' 
 import * as fs                             from 'fs'
-import {WriteStream}                       from 'fs'   
+import {WriteStream}                       from 'fs' 
+import * as mkdirp                         from 'mkdirp'   
 
-import {LOG_LEVEL , RunContextBase 
+import {LOG_LEVEL  
         , format , set}                          from '@mubble/core'
 import {RunContextServer}                  from '../rc-server'
 
@@ -34,10 +35,11 @@ export class GlobalLogger {
   async init (rc : RunContextServer , level : LOG_LEVEL){
     
     // Get logging directory from rc env : TODO
+    this.logPath =  path.join (process.cwd() , 'log')
     
-    await fs.mkdirSync(path.join(this.logPath , 'debug'))
-    await fs.mkdirSync(path.join(this.logPath , 'error'))
-    await fs.mkdirSync(path.join(this.logPath , 'access'))
+    await mkdirp.sync(path.join(this.logPath , 'debug'))
+    await mkdirp.sync(path.join(this.logPath , 'error'))
+    await mkdirp.sync(path.join(this.logPath , 'access'))
     
     Log_Level_Map[asNumber(LOG_LEVEL.DEBUG)]  = [asNumber(LOG_LEVEL.DEBUG)]
     Log_Level_Map[asNumber(LOG_LEVEL.STATUS)] = [asNumber(LOG_LEVEL.DEBUG)]
@@ -104,7 +106,7 @@ export class GlobalLogger {
       
       if(!entry.distroyed && stream){
         // Todo : Put try catch
-        stream.write(logMsg)
+        stream.write(logMsg+'\n')
       }else{
         // create again the stream which might have been closed
         if(entry.distroyed) {
@@ -114,7 +116,7 @@ export class GlobalLogger {
           console.error('write stream closed. creating again',entry.fileName)
           
           if(entry.createStream(entry.fileName)){
-            entry.stream.write(logMsg)
+            entry.stream.write(logMsg+'\n')
           }
         }
 
@@ -172,7 +174,7 @@ class FileEntry {
  }
 
  closeEntry() : void {
-  
+  //console.log('closing entry',this.fileName)
   try{
     
     this.distroyed = true
