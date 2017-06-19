@@ -6,8 +6,12 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
+import 
+ { InConnectionBase ,
+   InEventBase , 
+   InRequestBase}                 from './xmn/xmn-router'
 
-import {format} from './util/date'
+import      {format}              from './util/date'
 
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
@@ -16,16 +20,37 @@ export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
 export enum RUN_MODE {DEV, PROD}
 
 export abstract class ExternalLogger {
+  
   abstract log(level: LOG_LEVEL, logMsg: string): void
+  
+  abstract sessionLog(sessionLogBuf : string , sessionFileName : string) : void 
+
+  abstract accessLog(logBuf : string) : void ;
+
 }
+
+export abstract class SessionLogger {
+
+  private sesLogCache : string[]
+
+  public constructor(public rc : RunContextBase) {
+
+  } 
+
+  public abstract log(moduleName: string, level: LOG_LEVEL, args: any[]) : string ;
+
+  public abstract finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void ;
+
+}
+
 
 export class InitConfig {
 
   constructor(public runMode         : RUN_MODE,
               public logLevel        : LOG_LEVEL,
               public consoleLogging  : boolean,
-              public tzMin          ?: number | undefined,
-              public externalLogger ?: ExternalLogger | undefined
+              public tzMin          ?: number,
+              public externalLogger ?: ExternalLogger 
 ) {
 
   }
@@ -37,8 +62,12 @@ export class RunState {
 
 export abstract class RunContextBase {
 
+  public  userContext   : string   
+  
   public  lastLogTS     : number    = 0
 
+  public  logger        : SessionLogger
+  
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
               public contextId   ?: string, 
@@ -54,6 +83,12 @@ export abstract class RunContextBase {
     if (newRcb.contextId === this.contextId && newRcb.contextName === this.contextName) {
       newRcb.lastLogTS = this.lastLogTS
     }
+  }
+
+  public abstract finish(resData : any , ic : InConnectionBase, ire: InRequestBase | InEventBase) : Promise<any> ;
+  
+  public setUserContext(uContext : string) {
+    this.userContext = uContext
   }
 
   changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
@@ -89,19 +124,23 @@ export abstract class RunContextBase {
   }
 
   debug(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.DEBUG, args)
+    //return this._log(moduleName, LOG_LEVEL.DEBUG, args)
+    return this.logger.log(moduleName, LOG_LEVEL.DEBUG, args)
   }
 
   status(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.STATUS, args)
+    //return this._log(moduleName, LOG_LEVEL.STATUS, args)
+    return this.logger.log(moduleName, LOG_LEVEL.STATUS , args)
   }
 
   warn(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.WARN, args)
+    //return this._log(moduleName, LOG_LEVEL.WARN, args)
+    return this.logger.log(moduleName, LOG_LEVEL.WARN , args)
   }
 
   error(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.ERROR, args)
+    //return this._log(moduleName, LOG_LEVEL.ERROR, args)
+    return this.logger.log(moduleName, LOG_LEVEL.ERROR, args)
   }
 
   hasLogged(): boolean {

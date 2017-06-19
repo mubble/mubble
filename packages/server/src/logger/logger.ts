@@ -13,7 +13,7 @@ import {WriteStream}                       from 'fs'
 import * as mkdirp                         from 'mkdirp'   
 
 import {LOG_LEVEL  
-        , format , set}                          from '@mubble/core'
+        , format , set}                    from '@mubble/core'
 import {RunContextServer}                  from '../rc-server'
 
 const ONE_DAY_MS  : number  = 1 * 24 * 60 * 60 * 1000 
@@ -40,13 +40,15 @@ export class GlobalLogger {
     await mkdirp.sync(path.join(this.logPath , 'debug'))
     await mkdirp.sync(path.join(this.logPath , 'error'))
     await mkdirp.sync(path.join(this.logPath , 'access'))
-    
+    await mkdirp.sync(path.join(this.logPath , 'session'))
+
+
     Log_Level_Map[asNumber(LOG_LEVEL.DEBUG)]  = [asNumber(LOG_LEVEL.DEBUG)]
     Log_Level_Map[asNumber(LOG_LEVEL.STATUS)] = [asNumber(LOG_LEVEL.DEBUG)]
     Log_Level_Map[asNumber(LOG_LEVEL.WARN)]   = [asNumber(LOG_LEVEL.DEBUG) , asNumber(LOG_LEVEL.ERROR)]
     Log_Level_Map[asNumber(LOG_LEVEL.ERROR)]  = [asNumber(LOG_LEVEL.DEBUG) , asNumber(LOG_LEVEL.ERROR)]
 
-    Log_Level_Map[asNumber(LOG_LEVEL.NONE)] = [asNumber(LOG_LEVEL.NONE)]
+    Log_Level_Map[asNumber(LOG_LEVEL.NONE)]   = [asNumber(LOG_LEVEL.NONE)]
 
     this.setLogger()
 
