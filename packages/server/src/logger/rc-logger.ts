@@ -10,7 +10,8 @@
 import {RunContextServer}     from '../rc-server'
 import {LOG_LEVEL  
         , format , set 
-        , ExternalLogger}     from '@mubble/core'
+        , ExternalLogger
+         }     from '@mubble/core'
 
 
 
@@ -33,5 +34,6 @@ export class RCLogger extends ExternalLogger {
   public accessLog(logBuf: string): void {
 
   }
+
 }        
 

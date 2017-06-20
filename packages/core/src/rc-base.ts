@@ -27,22 +27,8 @@ export abstract class ExternalLogger {
 
   abstract accessLog(logBuf : string) : void ;
 
+  //abstract getSessionLogger(rc : RunContextBase) : RCLoggerBase ;
 }
-
-export abstract class SessionLogger {
-
-  private sesLogCache : string[]
-
-  public constructor(public rc : RunContextBase) {
-
-  } 
-
-  public abstract log(moduleName: string, level: LOG_LEVEL, args: any[]) : string ;
-
-  public abstract finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void ;
-
-}
-
 
 export class InitConfig {
 
@@ -64,15 +50,12 @@ export abstract class RunContextBase {
 
   public  userContext   : string   
   
-  public  lastLogTS     : number    = 0
-
-  public  logger        : SessionLogger
+  public  logger        : RCLoggerBase
   
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
               public contextId   ?: string, 
               public contextName ?: string) {
-
   }
 
   abstract copyConstruct(contextId ?: string, contextName ?: string): any
@@ -81,11 +64,16 @@ export abstract class RunContextBase {
     newRcb.initConfig   = this.initConfig
     newRcb.runState     = this.runState
     if (newRcb.contextId === this.contextId && newRcb.contextName === this.contextName) {
-      newRcb.lastLogTS = this.lastLogTS
+      newRcb.logger.lastLogTS = this.logger.lastLogTS
     }
   }
 
-  public abstract finish(resData : any , ic : InConnectionBase, ire: InRequestBase | InEventBase) : Promise<any> ;
+  public finish(resData : any , ic : InConnectionBase, ire: InRequestBase | InEventBase) : Promise<any> {
+    return new Promise((resolve : any , reject : any)=> {
+      this.logger.finish(ic, ire)
+      resolve(resData)
+    })
+  }
   
   public setUserContext(uContext : string) {
     this.userContext = uContext
@@ -124,36 +112,50 @@ export abstract class RunContextBase {
   }
 
   debug(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.DEBUG, args)
-    //return this.logger.log(moduleName, LOG_LEVEL.DEBUG, args)
+    return this.logger.log(moduleName, LOG_LEVEL.DEBUG, args)
   }
 
   status(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.STATUS, args)
-    //return this.logger.log(moduleName, LOG_LEVEL.STATUS , args)
+    return this.logger.log(moduleName, LOG_LEVEL.STATUS , args)
   }
 
   warn(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.WARN, args)
-    //return this.logger.log(moduleName, LOG_LEVEL.WARN , args)
+    return this.logger.log(moduleName, LOG_LEVEL.WARN , args)
   }
 
   error(moduleName: string, ...args: any[]) {
-    return this._log(moduleName, LOG_LEVEL.ERROR, args)
-    //return this.logger.log(moduleName, LOG_LEVEL.ERROR, args)
+    return this.logger.log(moduleName, LOG_LEVEL.ERROR, args)
   }
 
   hasLogged(): boolean {
-    return this.lastLogTS !== 0
+    return this.logger.lastLogTS !== 0
   }
 
-  private _log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
+}
 
-    const refLogLevel = this.runState.moduleLLMap[moduleName] || this.getLogLevel()
+export abstract class RCLoggerBase {
+
+  private sesLogCache   : string[]  = []
+  public  lastLogTS     : number    = 0
+
+  protected constructor(public rc : RunContextBase) {
+
+  } 
+
+  
+  public  finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void {
+
+  }
+
+  abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
+
+  public log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
+
+    const refLogLevel = this.rc.runState.moduleLLMap[moduleName] || this.rc.getLogLevel()
     if (level < refLogLevel) return 'not logging'
 
     const curDate = new Date(),
-          dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', this.initConfig.tzMin),
+          dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', this.rc.initConfig.tzMin),
           durStr  = this.durationStr(curDate.getTime())
 
     let buffer = args.reduce((buf, val) => {
@@ -170,17 +172,15 @@ export abstract class RunContextBase {
       return buf ? buf + ' ' + strVal : strVal
     }, '')
 
-    if (this.initConfig.consoleLogging) {
-      const logStr = this.contextId ?
-              `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.contextId}] ${moduleName}(${this.contextName}): ${buffer}` :
+    if (this.rc.initConfig.consoleLogging) {
+      const logStr = this.rc.contextId ?
+              `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.rc.contextId}] ${moduleName}(${this.rc.contextName}): ${buffer}` :
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} ${moduleName}: ${buffer}`
       this.logToConsole(level, logStr)
     }
 
     return buffer
   }
-
-  abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
 
   private durationStr(ts: number): string {
 
@@ -276,5 +276,7 @@ export abstract class RunContextBase {
     }
     return isArray || isSet ? '[' + buffer + ']' : '{' + buffer + '}'
   }
+  
 }
+
 

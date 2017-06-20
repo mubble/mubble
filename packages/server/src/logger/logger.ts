@@ -26,16 +26,14 @@ const Log_Level_Map : number[][] = []
 
 export class GlobalLogger {
 
-  private level       : LOG_LEVEL
   private logPath     : string
   private dateNum     : number = -1
 
   private loggerMap   : FileEntry[] = []
   
-  async init (rc : RunContextServer , level : LOG_LEVEL){
+  async init (logBaseDir ?: string){
     
-    // Get logging directory from rc env : TODO
-    this.logPath =  path.join (process.cwd() , 'log')
+    this.logPath =  logBaseDir ? logBaseDir as string : path.join (process.cwd() , 'log')
     
     await mkdirp.sync(path.join(this.logPath , 'debug'))
     await mkdirp.sync(path.join(this.logPath , 'error'))
