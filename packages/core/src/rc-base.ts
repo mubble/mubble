@@ -124,23 +124,23 @@ export abstract class RunContextBase {
   }
 
   debug(moduleName: string, ...args: any[]) {
-    //return this._log(moduleName, LOG_LEVEL.DEBUG, args)
-    return this.logger.log(moduleName, LOG_LEVEL.DEBUG, args)
+    return this._log(moduleName, LOG_LEVEL.DEBUG, args)
+    //return this.logger.log(moduleName, LOG_LEVEL.DEBUG, args)
   }
 
   status(moduleName: string, ...args: any[]) {
-    //return this._log(moduleName, LOG_LEVEL.STATUS, args)
-    return this.logger.log(moduleName, LOG_LEVEL.STATUS , args)
+    return this._log(moduleName, LOG_LEVEL.STATUS, args)
+    //return this.logger.log(moduleName, LOG_LEVEL.STATUS , args)
   }
 
   warn(moduleName: string, ...args: any[]) {
-    //return this._log(moduleName, LOG_LEVEL.WARN, args)
-    return this.logger.log(moduleName, LOG_LEVEL.WARN , args)
+    return this._log(moduleName, LOG_LEVEL.WARN, args)
+    //return this.logger.log(moduleName, LOG_LEVEL.WARN , args)
   }
 
   error(moduleName: string, ...args: any[]) {
-    //return this._log(moduleName, LOG_LEVEL.ERROR, args)
-    return this.logger.log(moduleName, LOG_LEVEL.ERROR, args)
+    return this._log(moduleName, LOG_LEVEL.ERROR, args)
+    //return this.logger.log(moduleName, LOG_LEVEL.ERROR, args)
   }
 
   hasLogged(): boolean {
