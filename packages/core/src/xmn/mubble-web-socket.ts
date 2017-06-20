@@ -221,12 +221,34 @@ export class MubbleWebSocket {
         ir.api = incomingMsg.api
         ir.param = incomingMsg.data
         ir.startTs = Date.now()
-
+        
         this.router.routeRequest(rc, this.ic, ir).then(obj => {
           this._send(rc, {
             type  : 'response',
             error : null,
             data  : obj,
+            seq   : incomingMsg.seq
+          })
+          rc.finish(obj , this.ic , ir)
+
+        }).catch(err => {
+          rc.isError() && rc.error(rc.getName(this), 'Bombed while processing request', err)
+          this._send(rc, {
+            type  : 'response',
+            error : err.name || 'Error',
+            data  : err.message || err.name,
+            seq   : incomingMsg.seq
+          })
+          rc.finish(err , this.ic , ir)
+        })
+
+        /*
+        this.router.routeRequest(rc, this.ic, ir).then(obj => {
+          this._send(rc, {
+            type  : 'response',
+            error : null,
+            //data  : obj,
+            data  : resData,
             seq   : incomingMsg.seq
           })
           
@@ -239,6 +261,7 @@ export class MubbleWebSocket {
             seq   : incomingMsg.seq
           })
         })
+        */
         // TODO: this request is to be added to pending list
       } else if (incomingMsg.type === 'response') {
 
@@ -262,7 +285,10 @@ export class MubbleWebSocket {
         ie.param = incomingMsg.data
         ie.startTs = Date.now()
 
-        this.router.routeEvent(rc, this.ic, ie).catch(err => {
+        this.router.routeEvent(rc, this.ic, ie).then(resData =>{
+          rc.finish(resData , this.ic , ie)
+        }).catch(err => {
+          rc.finish(err , this.ic , ie)
           rc.isError() && rc.error(rc.getName(this), 'Bombed while processing event', err)
         })
       }

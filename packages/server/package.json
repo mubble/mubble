@@ -18,7 +18,8 @@
     "@types/reflect-metadata": "^0.0.5",
     "@types/semver": "^5.3.31",
     "@types/ws": "0.0.40",
-    "@types/node-uuid":"0.0.28"
+    "@types/node-uuid":"0.0.28",
+    "@types/mkdirp":"^0.3.29"
   },
   "peerDependencies": {
     "lodash": "^4.17.4",

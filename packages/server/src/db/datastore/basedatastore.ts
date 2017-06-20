@@ -14,13 +14,14 @@ import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {DSQuery}          from './ds-query'
+import {DSTQuery}         from './dst-query'
 import {DSTransaction}    from './ds-transaction'
 
 export abstract class BaseDatastore {
 
   // Common fields in all the tables
   [index : string]           : any
-  public    _id              : number | string
+  protected _id              : number | string
   protected createTs         : number
   protected deleted          : boolean = false
      
@@ -120,7 +121,7 @@ export abstract class BaseDatastore {
         return transaction.bdGet (rc, this, id, ignoreRNF)
       }
     }
-    catch (err) { // TODO: (AD) Should we catch transaction errors here ? Print in DSTransaction itself... 
+    catch (err) {
       if(err.code) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       } else {
@@ -128,13 +129,6 @@ export abstract class BaseDatastore {
       }
       throw(new Error(ERROR_CODES.GCP_ERROR))
     }
-  }
-
-/*------------------------------------------------------------------------------
-  - Get the primary key 
-------------------------------------------------------------------------------*/                  
-  getId (rc : RunContextServer ) : number | string {
-    return this._id
   }
 
 /*------------------------------------------------------------------------------
@@ -146,14 +140,14 @@ export abstract class BaseDatastore {
   - noChildren     = Default is true [No Children]
 ------------------------------------------------------------------------------*/ 
   protected async insert(rc : RunContextServer, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    return await this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
+    return this.insertInternal(rc, null, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
   - Insert a child, provided the parent key 
 ------------------------------------------------------------------------------*/ 
   protected async insertChild(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    return await this.insertInternal (rc, parentKey, insertTime, ignoreDupRec, noChildren)
+    return this.insertInternal (rc, parentKey, insertTime, ignoreDupRec, noChildren)
   }
 
 /*------------------------------------------------------------------------------
@@ -240,10 +234,30 @@ export abstract class BaseDatastore {
   }
 
 /*------------------------------------------------------------------------------
+  - Get the primary key 
+------------------------------------------------------------------------------*/                  
+  getId(rc : RunContextServer ) : number | string {
+    return this._id
+  }
+
+/*------------------------------------------------------------------------------
+  - Set the primary key 
+------------------------------------------------------------------------------*/                  
+  setIdFromResult(rc : RunContextServer , key : any) : void {
+    const id = this.getIdFromResult(rc, key)
+    this._id = id
+  }
+
+/*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  static createQuery(rc : RunContextServer) {    
+  static createQuery(rc : RunContextServer, inTransaction ?: boolean ) {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
+
+    if(inTransaction) {
+      const transaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+      return new DSTQuery(rc, transaction, BaseDatastore._namespace, this._kindName)
+    }
     return new DSQuery(rc, BaseDatastore._datastore, BaseDatastore._namespace, this._kindName)
   }
 

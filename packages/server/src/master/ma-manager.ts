@@ -23,9 +23,12 @@ import {masterDesc , assert ,
 import {ModelConfig}          from './ma-model-config'             
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
-import {StringValMap , 
+import {MaMap, StringValMap , 
         GenValMap , 
-       MasterCache }          from './ma-types'              
+       MasterCache }          from './ma-types'
+import {MasterInMemCache , 
+        DigestInfo , 
+        SyncInfo}             from './ma-mem-cache'                     
 
 const LOG_ID : string = 'MasterMgr'
 function MaMgrLog(...args : any[] ) : void {
@@ -51,60 +54,20 @@ var CONST = {
 }
 
 
-/*
-export function getMapObj<T> () : any {
-  const t : any = typeof  {[key: string] : T} 
-}*/
-
-export type masterdatainfo = {
-  mastername : string 
-  masterdata : string
-}
-
-export type syncInfo = {
-  ts : number 
-  // add more
-}
-
-/**
- * In Memory cache used to store store data for each master
- */
-export class MasterData {
-  
-  public constructor(public mastername : string) {
-    
-  }
-
-  public records    : object [] = []
-  public modTSField : string
-
-  public getMaxTS() : number {
-    return 0
-  } 
-  public getMinTS() : number {
-    return 0
-  }
-
-  public refTS          : number
-  public lastUpdateTS   : number
-
-}
-
 export class SourceSyncData {
   
   mastername : string
-  source     : Map<string , any>
+  source     : GenValMap
   redisData  : GenValMap
   
- 
-  inserts    : Map<string , any> = new Map<string , any>()
-  updates    : Map<string , any> = new Map<string , any>()
-  deletes    : Map<string , any> = new Map<string , any>()
+  inserts    : GenValMap = {}
+  updates    : GenValMap = {}
+  deletes    : GenValMap = {}
 
 
-  modifyTs   : number = lo.now()
+  modifyTs   : number 
 
-  public constructor(master : string , source : Map<string , any> , target : GenValMap , now : number ) {
+  public constructor(master : string , source : GenValMap , target : GenValMap , now : number ) {
     this.mastername = master
     this.source = source
     this.redisData = target
@@ -122,8 +85,14 @@ export class MasterMgr {
   // sub redis can only issue limited commands
   subRedis : RedisWrapper
 
-  masterCache : Map<string , MasterData>
+  masterCache : MaMap<MasterInMemCache> = {}
+
   rc : RunContextServer
+
+  dependencyMap : {[mastername : string] : string[]} = {}
+  
+  revDepMap : {[mastername : string] : string[]} = {}
+  
 
   /*
   Actions : 
@@ -155,21 +124,77 @@ export class MasterMgr {
       
       assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
       
+      this.buildDependencyMap()
+
       await this.checkSlaveMasterSync(false)
 
       await this.setSubscriptions()
 
-      await this.buildInMemoryCache()
+      await this.buildInMemoryCache(rc)
   }
 
+  private buildDependencyMap() : void {
+    
+    const dMap : {[master : string] : string[]} = this.dependencyMap
+    const rdMap : {[master : string] : string[]} = this.revDepMap
+    
+    function getDepMasters(mas : string) : string[] {
+      if(dMap[mas]) return dMap[mas]
+      return MasterRegistryMgr.regMap[mas].config.getDependencyMasters()
+    }
+
+    MasterRegistryMgr.masterList().forEach(mas => {
+      
+      let dArr : string[] = getDepMasters(mas)
+      let dlen = dArr.length ,
+          mdlen = 0 
+      
+      // we need to get all dependencies of nth level 
+      // (dependencies of dependencies of ...) recursively
+      while(dlen !== mdlen){
+        dlen = dArr.length
+        lo.clone(dArr).forEach(dep=>{
+          const depMas : string[] = getDepMasters(dep)
+          //dArr = lo.uniq(dArr.concat(depMas))
+          depMas.forEach(depM =>{
+            if(dArr.indexOf(depM)===-1) dArr.push(depM)
+          })
+        })
+        mdlen = dArr.length
+      }
+      
+      dMap[mas] = dArr
+      //MaRegMgrLog('buildDependencyMap 1',mas , dArr)
+      //MaRegMgrLog('buildDependencyMap 2',dMap)
+      
+      // Reverse Mapping
+      dArr.forEach(depMas=>{
+        let rArr : string[] = rdMap[depMas]
+        if(rArr==null){
+          rArr = []
+          rdMap[depMas] = rArr
+        }
+        rArr.push(mas)
+      })
+
+    })
+    // Todo : remove empty array values masters / master with no dependency
+    MaMgrLog('build Dependency Map finished\r\n',this.dependencyMap)
+    MaMgrLog('build Reverse DependencyMap finished\r\n',this.revDepMap)
+  }
+    
+
   async checkSlaveMasterSync(assertCheck : boolean) : Promise<any> {
+    
     type ts_info =  {key ?: string , ts ?: number}
     
     MaMgrLog('checkSlaveMasterSync started')
+    
     for(const master of MasterRegistryMgr.masterList()){
       
       const mDetail : ts_info = await MasterMgr._getLatestRec(this.mredis , master)
       const sDetail : ts_info = await MasterMgr._getLatestRec(this.sredis , master)
+      
       if(lo.isEmpty(mDetail) && lo.isEmpty(sDetail)){
         MaMgrLog('Master Slave Sync No records for master',master)
       }
@@ -181,6 +206,7 @@ export class MasterMgr {
         await FuncUtil.sleep(15*1000)
         return this.checkSlaveMasterSync(false)
       }
+
       MaMgrLog('Master Slave Sync', mDetail , master)
     }
 
@@ -189,6 +215,7 @@ export class MasterMgr {
 
   // sRedis subscribing to master publish records
   async setSubscriptions() {
+    
     MaMgrLog("Subscribing sredis to master ",CONST.REDIS_CHANNEL)
     
     await this.subRedis.subscribe([CONST.REDIS_CHANNEL] , (channel : string , msg : string)=>{
@@ -202,64 +229,89 @@ export class MasterMgr {
   }
 
   async refreshSelectModels(masters : string[]) {
+    
     MaMgrLog('refreshing masters list',masters)
+    
     const all : string[] = MasterRegistryMgr.masterList()
     masters.forEach((mas : string)=>{
       assert(all.indexOf(mas)!==-1 , 'Invalid Master Obtained from Publish',mas , masters)
     })
-
+    
+    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap()
+    
     for(const mas of masters){
-      await this.refreshAModel(mas)
+      await this.refreshAModel(mas , digestMap[mas] )
     }
   }
 
-  async refreshAModel(mastername : string) {
+  async refreshAModel(mastername : string , dinfo : DigestInfo) {
+    
     MaMgrLog('refreshing master', mastername)
-
+    
     const redis : RedisWrapper = this.sredis ,
+          memcache : MasterInMemCache = this.masterCache[mastername],
           redisTsKey : string  = CONST.REDIS_NS + CONST.REDIS_TS_SET + mastername ,
           redisDataKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + mastername ,
-          lastTs   : number  = 0 , // Todo get from store
-          resultWithTsScore : string [] = await redis.rwZrangebyscore(redisTsKey , lastTs , CONST.PLUS_INFINITY, true) ,
-          resultKeys :string [] = resultWithTsScore.filter((val : any , index : number)=>{ return index%2 ===0 })
+          lastTs   : number  = memcache.latestRecTs() , 
+          resultWithTsScore : string [] = await redis.rwZrangebyscore(redisTsKey , '('+lastTs , CONST.PLUS_INFINITY, true) ,
+          resultKeys :string [] = resultWithTsScore.filter((val : any , index : number)=>{ return index%2 ===0 }) ,
+          resultScores : string [] =  resultWithTsScore.filter((val : any , index : number)=>{ return index%2 !==0 }) 
 
     if(!resultKeys.length){
       MaMgrLog('refreshAModel no records to update')
       return
     }
+    const uniqueScores : string[] = lo.uniq(resultScores)
+    assert(uniqueScores.length === 1 , 'model refresh inconsistency ' , mastername , uniqueScores , dinfo)
+    assert(lo.toNumber(uniqueScores[0]) === dinfo.modTs , 'model refresh inconsistency ' , mastername , uniqueScores , dinfo )
+
     MaMgrLog('refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
 
     const recs : string[] = await redis.redisCommand().hmget(redisDataKey , ...resultKeys)
     MaMgrLog('refreshAModel ',mastername , 'refreshed records:',recs.length /*, recs*/)
-    // todo : Data store Impl
-  }
+
+    assert(resultKeys.length === recs.length , 'invalid result from refresg redis' , resultKeys.length , recs.length)
+    
+    const newData : GenValMap = {}
+    for(let i=0 ; i<resultKeys.length ; i++) {
+      const pk : string = resultKeys[i] ,
+            val : object = JSON.parse(recs[i])
+      
+      newData[pk] = val      
+    }
+
+    const res : any = memcache.update(newData , dinfo)
+    MaMgrLog('refreshAModel result ',res)
+ }
   
   public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
     
     const results : object [] = []
     
-    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
-          digestMap   : {[key:string] : string} =  await this.mredis.redisCommand().hgetall(digestKey) ,
+    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() ,
           masterCache : MasterCache = {} ,
-          todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} = {},
+          todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}} = {},
           // all masters update records will have same timestamp
           now         : number = lo.now()
     
-    debug('digestMap:',digestMap)     
+    debug('digestMap:',digestMap , arModels.map((x)=> x.master) )     
     
     for(let i : number = 0 ; i <arModels.length ; i++ ){
       
       const oModel : {master : string , source: string} = arModels[i] 
-      MasterRegistryMgr.isAllowedFileUpload(oModel.master.toLowerCase())
+      const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(oModel.master.toLowerCase())
+
+      assert(registry!=null , 'Unknow master ',oModel.master.toLowerCase() , 'for file upload')
+      registry.isAllowedFileUpload()
       
       const master  : string              = oModel.master.toLowerCase() ,
-            //testing remove that
-            mDigest : string              = digestMap ? digestMap[master] : '' ,
+            mDigest : string              = digestMap[master] ? digestMap[master].fileDigest  : '' ,
             json    : object              = JSON.parse(oModel.source),
             fDigest : string              = crypto.createHash('md5').update(JSON.stringify(json) /*oModel.source*/).digest('hex')
             
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
      debug(master , 'mDigest:',mDigest , 'fDigest:',fDigest)
+     
      if(lo.isEqual(mDigest , fDigest)){
         results.push({name : master , error : 'skipping as file is unchanged'}) 
         continue
@@ -268,11 +320,10 @@ export class MasterMgr {
      const redisData : GenValMap = await this.listAllMasterData(rc , master) ,
            ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData , now )       
      
-     MaMgrLog('applyFileData' , master ,'inserts:' ,ssd.inserts.size ,'updates:', ssd.updates.size , 'deletes:',ssd.deletes.size )
+     MaMgrLog('applyFileData' , master ,'inserts:' , lo.size(ssd.inserts) ,'updates:', lo.size(ssd.updates) , 'deletes:',lo.size(ssd.deletes) )
      this.setParentMapData(master , masterCache , ssd) 
-     todoModelz[master] = {ssd : ssd , fDigest : fDigest} 
-
-     //debug('todoModelz',master, ssd.inserts.size , ssd.updates.size , ssd.deletes.size )    
+     todoModelz[master] = {ssd : ssd , fDigest : fDigest , modelDigest : registry.getModelDigest()} 
+     
     }
 
     if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
@@ -283,18 +334,21 @@ export class MasterMgr {
      
      // master dependency data settings      
      if((lo.hasIn(masterCache , master) && masterCache[master] )){
-        const depMap : Map<string , any> = masterCache[master]
-        MaMgrLog(master , 'overriding source ',  depMap.size , ssd.source.size )
+        
+        const depMap : GenValMap = masterCache[master]
+        MaMgrLog(master , 'overriding source ',  lo.size(depMap) , lo.size(ssd.source)  )
         masterCache[master] = ssd.source
      }else{
+       
        masterCache[master] = ssd.source
-       MaMgrLog('setParentMapData' , master , 'source size' , ssd.source.size )
+       MaMgrLog('setParentMapData' , master , 'source size' , lo.size(ssd.source) )
      }
      
-     if(lo.hasIn( MasterRegistryMgr.dependencyMap , master)){
-       const depMasters : string [] = MasterRegistryMgr.dependencyMap[master]
+     if(lo.hasIn(this.dependencyMap , master)){
+       
+       const depMasters : string [] = this.dependencyMap[master]
        depMasters.forEach((depMas : string)=>{
-         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as Map<string , any>
+         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as GenValMap
        })
      }
     
@@ -305,14 +359,62 @@ export class MasterMgr {
 
   }
 
-  // 
-  public destinationSync (rc : RunContextServer , sync : Array<syncInfo> ) {
-      // Get destSynFields from Registry
+  public async destinationSync (rc : RunContextServer , syncMap : MaMap<SyncInfo> ) {
+    
+    const response : {syncHash : GenValMap , syncData : GenValMap} = {syncHash : {} , syncData : {}}
+    
+    // check if there is any new data sync required
+    const dataSyncRequired : string [] = [] ,
+          purgeRequired    : string [] = []
+    
+    lo.forEach(syncMap , (synInfo : SyncInfo , mastername : string) =>{
+      
+      const memcache : MasterInMemCache = this.masterCache[mastername]
+
+      assert(memcache!=null , 'Unknown master data sync request ',mastername)
+      assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
+      
+      if(!memcache.hasRecords()){
+        // No Data in this master
+        assert(synInfo.ts ===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
+
+      }else if( synInfo.modelDigest !== memcache.digestInfo.modelDigest ||
+                synInfo.ts < memcache.getMinTS()) 
+      {
+        MaMgrLog('master digest change purging all',mastername , synInfo.modelDigest , memcache.digestInfo.modelDigest)
+        synInfo.ts = 0
+        dataSyncRequired.push(mastername)
+        purgeRequired.push(mastername)
+
+      }else if(synInfo.ts < memcache.latestRecTs()) {
+        // sync required
+        dataSyncRequired.push(mastername)
+      
+      }else {
+        // Both are in sync
+        assert(synInfo.ts === memcache.latestRecTs())
+      }
+
+    })
+
+    if(!dataSyncRequired.length) return response
+
+    for(const mastername of dataSyncRequired) {
+      
+      const memcache : MasterInMemCache = this.masterCache[mastername]
+      if(memcache.cache){
+        memcache.syncData(response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+      }else{
+        // No caching . Todo
+
+      }
+    }
+    
   }
 
 
   // Update the mredis with required changes 
-  private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}}  ) {
+  private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}}  ) {
     
     MaMgrLog('applyData results',results , 'mastercache keys:',lo.keysIn(masterCache) ,'TodoModels keys:' ,lo.keysIn(todoModelz) )
     
@@ -320,6 +422,7 @@ export class MasterMgr {
       if(masterCache[depMaster]) continue
       // Populate the dependent masters
       masterCache[depMaster] = await this.listActiveMasterData(rc , depMaster)
+      //debug('dependent master ',depMaster , 'size:', lo.size(masterCache[depMaster]) )
     }
 
     // verify all dependencies
@@ -333,16 +436,16 @@ export class MasterMgr {
     return results
   }
 
-  private async updateMRedis(results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string}} ) {
+  private async updateMRedis(results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest: string}} ) {
     
     const multi : Multi = this.mredis.multi()
       
     for(const master  of lo.keysIn(todoModelz) ){
       
-      const modData : {ssd : SourceSyncData , fDigest : string} = todoModelz[master] ,
-            inserts : {[key : string] : any} = FuncUtil.toObject(modData.ssd.inserts) ,
-            updates : {[key : string] : any} = FuncUtil.toObject(modData.ssd.updates) ,
-            deletes : {[key : string] : any} = FuncUtil.toObject(modData.ssd.deletes) ,
+      const modData : {ssd : SourceSyncData , fDigest : string , modelDigest : string } = todoModelz[master] ,
+            inserts : GenValMap = modData.ssd.inserts ,
+            updates : GenValMap = modData.ssd.updates ,
+            deletes : GenValMap = modData.ssd.deletes ,
             ts      : number = modData.ssd.modifyTs
 
       const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign({} , inserts , updates , deletes))  
@@ -354,9 +457,10 @@ export class MasterMgr {
         multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
 
       })
-      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, modData.fDigest])
+      // todo : Calculate Data Digest and other digest
+      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, JSON.stringify(new DigestInfo(modData.fDigest , modData.modelDigest , ts , '' , {} )) ])
       // result objects with info
-      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes)})    
+      results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes) , modTs : ts })    
     }
     
     MaMgrLog('updating MRedis')
@@ -367,9 +471,21 @@ export class MasterMgr {
  
   }
 
-  private async buildInMemoryCache() {
-    //Todo :
-    MaMgrLog('buildInMemoryCache')
+  private async buildInMemoryCache(rc : RunContextServer) {
+    
+    MaMgrLog('buildInMemoryCache started')
+    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() 
+    
+    for(const mastername of MasterRegistryMgr.masterList()) {
+      
+      MaMgrLog('Building InMemory Cache for ',mastername)
+      assert(!lo.hasIn(this.masterCache , mastername) , 'mastercache already present for ',mastername)
+      
+      const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+      this.masterCache[mastername] = new MasterInMemCache(mastername , masterData , digestMap[mastername])
+    }
+
+    MaMgrLog('buildInMemoryCache finished')
   }
 
   // hash get functions 
@@ -402,6 +518,7 @@ export class MasterMgr {
 
   //hash set functions
   async hset<T extends MasterBase>(key : string , item : T) {
+
     const params = [key].concat([JSON.stringify(item.getId()) , JSON.stringify(item) ])
     const redis : RedisWrapper = this.mredis
     
@@ -409,7 +526,9 @@ export class MasterMgr {
   }
 
   async hmset<T extends MasterBase>(key : string , items : T[]) {
+
     const params = []
+
     for(const item of items){
       params.push(JSON.stringify(item.getId()) , JSON.stringify(item))
     }
@@ -418,8 +537,23 @@ export class MasterMgr {
     return redis.redisCommand().hmset(key , ...params)
   }
 
-  
+  private async getDigestMap() : Promise<MaMap<DigestInfo>> {
+    
+    const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
+          stringMap   : StringValMap =  await this.mredis.redisCommand().hgetall(digestKey),
+          genMap      : GenValMap = FuncUtil.toParseObjectMap(stringMap)
+    
+    // Empty      
+    if(!stringMap) return {}
+
+    return lo.mapValues(genMap , (val : any , masterKey : string)=>{
+        
+        return DigestInfo.getDigest(val , masterKey)
+    })
+  }
+
   public async listAllMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
+
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     const map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
@@ -427,7 +561,8 @@ export class MasterMgr {
     return FuncUtil.toParseObjectMap(map)
   }
 
-  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<Map<string , any>> {
+  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
+
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
     let map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
     
@@ -435,15 +570,14 @@ export class MasterMgr {
     let pMap : GenValMap = FuncUtil.toParseObjectMap(map)
     
     // remove deleted
-    pMap = FuncUtil.reduce(pMap , (val : any , key : string) => {
-      return !(val['deleted'] === true)
-    })
-    // convert to map and return 
-    return FuncUtil.toMap(pMap)
+    return lo.omitBy(pMap , (val : any , key : string) => {
+      return (val['deleted'] === true)
+    }) as GenValMap
 
   }
 
   private static async _getLatestRec(redis : RedisWrapper , master : string , oldest : boolean = false) : Promise<{key ?: string , ts ?: number}>  {
+    
     const redisTskey : string = CONST.REDIS_NS + CONST.REDIS_TS_SET + master
     const position : number = oldest ? 0 : -1
     const res : string[] = redis.redisCommand().zrange(redisTskey , position , position , CONST.WITHSCORES)

@@ -45,7 +45,7 @@ export class DSQuery {
     return this
   }
 
-  order(key : string, value : any) : DSQuery {
+  order(key : string, value ?: any) : DSQuery {
     this._query = this._query.order(key, value)
     return this
   }

@@ -15,7 +15,8 @@ import {
   LOG_LEVEL,
   RUN_MODE,
   InitConfig,
-  RunState
+  RunState,
+  RCLoggerBase
 }  from '@mubble/core'
 
 // Import from external modules without types
@@ -165,8 +166,18 @@ export abstract class RunContextServer extends RunContextBase {
     this.isStatus() && this.hasLogged() && this.status(this.getName(this), '....done....')
   }
 
-  logToConsole(level: LOG_LEVEL, logStr: string): void {
+}
+
+export class RCServerLogger extends RCLoggerBase {
+  
+  constructor(public rc : RunContextServer) {
+    super(rc)
+  }
+
+  public logToConsole(level: LOG_LEVEL, logStr: string): void {
     const fn: any = colors[LOG_LEVEL[level]]
     console.log(fn ? fn(logStr) : logStr)
   }
+
 }
+

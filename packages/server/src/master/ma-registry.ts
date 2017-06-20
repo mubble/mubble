@@ -11,12 +11,18 @@ import "reflect-metadata"
 import * as lo                from 'lodash'
 
 import {RunContextServer}     from '../rc-server'
-import {Master , MasterBase}  from './ma-base'
-import {ModelConfig , 
-  MasterValidationRule}       from './ma-model-config'  
+import {StringValMap , 
+        GenValMap , 
+       MasterCache }          from './ma-types'              
 import {masterDesc , assert , 
         concat , log ,
-        throwError}           from './ma-util'   
+        throwError , MaType}  from './ma-util'   
+
+import {Master , MasterBase}  from './ma-base'
+import {ModelConfig , 
+  MasterValidationRule}       from './ma-model-config'
+import {MasterRegistryMgr}    from './ma-reg-manager'  
+
 
 const LOG_ID : string = 'MasterRegistry'
 function MaRegistryLog(...args : any[] ) : void {
@@ -26,8 +32,10 @@ function MaRegistryLog(...args : any[] ) : void {
 export const MASTERBASE : string = 'masterbase' //MasterBase.constructor.name.toLowerCase()
 
 export type MasterFieldType = 'string' | 'object' | 'number' | 'boolean' | 'array'
+
 //export type MasterFieldType = String | Number | Boolean | Object
-export function getType(t : any) : MasterFieldType {
+function getType(t : any) : MasterFieldType {
+  
   switch(t){
     
     case Number     : return 'number'
@@ -47,29 +55,39 @@ export function getType(t : any) : MasterFieldType {
 
 export class FieldInfo {
   
-  name    : string
+  name        : string
   
-  type    : MasterFieldType
+  type        : MasterFieldType
   
-  masType : Master.FieldType
+  constraint  : Master.FieldType
 
-  target  : object
+  targetName  : string
 
-  constructor(name : string , type : MasterFieldType , masType : Master.FieldType , target : object) {
+  rules       : (( obj : any ) => void ) [] = []      
+
+  constructor(name : string , targetName : string , type : MasterFieldType , constraint ?: Master.FieldType ) {
+    
     // Dont like using public specifier. For class members visibility
-    this.name     = name
-    this.type     = type
-    this.masType  = masType
-    this.target   = target
+    this.name         = name
+    this.targetName   = targetName
+    this.type         =  type
+    
+    if(MaType.isPresent<Master.FieldType>(constraint)) {
+      this.constraint   = constraint
+    }
   }
 
+
+
   public toString() : string {
-    return JSON.stringify({name : this.name, type : this.type , masType : this.masType}) 
+    
+    return JSON.stringify({name : this.name, type : this.type , masType : this.constraint}) 
   }
 
   // Is field inherited from master base
   public isMasterBaseField() : boolean {
-    return this.target.constructor.name.toLowerCase() === MASTERBASE
+    
+    return this.targetName === MASTERBASE
   }
 
 }
@@ -85,7 +103,7 @@ export class MasterRegistry {
 
   mastername                : string
   
-  construct                 : new (rc : any , ...args : any[]) => MasterBase
+  //construct                 : new (rc : any , ...args : any[]) => MasterBase
   
   masterInstance            : MasterBase
   
@@ -106,7 +124,7 @@ export class MasterRegistry {
 
   // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
-  rules                     : ((obj : any) => void) [] = []
+  //rules                     : ((obj : any) => void) [] = []
 
   // Get id string from master rec
   public getIdStr(src : any) : string {
@@ -124,39 +142,50 @@ export class MasterRegistry {
     return JSON.stringify(id)
   }
   
+  /*
+  1. verify that field name must not contain the . or should not be empty
+  2. Must have set at least 1 PK
+  3. PK Fields can not be object
+  5. It must be an Instance of MasterBase
+ */  
+  public verifyInternal(construct : any) {
+    
+    assert(this.pkFields.length > 0 , 'PK not set for master ', this.mastername)
+    
+    lo.forEach(this.fieldsMap,  (finfo : FieldInfo , key : string)=>{
+      // 1 check
+      assert( key.length > 0 , 'Invalid key ',key , masterDesc(this.mastername , key , null))
+
+      if(finfo.constraint === Master.FieldType.PRIMARY && finfo.type === 'object'){
+        throwError('PK ',key , 'can not be object ',this.mastername)
+      }
+
+    })
+
+    assert(construct != null && this.config !=null , 'master class ',this.mastername , 'modelType definition missing')
+    
+    this.masterInstance = new construct(null as any as RunContextServer , this.mastername)
+
+    // check if this is an instance of master base
+    assert(this.masterInstance instanceof MasterBase , this.mastername , 'is not an masterbase impl ')
+
+  }
+
   public verify(context : RunContextServer) {
     
     MaRegistryLog('Verifying ',this.mastername)
     
     // Todo
     /*
-    1. verify that field name must not contain the . or should not be empty
-    2. Must have set at least 1 PK
-    3. PK Fields can not be object
     4. Populate autofields + other populations
-    5. It must be an Instance of MasterBase
-    6. constructor must be present
-    // not done yet
-    7. config must be present 
     8. verify configuration
     9. Check all dependency masters are present
     */
-    assert(this.pkFields.length > 0 , 'PK not set for master ', this.mastername)
     
-    lo.forEach(this.fieldsMap,  (finfo : FieldInfo , key : string)=>{
-      // 1 check
-      assert( key.length > 0 && key.indexOf('.') === -1 , 'Invalid key ',key , masterDesc(this.mastername , key , null))
-
-      if(finfo.masType === Master.FieldType.PRIMARY && finfo.type === 'object'){
-        throwError('PK ',key , 'can not be object ',this.mastername)
-      }
-
-    })
-
     this.allFields = lo.keysIn(this.fieldsMap)
 
     this.autoFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
-      return finfo.masType === Master.FieldType.AUTO
+      return finfo.isMasterBaseField()
     }).map(info=>info.name)
                         
     const masterTsField : string = this.config.getMasterTsField()                    
@@ -167,7 +196,7 @@ export class MasterRegistry {
 
     // set optional fields
     this.optionalFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
-      return finfo.masType === Master.FieldType.OPTIONAL
+      return finfo.constraint === Master.FieldType.OPTIONAL
     }).map(info=>info.name)
     
     this.ownFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
@@ -175,26 +204,91 @@ export class MasterRegistry {
     }).map(info=>info.name)
     
 
-    assert(this.construct != null && this.config !=null , 'master class ',this.mastername , 'modelType definition missing')
-    // In end create instance
-    this.masterInstance = new this.construct(context , this.mastername)
+    MaRegistryLog(this.mastername , this.fieldsMap)
 
-    // check if this is an instance of master base
-    assert(this.masterInstance instanceof MasterBase , this.mastername , 'is not an masterbase impl ')
+    lo.forEach(this.config.getDependencyMasters() , (parent : string)=>{
+      assert(MasterRegistryMgr.getMasterRegistry(parent)!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
+    })
 
-    //MaRegMgrLog(this.mastername , this.fieldsMap)
+    // check FK contrains are okay
+    const fkConst  : Master.ForeignKeys = this.config.getForeignKeys()
+
+    lo.forEach(fkConst , (props : StringValMap , parent : string)=>{
+
+      const parentRegistry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(parent)
+      // parent master must exists
+      assert(parentRegistry!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
+      lo.forEach(props , (selfField : string , parentField : string)=>{
+        // self field must exist
+        assert(this.ownFields.indexOf(selfField)!==-1 , 'FK field ',selfField , 'is not present in master ',this.mastername)
+        // parent master field must exists
+        assert(parentRegistry.ownFields.indexOf(parentField)!==-1 , 'Parent FK field ',parentField , 'is not present in parent ',parent)
+
+        const selfInfo : FieldInfo = this.fieldsMap[selfField]
+
+        // can not be an optional field
+        assert(!selfInfo.isMasterBaseField() && selfInfo.constraint !== Master.FieldType.OPTIONAL , 'FK field cant be optional or automatic',selfField , this.mastername )
+
+        // can not be an array or object
+        assert(selfInfo.type !== 'object' && selfInfo.type !== 'array' , 'FK field cant be object/array',selfField , this.mastername )
+        
+        // self field type must be same as parent field type
+        assert(selfInfo.type === parentRegistry.fieldsMap[parentField].type , 'FK field type must match parent field type ', selfField , selfInfo.type , this.mastername , parent ,parentRegistry.fieldsMap[parentField].type  )
+
+      })
+
+    })
+  }
+
+  public addFieldRule(fieldName : string , target : object , rule : ((obj : any)=> void)) {
+    
+    MaRegistryLog('addFieldRule', this.mastername , fieldName )
+    
+    var t = Reflect.getMetadata("design:type", target, fieldName)
+    assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
+    
+    let type : MasterFieldType = getType(t)
+    let targetName : string = target.constructor.name.toLowerCase()
+    
+    let finfo : FieldInfo = this.fieldsMap[fieldName]
+    if(!finfo) {
+      finfo = this.fieldsMap[fieldName] = new FieldInfo(fieldName , targetName , type )
+    }
+
+    assert(finfo.targetName === targetName && finfo.type === type , 'mismatch in field rule validation ',this.mastername , fieldName)
+
+    finfo.rules.push(rule)
   }
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     
     MaRegistryLog('addField', this.mastername , fieldName , masType )
     
-    assert( !lo.hasIn(this.fieldsMap , fieldName)  , masterDesc(this.mastername , fieldName , null) , 'added again')
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
     
     let type : MasterFieldType = getType(t)
-    this.fieldsMap[fieldName] = new FieldInfo(fieldName , type , masType ,  target)
+    let targetName : string = target.constructor.name.toLowerCase()
+
+    let finfo : FieldInfo = this.fieldsMap[fieldName]
+    if(!finfo) {
+      finfo = this.fieldsMap[fieldName] = new FieldInfo(fieldName , targetName , type , masType )
+    }else{
+      // It was already created by addFieldRule
+      assert(finfo.constraint == null , 'contrain can not be populated before ',this.mastername , fieldName)
+      finfo.constraint = masType
+    }
+
+    assert(finfo.targetName === targetName && finfo.type === type , 'mismatch in field rule validation ',this.mastername , fieldName)
+  }
+
+  public isAllowedFileUpload() {
+    assert(this.config.getHasFileSource() , 'master', this.mastername , 'is not file sourced')
+  }
+
+  // Todo : create a model checksum
+  public getModelDigest() : string {
+    return 'newschat:'+this.mastername
   }
 
 }

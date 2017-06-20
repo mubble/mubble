@@ -51,7 +51,8 @@ export namespace Master{
     public static  PRIMARY : FieldType = new FieldType('PRIMARY')
     public static  MANDATORY : FieldType = new FieldType('MANDATORY')
     public static  OPTIONAL : FieldType = new FieldType('OPTIONAL')
-    public static  AUTO : FieldType = new FieldType('AUTO')
+    
+    //public static  AUTO : FieldType = new FieldType('AUTO')
 
     public toString() {
       return this.name
@@ -59,6 +60,7 @@ export namespace Master{
   }
 
   export function field(type ?: FieldType ) {
+    
     return function(target : any , propertyKey : string) {
       if(!type) type = FieldType.MANDATORY
       MasterRegistryMgr.masterField(target , propertyKey , type)
@@ -66,6 +68,7 @@ export namespace Master{
   }
 
   export function primaryKey() {
+    
     return function(target: any, propertyKey: string) {
       MasterRegistryMgr.masterField(target , propertyKey , FieldType.PRIMARY)
     }
@@ -81,15 +84,18 @@ export namespace Master{
   
   // field level Rule
   export function versionField(prototype : any , propKey : string) {
+    
     function versionFieldCheck(rec : any) {
       const mastername : string = prototype.constructor.name
       const val : any = rec[propKey]
       assert( semver.valid(val)!=null , masterDesc(mastername,propKey,val) , 'is not a version field' )
-    } 
+    }
+
     MasterRegistryMgr.fieldValidationRule(prototype , propKey , versionFieldCheck)
   }
   
   export function withinList(list : any[]) {
+    
     return function(prototype : any , propKey : string) {
       
       function withinListCheck(rec : any) {
@@ -98,12 +104,15 @@ export namespace Master{
         assert( val!=null , masterDesc(mastername,propKey,val) , 'is null')
         assert( list.indexOf(val)!= -1 , masterDesc(mastername,propKey,val) , 'not in list', list.toString() )
       }
+
       MasterRegistryMgr.fieldValidationRule(prototype , propKey , withinListCheck)
     }
   }
   
   export function objPropertiesIn(list : string[]) {
+    
     return function(prototype : any , propKey : string) {
+      
       assert(list.length >0 ,'Object Properties is empty' )
       
       function objPropertiesInCheck(rec : any) {
@@ -115,11 +124,13 @@ export namespace Master{
           assert(list.indexOf(key)!==-1 , masterDesc(mastername,propKey,val) , 'key:',key , 'is missing in the properties list',list)
         }
       }
+
       MasterRegistryMgr.fieldValidationRule(prototype , propKey , objPropertiesInCheck)
     }
   }
 
   export function objectStructure(struc : any) {
+    
     return function(prototype : any , propKey : string) {
       
       function objectStructureCheck(rec : any) {
@@ -128,13 +139,14 @@ export namespace Master{
         assert( val!=null , masterDesc(mastername,propKey,val) , 'is null')
         // This is wrong. Have to check each field manually , recursively
         //assert( val instanceof struc , masterDesc(mastername,propKey,val) , 'is null')  
-      } 
-      MasterRegistryMgr.fieldValidationRule(prototype , propKey , objectStructureCheck)
+      }
 
+      MasterRegistryMgr.fieldValidationRule(prototype , propKey , objectStructureCheck)
     }
   }
   
   export function inRange(minVal : number , maxVal : number , defaultIgnoreVal ?: number) {
+    
     return function(prototype : any , propKey : string) {
       
       function inRangeCheck(rec : any) {
@@ -143,23 +155,22 @@ export namespace Master{
         if(defaultIgnoreVal!=null && val===defaultIgnoreVal) return
         assert( val>=minVal && val<=maxVal , masterDesc(mastername,propKey,val) , 'Not in range', minVal+'-'+maxVal , rec )
       } 
+
       MasterRegistryMgr.fieldValidationRule(prototype , propKey , inRangeCheck)
     }
   }
   
 
-  export type ForeignKeys = {[master : string] : GenValMap}
+  export type ForeignKeys = {[master : string] : StringValMap}
   
 
-  export function getDefaultConfig (segment : object , startVersion : string , endVersion : string , fk ?: ForeignKeys )  : ModelConfig {
+  export function getDefaultConfig (segment : object  , fk ?: ForeignKeys )  : ModelConfig {
     //const masConfig : ModelConfig = new MasterModelConfig('Sample')
     
     const masConfig : ModelConfig = new class TestModelConfig extends MasterModelConfig {
       constructor(){
         super('Sample')
         this.segment = segment
-        this.startVersion = startVersion
-        this.endVersion = endVersion
         if(MaType.isObject(fk)) this.fkConstrains = fk
         this.hasFileSource = true
       }
@@ -178,21 +189,13 @@ export var MasterBaseFields =
 
 export class MasterBase {
 
-  @Master.field(Master.FieldType.AUTO)
+  @Master.field()
   public createTs : number
   
-  @Master.field(Master.FieldType.AUTO)
+  @Master.field()
   public modTs  : number
   
-  /*
-  @field()
-  public modUid  : number
-  
-  @field()
-  public modLoc  : number
-  */
-  
-  @Master.field(Master.FieldType.AUTO)
+  @Master.field()
   public deleted : boolean
   
   public _mastername : string

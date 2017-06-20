@@ -21,18 +21,16 @@ export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistr
 export const MasterTsField = 'modTs'
 
 export abstract class ModelConfig {
-  //protected allowClientSync       : boolean = true
+  
   protected hasFileSource         : boolean = false
   protected cache                 : boolean = false
   protected segment               : object  
-  protected startVersion          : string|null  = null
-  protected endVersion            : string|null  = null
   protected fkConstrains          : Master.ForeignKeys = {}
-  protected dependencyMasters     : string [] = []
+  protected accompanyMasters      : string [] = []
   protected masterTsField         : string = MasterTsField
-  protected cachedFields          ?: {fields :  string [] , cache : boolean} 
-  protected destSynFields         ?: {fields :  string [] , cache : boolean} 
-  protected srcValidationrules     : MasterValidationRule []
+  protected cachedFields         ?: {fields :  string [] , cache : boolean} 
+  protected destSynFields        ?: {fields :  string [] , cache : boolean} 
+  protected srcValidationrules    : MasterValidationRule []
 
   public getMasterTsField() : string {
     return this.masterTsField
@@ -47,7 +45,7 @@ export abstract class ModelConfig {
 
   public getDependencyMasters() : string [] {
     let res : string[] = []
-    res = res.concat(this.dependencyMasters)
+    res = res.concat(this.accompanyMasters)
           .concat(lo.keysIn(this.fkConstrains))
           .map(ma=>ma.toLowerCase())
     
@@ -55,7 +53,21 @@ export abstract class ModelConfig {
   }
 
   public getForeignKeys() : Master.ForeignKeys {
-    return this.fkConstrains
+    return lo.mapKeys(this.fkConstrains , (prop : any , parent: string)=>{
+      return parent.toLowerCase()
+    })
+  }
+
+  public getCached() : boolean {
+    return this.cache
+  }
+
+  public getCachedFields() : {fields :  string [] , cache : boolean} {
+    return this.cachedFields || {fields : [] , cache : false}
+  }
+
+  public getDestSynFields() : {fields :  string [] , cache : boolean} {
+    return this.destSynFields || {fields : [] , cache : false}
   }
   
 }
@@ -82,7 +94,8 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
         optionalFields : string[] = lo.clone(reg.optionalFields),
         instance  : any = reg.masterInstance,
         pkeys : string [] = lo.clone(reg.pkFields),
-        ids   : string [] = []
+        ids   : string [] = [],
+        ownFields : string [] = lo.clone(reg.ownFields)
         
 
   records.forEach(rec => {
@@ -106,38 +119,53 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       (typeof(value) === 'boolean' && fInfo.type !== 'boolean') || 
       (typeof(value) === 'number' && fInfo.type !== 'number') || 
       (Array.isArray(value) && fInfo.type !== 'array')   )
+      
       throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
       
       // Object check
       if(value && typeof(value) === 'object' && fInfo.type !== 'object') {
+
         throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
+
       }
 
       // PK Fields type can not object . Checked in verify
 
       // check PK and Mandatory Fields
-      if(fInfo.masType !== Master.FieldType.OPTIONAL) {
+      if(fInfo.constraint !== Master.FieldType.OPTIONAL) {
         //[null , undefined , '' , 0] check only allowed for OPTIONAL Fields
         if(!value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec , idStr)
 
         if(fInfo.type === 'array' && lo.isEmpty(value)) {
+
           throwError(reg.mastername , 'column ',key , 'can not be empty array', rec , idStr)
+        
         }else if(fInfo.type === 'object' && lo.isEmpty(value)) {
+          
           throwError(reg.mastername , 'column ',key , 'can not be empty object', rec , idStr)
+        
         }
 
       }else{
         // set value of optional fields if not found
         if(value === undefined){
+          
           rec[key] = value = instance[key]
           if(value === undefined) throwError(reg.mastername , 'default column value not set for column', key , rec)
+
         }
       }
 
       // todo : object field nested value can't be null or undefined
-
-
     })
+
+    // check all the mandatory fields are present
+    ownFields.forEach((ownField : string) =>{
+
+      assert(lo.hasIn(rec , ownField) , 'field',ownField , 'is missing in record ',idStr)
+      
+    })
+
 
   })      
 

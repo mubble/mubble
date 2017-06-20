@@ -132,7 +132,7 @@ export abstract class XmnRouter {
    */
   abstract beforeEvent  (rc           : RunContextBase, 
                          inConnection : InConnectionBase, 
-                         inEvent    : InEventBase)      : InEventBase
+                         inEvent    : InEventBase)      : InEventBase | null
 
 
 /*------------------------------------------------------------------------------
@@ -179,7 +179,7 @@ export abstract class XmnRouter {
     if (!apiInfo) throw(Error(rc.error(rc.getName(this), 'Unknown api called', ir.api)))
 
     const serverIr = await this.beforeRequest(rc, ic, ir),
-          response = await this.invokeFn(rc, ic, ir, apiInfo)
+          response = await this.invokeFn(rc, ic, serverIr, apiInfo)
 
     return await this.afterRequest(rc, ic, serverIr, response)
  }
@@ -189,7 +189,8 @@ export abstract class XmnRouter {
     if (!eventInfo) throw(Error(rc.error(rc.getName(this), 'Unknown event called', ie.name)))
 
     const serverIe = await this.beforeEvent(rc, ic, ie)
-    return await this.invokeFn(rc, ic, ie, eventInfo)
+    if (!serverIe) return
+    return await this.invokeFn(rc, ic, serverIe, eventInfo)
   }
 
   private logRegistration(rc: RunContextBase, name: string, parent: any, isApi: boolean) {
