@@ -33,6 +33,7 @@ export class InitConfig {
 
 export class RunState {
   moduleLLMap   : { [key: string]: any } = {}
+  modLogLevel   : LOG_LEVEL = LOG_LEVEL.NONE
 }
 
 export abstract class RunContextBase {
@@ -57,11 +58,21 @@ export abstract class RunContextBase {
   }
 
   changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
+    console.log('this.runState.modLogLevel', this.runState.modLogLevel)
     this.runState.moduleLLMap[moduleName] = logLevel
+    const keys = Object.keys(this.runState.moduleLLMap)
+    this.runState.modLogLevel = LOG_LEVEL.NONE
+    for (const key of keys) {
+      if (this.runState.moduleLLMap[key] < this.runState.modLogLevel) {
+        this.runState.modLogLevel = this.runState.moduleLLMap[key]
+      }
+    }
+    console.log('this.runState.modLogLevel', this.runState.modLogLevel)
   }
 
   getLogLevel(): LOG_LEVEL {
-    return this.initConfig.logLevel
+    return this.initConfig.logLevel > this.runState.modLogLevel ? 
+           this.runState.modLogLevel : this.initConfig.logLevel
   }
 
   /**
@@ -88,6 +99,10 @@ export abstract class RunContextBase {
     return this.getLogLevel() <= LOG_LEVEL.ERROR
   }
 
+  isAssert(): boolean {
+    return this.initConfig.runMode != RUN_MODE.PROD
+  }
+
   debug(moduleName: string, ...args: any[]) {
     return this._log(moduleName, LOG_LEVEL.DEBUG, args)
   }
@@ -104,13 +119,20 @@ export abstract class RunContextBase {
     return this._log(moduleName, LOG_LEVEL.ERROR, args)
   }
 
+  assert(moduleName: string, condition: boolean, ...args: any[]) {
+    if (!condition) {
+      throw(new Error(this._log(moduleName, LOG_LEVEL.ERROR, args)))
+    }
+  }
+
   hasLogged(): boolean {
     return this.lastLogTS !== 0
   }
 
   private _log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
 
-    const refLogLevel = this.runState.moduleLLMap[moduleName] || this.getLogLevel()
+    const refLogLevel = this.runState.moduleLLMap[moduleName] || this.initConfig.logLevel
+    // console.log(moduleName, level, refLogLevel)
     if (level < refLogLevel) return 'not logging'
 
     const curDate = new Date(),
@@ -190,7 +212,7 @@ export abstract class RunContextBase {
       return maxLevels === pendingLevels ? fn.toString() : 'function ' + fn.name
     }
 
-    if (!isArray && typeof(obj.toString) === 'function' && ((str = obj.toString()) !== '[object Object]')) {
+    if (!isArray && typeof(obj.toString) === 'function' && (!(str = obj.toString()).startsWith('[object'))) {
       //console._log('toString did not match', obj.toString, ({}).toString)
       return str
     }

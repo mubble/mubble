@@ -52,6 +52,11 @@ export abstract class InRequestBase {
   setParam(param : object) {
       this.param = param;
   }
+
+  // Queue event responses to be sent along with response to this request
+  queueEvent() {
+
+  }
 }
 
 export abstract class InEventBase {
