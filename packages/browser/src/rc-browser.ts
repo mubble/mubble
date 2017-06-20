@@ -11,7 +11,8 @@ import {
   RUN_MODE,
   LOG_LEVEL,
   InitConfig,
-  RunState
+  RunState,
+  RCLoggerBase
 }  from '@mubble/core'
 
 const CONSOLE_FN_MAP : ((message?: any, ...optionalParams: any[]) => void)[] = []
@@ -43,6 +44,18 @@ export class InitConfigBrowser extends InitConfig {
 export class RunStateBrowser extends RunState {
 }
 
+export class RCBrowserLogger extends RCLoggerBase {
+  
+  constructor(public rc : RunContextBrowser) {
+    super(rc)
+  }
+
+  public logToConsole(level: LOG_LEVEL, logStr: string): void {
+    const fn: any = CONSOLE_FN_MAP[level]
+    fn.call(console, logStr)
+  }
+}
+
 export abstract class RunContextBrowser extends RunContextBase {
 
   protected constructor(public initConfig   : InitConfigBrowser,
@@ -50,16 +63,11 @@ export abstract class RunContextBrowser extends RunContextBase {
                         contextId          ?: string, 
                         contextName        ?: string) {
     super(initConfig, runState, contextId, contextName)
+    this.logger = new RCBrowserLogger(this)
   }
 
   clone(newRc : RunContextBrowser) {
     // nothing to do, I have no member variables
     super.clone(newRc)
-  }
-
-  logToConsole(level: LOG_LEVEL, logStr: string): void {
-
-    const fn: any = CONSOLE_FN_MAP[level]
-    fn.call(console, logStr)
   }
 }

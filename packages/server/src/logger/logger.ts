@@ -13,7 +13,8 @@ import {WriteStream}                       from 'fs'
 import * as mkdirp                         from 'mkdirp'   
 
 import {LOG_LEVEL  
-        , format , set}                    from '@mubble/core'
+        , format , set ,
+        ExternalLogger }                    from '@mubble/core'
 import {RunContextServer}                  from '../rc-server'
 
 const ONE_DAY_MS  : number  = 1 * 24 * 60 * 60 * 1000 
@@ -24,7 +25,7 @@ function asNumber(level : LOG_LEVEL) : number {
 
 const Log_Level_Map : number[][] = []
 
-export class GlobalLogger {
+export class RcServerExtLogger extends ExternalLogger {
 
   private logPath     : string
   private dateNum     : number = -1
@@ -122,6 +123,15 @@ export class GlobalLogger {
 
       }
     })
+  }
+
+  public sessionLog(sessionLogBuf: string, sessionFileName: string): void {
+    const filename : string = path.join(this.logPath , 'session',sessionFileName) + '.log'
+    fs.writeFile(filename , sessionLogBuf , {flag: 'a'} , ()=>{/*do nothing*/})
+  }
+
+  public accessLog(logBuf: string): void {
+    this.log(LOG_LEVEL.NONE , logBuf)
   }
 
 

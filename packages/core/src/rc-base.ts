@@ -49,9 +49,9 @@ export class RunState {
 
 export abstract class RunContextBase {
 
-  public  userContext   : string   
+  public  sessionContext   : string   
   
-  public  logger        : RCLoggerBase
+  public  logger           : RCLoggerBase
   
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
@@ -76,8 +76,8 @@ export abstract class RunContextBase {
     })
   }
   
-  public setUserContext(uContext : string) {
-    this.userContext = uContext
+  public setSessionContext(sContext : string) {
+    this.sessionContext = sContext
   }
 
   changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
@@ -162,7 +162,6 @@ export abstract class RCLoggerBase {
   protected constructor(public rc : RunContextBase) {
 
   } 
-
   
   public  finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void {
 
@@ -175,6 +174,7 @@ export abstract class RCLoggerBase {
     const refLogLevel = this.rc.runState.moduleLLMap[moduleName] || this.rc.initConfig.logLevel
 
     if (level < refLogLevel) return 'not logging'
+    if (!this.rc.initConfig.consoleLogging && !this.rc.initConfig.externalLogger) return 'not logging'
 
     const curDate = new Date(),
           dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', this.rc.initConfig.tzMin),
@@ -193,12 +193,18 @@ export abstract class RCLoggerBase {
       }
       return buf ? buf + ' ' + strVal : strVal
     }, '')
-
-    if (this.rc.initConfig.consoleLogging) {
-      const logStr = this.rc.contextId ?
+    
+    const logStr = this.rc.contextId ?
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.rc.contextId}] ${moduleName}(${this.rc.contextName}): ${buffer}` :
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} ${moduleName}: ${buffer}`
+
+    if (this.rc.initConfig.consoleLogging) {
       this.logToConsole(level, logStr)
+    }
+    if(this.rc.initConfig.externalLogger)
+    {
+      this.rc.initConfig.externalLogger.log(level , logStr)
+      //this.rc.initConfig.externalLogger.sessionLog(logStr+'\n', 'TestGKSession')
     }
 
     return buffer
