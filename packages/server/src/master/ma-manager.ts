@@ -13,7 +13,8 @@ import * as crypto            from 'crypto'
 import {Multi}                from 'redis'
 
 import {RedisWrapper}         from '../cache/redis-wrapper'
-import {MasterBase}           from './ma-base'
+import {MasterBase , 
+        MasterBaseFields}     from './ma-base'
 import {RunContextServer}     from '../rc-server'
 import {masterDesc , assert , 
         concat , log ,
@@ -374,7 +375,7 @@ export class MasterMgr {
       assert(memcache!=null , 'Unknown master data sync request ',mastername)
       assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
       
-      if(!memcache.hasRecords()){
+      if(memcache.cache && !memcache.hasRecords() ){
         // No Data in this master
         assert(synInfo.ts ===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
 
@@ -403,10 +404,11 @@ export class MasterMgr {
       
       const memcache : MasterInMemCache = this.masterCache[mastername]
       if(memcache.cache){
-        memcache.syncData(response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        memcache.syncCachedData(response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }else{
-        // No caching . Todo
-
+        
+        const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+        memcache.syncNonCachedData(masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }
     }
     
@@ -488,57 +490,6 @@ export class MasterMgr {
     MaMgrLog('buildInMemoryCache finished')
   }
 
-  // hash get functions 
-  async hget (key : string , field : string) : Promise<string> {
-    
-    // Just for compilation
-    const params = [key , field]
-    const redis : RedisWrapper = this.mredis
-    return await redis.redisCommand().hget(key , field)
-  }
-  
-  async hmget(key : string , fields : string[]) : Promise<Array<object>> {
-    
-    const redis : RedisWrapper = this.mredis
-    const res : any[] = await redis.redisCommand().hmget(key , ...fields)
-
-    return res.map(item => {
-        return JSON.parse(item)
-      })
-  }
-
-
-  /*
-  async hgetall(key : string) {
-    
-    const redis : RedisWrapper = this.mredis
-    return await redis.redisCommand().hgetall(key)
-  }
-  */
-
-  //hash set functions
-  /*
-  async hset<T extends MasterBase>(key : string , item : T) {
-
-    const params = [key].concat([JSON.stringify(item.getId()) , JSON.stringify(item) ])
-    const redis : RedisWrapper = this.mredis
-    
-    return redis.redisCommand().hset(key , JSON.stringify(item.getId()) , JSON.stringify(item) )
-  }
-
-  async hmset<T extends MasterBase>(key : string , items : T[]) {
-
-    const params = []
-
-    for(const item of items){
-      params.push(JSON.stringify(item.getId()) , JSON.stringify(item))
-    }
-    
-    const redis : RedisWrapper = this.mredis
-    return redis.redisCommand().hmset(key , ...params)
-  }
-  */
-  
   private async getDigestMap() : Promise<MaMap<DigestInfo>> {
     
     const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
@@ -573,7 +524,7 @@ export class MasterMgr {
     
     // remove deleted
     return lo.omitBy(pMap , (val : any , key : string) => {
-      return (val['deleted'] === true)
+      return (val[MasterBaseFields.Deleted] === true)
     }) as GenValMap
 
   }

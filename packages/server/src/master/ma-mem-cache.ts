@@ -89,6 +89,7 @@ export class MasterInMemCache {
     return this.records.length ?  lo.nth(this.records , 0)[this.modTSField] : 0
   } 
   
+  // This has to be saved for non -cache data
   public getMinTS() : number {
     return this.records.length ?  lo.nth(this.records , -1)[this.modTSField] : 0
   }
@@ -124,6 +125,7 @@ export class MasterInMemCache {
     }else{
       MaInMemCacheLog('caching is disabled for master ',mastername)
       if(dInfo!=null) this.digestInfo = dInfo
+      return
     }
 
     // Populate cache
@@ -150,7 +152,9 @@ export class MasterInMemCache {
     
     this.digestInfo = dinfo
     
-    const result = {inserts : 0 , updates : 0}
+    const result = {inserts : 0 , updates : 0 , cache : this.cache}
+    if(!this.cache) return result
+    
     const cacheNewdata : GenValMap = lo.mapValues(newData , (val : any , key : string)=>{
 
       return this.cachedFields.cache ? lo.pick(val , this.cachedFields.fields) : lo.omit(val , this.cachedFields.fields)
@@ -181,11 +185,11 @@ export class MasterInMemCache {
     return result
   }
 
-  public syncData(syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncCachedData(syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
-    MaInMemCacheLog('syncData',syncHash , syncData , syncInfo , purge)
+    MaInMemCacheLog('syncCachedData', syncHash , syncData , syncInfo , purge)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
-    registry.getIdStr
+    
     // Get all the items >= syncInfo.ts
     const updates : any [] = [] ,
           deletes : any [] = [] ,
@@ -194,6 +198,7 @@ export class MasterInMemCache {
     data['updates'] = updates
     data['deletes'] = deletes
 
+    // Todo : Seg Impl
     this.records.forEach((rec : any)=>{
       // should this be just < . let = comparison be there to be on safe side
       if(rec[this.modTSField] <= syncInfo.ts) return
@@ -213,6 +218,48 @@ export class MasterInMemCache {
                                  seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
                                  modelDigest : this.digestInfo.modelDigest  }
     syncData[this.mastername] = data
+    MaInMemCacheLog('syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
+  }
+
+  public syncNonCachedData(masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+    
+    MaInMemCacheLog('syncNonCachedData', syncHash , syncData , syncInfo , purge)
+    
+    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
+    
+    // Get all the items >= syncInfo.ts
+    const updates : any [] = [] ,
+          deletes : any [] = [] ,
+          data    : any    = {}
+    
+    data['updates'] = updates
+    data['deletes'] = deletes
+
+    lo.forEach(masterData , (pk : string , rec : any) => {
+      
+      // should this be just < . let = comparison be there to be on safe side
+      if(rec[this.modTSField] <= syncInfo.ts) return
+
+      if(rec[MasterBaseFields.Deleted] === true){
+        deletes.push(registry.getIdObject(rec))
+      }else{
+        // Todo : Optimise this 
+        const cacheRec : any = this.cachedFields.cache ? lo.pick(rec , this.cachedFields.fields) : lo.omit(rec , this.cachedFields.fields) 
+        const destRec  : any = this.destSynFields.cache ? lo.pick(cacheRec , this.destSynFields.fields ) : lo.omit(cacheRec , this.destSynFields.fields )
+        updates.push(destRec)
+      }
+
+    })
+
+    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
+
+    syncHash[this.mastername] = {purge : purge , ts : this.digestInfo.modTs , 
+                                 seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
+                                 modelDigest : this.digestInfo.modelDigest  }
+    
+    syncData[this.mastername] = data
+    
+    MaInMemCacheLog('syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
 }

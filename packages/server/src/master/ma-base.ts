@@ -209,10 +209,6 @@ export class MasterBase {
     this._mastername = masterName
   }
 
-  public getIdFromObj(src : object) : Master.IDType {
-    return {}
-  }
-
   verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) {
     return true
   }
