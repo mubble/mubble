@@ -404,11 +404,11 @@ export class MasterMgr {
       
       const memcache : MasterInMemCache = this.masterCache[mastername]
       if(memcache.cache){
-        memcache.syncCachedData(response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        memcache.syncCachedData(rc , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }else{
         
         const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
-        memcache.syncNonCachedData(masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        memcache.syncNonCachedData(rc , masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }
     }
     

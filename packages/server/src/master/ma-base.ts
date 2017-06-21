@@ -218,6 +218,14 @@ export class MasterBase {
     return 
   }
 
+  public syncGetModifications (context : RunContextServer , oRet : {mod : any[] , del : any[]}) : {mod : any[] , del : any[]} {
+    return oRet
+  }
+
+  public matchSegment(context : RunContextServer, arClientSeg : any[][] , colSeg : string[] , rec : any) : boolean {
+    return true
+  } 
+
   // not used - remove
   /*
   public prepareSource(context : RunContextServer , rec : any){

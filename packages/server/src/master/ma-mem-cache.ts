@@ -8,6 +8,8 @@
 ------------------------------------------------------------------------------*/
 import * as lo                from 'lodash'
 
+import {RunContextServer}     from '../rc-server'
+
 import {MaMap, StringValMap , 
         GenValMap , 
        MasterCache }          from './ma-types'
@@ -185,7 +187,7 @@ export class MasterInMemCache {
     return result
   }
 
-  public syncCachedData(syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncCachedData(rc : RunContextServer , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
     MaInMemCacheLog('syncCachedData', syncHash , syncData , syncInfo , purge)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
@@ -193,11 +195,8 @@ export class MasterInMemCache {
     // Get all the items >= syncInfo.ts
     const updates : any [] = [] ,
           deletes : any [] = [] ,
-          data    : any    = {}
+          data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
     
-    data['updates'] = updates
-    data['deletes'] = deletes
-
     // Todo : Seg Impl
     this.records.forEach((rec : any)=>{
       // should this be just < . let = comparison be there to be on safe side
@@ -217,11 +216,13 @@ export class MasterInMemCache {
     syncHash[this.mastername] = {purge : purge , ts : this.digestInfo.modTs , 
                                  seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
                                  modelDigest : this.digestInfo.modelDigest  }
-    syncData[this.mastername] = data
+    
+    syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
+    
     MaInMemCacheLog('syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
-  public syncNonCachedData(masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncNonCachedData(rc : RunContextServer , masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
     MaInMemCacheLog('syncNonCachedData', syncHash , syncData , syncInfo , purge)
     
@@ -230,11 +231,8 @@ export class MasterInMemCache {
     // Get all the items >= syncInfo.ts
     const updates : any [] = [] ,
           deletes : any [] = [] ,
-          data    : any    = {}
+          data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
     
-    data['updates'] = updates
-    data['deletes'] = deletes
-
     lo.forEach(masterData , (pk : string , rec : any) => {
       
       // should this be just < . let = comparison be there to be on safe side
@@ -257,8 +255,8 @@ export class MasterInMemCache {
                                  seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
                                  modelDigest : this.digestInfo.modelDigest  }
     
-    syncData[this.mastername] = data
-    
+    syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
+
     MaInMemCacheLog('syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
