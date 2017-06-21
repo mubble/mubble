@@ -93,8 +93,8 @@ export class VisionBase {
     let height : number,
         width  : number
 
-    if(crops && crops.length && crops[0].bounds) {
-      const b = crops[0].bounds,
+    if(crops && crops.length && crops[0][0].bounds) {
+      const b = crops[0][0].bounds,
             x = b[0].x,
             y = b[0].y
       
