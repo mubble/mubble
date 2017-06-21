@@ -209,50 +209,8 @@ export class MasterBase {
     this._mastername = masterName
   }
 
-  /**
-   * Get the Id (Primary key) of this model object. 
-   * Will be calculated from the id fields provided.
-   */
-  public getId() : Master.IDType{
-    return {}
-  }
-  
   public getIdFromObj(src : object) : Master.IDType {
     return {}
-  }
-
-  /**
-   * Get (Hash) key for staorage in Redis for this master model
-   */
-  public getHashKey() : string {
-    // Todo : define const for keys
-    return 'MASTER_REDIS_'+'DATA'+'_'+this._mastername
-  }
-  
-  /**
-   * Load the model object from redis
-   */
-  async get(id : Master.IDType) {
-    
-  }
-
-  async insert() {
-
-  }
-
-  async  update(selectCrit : object ) : Promise<any> {
-
-  }
-
-  async remove(id ?: Master.IDType) {}
-
-  
-  async list(selectCrit : object) : Promise<Array<object>> {
-    return []
-  }
-
-  async count (selectCrit : object) : Promise<number> {
-    return 0
   }
 
   verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) {
@@ -265,10 +223,12 @@ export class MasterBase {
   }
 
   // not used - remove
+  /*
   public prepareSource(context : RunContextServer , rec : any){
 
   }
-  
+  */
+
 }
 
 

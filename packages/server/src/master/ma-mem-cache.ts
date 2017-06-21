@@ -182,8 +182,37 @@ export class MasterInMemCache {
   }
 
   public syncData(syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+    
+    MaInMemCacheLog('syncData',syncHash , syncData , syncInfo , purge)
+    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
+    registry.getIdStr
+    // Get all the items >= syncInfo.ts
+    const updates : any [] = [] ,
+          deletes : any [] = [] ,
+          data    : any    = {}
+    
+    data['updates'] = updates
+    data['deletes'] = deletes
 
+    this.records.forEach((rec : any)=>{
+      // should this be just < . let = comparison be there to be on safe side
+      if(rec[this.modTSField] <= syncInfo.ts) return
 
+      if(rec[MasterBaseFields.Deleted] === true){
+        deletes.push(registry.getIdObject(rec))
+      }else{
+        const destRec : any = this.destSynFields.cache ? lo.pick(rec , this.destSynFields.fields ) : lo.omit(rec , this.destSynFields.fields )
+        updates.push(destRec)
+      }
+
+    })
+
+    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
+
+    syncHash[this.mastername] = {purge : purge , ts : this.digestInfo.modTs , 
+                                 seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
+                                 modelDigest : this.digestInfo.modelDigest  }
+    syncData[this.mastername] = data
   }
 
 }
