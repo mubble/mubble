@@ -18,6 +18,7 @@ import {LOG_LEVEL
 import {RunContextServer}                  from '../rc-server'
 
 const ONE_DAY_MS  : number  = 1 * 24 * 60 * 60 * 1000 
+const LOG_LEVEL_ACCESS : number = 10
 
 function asNumber(level : LOG_LEVEL) : number {
   return level as number 
@@ -46,8 +47,10 @@ export class RcServerExtLogger extends ExternalLogger {
     Log_Level_Map[asNumber(LOG_LEVEL.STATUS)] = [asNumber(LOG_LEVEL.DEBUG)]
     Log_Level_Map[asNumber(LOG_LEVEL.WARN)]   = [asNumber(LOG_LEVEL.DEBUG) , asNumber(LOG_LEVEL.ERROR)]
     Log_Level_Map[asNumber(LOG_LEVEL.ERROR)]  = [asNumber(LOG_LEVEL.DEBUG) , asNumber(LOG_LEVEL.ERROR)]
+    // No logging for Log level NONE
+    Log_Level_Map[asNumber(LOG_LEVEL.NONE)]   = []
 
-    Log_Level_Map[asNumber(LOG_LEVEL.NONE)]   = [asNumber(LOG_LEVEL.NONE)]
+    Log_Level_Map[LOG_LEVEL_ACCESS]           = [LOG_LEVEL_ACCESS]
 
     this.setLogger()
 
@@ -78,7 +81,7 @@ export class RcServerExtLogger extends ExternalLogger {
 
      this.loggerMap[asNumber(LOG_LEVEL.DEBUG)] =  debugLogEntry
      this.loggerMap[asNumber(LOG_LEVEL.ERROR)] =  errLogentry
-     this.loggerMap[asNumber(LOG_LEVEL.NONE)]  =  accLogEntry
+     this.loggerMap[LOG_LEVEL_ACCESS]          =  accLogEntry
 
       oldLoggerMap.forEach((entry : FileEntry) => {
         entry.closeEntry()
@@ -126,12 +129,12 @@ export class RcServerExtLogger extends ExternalLogger {
   }
 
   public sessionLog(sessionLogBuf: string, sessionFileName: string): void {
-    const filename : string = path.join(this.logPath , 'session',sessionFileName) + '.log'
+    const filename : string = path.join(this.logPath , 'session', sessionFileName) + '.log'
     fs.writeFile(filename , sessionLogBuf , {flag: 'a'} , ()=>{/*do nothing*/})
   }
 
   public accessLog(logBuf: string): void {
-    this.log(LOG_LEVEL.NONE , logBuf)
+    this.log(LOG_LEVEL_ACCESS , logBuf)
   }
 
 
