@@ -9,6 +9,7 @@
 
 import * as http from 'http'
 import {RunContextServer}     from '../rc-server'
+import {Azure} from '../../../../../ncserver/src/moderation'
 
 export class HttpXmn {
 
@@ -24,8 +25,34 @@ export class HttpXmn {
       req.headers, req.socket ? {localAddr: req.socket.localAddress  + ':' + req.socket.localPort, 
       remote: req.socket.remoteAddress + ':' + req.socket.remotePort } : 'no socket')
 
-    res.setHeader('Content-Type', 'text/html');
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('ok');
+    let qs = require('querystring')
+    let body = ''
+    req.on('data', function(data) {
+      body += data
+    })
+
+    req.on('end', function() {
+      
+      this.processRequest(req.url, qs.parse(body))
+      
+      res.setHeader('Content-Type', 'text/html');
+      res.writeHead(200, {'Content-Type': 'text/plain'});
+      res.end('ok');
+    })
+
+  }
+
+  processRequest(url: string, body: any) {
+
+    const rc = this.refRc.copyConstruct('', 'HttpReq')
+
+    const azure: Azure = new Azure()
+    if (url.endsWith('onJobCompletion')) {
+      azure.postJobCompletion(rc, body) 
+    } else if (url.endsWith('onReviewCompletion')) {
+      azure.postReviewCompletion(rc, body)
+    } else {
+      rc.isDebug && rc.debug('unknown url', url)
+    }
   }
 }
