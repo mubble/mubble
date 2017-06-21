@@ -9,7 +9,6 @@
 
 import * as http from 'http'
 import {RunContextServer}     from '../rc-server'
-import {Azure} from '../../../../../ncserver/src/moderation'
 
 export class HttpXmn {
 
@@ -46,11 +45,10 @@ export class HttpXmn {
 
     const rc = this.refRc.copyConstruct('', 'HttpReq')
 
-    const azure: Azure = new Azure()
     if (url.endsWith('onJobCompletion')) {
-      azure.postJobCompletion(rc, body) 
+      //azure.postJobCompletion(rc, body) 
     } else if (url.endsWith('onReviewCompletion')) {
-      azure.postReviewCompletion(rc, body)
+      //azure.postReviewCompletion(rc, body)
     } else {
       rc.isDebug && rc.debug('unknown url', url)
     }
