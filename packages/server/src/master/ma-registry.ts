@@ -141,6 +141,22 @@ export class MasterRegistry {
 
     return JSON.stringify(id)
   }
+
+  public getIdObject(src : any) : any {
+    
+    if(this.pkFields.length === 1) {
+      assert(src[this.pkFields[0]] != null , 'Id field value can not be null ', this.mastername , this.pkFields[0] , src)
+      return src[this.pkFields[0]]
+    }
+
+    const id : any = {}
+    this.pkFields.forEach(pk =>{
+      assert(src[pk] != null , 'Id field value can not be null ', this.mastername , pk , src )
+      id[pk] = src[pk]
+    })
+
+    return id
+  }
   
   /*
   1. verify that field name must not contain the . or should not be empty

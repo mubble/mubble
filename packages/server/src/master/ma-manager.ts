@@ -517,6 +517,7 @@ export class MasterMgr {
   */
 
   //hash set functions
+  /*
   async hset<T extends MasterBase>(key : string , item : T) {
 
     const params = [key].concat([JSON.stringify(item.getId()) , JSON.stringify(item) ])
@@ -536,7 +537,8 @@ export class MasterMgr {
     const redis : RedisWrapper = this.mredis
     return redis.redisCommand().hmset(key , ...params)
   }
-
+  */
+  
   private async getDigestMap() : Promise<MaMap<DigestInfo>> {
     
     const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
