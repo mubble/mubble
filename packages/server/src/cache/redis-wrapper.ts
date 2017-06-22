@@ -16,8 +16,11 @@ import {RunContextServer}               from '../rc-server'
 
 
 function redisLog(rc : RunContextServer , ...args : any[] ) : void {
-  log(LOG_ID , ...args)
-  rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
+  if(rc){
+    rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
+  }else{
+    log(LOG_ID , ...args)
+  }
 }
 const LOG_ID = 'RedisWrapper'
 

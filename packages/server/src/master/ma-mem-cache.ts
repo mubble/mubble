@@ -24,12 +24,21 @@ import {masterDesc , assert ,
              
 
 const LOG_ID : string = 'MasterInMemCache'
-function MaInMemCacheLog(...args : any[] ) : void {
-  log(LOG_ID , ...args)
+function MaInMemCacheLog(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isStatus() && rc.status(LOG_ID , ...args )
+  }else{
+    log(LOG_ID , ...args)
+  }
 }
-function debug(...args : any[] ) : void {
-  log(LOG_ID , ...args)
+function debug(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isDebug && rc.debug(LOG_ID , ...args )
+  }else{
+    log(LOG_ID , ...args)
+  }
 }
+
 
 export class SyncInfo  {
   
@@ -104,9 +113,9 @@ export class MasterInMemCache {
     return this.digestInfo.modTs
   }
 
-  public constructor(public mastername : string , data : GenValMap , dInfo : DigestInfo) {
+  public constructor(rc : RunContextServer , public mastername : string , data : GenValMap , dInfo : DigestInfo) {
     
-    MaInMemCacheLog('MasterInMemCache ',mastername)
+    MaInMemCacheLog(rc , 'MasterInMemCache ',mastername)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(mastername)
 
     this.cache          = registry.config.getCached()
@@ -120,12 +129,12 @@ export class MasterInMemCache {
       else assert(dInfo==null , 'Digest Info present for master without data', dInfo, mastername)
 
       if(!size) {
-        MaInMemCacheLog('Nothing to populate in memory cache for master',mastername)
+        MaInMemCacheLog(rc , 'Nothing to populate in memory cache for master',mastername)
         return
       }
       this.digestInfo = dInfo
     }else{
-      MaInMemCacheLog('caching is disabled for master ',mastername)
+      MaInMemCacheLog(rc , 'caching is disabled for master ',mastername)
       if(dInfo!=null) this.digestInfo = dInfo
       return
     }
@@ -145,12 +154,12 @@ export class MasterInMemCache {
     // Freez the records
     this.records.forEach((rec : any)=>{ Object.freeze(rec)})
     
-    MaInMemCacheLog('MasterInMemCache loading finished',mastername, this.records)
+    MaInMemCacheLog(rc , 'MasterInMemCache loading finished',mastername, this.records)
   }
 
-  public update(newData : GenValMap , dinfo : DigestInfo) : {inserts : number , updates : number} {
+  public update(rc : RunContextServer , newData : GenValMap , dinfo : DigestInfo) : {inserts : number , updates : number} {
     
-    MaInMemCacheLog('update ',this.mastername , lo.size(newData) , dinfo , lo.size(this.hash))
+    MaInMemCacheLog(rc , 'update ',this.mastername , lo.size(newData) , dinfo , lo.size(this.hash))
     
     this.digestInfo = dinfo
     
@@ -183,13 +192,13 @@ export class MasterInMemCache {
 
     this.records.forEach((rec : any)=>{ Object.freeze(rec)})
 
-    MaInMemCacheLog('MasterInMemCache update finished', this.mastername , this.records)
+    MaInMemCacheLog(rc , 'MasterInMemCache update finished', this.mastername , this.records)
     return result
   }
 
   public syncCachedData(rc : RunContextServer , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
-    MaInMemCacheLog('syncCachedData', syncHash , syncData , syncInfo , purge)
+    MaInMemCacheLog(rc , 'syncCachedData', syncHash , syncData , syncInfo , purge)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
     
     // Get all the items >= syncInfo.ts
@@ -219,12 +228,12 @@ export class MasterInMemCache {
     
     syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
     
-    MaInMemCacheLog('syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
+    MaInMemCacheLog(rc , 'syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
   public syncNonCachedData(rc : RunContextServer , masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
-    MaInMemCacheLog('syncNonCachedData', syncHash , syncData , syncInfo , purge)
+    MaInMemCacheLog(rc , 'syncNonCachedData', syncHash , syncData , syncInfo , purge)
     
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
     
@@ -257,7 +266,7 @@ export class MasterInMemCache {
     
     syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
 
-    MaInMemCacheLog('syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
+    MaInMemCacheLog(rc , 'syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
 }

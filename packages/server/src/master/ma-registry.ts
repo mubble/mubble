@@ -25,9 +25,21 @@ import {MasterRegistryMgr}    from './ma-reg-manager'
 
 
 const LOG_ID : string = 'MasterRegistry'
-function MaRegistryLog(...args : any[] ) : void {
-  log(LOG_ID , ...args)
+function MaRegistryLog(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isStatus() && rc.status(LOG_ID , ...args )
+  }else{
+    log(LOG_ID , ...args)
+  }
 }
+function debug(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isDebug && rc.debug(LOG_ID , ...args )
+  }else{
+    log(LOG_ID , ...args)
+  }
+}
+
 
 export const MASTERBASE : string = 'masterbase' //MasterBase.constructor.name.toLowerCase()
 
@@ -97,7 +109,7 @@ export class FieldInfo {
 export class MasterRegistry {
   
   constructor(master : string) {
-    MaRegistryLog('Creating Master ',master)
+    MaRegistryLog(null , 'Creating Master ',master)
     this.mastername = master
   }
 
@@ -189,7 +201,7 @@ export class MasterRegistry {
 
   public verify(context : RunContextServer) {
     
-    MaRegistryLog('Verifying ',this.mastername)
+    MaRegistryLog(context , 'Verifying ',this.mastername)
     
     // Todo
     /*
@@ -220,7 +232,7 @@ export class MasterRegistry {
     }).map(info=>info.name)
     
 
-    MaRegistryLog(this.mastername , this.fieldsMap)
+    MaRegistryLog(context, this.mastername , this.fieldsMap)
 
     lo.forEach(this.config.getDependencyMasters() , (parent : string)=>{
       assert(MasterRegistryMgr.getMasterRegistry(parent)!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
@@ -258,7 +270,7 @@ export class MasterRegistry {
 
   public addFieldRule(fieldName : string , target : object , rule : ((obj : any)=> void)) {
     
-    MaRegistryLog('addFieldRule', this.mastername , fieldName )
+    MaRegistryLog(null , 'addFieldRule', this.mastername , fieldName )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
@@ -278,7 +290,7 @@ export class MasterRegistry {
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     
-    MaRegistryLog('addField', this.mastername , fieldName , Master.FieldType[masType] )
+    MaRegistryLog(null , 'addField', this.mastername , fieldName , Master.FieldType[masType] )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
