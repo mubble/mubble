@@ -51,10 +51,8 @@ export class HttpXmn {
       return
     }
 
-    if (url.endsWith('onJobCompletion')) {
-      this.azure.postJobCompletion(rc, JSON.parse(body)) 
-    } else if (url.endsWith('onReviewCompletion')) {
-      this.azure.postReviewCompletion(rc, JSON.parse(body))
+    if (url.endsWith('modCallback')) {
+      this.azure.callbackHandler(rc, JSON.parse(body))
     } else {
       rc.isDebug() && rc.debug(rc.getName(this), 'unknown url', url)
     }
