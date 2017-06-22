@@ -9,6 +9,7 @@
 
 import * as lo                from 'lodash'
 import * as crypto            from 'crypto'
+import * as fs                from 'fs'
 
 import {Multi}                from 'redis'
 
@@ -347,6 +348,24 @@ export class MasterMgr {
     if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
     MaMgrLog(rc , 'applyData' , 'results',results)
   }
+
+  public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , josnFilePath : string} []) {  
+    
+    MaMgrLog(rc , 'applyFileDataFromPath ', masters)
+    const arModels : {master : string , source: string} [] = []
+
+    for(let i=0 ; i<masters.length ; i++){
+      const master : string   = masters[i].master,
+      jsonFile : string = masters[i].josnFilePath
+
+      assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'doesnot exits')
+      const buff : Buffer = await fs.readFileSync(jsonFile)
+      arModels.push({master : master , source : buff.toString()})
+    }
+
+    return this.applyFileData(rc , arModels)
+  }
+
 
   private setParentMapData(rc : RunContextServer , master : string , masterCache : MasterCache , ssd : SourceSyncData) : void {
      
