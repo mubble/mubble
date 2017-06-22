@@ -94,6 +94,14 @@ export class MasterMgr {
   
   revDepMap : {[mastername : string] : string[]} = {}
   
+  static created : boolean = false
+  // Todo : make sure singleton instance
+  public constructor() {
+    if(MasterMgr.created){
+      throw new Error('master manager can only be singleton')
+    }
+    MasterMgr.created = true
+  }
 
   /*
   Actions : 
@@ -107,17 +115,17 @@ export class MasterMgr {
   7. build cache from sredis
   */
 
-  public async init(rc : RunContextServer) : Promise<any> {
+  public async init(rc : RunContextServer , mredisUrl : string , sredisUrl : string ) : Promise<any> {
       
+      if(this.rc || this.mredis || this.sredis){
+        throw new Error('master mgr inited again')
+      }
+
       this.rc = rc
 
       MasterRegistryMgr.init(rc)
       // Init the redis wrapper
       RedisWrapper.init(rc)
-      
-      // Todo : take these values from config / rc
-      const mredisUrl : string = 'redis://localhost:13107'
-      const sredisUrl : string = 'redis://localhost:25128'
       
       this.mredis = await RedisWrapper.connect(rc , 'MasterRedis' , mredisUrl )
       this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , sredisUrl )

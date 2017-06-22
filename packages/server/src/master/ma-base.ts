@@ -37,13 +37,13 @@ export namespace Master{
     }
   }
 
-export enum FieldType {
+  export enum FieldType {
     
     PRIMARY = 1,
     MANDATORY ,
     OPTIONAL 
     //AUTO
-}
+  }
 
 
 

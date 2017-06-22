@@ -59,11 +59,11 @@ export class DigestInfo {
 
   public static getDigest(val : any , masterKey : string) : DigestInfo {
     
-    assert(lo.hasIn(val , 'fileDigest') && lo.hasIn(val , 'modelDigest') && lo.hasIn(val , 'modTs') && lo.hasIn(val , 'dataDigest') && lo.hasIn(val , 'segDigestMap') , 'DigestInfo ',val , 'is corrept for master ',masterKey)
+    assert(lo.hasIn(val , 'fileDigest') && lo.hasIn(val , 'modelDigest') && lo.hasIn(val , 'modTs') && lo.hasIn(val , 'dataDigest') && lo.hasIn(val , 'segDigestMap') , 'DigestInfo ',val , 'is corrupt for master ',masterKey)
     assert( MaType.isString(val['fileDigest'])  && 
             MaType.isString(val['modelDigest'])  && 
             MaType.isNumber(val['modTs']) &&
-            MaType.isString(val['dataDigest']) , 'DigestInfo ', val , 'is corrept for master ',masterKey)
+            MaType.isString(val['dataDigest']) , 'DigestInfo ', val , 'is corrupt for master ',masterKey)
 
     return new DigestInfo(val['fileDigest'] , val['modelDigest'] , val['modTs'] , val['dataDigest'] , val['segDigestMap'])      
   }
