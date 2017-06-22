@@ -75,7 +75,7 @@ export class VisionBase {
           if(err) return reject(err)
           const base64 = res.toString('base64')
 
-          return resolve({data   : res, 
+          return resolve({data   : base64, 
                           mime   : image.getMIME(),
                           height : (shrink) ? shrink.h : height,
                           width  : (shrink) ? shrink.w : width
