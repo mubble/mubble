@@ -144,7 +144,7 @@ export class DSTransaction {
     const key = model.getDatastoreKey(rc, id)
 
     await this.get(rc, model, id, ignoreRNF)
-    Object.assign(this, updRec)
+    Object.assign(model, updRec)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }
 
