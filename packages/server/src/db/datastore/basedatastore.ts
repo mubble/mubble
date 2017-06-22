@@ -243,9 +243,16 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Set the primary key 
 ------------------------------------------------------------------------------*/                  
-  setIdFromResult(rc : RunContextServer , key : any) : void {
-    const id = BaseDatastore.getIdFromResult(rc, key)
+  setIdFromResult(rc : RunContextServer , res : any) : void {
+    const id = BaseDatastore.getIdFromResult(rc, res)
     this._id = id
+  }
+
+/*------------------------------------------------------------------------------
+  - Set the primary key 
+------------------------------------------------------------------------------*/ 
+  setIdFromKey(rc : RunContextServer, key : any) {
+    this._id = key[key.length - 1]
   }
 
 /*------------------------------------------------------------------------------

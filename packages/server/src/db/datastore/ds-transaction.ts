@@ -113,7 +113,7 @@ export class DSTransaction {
     if (!model.getId(rc)) { // If we already have a key, no need to allocate
       const key = await this._transaction.allocateIds(datastoreKey, 1) 
 
-      model.setIdFromResult(rc, key[0][0])
+      model.setIdFromKey(rc, key[0][0])
       datastoreKey = key[0][0]
     }
 
