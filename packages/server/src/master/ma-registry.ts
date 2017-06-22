@@ -93,7 +93,7 @@ export class FieldInfo {
 
   public toString() : string {
     
-    return JSON.stringify({name : this.name, type : this.type , masType : this.constraint}) 
+    return JSON.stringify({name : this.name, type : this.type , constraint : Master.FieldType[this.constraint] , targetName : this.targetName}) 
   }
 
   // Is field inherited from master base
@@ -232,7 +232,7 @@ export class MasterRegistry {
     }).map(info=>info.name)
     
 
-    MaRegistryLog(context, this.mastername , this.fieldsMap)
+    MaRegistryLog(context, this.mastername , 'FieldsMap:' , this.fieldsMap)
 
     lo.forEach(this.config.getDependencyMasters() , (parent : string)=>{
       assert(MasterRegistryMgr.getMasterRegistry(parent)!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
