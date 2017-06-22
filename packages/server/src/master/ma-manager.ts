@@ -113,6 +113,24 @@ export class MasterMgr {
     MasterMgr.created = true
   }
 
+  public getMasterRecords<T extends MasterBase> (mastername : string) : T [] {
+    
+    mastername = mastername.toLocaleLowerCase()
+    const memCache : MasterInMemCache = this.masterCache[mastername]
+    assert(memCache!=null , 'master ',mastername , 'is not present')
+    assert(memCache.cache , 'master ',mastername , 'is not not cached')
+    return memCache.records
+  }
+  
+  public getMasterHashRecords<T extends MasterBase> (mastername : string) : {[key : string] : T} {
+    
+    mastername = mastername.toLocaleLowerCase()
+    const memCache : MasterInMemCache = this.masterCache[mastername]
+    assert(memCache!=null , 'master ',mastername , 'is not present')
+    assert(memCache.cache , 'master ',mastername , 'is not not cached')
+    return memCache.hash as {[key : string] : T}
+  }
+
   /*
   Actions : 
   0. MasterRegistry init. Verify all master registries

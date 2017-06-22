@@ -163,6 +163,7 @@ export namespace Master{
         this.segment = segment
         if(MaType.isObject(fk)) this.fkConstrains = fk
         this.hasFileSource = true
+        this.cache = true
       }
     }
     //return {segment : segment , startVersion : startVersion , endVersion : endVersion , fkConstrains : fk }
