@@ -278,7 +278,7 @@ export class MasterRegistry {
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     
-    MaRegistryLog('addField', this.mastername , fieldName , masType )
+    MaRegistryLog('addField', this.mastername , fieldName , Master.FieldType[masType] )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')

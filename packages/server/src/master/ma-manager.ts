@@ -356,7 +356,7 @@ export class MasterMgr {
   }
 
   // Used for all source sync apis (partial , full , multi)
-  public async applyJsonData(context : RunContextServer ,  modelName : string , jsonRecords : Array<object> , redisRecords : Array<object> ) {
+  public async applyJsonData(context : RunContextServer ,  mastername : string , jsonRecords : any [] , redisRecords : GenValMap ) {
 
   }
 

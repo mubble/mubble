@@ -53,7 +53,7 @@ export class MasterRegistryMgr {
     const master : string = target.constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master , true)
 
-    MaRegMgrLog('masterField ',master , propKey , maType)
+    MaRegMgrLog('masterField ',master , propKey , Master.FieldType[maType])
     maReg.addField(propKey , maType ,target)
 
     if(maType === Master.FieldType.PRIMARY){
