@@ -29,10 +29,10 @@ export class HttpXmn {
     req.on('data', function(data) {
       body += data
     })
-
+    const _ : HttpXmn = this
     req.on('end', function() {
       
-      this.processRequest(req.url, qs.parse(body))
+      _.processRequest(req.url as string , qs.parse(body))
       
       res.setHeader('Content-Type', 'text/html');
       res.writeHead(200, {'Content-Type': 'text/plain'});
