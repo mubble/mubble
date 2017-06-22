@@ -90,9 +90,6 @@ export class MasterInMemCache {
   
   public modTSField          : string = MasterBaseFields.ModTs
   
-  public cachedFields        : {fields :  string [] , cache : boolean} 
-  public destSynFields       : {fields :  string [] , cache : boolean} 
-  
   public digestInfo          : DigestInfo = new DigestInfo('','',0 , '' , {})
   //public lastUpdateTS        : number = lo.now()
 
@@ -120,8 +117,6 @@ export class MasterInMemCache {
 
     this.cache          = registry.config.getCached()
     this.modTSField     = registry.config.getMasterTsField()
-    this.cachedFields   = registry.config.getCachedFields()
-    this.destSynFields  = registry.config.getDestSynFields()
     
     if(this.cache){
       const size : number = lo.size(data)
@@ -140,11 +135,12 @@ export class MasterInMemCache {
     }
 
     // Populate cache
+    // Fields which needs to be cached
+    const allCachedFields : string[] = lo.uniq(registry.cachedFields.concat(registry.autoFields)) 
+    MaInMemCacheLog(rc , 'allCachedFields ', allCachedFields , 'destiSynFields', registry.destSyncFields )
     
     this.hash =  lo.mapValues(data , (val : any , key : string)=>{
-
-      return this.cachedFields.cache ? lo.pick(val , this.cachedFields.fields) : lo.omit(val , this.cachedFields.fields)
-
+      return lo.pick(val , allCachedFields)
     })
     
     // sort them by modTs field decending order
@@ -160,16 +156,19 @@ export class MasterInMemCache {
   public update(rc : RunContextServer , newData : GenValMap , dinfo : DigestInfo) : {inserts : number , updates : number} {
     
     MaInMemCacheLog(rc , 'update ',this.mastername , lo.size(newData) , dinfo , lo.size(this.hash))
-    
+    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
+
     this.digestInfo = dinfo
     
     const result = {inserts : 0 , updates : 0 , cache : this.cache}
     if(!this.cache) return result
     
+    // Fields which needs to be cached
+    const allCachedFields : string[] = lo.uniq(registry.cachedFields.concat(registry.autoFields)) 
+    
     const cacheNewdata : GenValMap = lo.mapValues(newData , (val : any , key : string)=>{
 
-      return this.cachedFields.cache ? lo.pick(val , this.cachedFields.fields) : lo.omit(val , this.cachedFields.fields)
-
+      return lo.pick(val , allCachedFields)
     })
     
     // Ensure that all the data available is modified
@@ -214,7 +213,7 @@ export class MasterInMemCache {
       if(rec[MasterBaseFields.Deleted] === true){
         deletes.push(registry.getIdObject(rec))
       }else{
-        const destRec : any = this.destSynFields.cache ? lo.pick(rec , this.destSynFields.fields ) : lo.omit(rec , this.destSynFields.fields )
+        const destRec : any = lo.pick(rec , registry.destSyncFields )
         updates.push(destRec)
       }
 
@@ -250,9 +249,7 @@ export class MasterInMemCache {
       if(rec[MasterBaseFields.Deleted] === true){
         deletes.push(registry.getIdObject(rec))
       }else{
-        // Todo : Optimise this 
-        const cacheRec : any = this.cachedFields.cache ? lo.pick(rec , this.cachedFields.fields) : lo.omit(rec , this.cachedFields.fields) 
-        const destRec  : any = this.destSynFields.cache ? lo.pick(cacheRec , this.destSynFields.fields ) : lo.omit(cacheRec , this.destSynFields.fields )
+        const destRec  : any = lo.pick(rec , registry.destSyncFields )
         updates.push(destRec)
       }
 

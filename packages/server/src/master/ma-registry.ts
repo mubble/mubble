@@ -134,6 +134,11 @@ export class MasterRegistry {
 
   allFields                 : string [] = []
 
+  // fields which are cached in memory
+  cachedFields              : string [] = []
+
+  destSyncFields            : string [] = []
+
   // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
   //rules                     : ((obj : any) => void) [] = []
@@ -266,6 +271,49 @@ export class MasterRegistry {
       })
 
     })
+
+
+    // cached fields check
+    // should be own field
+    const cachedFields : {fields :  string [] , cache : boolean} = this.config.getCachedFields()
+    cachedFields.fields.forEach((field : string)=>{
+        assert(this.ownFields.indexOf(field)!=-1 , 'cached field',field , 'is not an own fields', this.ownFields , this.mastername)
+    })
+    
+    // Populate Cached Fields
+    if(cachedFields.cache){
+     this.cachedFields  = lo.clone(cachedFields.fields) 
+    }else{
+     this.cachedFields = this.ownFields.filter(fld=>{
+       return cachedFields.fields.indexOf(fld) === -1 
+     }) 
+    }
+    assert(this.cachedFields.length>0  /*|| !this.config.getCached()*/ , 'No cached fields for master ',this.mastername)
+    
+    // destination sync fields check
+    
+    // should be own field
+    const destFields : {fields :  string [] , cache : boolean} = this.config.getDestSynFields()
+    destFields.fields.forEach((field : string)=>{
+        assert(this.ownFields.indexOf(field)!=-1 , 'destSync field',field , 'is not an own fields', this.ownFields , this.mastername)
+    })
+
+    // Populate destination sync fields
+    if(destFields.cache){
+     this.destSyncFields  = lo.clone(destFields.fields) 
+    }else{
+     this.destSyncFields = this.ownFields.filter(fld=>{
+       return destFields.fields.indexOf(fld) === -1 
+     }) 
+    }
+    
+    assert(this.destSyncFields.length>0 , 'No destination sync fields for master ',this.mastername)
+    
+    // dest sync fields should be sublist of cached fields
+    this.destSyncFields.forEach(fld => {
+      assert(this.cachedFields.indexOf(fld)!==-1 , 'dest field ',fld , 'is not cached',this.cachedFields , this.mastername)
+    })
+
   }
 
   public addFieldRule(fieldName : string , target : object , rule : ((obj : any)=> void)) {
