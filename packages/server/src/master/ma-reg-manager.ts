@@ -27,12 +27,21 @@ import {StringValMap ,
           
 
 const LOG_ID : string = 'MasterRegistryMgr'
-function MaRegMgrLog(...args : any[] ) : void {
-  log(LOG_ID , ...args)
+function MaRegMgrLog(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isStatus() && rc.status(LOG_ID , ...args )
+  }else{
+    //log(LOG_ID , ...args)
+  }
 }
-function debug(...args : any[] ) : void {
-  log(LOG_ID , ...args)
+function debug(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isDebug && rc.debug(LOG_ID , ...args )
+  }else{
+    //log(LOG_ID , ...args)
+  }
 }
+
 
 /**
  * Class Maintaining the Registry of all masters & their field types
@@ -53,7 +62,7 @@ export class MasterRegistryMgr {
     const master : string = target.constructor.name.toLowerCase() ,
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master , true)
 
-    MaRegMgrLog('masterField ',master , propKey , maType)
+    MaRegMgrLog(null , 'masterField ',master , propKey , Master.FieldType[maType])
     maReg.addField(propKey , maType ,target)
 
     if(maType === Master.FieldType.PRIMARY){
@@ -68,7 +77,7 @@ export class MasterRegistryMgr {
           maReg : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
 
     //MaRegMgrLog('addMaster ',master , constructor)
-    MaRegMgrLog('addMaster config ',master , config)
+    MaRegMgrLog(null , 'addMaster config ',master , config)
 
     assert(maReg.config == null && maReg.masterInstance == null  , 'master ',master , 'registered twice')
     
@@ -100,9 +109,9 @@ export class MasterRegistryMgr {
   }
   
   // Verify all the MasterRegistry for data sanity
-  public static init (context : RunContextServer ) : void {
+  public static init (rc : RunContextServer ) : void {
     
-    MaRegMgrLog('starting init')
+    MaRegMgrLog(rc , 'starting init')
     
     // check masterbase registry exists
     const masterbaseReg : MasterRegistry =  MasterRegistryMgr.regMap[MASTERBASE]
@@ -122,7 +131,7 @@ export class MasterRegistryMgr {
     
     // verify all custom masters
     customMasters.forEach((maReg : MasterRegistry)=>{
-      maReg.verify(context)
+      maReg.verify(rc)
     })
     
   }
@@ -144,7 +153,7 @@ export class MasterRegistryMgr {
 
   public static verifyAllDependency (rc : RunContextServer , mastername : string , masterCache : MasterCache ) {
     
-    MaRegMgrLog('verifyAllDependency for master' , mastername )
+    MaRegMgrLog(rc , 'verifyAllDependency for master' , mastername )
     //if(lo.stubTrue()) return
     const registry : MasterRegistry = this.getMasterRegistry(mastername) ,
           fkConst  : Master.ForeignKeys = registry.config.getForeignKeys() ,
@@ -184,13 +193,13 @@ export class MasterRegistryMgr {
     // remove deleted recoreds
     source  = source.filter((src)=>{
       
-      if(src[MasterBaseFields.Deleted]) MaRegMgrLog('master',mastername , 'verifySourceRecords', 'removed from src',maReg.getIdStr(src))
+      if(src[MasterBaseFields.Deleted]) MaRegMgrLog(rc , 'master',mastername , 'verifySourceRecords', 'removed from src',maReg.getIdStr(src))
       return !(src[MasterBaseFields.Deleted] === true)
     })
 
     // Field Type sanity validation rules
     maReg.config.getSrcValidationrules().forEach( (srcValidationRule : MasterValidationRule)=>{
-      MaRegMgrLog('applying SrcValidation Rule rule ', srcValidationRule.name , 'on master', maReg.mastername)
+      MaRegMgrLog(rc , 'applying SrcValidation Rule rule ', srcValidationRule.name , 'on master', maReg.mastername)
       srcValidationRule(rc , maReg , source)
     })
 
@@ -206,7 +215,7 @@ export class MasterRegistryMgr {
     lo.valuesIn(maReg.fieldsMap).forEach((finfo : FieldInfo) => {
 
       finfo.rules.forEach((fieldRule : (obj : any) => void ) => {
-        MaRegMgrLog('applying Field rule ', fieldRule.name , 'on field', finfo.name, ' master', maReg.mastername)
+        MaRegMgrLog(rc , 'applying Field rule ', fieldRule.name , 'on field', finfo.name, ' master', maReg.mastername)
         source.forEach((rec:any)=>{
           fieldRule(rec)
         })
@@ -219,7 +228,7 @@ export class MasterRegistryMgr {
   
   private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIds : GenValMap , targetMap : GenValMap , now : number ) : SourceSyncData {
     
-    MaRegMgrLog('verifyModifications' , registry.mastername ,'source size:' , lo.size(sourceIds) , 'target size:', lo.size(targetMap) )
+    MaRegMgrLog(rc , 'verifyModifications' , registry.mastername ,'source size:' , lo.size(sourceIds) , 'target size:', lo.size(targetMap) )
 
     const config : ModelConfig = registry.config , 
           masTsField : string  = config.getMasterTsField() ,

@@ -16,8 +16,11 @@ import {RunContextServer}               from '../rc-server'
 
 
 function redisLog(rc : RunContextServer , ...args : any[] ) : void {
-  log(LOG_ID , ...args)
-  rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
+  if(rc){
+    rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
+  }else{
+    log(LOG_ID , ...args)
+  }
 }
 const LOG_ID = 'RedisWrapper'
 
@@ -81,16 +84,18 @@ export class RedisWrapper {
   public redis       : RedisClient
   public monitoring  : boolean = false
   public info        : { [index : string] : string } = {}
-
+  static inited      : boolean = false
   constructor(private name : string, private rc : RunContextServer ){
     
   }
   // Unfortunately there is no static initializer like java in ts/js
   static init(rc : RunContextServer) : void {
+    if(RedisWrapper.inited) return
     for(const cmd of redis_commands){
       // we can find all the function (name) of RedisClient from reflection . check signature type
       add(cmd)
     }
+    RedisWrapper.inited = true
   }
 
   static async connect(rc : RunContextServer , name : string , url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<RedisWrapper>{

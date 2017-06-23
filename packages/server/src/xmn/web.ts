@@ -53,7 +53,8 @@ export class Web {
         router           : XmnRouter,
         httpConfig      ?: HttpConfig, 
         websocketConfig ?: WebsocketConfig, 
-        httpsConfig     ?: HttpsConfig) : void {
+        httpsConfig     ?: HttpsConfig,
+        azure           ?: any) : void {
 
     this.httpConfig      = httpConfig
     this.websocketConfig = websocketConfig
@@ -61,7 +62,7 @@ export class Web {
     this.router          = router
 
     if (this.httpConfig) {
-      const httpReqManager = new HttpXmn(rc)
+      const httpReqManager = new HttpXmn(rc, azure)
       this.httpServer      = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
 
@@ -86,7 +87,7 @@ export class Web {
         throw('https port cannot be same as ws port')
       }
 
-      const httpReqManager = new HttpXmn(rc)
+      const httpReqManager = new HttpXmn(rc, azure)
       this.httpsServer     = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
   }

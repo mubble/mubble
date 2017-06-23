@@ -222,8 +222,9 @@ export abstract class BaseDatastore {
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
   static getIdFromResult(rc : RunContextServer, res : any) : number | string {
-    const key = res[BaseDatastore._datastore.KEY].path   
-    return key[key.length - 1]
+    const key = res[BaseDatastore._datastore.KEY]
+    if(key.id) return Number(key.id)
+    return key.name
   }
 
 /*------------------------------------------------------------------------------
@@ -243,9 +244,20 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Set the primary key 
 ------------------------------------------------------------------------------*/                  
-  setIdFromResult(rc : RunContextServer , key : any) : void {
-    const id = this.getIdFromResult(rc, key)
+  setIdFromResult(rc : RunContextServer , res : any) : void {
+    const id = BaseDatastore.getIdFromResult(rc, res)
     this._id = id
+  }
+
+/*------------------------------------------------------------------------------
+  - Set the primary key 
+------------------------------------------------------------------------------*/ 
+  setIdFromKey(rc : RunContextServer, key : any) {
+    if(key.id) {
+      this._id = Number(key.id)
+    } else {
+      this._id = key.name
+    }
   }
 
 /*------------------------------------------------------------------------------

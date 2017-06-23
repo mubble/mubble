@@ -27,7 +27,6 @@ export abstract class ExternalLogger {
 
   abstract accessLog(logBuf : string) : void ;
 
-  //abstract getSessionLogger(rc : RunContextBase) : RCLoggerBase ;
 }
 
 export class InitConfig {
@@ -50,8 +49,8 @@ export class RunState {
 export abstract class RunContextBase {
 
   public  sessionContext   : string   
-  
   public  logger           : RCLoggerBase
+  public  startTs          : number = Date.now()
   
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
@@ -66,6 +65,7 @@ export abstract class RunContextBase {
     newRcb.runState     = this.runState
     if (newRcb.contextId === this.contextId && newRcb.contextName === this.contextName) {
       newRcb.logger.lastLogTS = this.logger.lastLogTS
+      newRcb.startTs   = this.startTs
     }
   }
 
@@ -152,17 +152,24 @@ export abstract class RunContextBase {
 
 }
 
+export type LogCacheEntry = {
+  ts : number ,
+  moduleName : string , 
+  level : LOG_LEVEL ,
+  log : string 
+}
+
 export abstract class RCLoggerBase {
 
-  private sesLogCache   : string[]  = []
+  public  sesLogCache   : LogCacheEntry[]  = []
   public  lastLogTS     : number    = 0
-
+  
   protected constructor(public rc : RunContextBase) {
 
   } 
-  
-  public  finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void {
 
+  public  finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void {
+    // default Implementation . 
   }
 
   abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
@@ -178,7 +185,7 @@ export abstract class RCLoggerBase {
           dateStr = format(curDate, '%dd%/%mm% %hh%:%MM%:%ss%.%ms%', this.rc.initConfig.tzMin),
           durStr  = this.durationStr(curDate.getTime())
 
-    let buffer = args.reduce((buf, val) => {
+    let buffer : string = args.reduce((buf, val) => {
       let strVal
       if (val instanceof Error) {
         // Error.name typically has class name of the ErrorCLass like EvalError
@@ -201,8 +208,15 @@ export abstract class RCLoggerBase {
     }
     if(this.rc.initConfig.externalLogger)
     {
-      this.rc.initConfig.externalLogger.log(level , logStr)
-      //this.rc.initConfig.externalLogger.sessionLog(logStr+'\n', 'TestGKSession')
+      if(this.rc.sessionContext){
+        this.sesLogCache.push({
+                ts : curDate.getTime() , 
+                moduleName : moduleName , 
+                level : level , 
+                log : buffer  })
+      }else{
+        this.rc.initConfig.externalLogger.log(level , logStr)
+      }
     }
 
     return buffer

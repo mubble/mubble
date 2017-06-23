@@ -37,27 +37,17 @@ export namespace Master{
     }
   }
 
-  // Check if these are required or not
-  export class FieldType {
+  export enum FieldType {
     
-    // Not good for logging(debug) reasons.
-    /*PRIMARY ,
+    PRIMARY = 1,
     MANDATORY ,
-    OPTIONAL ,
-    AUTO*/
-
-    private constructor(private name : string){}
-
-    public static  PRIMARY : FieldType = new FieldType('PRIMARY')
-    public static  MANDATORY : FieldType = new FieldType('MANDATORY')
-    public static  OPTIONAL : FieldType = new FieldType('OPTIONAL')
-    
-    //public static  AUTO : FieldType = new FieldType('AUTO')
-
-    public toString() {
-      return this.name
-    }
+    OPTIONAL 
+    //AUTO
   }
+
+
+
+
 
   export function field(type ?: FieldType ) {
     
@@ -173,6 +163,7 @@ export namespace Master{
         this.segment = segment
         if(MaType.isObject(fk)) this.fkConstrains = fk
         this.hasFileSource = true
+        this.cache = true
       }
     }
     //return {segment : segment , startVersion : startVersion , endVersion : endVersion , fkConstrains : fk }
@@ -209,52 +200,6 @@ export class MasterBase {
     this._mastername = masterName
   }
 
-  /**
-   * Get the Id (Primary key) of this model object. 
-   * Will be calculated from the id fields provided.
-   */
-  public getId() : Master.IDType{
-    return {}
-  }
-  
-  public getIdFromObj(src : object) : Master.IDType {
-    return {}
-  }
-
-  /**
-   * Get (Hash) key for staorage in Redis for this master model
-   */
-  public getHashKey() : string {
-    // Todo : define const for keys
-    return 'MASTER_REDIS_'+'DATA'+'_'+this._mastername
-  }
-  
-  /**
-   * Load the model object from redis
-   */
-  async get(id : Master.IDType) {
-    
-  }
-
-  async insert() {
-
-  }
-
-  async  update(selectCrit : object ) : Promise<any> {
-
-  }
-
-  async remove(id ?: Master.IDType) {}
-
-  
-  async list(selectCrit : object) : Promise<Array<object>> {
-    return []
-  }
-
-  async count (selectCrit : object) : Promise<number> {
-    return 0
-  }
-
   verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) {
     return true
   }
@@ -264,11 +209,21 @@ export class MasterBase {
     return 
   }
 
+  public syncGetModifications (context : RunContextServer , oRet : {mod : any[] , del : any[]}) : {mod : any[] , del : any[]} {
+    return oRet
+  }
+
+  public matchSegment(context : RunContextServer, arClientSeg : any[][] , colSeg : string[] , rec : any) : boolean {
+    return true
+  } 
+
   // not used - remove
+  /*
   public prepareSource(context : RunContextServer , rec : any){
 
   }
-  
+  */
+
 }
 
 

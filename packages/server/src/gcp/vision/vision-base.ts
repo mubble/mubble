@@ -75,7 +75,7 @@ export class VisionBase {
           if(err) return reject(err)
           const base64 = res.toString('base64')
 
-          return resolve({data   : res, 
+          return resolve({data   : base64, 
                           mime   : image.getMIME(),
                           height : (shrink) ? shrink.h : height,
                           width  : (shrink) ? shrink.w : width
@@ -93,8 +93,8 @@ export class VisionBase {
     let height : number,
         width  : number
 
-    if(crops && crops.length && crops[0].bounds) {
-      const b = crops[0].bounds,
+    if(crops && crops.length && crops[0][0].bounds) {
+      const b = crops[0][0].bounds,
             x = b[0].x,
             y = b[0].y
       

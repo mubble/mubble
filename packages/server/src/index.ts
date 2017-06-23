@@ -23,7 +23,10 @@ export *                      from './db/datastore/ds-transaction'
 export *                      from './gcp/cloudstorage/cloudstorage-base'
 export *                      from './gcp/vision/vision-base'
 export *                      from './cache/redis-wrapper'
-export *                      from './logger/logger'
+export *                      from './logger/server-ext-logger'
+export *                      from './master/ma-manager'
+export *                      from './master/ma-base'
+
 /* TODO:
 
   - Can add color support for logging. We will need to test it on linux to see it working

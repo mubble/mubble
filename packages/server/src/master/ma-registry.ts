@@ -25,9 +25,21 @@ import {MasterRegistryMgr}    from './ma-reg-manager'
 
 
 const LOG_ID : string = 'MasterRegistry'
-function MaRegistryLog(...args : any[] ) : void {
-  log(LOG_ID , ...args)
+function MaRegistryLog(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isStatus() && rc.status(LOG_ID , ...args )
+  }else{
+    //log(LOG_ID , ...args)
+  }
 }
+function debug(rc : RunContextServer | null , ...args : any[] ) : void {
+  if(rc){
+    rc.isDebug && rc.debug(LOG_ID , ...args )
+  }else{
+    //log(LOG_ID , ...args)
+  }
+}
+
 
 export const MASTERBASE : string = 'masterbase' //MasterBase.constructor.name.toLowerCase()
 
@@ -81,7 +93,7 @@ export class FieldInfo {
 
   public toString() : string {
     
-    return JSON.stringify({name : this.name, type : this.type , masType : this.constraint}) 
+    return JSON.stringify({name : this.name, type : this.type , constraint : Master.FieldType[this.constraint] , targetName : this.targetName}) 
   }
 
   // Is field inherited from master base
@@ -97,7 +109,7 @@ export class FieldInfo {
 export class MasterRegistry {
   
   constructor(master : string) {
-    MaRegistryLog('Creating Master ',master)
+    MaRegistryLog(null , 'Creating Master ',master)
     this.mastername = master
   }
 
@@ -122,6 +134,11 @@ export class MasterRegistry {
 
   allFields                 : string [] = []
 
+  // fields which are cached in memory
+  cachedFields              : string [] = []
+
+  destSyncFields            : string [] = []
+
   // Rules Array to verify fields type / value 
   // Equivalent of MasterConfig rules verification
   //rules                     : ((obj : any) => void) [] = []
@@ -140,6 +157,22 @@ export class MasterRegistry {
     })
 
     return JSON.stringify(id)
+  }
+
+  public getIdObject(src : any) : any {
+    
+    if(this.pkFields.length === 1) {
+      assert(src[this.pkFields[0]] != null , 'Id field value can not be null ', this.mastername , this.pkFields[0] , src)
+      return src[this.pkFields[0]]
+    }
+
+    const id : any = {}
+    this.pkFields.forEach(pk =>{
+      assert(src[pk] != null , 'Id field value can not be null ', this.mastername , pk , src )
+      id[pk] = src[pk]
+    })
+
+    return id
   }
   
   /*
@@ -173,7 +206,7 @@ export class MasterRegistry {
 
   public verify(context : RunContextServer) {
     
-    MaRegistryLog('Verifying ',this.mastername)
+    MaRegistryLog(context , 'Verifying ',this.mastername)
     
     // Todo
     /*
@@ -204,7 +237,7 @@ export class MasterRegistry {
     }).map(info=>info.name)
     
 
-    MaRegistryLog(this.mastername , this.fieldsMap)
+    MaRegistryLog(context, this.mastername , 'FieldsMap:' , this.fieldsMap)
 
     lo.forEach(this.config.getDependencyMasters() , (parent : string)=>{
       assert(MasterRegistryMgr.getMasterRegistry(parent)!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
@@ -238,11 +271,54 @@ export class MasterRegistry {
       })
 
     })
+
+
+    // cached fields check
+    // should be own field
+    const cachedFields : {fields :  string [] , cache : boolean} = this.config.getCachedFields()
+    cachedFields.fields.forEach((field : string)=>{
+        assert(this.ownFields.indexOf(field)!=-1 , 'cached field',field , 'is not an own fields', this.ownFields , this.mastername)
+    })
+    
+    // Populate Cached Fields
+    if(cachedFields.cache){
+     this.cachedFields  = lo.clone(cachedFields.fields) 
+    }else{
+     this.cachedFields = this.ownFields.filter(fld=>{
+       return cachedFields.fields.indexOf(fld) === -1 
+     }) 
+    }
+    assert(this.cachedFields.length>0  /*|| !this.config.getCached()*/ , 'No cached fields for master ',this.mastername)
+    
+    // destination sync fields check
+    
+    // should be own field
+    const destFields : {fields :  string [] , cache : boolean} = this.config.getDestSynFields()
+    destFields.fields.forEach((field : string)=>{
+        assert(this.ownFields.indexOf(field)!=-1 , 'destSync field',field , 'is not an own fields', this.ownFields , this.mastername)
+    })
+
+    // Populate destination sync fields
+    if(destFields.cache){
+     this.destSyncFields  = lo.clone(destFields.fields) 
+    }else{
+     this.destSyncFields = this.ownFields.filter(fld=>{
+       return destFields.fields.indexOf(fld) === -1 
+     }) 
+    }
+    
+    assert(this.destSyncFields.length>0 , 'No destination sync fields for master ',this.mastername)
+    
+    // dest sync fields should be sublist of cached fields
+    this.destSyncFields.forEach(fld => {
+      assert(this.cachedFields.indexOf(fld)!==-1 , 'dest field ',fld , 'is not cached',this.cachedFields , this.mastername)
+    })
+
   }
 
   public addFieldRule(fieldName : string , target : object , rule : ((obj : any)=> void)) {
     
-    MaRegistryLog('addFieldRule', this.mastername , fieldName )
+    MaRegistryLog(null , 'addFieldRule', this.mastername , fieldName )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
@@ -262,7 +338,7 @@ export class MasterRegistry {
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     
-    MaRegistryLog('addField', this.mastername , fieldName , masType )
+    MaRegistryLog(null , 'addField', this.mastername , fieldName , Master.FieldType[masType] )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
