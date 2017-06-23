@@ -85,4 +85,19 @@ export class Repl {
 
     this.pr = rc.router.routeRequest(rc, irc, irb)
   }
+
+  callRegApi(userLinkId: string, apiName: string, param: object) {
+    const rc:any = this.rc
+
+    const irb = rc.router.getNewInRequest()
+    const irc = rc.router.getNewInConnection()
+    irc.params = { appName: 'NCAPP', channel: 'ANDROID', appVersion: '0.9.0', 
+                                                    jsVersion: '0.2.0', userLinkId: userLinkId }
+    irc.verifyConnection (rc).then(() => {
+      irb.setApi(apiName)
+      irb.setParam(param)
+
+      this.pr = rc.router.routeRequest(rc, irc, irb)
+    })
+  }
 }
