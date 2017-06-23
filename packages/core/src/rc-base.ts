@@ -81,7 +81,6 @@ export abstract class RunContextBase {
   }
 
   changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
-    console.log('this.runState.modLogLevel', this.runState.modLogLevel)
     this.runState.moduleLLMap[moduleName] = logLevel
     const keys = Object.keys(this.runState.moduleLLMap)
     this.runState.modLogLevel = LOG_LEVEL.NONE
@@ -90,7 +89,6 @@ export abstract class RunContextBase {
         this.runState.modLogLevel = this.runState.moduleLLMap[key]
       }
     }
-    console.log('this.runState.modLogLevel', this.runState.modLogLevel)
   }
 
   getLogLevel(): LOG_LEVEL {
