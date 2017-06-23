@@ -31,14 +31,14 @@ function MaRegMgrLog(rc : RunContextServer | null , ...args : any[] ) : void {
   if(rc){
     rc.isStatus() && rc.status(LOG_ID , ...args )
   }else{
-    log(LOG_ID , ...args)
+    //log(LOG_ID , ...args)
   }
 }
 function debug(rc : RunContextServer | null , ...args : any[] ) : void {
   if(rc){
     rc.isDebug && rc.debug(LOG_ID , ...args )
   }else{
-    log(LOG_ID , ...args)
+    //log(LOG_ID , ...args)
   }
 }
 
