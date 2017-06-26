@@ -22,7 +22,6 @@ import {RunContextServer, RUN_MODE} from '../rc-server'
 interface TempStoreEntry {
   ts    : number
   req   : http.IncomingMessage
-  resp  : object,
   ic    : InConnectionBase
 }
 
@@ -38,8 +37,8 @@ export class WsXmn {
     this.rc = rc // TODO: ???? Hack
 
     this.wsServer = new ws.Server({
-      server: httpServer
-//      verifyClient: this.onVerifyClient.bind(this)
+      server: httpServer,
+      verifyClient: this.onVerifyClient.bind(this)
     })
     this.wsServer.on('connection', this.onConnection.bind(this))
     // this.wsServer.on('headers'   , this.onHeaders.bind(this))
@@ -47,44 +46,61 @@ export class WsXmn {
 
   onConnection(socket : any) {
 
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'got a new connection')
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onConnection')
 
-    const req       = socket.upgradeReq,
-          urlObj    = url.parse(req.url || ''),
+    // const req       = socket.upgradeReq,
+    //       urlObj    = url.parse(req.url || ''),
+    //       queryObj  = querystring.parse(urlObj.query),
+    //       ic        = this.router.getNewInConnection(this.rc)
+
+    // ic.params = JSON.parse(queryObj[WS_CONST.CONNECTION_KEY])
+    // ic.verifyConnection(this.rc).then(() => {
+    //   const mws = new MubbleWebSocket()
+    //   mws.init(this.rc, socket, this.router, ic)
+    //   this.sockets.push(mws)
+    //   // TODO: Need to cleanup socket via timer and notification ????
+    // }, (err) => {
+    //   socket.close();
+    //   this.rc.isError() && this.rc.error(this.rc.getName(this), 'Ignoring socket as could not find request')
+    // })
+
+
+
+    const index = this.store.findIndex(item => item.req === socket.upgradeReq)
+    if (index === -1) {
+      socket.close();
+      return this.rc.isError() && this.rc.error(this.rc.getName(this), 'Ignoring socket as could not find request')
+    }
+    const temp:TempStoreEntry|undefined = this.store[index]
+    this.store.splice(index, 1)
+
+    const mws = new MubbleWebSocket()
+    mws.init(this.rc, socket, this.router, temp.ic)
+    this.sockets.push(mws)
+  }
+
+  onVerifyClient(info: { origin: string; secure: boolean; req: http.IncomingMessage }, 
+    cb: (res: boolean) => void) {
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onVerifyClient')
+
+    const urlObj    = url.parse(info.req.url || ''),
           queryObj  = querystring.parse(urlObj.query),
           ic        = this.router.getNewInConnection(this.rc)
 
     ic.params = JSON.parse(queryObj[WS_CONST.CONNECTION_KEY])
     ic.verifyConnection(this.rc).then(() => {
-      const mws = new MubbleWebSocket()
-      mws.init(this.rc, socket, this.router, ic)
-      this.sockets.push(mws)
-      // TODO: Need to cleanup socket via timer and notification ????
+      this.store.push({
+        ts: Date.now(),
+        req: info.req, 
+        ic
+      })
+      cb(true)
     }, (err) => {
-      socket.close();
-      this.rc.isError() && this.rc.error(this.rc.getName(this), 'Ignoring socket as could not find request')
+      this.rc.isError() && this.rc.error(this.rc.getName(this), 'onVerifyClient failed', err)
+      cb(false)
     })
   }
-
-  // async onVerifyClient(info: { origin: string; secure: boolean; req: http.IncomingMessage }, 
-  //   cb: (res: boolean) => void) {
-
-    
-
-  //   this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'ic.params', ic.params)
-    
-  //   try {
-  //     this.store.push({
-  //       ts: Date.now(),
-  //       req: info.req, ic, resp
-  //     })
-  //     cb(true)
-  //   } catch (err) {
-  //     this.rc.isError() && this.rc.error(this.rc.getName(this), 'onVerifyClient failed', err)
-  //     cb(false)
-  //   }
-
-  // }
 
   // onHeaders(headers: string[], req: http.IncomingMessage) {
 
