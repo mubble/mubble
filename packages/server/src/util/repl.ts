@@ -93,11 +93,13 @@ export class Repl {
     const irc = rc.router.getNewInConnection()
     irc.params = { appName: 'NCAPP', channel: 'ANDROID', appVersion: '0.9.0', 
                                                     jsVersion: '0.2.0', userLinkId: userLinkId }
-    irc.verifyConnection (rc).then(() => {
-      irb.setApi(apiName)
-      irb.setParam(param)
+    irc.verifyConnection (rc).then(() => { 
+      irc.initializeConnection (rc, Date.now()).then (() => {
+        irb.setApi(apiName)
+        irb.setParam(param)
 
-      this.pr = rc.router.routeRequest(rc, irc, irb)
+        this.pr = rc.router.routeRequest(rc, irc, irb)
+      })
     })
   }
 }
