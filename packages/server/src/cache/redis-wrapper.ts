@@ -67,14 +67,25 @@ export interface RedisCmds {
   
 }
 
+export type RedisMulti = RedisCmds
+
 function add(name : string)  {
   
   name = name.toLowerCase()
-  const rw = (RedisWrapper.prototype as any)
+  
+  const rw : any = RedisWrapper.prototype
   rw[name] = function(...params: any[]) {
-    
-    return this._execute(name , params)
+    const _ : RedisWrapper  = this
+    return _._execute(name as redis_command , params)
   }
+
+  const rdMulti : any = RedisMultiWrapper.prototype
+  rdMulti[name] = function(...params : any[]) {
+    const _ : RedisMultiWrapper = this
+    _.buff.push({cmdName : name , params : params})
+    return (_.multi as any)[name](params)
+  }  
+
   return add
 }
 
@@ -139,7 +150,7 @@ export class RedisWrapper {
     return new Promise ((resolve : any , reject : any) => {
       
       this.redis.on('subscribe' , (channel : string , count : number)=>{
-        redisLog(null as any as RunContextServer , this.name , ' subscribed to channel ' , channel , count)
+        redisLog(this.rc , this.name , ' subscribed to channel ' , channel , count)
         // resolve when ? all events are subscribed
         resolve()
       })
@@ -148,7 +159,7 @@ export class RedisWrapper {
         callback(channel , message)
       })
 
-      redisLog(null as any as RunContextServer , 'redis ',this.name , 'subscribing to channels ',events)
+      redisLog(this.rc , 'redis ',this.name , 'subscribing to channels ',events)
       this.redis.subscribe(events)
 
     })
@@ -175,10 +186,10 @@ export class RedisWrapper {
       
       redisw[cmd](args , (err : Error , res : any) =>{
         if(err){
-          if(this.monitoring) redisLog(null as any as RunContextServer , this.name , cmd  , args , 'failed ',err)
+          if(this.monitoring) redisLog(this.rc , this.name , cmd  , args , 'failed ',err)
           reject(err)
         }
-        if(this.monitoring) redisLog(null as any as RunContextServer , this.name , cmd  , args , 'success ', res)
+        if(this.monitoring) redisLog(this.rc , this.name , cmd  , args , 'success ', res)
         resolve(res)
       })
     })
@@ -256,25 +267,17 @@ export class RedisWrapper {
     return this._hscan(cmd , key , cursor , pattern , count , out)
   }
 
-  multi() : Multi {
-    return this.redis.multi()
-  }
-  
-  async execMulti(batchOrMulti : Multi) {
+  private async execMulti(batchOrMulti : Multi) : Promise<any[]> {
     const _ = this
-    
-    return new Promise(function(resolve, reject) {
+          
+    return new Promise<any[]>(function(resolve, reject) {
       
-      batchOrMulti.exec(function(err, results) {
-        if (_.monitoring)  redisLog (null as any as RunContextServer , 'multi/batch', {err}, 'results', results)
+      batchOrMulti.exec(function(err, results : any[]) {
+        if (_.monitoring)  redisLog (this.rc , 'multi/batch', {err}, 'results', results)
         if (err) return reject(err)
         resolve(results)
       })
     })
-  }
-
-  async del(...keys : string[] ) {
-    return this._execute('del' , keys)
   }
 
   // This is not an async api
@@ -282,19 +285,39 @@ export class RedisWrapper {
     this.redis.publish(channel , data)
   }
 
-  async command(cmd : redis_command , args : any[]) {
-    return this._execute(cmd , args)
-  }
-  
   redisCommand() : RedisCmds {
-    //return <RedisCmds> <any> this
+
     return (this as any as RedisCmds)
   }
 
+  redisMulti() : RedisMulti {
 
+    return (new RedisMultiWrapper(this) as any as RedisMulti)
+  }
 
+  async execRedisMulti(redisMulti : RedisMulti) : Promise<any[]> {
+    
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), redisMulti instanceof RedisMultiWrapper , 'execRedisMulti can only exec redisMulti cmds')
+    return this.execMulti( (redisMulti as any as RedisMultiWrapper).multi )
+  }
 
+}
 
+class RedisMultiWrapper {
+  public multi : Multi 
+  public buff : any[] = []
+  
+  public constructor(private rw : RedisWrapper) {
+    this.multi = rw.redis.multi()
+  }
+
+  public toString() : string {
+    let tempBuf : string = ''
+    this.buff.forEach(x=>{
+      tempBuf += JSON.stringify(x) + '\n'
+    })
+    return tempBuf
+  }
 }
 
 
