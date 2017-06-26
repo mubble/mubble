@@ -11,9 +11,8 @@ import * as lo                from 'lodash'
 import * as crypto            from 'crypto'
 import * as fs                from 'fs'
 
-import {Multi}                from 'redis'
-
-import {RedisWrapper}         from '../cache/redis-wrapper'
+import {RedisWrapper,
+        RedisMulti}           from '../cache/redis-wrapper'
 import {MasterBase , 
         MasterBaseFields}     from './ma-base'
 import {RunContextServer}     from '../rc-server'
@@ -494,7 +493,7 @@ export class MasterMgr {
 
   private async updateMRedis(rc : RunContextServer , results : any[] , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest: string}} ) {
     
-    const multi : Multi = this.mredis.multi()
+    const multi : RedisMulti = this.mredis.redisMulti()
       
     for(const master  of lo.keysIn(todoModelz) ){
       
@@ -509,20 +508,20 @@ export class MasterMgr {
       lo.forEach(modifications , (recStr : string , pk : string) => {
         
         //const recStr : string = JSON.stringify(value)
-        multi.zadd([CONST.REDIS_NS + CONST.REDIS_TS_SET + master , 'CH', ts, pk ])
-        multi.hset([CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr])
+        multi.zadd(CONST.REDIS_NS + CONST.REDIS_TS_SET + master , 'CH', ts, pk )
+        multi.hset(CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master, pk, recStr)
 
       })
       // todo : Calculate Data Digest and other digest
-      multi.hset([CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, JSON.stringify(new DigestInfo(modData.fDigest , modData.modelDigest , ts , '' , {} )) ])
+      multi.hset(CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY , master, JSON.stringify(new DigestInfo(modData.fDigest , modData.modelDigest , ts , '' , {} )) )
       // result objects with info
       results.push({name : master , inserts : lo.size(inserts) , updates : lo.size(updates) , deletes : lo.size(deletes) , modTs : ts })    
     }
     
     MaMgrLog(rc , 'updating MRedis')
-    await this.mredis.execMulti(multi)
+    const res : any[] = await this.mredis.execRedisMulti(multi)
 
-    MaMgrLog(rc , 'mredis publishing to channel' , CONST.REDIS_CHANNEL)
+    MaMgrLog(rc , 'mredis publishing to channel' , CONST.REDIS_CHANNEL , res)
     await this.mredis.publish(CONST.REDIS_CHANNEL , JSON.stringify(lo.keysIn(todoModelz)) )
  
   }
