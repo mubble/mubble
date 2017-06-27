@@ -135,7 +135,7 @@ export class DSTransaction {
     return true
   }
 
-  async update(rc : RunContextServer, model : BaseDatastore,
+  async update(rc : RunContextServer, model : BaseDatastore,        //TODO: remove TEMPs after merge
                         id        ?: number | string,               //TEMP
                         updRec    ?: {[index : string] : any},      //TEMP
                         ignoreRNF ?: boolean) : Promise<void> {     //TEMP
