@@ -263,13 +263,10 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  static createQuery(rc : RunContextServer, inTransaction ?: boolean ) {
+  static createQuery(rc : RunContextServer, transaction ?: DSTransaction) {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
 
-    if(inTransaction) {
-      const transaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
-      return new DSTQuery(rc, transaction, BaseDatastore._namespace, this._kindName)
-    }
+    if(transaction) return new DSTQuery(rc, transaction, BaseDatastore._namespace, this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, BaseDatastore._namespace, this._kindName)
   }
 
