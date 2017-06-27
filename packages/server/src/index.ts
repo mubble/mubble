@@ -9,7 +9,7 @@
 export {
         startCluster,
         isClusterMaster
-      }                       from './cluster/master'
+       }                      from './cluster/master'
 export {web}                  from './xmn/web'
 export *                      from './rc-server'
 export {Repl}                 from './util/repl'
