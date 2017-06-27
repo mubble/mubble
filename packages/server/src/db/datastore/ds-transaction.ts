@@ -144,8 +144,7 @@ export class DSTransaction {
 
     const mId = model.getId(rc)
     if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
-    const key = model.getDatastoreKey(rc, model.getId(rc))
-    // TODO: (D) Need to fix this..
+    const key = model.getDatastoreKey(rc, mId)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }
 
@@ -157,7 +156,6 @@ export class DSTransaction {
                          
     const key = model.getDatastoreKey(rc, id)
     if(updRec.modTs || updRec.createTs) throw(ERROR_CODES.UNSUPPORTED_UPDATE_FIELDS)
-    // TODO: (D) Check if there are any auto generated field that are updated... modTs, createTs..
     const oldModTs = model.modTs
     await this.get(rc, model, id, ignoreRNF)
     if (oldModTs && oldModTs != model.modTs) throw(ERROR_CODES.MOD_TS_MISMATCH)
