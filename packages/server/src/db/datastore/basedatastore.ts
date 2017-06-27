@@ -26,7 +26,7 @@ export abstract class BaseDatastore {
   protected deleted          : boolean = false
      
   // holds most recent values for create, modify or delete
-  protected modTs            : number
+  public    modTs            : number
   protected modUid           : number
 
   // Static Variables
@@ -446,7 +446,7 @@ export abstract class BaseDatastore {
       if(res) {
         if ((!childEntities || Object.keys(childEntities).length === 0 || noChildren)) {
           await BaseDatastore._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
-          this._id = datastoreKey.path[datastoreKey.path.length - 1]
+          this.setIdFromKey(rc, datastoreKey)
           return true
         } else {
           const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
