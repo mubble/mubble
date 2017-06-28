@@ -266,7 +266,7 @@ export class MasterMgr {
 
   async refreshSelectModels(masters : string[]) {
     
-    MaMgrLog(null , 'refreshing masters list',masters)
+    MaMgrLog(this.rc , 'refreshing masters list',masters)
     
     const all : string[] = MasterRegistryMgr.masterList()
     masters.forEach((mas : string)=>{
@@ -294,17 +294,17 @@ export class MasterMgr {
           resultScores : string [] =  resultWithTsScore.filter((val : any , index : number)=>{ return index%2 !==0 }) 
 
     if(!resultKeys.length){
-      MaMgrLog(null , 'refreshAModel no records to update')
+      MaMgrLog(this.rc , 'refreshAModel no records to update')
       return
     }
     const uniqueScores : string[] = lo.uniq(resultScores)
     assert(uniqueScores.length === 1 , 'model refresh inconsistency ' , mastername , uniqueScores , dinfo)
     assert(lo.toNumber(uniqueScores[0]) === dinfo.modTs , 'model refresh inconsistency ' , mastername , uniqueScores , dinfo )
 
-    MaMgrLog(null , 'refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
+    MaMgrLog(this.rc , 'refreshAModel info', {mastername , lastTs } , resultKeys.length , resultKeys)
 
     const recs : string[] = await redis.redisCommand().hmget(redisDataKey , ...resultKeys)
-    MaMgrLog(null , 'refreshAModel ',mastername , 'refreshed records:',recs.length /*, recs*/)
+    MaMgrLog(this.rc , 'refreshAModel ',mastername , 'refreshed records:',recs.length /*, recs*/)
 
     assert(resultKeys.length === recs.length , 'invalid result from refresg redis' , resultKeys.length , recs.length)
     
@@ -375,7 +375,7 @@ export class MasterMgr {
       const master : string   = masters[i].master,
       jsonFile : string = masters[i].josnFilePath
 
-      assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'doesnot exits')
+      assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
       const buff : Buffer = await fs.readFileSync(jsonFile)
       arModels.push({master : master , source : buff.toString()})
     }
@@ -580,6 +580,12 @@ export class MasterMgr {
       return (val[MasterBaseFields.Deleted] === true)
     }) as GenValMap
 
+  }
+
+  public async close() {
+    await this.sredis.close()
+    await this.subRedis.close()
+    await this.mredis.close()
   }
 
   private static async _getLatestRec(redis : RedisWrapper , master : string , oldest : boolean = false) : Promise<{key ?: string , ts ?: number}>  {

@@ -301,6 +301,11 @@ export class RedisWrapper {
     return this.execMulti( (redisMulti as any as RedisMultiWrapper).multi )
   }
 
+  async close() {
+    await this.redis.quit()
+    redisLog(this.rc , 'closed redis connection ',this.name)
+  }
+
 }
 
 class RedisMultiWrapper {

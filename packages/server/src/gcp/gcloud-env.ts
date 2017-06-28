@@ -84,11 +84,11 @@ export class GcloudEnv {
   public datastore    : any
   public cloudStorage : any 
   public vision       : any 
+  public bigQuery     : any  
 
   constructor(public projectId  : string,
               public namespace  : string,
               public authKey   ?: object) {
-
   }
 
   // Static Functions to get Metadata Info
