@@ -110,7 +110,7 @@ public isGlobalNamespace() : boolean {
 } 
 
 /*------------------------------------------------------------------------------
-  - Get the namespce string depending upon whether namespace is global or local
+  - Get the namespace string depending upon whether namespace is global or local
 ------------------------------------------------------------------------------*/ 
 
 private getNamespace() : string {
@@ -290,7 +290,7 @@ private getNamespace() : string {
   static createQuery(rc : RunContextServer, transaction ?: DSTransaction ) : DSQuery | DSTQuery  {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
 
-    const model       : BaseDatastore =  new (this as any)() //Object.getPrototypeOf(this).constructor()   
+    const model : BaseDatastore =  new (this as any)() //Object.getPrototypeOf(this).constructor()   
     
     if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc) , model.getNamespace(), this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, model.getNamespace() , this._kindName)
