@@ -15,13 +15,17 @@ import {BaseDatastore}    from './basedatastore'
 export class DSTransaction {
 
   private _transaction : any
-  private _namespace   : any
+  private _namespace   : string
   private _datastore   : any
 
   constructor(rc : RunContextServer, datastore : any, namespace : string) {
     this._transaction = datastore.transaction()
     this._namespace   = namespace
     this._datastore   = datastore
+  }
+
+  public getTransaction(rc : RunContextServer) : any {
+    return this._transaction
   }
 
   async start(rc : RunContextServer) { // Needed only if we use a transaction outside models.

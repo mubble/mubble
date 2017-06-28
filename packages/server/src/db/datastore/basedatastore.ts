@@ -287,22 +287,19 @@ private getNamespace() : string {
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  protected static createQuery(rc : RunContextServer, inTransaction ?: boolean ) {
+  static createQuery(rc : RunContextServer, transaction ?: DSTransaction ) : DSQuery | DSTQuery  {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
 
     const model       : BaseDatastore =  new (this as any)() //Object.getPrototypeOf(this).constructor()   
     
-    if(inTransaction) {
-      const transaction = new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace())
-      return new DSTQuery(rc, transaction, model.getNamespace(), this._kindName)
-    }
+    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc) , model.getNamespace(), this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, model.getNamespace() , this._kindName)
   }
 
 /*------------------------------------------------------------------------------
   - Create Transaction 
 ------------------------------------------------------------------------------*/
-  static createTransaction(rc : RunContextServer) {
+  static createTransaction(rc : RunContextServer) : DSTransaction {
     const model       : BaseDatastore =  new (this as any)() //Object.getPrototypeOf(this).constructor()
     
     return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace())
