@@ -1,37 +1,37 @@
 /*------------------------------------------------------------------------------
-   About      : Google BigQuery Access
+   About      : Google Pub-Sub Access
    
-   Created on : Mon Jun 26 2017
+   Created on : Thu Jun 29 2017
    Author     : Gaurav Kulshreshtha
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const BigQuery  : any    = require('@google-cloud/bigquery')
+const PubSub  : any       = require('@google-cloud/pubsub')
 
 import {RunContextServer}           from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
 
-export class BigQueryBase {
+export class PubSubBase {
 
-  static _bigQuery : any
+  static _pubSub : any
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
-      gcloudEnv.bigQuery = BigQuery ({
+      gcloudEnv.pubsub = PubSub ({
         projectId   : gcloudEnv.projectId,
         credentials : gcloudEnv.authKey
       })
     } else {
-      gcloudEnv.bigQuery = BigQuery ({
+      gcloudEnv.bigQuery = PubSub ({
         projectId   : gcloudEnv.projectId
       })
     }
 
-    this._bigQuery = gcloudEnv.bigQuery
+    this._pubSub = gcloudEnv.pubsub
   }
 
 }
