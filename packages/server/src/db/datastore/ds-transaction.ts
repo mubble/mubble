@@ -15,13 +15,17 @@ import {BaseDatastore}    from './basedatastore'
 export class DSTransaction {
 
   private _transaction : any
-  private _namespace   : any
+  private _namespace   : string
   private _datastore   : any
 
   constructor(rc : RunContextServer, datastore : any, namespace : string) {
     this._transaction = datastore.transaction()
     this._namespace   = namespace
     this._datastore   = datastore
+  }
+
+  public getTransaction(rc : RunContextServer) : any {
+    return this._transaction
   }
 
   async start(rc : RunContextServer) { // Needed only if we use a transaction outside models.
@@ -135,15 +139,30 @@ export class DSTransaction {
     return true
   }
 
-  async update(rc         : RunContextServer, 
-               model      : BaseDatastore, 
-               id         : number | string, 
-               updRec     : any, 
-               ignoreRNF ?: boolean) : Promise<void> {
+  async update(rc : RunContextServer, model : BaseDatastore,        //TODO: remove TEMPs after merge
+                        id        ?: number | string,               //TEMP
+                        updRec    ?: {[index : string] : any},      //TEMP
+                        ignoreRNF ?: boolean) : Promise<void> {     //TEMP
+
+    if(id && updRec) return this.updateInternal(rc, model, id, updRec, ignoreRNF)  //TEMP
+
+    const mId = model.getId(rc)
+    if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
+    const key = model.getDatastoreKey(rc, mId)
+    this._transaction.save({key: key, data: model.getUpdateRec(rc)})
+  }
+
+  async updateInternal( rc         : RunContextServer, 
+                        model      : BaseDatastore, 
+                        id         : number | string, 
+                        updRec     : {[index : string] : any}, 
+                        ignoreRNF ?: boolean) : Promise<void> {
                          
     const key = model.getDatastoreKey(rc, id)
-
+    if(updRec.modTs || updRec.createTs) throw(ERROR_CODES.UNSUPPORTED_UPDATE_FIELDS)
+    const oldModTs = model.modTs
     await this.get(rc, model, id, ignoreRNF)
+    if (oldModTs && oldModTs != model.modTs) throw(ERROR_CODES.MOD_TS_MISMATCH)
     Object.assign(model, updRec)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }
@@ -230,7 +249,7 @@ export class DSTransaction {
                         ignoreRNF ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
-      await this.update(rc, model, id, updRec, ignoreRNF)
+      await this.updateInternal(rc, model, id, updRec, ignoreRNF)
       await this._transaction.commit()
       return true
     } catch(err) {
@@ -252,7 +271,7 @@ export class DSTransaction {
     try {
       await this._transaction.run()
       for(const rec of updRecs) {
-        await this.update(rc, model, rec.getId(rc), rec, ignoreRNF)
+        await this.updateInternal(rc, model, rec.getId(rc), rec, ignoreRNF)
       } 
       await this._transaction.commit()
       return true
@@ -273,7 +292,7 @@ export class DSTransaction {
                           params : any) : Promise<boolean> {
     try {
       await this._transaction.run()
-      await this.update (rc, model, id, params, false)
+      await this.updateInternal(rc, model, id, params, false)
       await model.deleteUnique(rc)
       await this._transaction.commit()
       return true

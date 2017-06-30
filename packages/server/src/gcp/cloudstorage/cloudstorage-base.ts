@@ -11,7 +11,7 @@ const cloudStorage : any = require('@google-cloud/storage')
 
 import {RunContextServer}    from '../../rc-server'
 import {GcloudEnv}           from '../../gcp/gcloud-env'
-import {v4 as UUIDv4}        from 'node-uuid'
+import {v4 as UUIDv4}        from 'uuid'
 
 import * as mime             from 'mime-types'
 import * as fs               from 'fs'

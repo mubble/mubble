@@ -17,6 +17,8 @@ import {DSQuery}          from './ds-query'
 import {DSTQuery}         from './dst-query'
 import {DSTransaction}    from './ds-transaction'
 
+const GLOBAL_NAMESPACE : string = '--GLOBAL--'
+
 export abstract class BaseDatastore {
 
   // Common fields in all the tables
@@ -26,13 +28,13 @@ export abstract class BaseDatastore {
   protected deleted          : boolean = false
      
   // holds most recent values for create, modify or delete
-  protected modTs            : number
+  public    modTs            : number
   protected modUid           : number
 
   // Static Variables
   protected static _kindName : string
   static _datastore          : any
-  static _namespace          : string
+  private static _namespace  : string
   static _autoFields         : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
   static _indexedFields      : Array<string> = ['createTs', 'deleted', 'modTs']
 
@@ -96,8 +98,30 @@ export abstract class BaseDatastore {
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                            NAMESPACE RELATED
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
+/*------------------------------------------------------------------------------
+  - Tells whether this model is using global namespace or machine env specific namespace (local)
+  - Defaults to false , which means machine env namespace will be used.
+  - Models wish to be global namespace can override this and return true
+------------------------------------------------------------------------------*/ 
+public isGlobalNamespace() : boolean {
+  return false
+} 
+
+/*------------------------------------------------------------------------------
+  - Get the namespace string depending upon whether namespace is global or local
+------------------------------------------------------------------------------*/ 
+
+private getNamespace() : string {
+  return this.isGlobalNamespace() ? GLOBAL_NAMESPACE : BaseDatastore._namespace
+}
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             BASIC DB OPERATIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
+
+
 /*------------------------------------------------------------------------------
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
@@ -117,7 +141,7 @@ export abstract class BaseDatastore {
 
         return true       
       } else {
-        const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+        const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, this.getNamespace())
         return transaction.bdGet (rc, this, id, ignoreRNF)
       }
     }
@@ -155,8 +179,8 @@ export abstract class BaseDatastore {
 ------------------------------------------------------------------------------*/ 
   protected static async bulkInsert(rc : RunContextServer, recs : Array<any>, noChildren ?: boolean, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean> {
     try {
-      const model       : any           = Object.getPrototypeOf(this).constructor(),
-            transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+      const model       : BaseDatastore =  new (this as any)(), //Object.getPrototypeOf(this).constructor()   
+            transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace())
 
       return transaction.bulkInsert(rc, model, recs, noChildren, insertTime, ignoreDupRec)
     }
@@ -171,7 +195,7 @@ export abstract class BaseDatastore {
 ------------------------------------------------------------------------------*/ 
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<boolean> {
     try {
-      const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+      const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, this.getNamespace())
       return transaction.bdUpdate(rc, this, id, updRec, ignoreRNF)
     } 
     catch (err) {
@@ -187,8 +211,8 @@ export abstract class BaseDatastore {
   protected static async bulkUpdate(rc : RunContextServer, updRecs : Array<any>, insertTime ?: number, ignoreRNF ?: boolean) : Promise<boolean>{
 
     try {
-      const model       : any           = Object.getPrototypeOf(this).constructor(),
-            transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+      const model       : BaseDatastore =  new (this as any)(), //Object.getPrototypeOf(this).constructor()   ,
+            transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace())
 
       return transaction.bulkUpdate(rc, model, updRecs, insertTime, ignoreRNF)
     }
@@ -208,7 +232,7 @@ export abstract class BaseDatastore {
     if(!params) params = {}   
     params.deleted = true
     try {
-      const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+      const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, this.getNamespace())
       return transaction.softDelete(rc, this, id, params)
     } 
     catch (err) {
@@ -263,21 +287,22 @@ export abstract class BaseDatastore {
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  static createQuery(rc : RunContextServer, inTransaction ?: boolean ) {
+  static createQuery(rc : RunContextServer, transaction ?: DSTransaction ) : DSQuery | DSTQuery  {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
 
-    if(inTransaction) {
-      const transaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
-      return new DSTQuery(rc, transaction, BaseDatastore._namespace, this._kindName)
-    }
-    return new DSQuery(rc, BaseDatastore._datastore, BaseDatastore._namespace, this._kindName)
+    const model : BaseDatastore =  new (this as any)() //Object.getPrototypeOf(this).constructor()   
+    
+    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc) , model.getNamespace(), this._kindName)
+    return new DSQuery(rc, BaseDatastore._datastore, model.getNamespace() , this._kindName)
   }
 
 /*------------------------------------------------------------------------------
   - Create Transaction 
 ------------------------------------------------------------------------------*/
-  static createTransaction(rc : RunContextServer) {
-    return new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+  static createTransaction(rc : RunContextServer) : DSTransaction {
+    const model       : BaseDatastore =  new (this as any)() //Object.getPrototypeOf(this).constructor()
+    
+    return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace())
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -365,12 +390,12 @@ export abstract class BaseDatastore {
     if (!kindName) kindName = this._kindName || (this.constructor as any)._kindName
     if(!parentPath) {
       datastoreKey = BaseDatastore._datastore.key({
-        namespace : BaseDatastore._namespace,
+        namespace : this.getNamespace(),
         path      : ([kindName, id]) 
       })
     } else {
       datastoreKey = BaseDatastore._datastore.key({
-        namespace : BaseDatastore._namespace,
+        namespace : this.getNamespace(),
         path      : (parentPath.concat([kindName, id]))
       })
     }
@@ -446,10 +471,10 @@ export abstract class BaseDatastore {
       if(res) {
         if ((!childEntities || Object.keys(childEntities).length === 0 || noChildren)) {
           await BaseDatastore._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
-          this._id = datastoreKey.path[datastoreKey.path.length - 1]
+          this.setIdFromKey(rc, datastoreKey)
           return true
         } else {
-          const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, BaseDatastore._namespace)
+          const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, this.getNamespace())
           return await transaction.bdInsert(rc, this, parentKey, insertTime, ignoreDupRec)
         }
       } else {

@@ -32,6 +32,7 @@ export class RcServerExtLogger extends ExternalLogger {
   private dateNum     : number = -1
 
   private loggerMap   : FileEntry[] = []
+  private timerId     : any
   
   async init (logBaseDir ?: string){
     
@@ -62,8 +63,8 @@ export class RcServerExtLogger extends ExternalLogger {
     
     set(currDate , dateStr , '%yy%-%mm%-%dd%')
     const nextDateMs : number = currDate.getTime() + ONE_DAY_MS 
-
-    setTimeout( this.setLogger.bind(this) , nextDateMs - Date.now())
+    
+    this.timerId = setTimeout( this.setLogger.bind(this) , nextDateMs - Date.now())
   }
 
   private setLogger() {
@@ -82,9 +83,9 @@ export class RcServerExtLogger extends ExternalLogger {
      this.loggerMap[asNumber(LOG_LEVEL.DEBUG)] =  debugLogEntry
      this.loggerMap[asNumber(LOG_LEVEL.ERROR)] =  errLogentry
      this.loggerMap[LOG_LEVEL_ACCESS]          =  accLogEntry
-
+     
       oldLoggerMap.forEach((entry : FileEntry) => {
-        entry.closeEntry()
+        if(entry) entry.closeEntry()
       })
     this.setRotationTimer() 
   }
@@ -137,6 +138,12 @@ export class RcServerExtLogger extends ExternalLogger {
     this.log(LOG_LEVEL_ACCESS , logBuf)
   }
 
+  public async close() {
+    for(const entry of this.loggerMap) {
+      if(entry) await entry.closeStream()
+    }
+    clearTimeout(this.timerId)
+  }
 
 }
 
@@ -186,7 +193,7 @@ class FileEntry {
 
  }
 
- closeEntry() : void {
+ async closeEntry() {
   //console.log('closing entry',this.fileName)
   try{
     
@@ -204,5 +211,17 @@ class FileEntry {
   }
 
  } 
+
+ async closeStream() {
+   
+   try{
+    await this.stream.close()
+   }catch(err){
+     console.log('stream closure failure',this.fileName)
+   }
+   this.distroyed = true
+   this.fileName = null as any
+   this.dateStr  = null as any
+ }
 
 }

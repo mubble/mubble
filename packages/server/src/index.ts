@@ -9,7 +9,7 @@
 export {
         startCluster,
         isClusterMaster
-      }                       from './cluster/master'
+       }                      from './cluster/master'
 export {web}                  from './xmn/web'
 export {XmnRouterServer}      from './xmn/xmn-router-server'
 export *                      from './rc-server'
@@ -20,9 +20,12 @@ export *                      from './util/https-request'
 export *                      from './gcp/gcloud-env'
 export *                      from './db/datastore/basedatastore'
 export *                      from './db/datastore/ds-query'
+export *                      from './db/datastore/dst-query'
 export *                      from './db/datastore/ds-transaction'
 export *                      from './gcp/cloudstorage/cloudstorage-base'
 export *                      from './gcp/vision/vision-base'
+export *                      from './gcp/bigquery/bigquery-base'
+export *                      from './gcp/pubsub/pub-sub-base'
 export *                      from './cache/redis-wrapper'
 export *                      from './logger/server-ext-logger'
 export *                      from './master/ma-manager'

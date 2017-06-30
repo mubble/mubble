@@ -15,7 +15,7 @@ export class DSTQuery {
 
   private _tQuery : any
 
-  constructor(rc : RunContextServer, private transaction: any, private namespace : any, private kindName: any) {
+  constructor(rc : RunContextServer, private transaction: any , private namespace : string, private kindName: string) {
     this._tQuery = this.transaction.createQuery(namespace, kindName)
   }
 

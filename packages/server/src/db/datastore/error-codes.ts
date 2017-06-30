@@ -8,10 +8,12 @@
 ------------------------------------------------------------------------------*/
 
 export const ERROR_CODES = {
-  RECORD_NOT_FOUND      : 'RECORD_NOT_FOUND',
-  RECORD_ALREADY_EXISTS : 'RECORD_ALREADY_EXISTS',
-  UNIQUE_KEY_EXISTS     : 'UNIQUE_KEY_EXISTS',
-  PK_NOT_SET            : 'PK_NOT_SET',
-  GCP_ERROR             : 'GCP_ERROR',
-  TRANSACTION_ERROR     : 'TRANSACTION_ERROR'
+  RECORD_NOT_FOUND          : 'RECORD_NOT_FOUND',
+  RECORD_ALREADY_EXISTS     : 'RECORD_ALREADY_EXISTS',
+  UNIQUE_KEY_EXISTS         : 'UNIQUE_KEY_EXISTS',
+  PK_NOT_SET                : 'PK_NOT_SET',
+  GCP_ERROR                 : 'GCP_ERROR',
+  TRANSACTION_ERROR         : 'TRANSACTION_ERROR',
+  UNSUPPORTED_UPDATE_FIELDS : 'UNSUPPORTED_UPDATE_FIELDS',
+  MOD_TS_MISMATCH           : 'MOD_TS_MISMATCH'
 }
