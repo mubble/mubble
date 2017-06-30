@@ -81,6 +81,8 @@ export class Repl {
     irc.params = { appName: 'NCAPP', channel: 'ANDROID', appVersion: '0.9.0', jsVersion: '0.2.0' }
     irb.setApi(apiName)
     irb.setParam(param)
-    this.pr = rc.router.routeRequest(rc, irc, irb)
+    return rc.router.routeRequest(rc, irc, irb).then((res : any) => {
+      return res
+    })
   }
 }
