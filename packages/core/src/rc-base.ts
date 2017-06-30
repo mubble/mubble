@@ -140,7 +140,7 @@ export abstract class RunContextBase {
     return this.logger.log(moduleName, LOG_LEVEL.ERROR, args)
   }
 
-  assert(moduleName: string, condition: boolean, ...args: any[]) {
+  assert(moduleName: string, condition: any, ...args: any[]) {
     if (!condition) {
       throw(new Error(this.logger.log(moduleName, LOG_LEVEL.ERROR, args)))
     }

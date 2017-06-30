@@ -12,7 +12,8 @@ import {
   LOG_LEVEL,
   InitConfig,
   RunState,
-  RCLoggerBase
+  RCLoggerBase,
+  Timer
 }  from '@mubble/core'
 
 const CONSOLE_FN_MAP : ((message?: any, ...optionalParams: any[]) => void)[] = []
@@ -58,6 +59,8 @@ export class RCBrowserLogger extends RCLoggerBase {
 
 export abstract class RunContextBrowser extends RunContextBase {
 
+  public timer: Timer
+
   protected constructor(public initConfig   : InitConfigBrowser,
                         public runState     : RunStateBrowser,
                         contextId          ?: string, 
@@ -69,5 +72,6 @@ export abstract class RunContextBrowser extends RunContextBase {
   clone(newRc : RunContextBrowser) {
     // nothing to do, I have no member variables
     super.clone(newRc)
+    newRc.timer = this.timer
   }
 }

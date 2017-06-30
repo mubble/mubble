@@ -7,55 +7,6 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-
-
-/*------------------------------------------------------------------------------
-Websocket communication is essentially about following types:
-
-  - A client (or server) event
-  - A client (or server) request
-
-Some events may need acknowledgement from the other party, These can essentially be 
-assumed to be of type request / response. We will not use the term event for them.
-
-The underlying architecture can work on promises for request/response, which is 
-logically same as what we will have for http based request response.
-
-The event mechanism will be just like send it and forget it, this will actually be 
-like request with no response, leading to simpler apis and less network communication
-
-It may be possible that large message has not been flushed out on the websocket when 
-the next message arrives. We will need to ensure that we handle this.
-
-It will also be possible to reuse the code between client and server. More importantly
-we will just need to abstract out ws node library.
-
-Following steps are followed during setup and communication:
-- connect (sends app version and key)
-- upgrade (sends new key as cookie)
-- Connected (req/resp or events can flow now)
-
-Request:
-{type:request api:name clientTs:curTime seq:uniqSequenceId data:{} }
-
-http side note: If some third party is sending us json array, we should translate that
-to {array: []}
-
-Response:
-{type:response seq:uniqSequenceId error:null data:{} }
-
-Errors like invalid_uid_pwd will not be sent in the error fields anymore. Error essentially
-should be at the level of communication layer to indicate that request has failed
-
-Event:
-{type: event, name:eventName, eventTs:eventCreateTs  data:{} }
-
-Special event for upgrade (server to client): 
-Open another websocket to receive product version upgrade. This protocol
-will be defined later.
-
-
-------------------------------------------------------------------------------*/
 import {  
   XmnRouter, 
   Protocol,

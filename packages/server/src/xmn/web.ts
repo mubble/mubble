@@ -11,7 +11,7 @@ import * as http              from 'http'
 import {XmnRouter}            from '@mubble/core'
 
 import {HttpXmn}              from './http-xmn'
-import {WsXmn}                from './ws-xmn'
+import {WsServer}             from './ws-server'
 import {RunContextServer}     from '../rc-server'
 import {clusterWorker}        from '../cluster/worker'
 

@@ -11,6 +11,7 @@ export {
         isClusterMaster
       }                       from './cluster/master'
 export {web}                  from './xmn/web'
+export {XmnRouterServer}      from './xmn/xmn-router-server'
 export *                      from './rc-server'
 export {Repl}                 from './util/repl'
 export *                      from './util/user-info'

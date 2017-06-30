@@ -9,3 +9,6 @@
 
 export * from './rc-browser'
 export * from './xmn/ws-browser'
+export * from './xmn/xmn-router-browser'
+export * from './storage/user-key-value'
+export * from './storage/global-key-value'
