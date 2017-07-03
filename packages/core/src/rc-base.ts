@@ -6,12 +6,11 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import 
- { InConnectionBase ,
-   InEventBase , 
-   InRequestBase}                 from './xmn/xmn-router'
-
 import      {format}              from './util/date'
+import {
+  ConnectionInfo, 
+  InvocationData
+} from './xmn'
 
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
@@ -69,7 +68,7 @@ export abstract class RunContextBase {
     }
   }
 
-  public finish(resData : any , ic : InConnectionBase, ire: InRequestBase | InEventBase) : Promise<any> {
+  public finish(resData : any , ic : ConnectionInfo, ire: InvocationData) : Promise<any> {
     return new Promise((resolve : any , reject : any)=> {
       this.logger.finish(ic, ire)
       resolve(resData)
@@ -168,7 +167,7 @@ export abstract class RCLoggerBase {
 
   } 
 
-  public  finish(ic : InConnectionBase, ire: InRequestBase | InEventBase) : void {
+  public  finish(ic : ConnectionInfo, ire: InvocationData) : void {
     // default Implementation . 
   }
 

@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import * as http              from 'http'
-import {XmnRouter}            from '@mubble/core'
+import {XmnRouterServer}      from './xmn-router-server'
 
 import {HttpXmn}              from './http-xmn'
 import {WsServer}             from './ws-server'
@@ -43,14 +43,14 @@ export class Web {
   private wsHttpServer    : http.Server
   private httpsServer     : http.Server
 
-  private router          : XmnRouter
+  private router          : XmnRouterServer
 
   constructor() {
     if (web) throw('Router is singleton. It cannot be instantiated again')
   }
 
   init( rc               : RunContextServer,
-        router           : XmnRouter,
+        router           : XmnRouterServer,
         httpConfig      ?: HttpConfig, 
         websocketConfig ?: WebsocketConfig, 
         httpsConfig     ?: HttpsConfig,
@@ -73,7 +73,7 @@ export class Web {
       } else {
         wsServer = this.wsHttpServer = http.createServer()
       }
-      const wsReqManager = new WsXmn(rc, wsServer, router)
+      const wsReqManager = new WsServer(rc, wsServer, router)
     }
 
     if (this.httpsConfig) {

@@ -7,49 +7,52 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { XmnRouter,
-         MubbleWebSocket,
-         ConnectionInfo,
+import { ConnectionInfo,
          XmnError,
          WEB_SOCKET_URL,
-         WireObject,
-         ProtocolProvider }  from '@mubble/core'
+         SYS_EVENT,
+         WireSysEvent,
+         WebSocketConfig,
+         WireObject }  from '@mubble/core'
 
-import { XmnRouterBrowser
-
-} from './xmn-router-browser'
+import { XmnRouterBrowser } from './xmn-router-browser'
 
 import {  RunContextBrowser } from '../rc-browser'
 import {  EncryptionBrowser } from './enc-provider-browser'         
 
-export class WsBrowser extends ProtocolProvider {
+export class WsBrowser {
 
   private ws: WebSocket
   private encProvider: EncryptionBrowser
+  private lastMessageTime: number = 0
+  private msPingInterval: number  = 30000
+  private cbTimer: any
 
   constructor(private rc : RunContextBrowser, 
               private ci : ConnectionInfo, 
               private router : XmnRouterBrowser) {
-    super()
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
-  private init(rc: RunContextBrowser, data: any): string {
+  private init(rc: RunContextBrowser, data: WireObject): string {
 
     if (!this.encProvider) this.encProvider = new EncryptionBrowser(rc, this.ci)
 
-    const url = `ws://${this.ci.host}${this.ci.port}/${
+    const url = `ws://${this.ci.host}:${this.ci.port}/${
                 this.ci.publicRequest ? WEB_SOCKET_URL.PUBLIC : WEB_SOCKET_URL.PRIVATE}`
 
     this.ws  = new WebSocket(url + `/${
       encodeURIComponent(btoa(this.encProvider.encodeHeader(rc)))}/${
-      encodeURIComponent(btoa(data))
+      encodeURIComponent(btoa(this.encProvider.encodeBody(rc, data)))
     }`)
 
     this.ws.onopen     = this.onOpen.bind(this)
     this.ws.onmessage  = this.onMessage.bind(this)
     this.ws.onclose    = this.onClose.bind(this)
     this.ws.onerror    = this.onError.bind(this)
+
+    this.cbTimer       = this.timerEvent.bind(this)
+    this.setupTimer(rc)
     return null
   }
 
@@ -62,9 +65,9 @@ export class WsBrowser extends ProtocolProvider {
         {readyState: this.ws.readyState, bufferedAmount: this.ws.bufferedAmount})
       return XmnError._NotReady
     }
-
-    this.encProvider.encodeBody(rc, data.stringify())
-    this.ws.send(data)
+    
+    this.ws.send(this.encProvider.encodeBody(rc, data))
+    this.setupTimer(rc)
     return null
   }
 
@@ -76,7 +79,7 @@ export class WsBrowser extends ProtocolProvider {
   onMessage(msgEvent: MessageEvent) {
     const data = msgEvent.data
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onMessage()', data.length)
-    this.router.providerMessage(data)
+    this.router.providerMessage(this.rc, this.encProvider.decodeBody(this.rc, data))
   }
 
   onError(err: any) {
@@ -89,6 +92,33 @@ export class WsBrowser extends ProtocolProvider {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onClose()')
     this.cleanup()
     this.router.providerFailed()
+  }
+
+  processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
+
+    if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
+      const config: WebSocketConfig = se.data as WebSocketConfig
+      this.msPingInterval = config.msPingInterval
+      return true
+    } else {
+      return false
+    }
+  }
+
+  setupTimer(rc: RunContextBrowser) {
+    this.lastMessageTime = Date.now()
+    rc.timer.tickAfter(this.cbTimer, this.msPingInterval)
+  }
+
+  timerEvent(): number {
+    if (!this.ci.provider) return 0
+    const diff = Date.now() - this.lastMessageTime - this.msPingInterval
+    if (diff < 0) {
+      this.send(this.rc, new WireSysEvent(SYS_EVENT.PING, {}))
+      return this.msPingInterval
+    } else {
+      return diff
+    }
   }
 
   private cleanup() {
