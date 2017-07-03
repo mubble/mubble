@@ -7,9 +7,12 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as repl from 'repl'
-import * as path from 'path'
-import * as fs   from 'fs'
+import * as repl                    from 'repl'
+import * as path                    from 'path'
+import * as fs                      from 'fs'
+import { ConnectionInfo, WireObject, Protocol, ClientIdentity, WIRE_TYPE } 
+                                    from '@mubble/core'
+import { XmnRouterServer }          from '@mubble/server'
 
 import {RunContextServer, RUN_MODE} from '../rc-server'
 
@@ -20,8 +23,10 @@ const replHistory: any = require('repl.history') // https://github.com/ohmu/node
 export class Repl {
   
   promise: Promise<any>
-  
+  private ci : ConnectionInfo
+
   constructor(protected rc: RunContextServer) {
+    this.ci = this.getConnectionInfo ()
   }
 
   init(context ?: any) {
@@ -34,6 +39,7 @@ export class Repl {
       context.path     = path
       context.$        = this
       context.rc       = this.rc
+      context.ci       = this.getConnectionInfo ()
 
       const replServer: any = repl.start({prompt: 'mubble > ', useGlobal: true})
       replHistory(replServer, process.env.HOME + '/.mubble-repl')
@@ -73,15 +79,69 @@ export class Repl {
     this.print(pr)
   }
 
+  getConnectionInfo() {
+    const rc  : any = this.rc,
+          ci = {
+      protocol        : Protocol.WEBSOCKET,
+      host            : 'localhost',        // host name of the server
+      port            : 1234,               // port of the server
+      url             : '/api/DummyApi',    // /api/getTopics Or connectUrl (for WS)
+      headers         : {},                 // empty for client
+      ip              : 'localhost',        // ip address or host name of the client socket
+
+      // Information passed by the client: to be used by Xmn internally
+      publicRequest   : false,
+      msOffset        : 0,                  // this is inferred by the server based on client's now field. Api/event need not use this
+
+      // Information passed by the client used by   
+      location        : {},
+      networkType     : '4G',
+      clientIdentity  : {
+        appName       : 'NCAPP',
+        channel       : 'ANDROID',
+        appVersion    : '0.9.0',
+        jsVersion     : '0.2.0'
+
+        // only available when client is issued an identity
+        //clientId      : number
+        //userLinkId    : string
+        //userName      : string
+      } as ClientIdentity,
+
+      // provider for this connection (WebSocket, Http etc.)
+      provider        : null
+      
+    } as ConnectionInfo
+    ci.provider = new ReplProvider (this.rc, ci, (<any>this.rc).router)
+    return ci
+  }
+
   callApi(apiName: string, param: object) {
     const rc  : any = this.rc,
-          irb       = rc.router.getNewInRequest(),
-          irc       = rc.router.getNewInConnection()
-
-    irc.params = { appName: 'NCAPP', channel: 'ANDROID', appVersion: '0.9.0', jsVersion: '0.2.0' }
-    irb.setApi(apiName)
-    irb.setParam(param)
-    
-    return rc.router.routeRequest(rc, irc, irb)
+          ci        = this.ci,
+          wo = {
+            name    : apiName,
+            type    : WIRE_TYPE.REQUEST,
+            ts      : Date.now(),
+            data    : param
+          } as WireObject
+    ci.url    = '/api/' + apiName,
+    rc.router.verifyConnection (rc, ci)
+    return rc.router.routeRequest(rc, ci, wo)
+    // TODO: Need to call rc.router.connectionClosed (rc, ci)
   }
+}
+
+class ReplProvider {
+
+  private configSent = false
+
+  constructor(private refRc       : RunContextServer, 
+              private ci          : ConnectionInfo, 
+              private router      : XmnRouterServer) {
+  }
+
+  send(rc: RunContextServer, data: WireObject): void {
+    rc.status (rc.getName (this), 'Response: ', JSON.stringify (data))
+  }  
 }
