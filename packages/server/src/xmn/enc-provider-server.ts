@@ -46,7 +46,6 @@ export class EncProviderServer {
 
   decodeBody(rc: RunContextServer, data: string): [WireObject] {
 
-    console.log(data)
     const inJson = JSON.parse(data),
           arData = Array.isArray(inJson) ? inJson : [inJson]
   

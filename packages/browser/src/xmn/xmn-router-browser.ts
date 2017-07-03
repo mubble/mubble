@@ -77,10 +77,10 @@ export abstract class XmnRouterBrowser {
       if (!this.ci.provider.send(rc, wr)) {
         wr._isSent = true
         rc.isDebug() && rc.debug(rc.getName(this), 'sent request', wr)
-        rc.timer.tickAfter(this.cbTimeoutTimer, TIMEOUT_MS)
+        rc.timer.tickAfter('router-timeout', this.cbTimeoutTimer, TIMEOUT_MS)
       } else {
         rc.isStatus() && rc.status(rc.getName(this), 'send to be retried', wr)
-        rc.timer.tickAfter(this.cbSendTimer, SEND_RETRY_MS)
+        rc.timer.tickAfter('router-sender', this.cbSendTimer, SEND_RETRY_MS)
       }
     })
   }
@@ -104,10 +104,10 @@ export abstract class XmnRouterBrowser {
   }
 
   providerFailed() {
-    for (const wr of this.ongoing) {
-      this.rc.isStatus() && this.rc.status(this.rc.getName(this), 
-        'Failing request', wr.name, 'sent at', new Date(wr.ts))
-      wr.reject(new Error(XmnError.ConnectionFailed))
+
+    for (var index = 0; index < this.ongoing.length; index++) {
+      var wr = this.ongoing[index];
+      this.finishRequest(this.rc, index, XmnError.ConnectionFailed)
     }
     this.ongoing = []
   }
@@ -169,7 +169,7 @@ export abstract class XmnRouterBrowser {
     if (!this.ci.provider.send(this.rc, wr)) {
 
       wr._isSent = true
-      this.rc.timer.tickAfter(this.cbTimeoutTimer, TIMEOUT_MS)
+      this.rc.timer.tickAfter('router-timeout', this.cbTimeoutTimer, TIMEOUT_MS)
 
     } else if ((Date.now() - wr.ts) > SEND_TIMEOUT) {
 

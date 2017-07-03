@@ -127,7 +127,7 @@ class ServerWebSocket {
   }
 
   processMessage(rc: RunContextServer, data: string) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage()', data.length)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage() length:', data.length)
 
     const decodedData = this.encProvider.decodeBody(rc, data)
     this.router.providerMessage(rc, this.ci, decodedData)
@@ -161,6 +161,7 @@ class ServerWebSocket {
   processSysEvent(rc: RunContextServer, se: WireSysEvent) {
 
     if (se.name === SYS_EVENT.PING) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'Received ping')
       return true
     } else {
       return false

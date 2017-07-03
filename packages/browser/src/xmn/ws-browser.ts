@@ -78,20 +78,24 @@ export class WsBrowser {
 
   onMessage(msgEvent: MessageEvent) {
     const data = msgEvent.data
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onMessage()', data.length)
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onMessage() length:', data.length)
     this.router.providerMessage(this.rc, this.encProvider.decodeBody(this.rc, data))
   }
 
   onError(err: any) {
     this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'Websocket onError()', err)
-    this.cleanup()
-    this.router.providerFailed()
+    if (this.ci.provider) {
+      this.cleanup()
+      this.router.providerFailed()
+    }
   }
 
   onClose() {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onClose()')
-    this.cleanup()
-    this.router.providerFailed()
+    if (this.ci.provider) {
+      this.cleanup()
+      this.router.providerFailed()
+    }
   }
 
   processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
@@ -99,6 +103,7 @@ export class WsBrowser {
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
       const config: WebSocketConfig = se.data as WebSocketConfig
       this.msPingInterval = config.msPingInterval
+      this.setupTimer(rc)
       return true
     } else {
       return false
@@ -106,24 +111,35 @@ export class WsBrowser {
   }
 
   setupTimer(rc: RunContextBrowser) {
+    // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'setupTimer')
     this.lastMessageTime = Date.now()
-    rc.timer.tickAfter(this.cbTimer, this.msPingInterval)
+    rc.timer.tickAfter('ws-ping', this.cbTimer, this.msPingInterval)
   }
 
   timerEvent(): number {
+
     if (!this.ci.provider) return 0
-    const diff = Date.now() - this.lastMessageTime - this.msPingInterval
-    if (diff < 0) {
+
+    const now   = Date.now(),
+          diff  = this.lastMessageTime + this.msPingInterval - now
+
+    if (diff <= 0) {
+      // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sending ping')
       this.send(this.rc, new WireSysEvent(SYS_EVENT.PING, {}))
       return this.msPingInterval
     } else {
+      // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'diff case', {diff, now, 
+      //   lastMessageTime: this.lastMessageTime, msPingInterval: this.msPingInterval})
       return diff
     }
   }
 
   private cleanup() {
-    this.ws = null
-    this.ci.provider = null
-    this.encProvider = null
+    if (this.ci.provider) {
+      this.rc.timer.remove(this.cbTimer)
+      this.ws = null
+      this.ci.provider = null
+      this.encProvider = null
+    }
   }
 }

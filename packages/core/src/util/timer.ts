@@ -9,9 +9,9 @@
 import * as lo                from 'lodash'
 
 interface TimerList {
-  
-  nextTickAt: number
-  cb: () => number
+  name        : string
+  nextTickAt  : number
+  cb          : () => number
 }
 
 /**
@@ -37,6 +37,7 @@ export class Timer {
 
   private currentTimer               = null
   private nextTs: number             = 0
+  private logging                    = false
 
   constructor() {
     this.cbTimer = this.timerEvent.bind(this)
@@ -49,30 +50,36 @@ export class Timer {
    * @param overwrite Overwrite the old subscription with this one. Read main comment
    */
    
-  tickAfter(cb: () => number, ms: number, overwrite ?: boolean): void {
+  tickAfter(name: string, cb: () => number, ms: number, overwrite ?: boolean): void {
 
-    const subs  = this.subscriptions,
-          sub   = subs.find(s => s.cb === cb),
-          now   = Date.now()
+    const subs        = this.subscriptions,
+          now         = Date.now()
 
-    let   nextTickAt = now + ms
+    let   nextTickAt  = now + ms,
+          sub         = subs.find(s => s.cb === cb)
 
     if (sub) {
-      if (overwrite) {
+      if (overwrite || sub.nextTickAt >= nextTickAt || sub.nextTickAt <= now) {
         sub.nextTickAt = nextTickAt
-      } else if (sub.nextTickAt > nextTickAt) {
-        sub.nextTickAt = nextTickAt
+        this.logging && console.log(`Timer:tickAfter modified ${sub.name} with ${
+          ms} ms overwrite:${overwrite} for supplied value`)
       } else {
         nextTickAt = sub.nextTickAt
+        this.logging && console.log(`Timer:tickAfter ignoring ${sub.name} after ${
+          ms} as old value is lower`)
       }
     } else {
-      subs.push({nextTickAt, cb})
+      sub = {name, nextTickAt, cb}
+      subs.push(sub)
+      this.logging && console.log(`Timer:tickAfter inserted ${sub.name} for ${ms}`)
     }
 
     if (this.nextTs > nextTickAt || !this.nextTs) {
       if (this.currentTimer) clearTimeout(this.currentTimer as any)
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
       this.nextTs       = nextTickAt
+      this.logging && console.log(`Timer:tickAfter timer scheduled after ${
+        nextTickAt - now} ms length:${subs.length} for ${sub.name}`)
     }
   }
 
@@ -84,7 +91,10 @@ export class Timer {
     const index = lo.findIndex(this.subscriptions, {cb})
     if (index !== -1) {
       // We don't worry about the timer as it will manage itself in timer event
-      this.subscriptions.splice(index, 1)
+      const [sub] = this.subscriptions.splice(index, 1)
+      this.logging && console.log(`Timer:removed timer ${sub.name} length:${this.subscriptions.length}`)
+    } else {
+      this.logging && console.log(`Timer:failed to remove timer ${cb.name} length:${this.subscriptions.length}`)
     }
   }
 
@@ -94,33 +104,41 @@ export class Timer {
           subs  = this.subscriptions
 
     let   nextTickAt  = Number.MAX_SAFE_INTEGER,
-         len   = subs.length
+          selected
 
-    for (let i = 0; i < len; i++) {
+    for (let i = 0; i < subs.length; i++) {
 
       const sub         = subs[i]
       let   thisTickAt  = sub.nextTickAt
 
-      if (thisTickAt < now) { // time elapsed
+      if (thisTickAt <= now) { // time elapsed
         const thisNextTick = sub.cb()
+        this.logging && console.log(`Timer:timerEvent called ${sub.name} response:${thisNextTick}`)
+        
         if (!thisNextTick || thisNextTick < 0) {
           this.subscriptions.splice(i--, 1)
-          len--
           continue
         } else {
           thisTickAt = now + thisNextTick
         }
       }
 
-      if (nextTickAt > thisTickAt) nextTickAt = thisTickAt
+      if (nextTickAt > thisTickAt) {
+        nextTickAt = thisTickAt
+        selected   = sub.name
+      }
     }
 
     if (nextTickAt !== Number.MAX_SAFE_INTEGER) {
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
+
       this.nextTs       = nextTickAt
+      this.logging && console.log(`Timer:timerEvent timer scheduled after ${
+        nextTickAt - now} ms length:${subs.length} for ${selected}`)
     } else {
       this.currentTimer = null
       this.nextTs       = 0
+      this.logging && console.log(`Timer:timerEvent removed timer`)
     }
   }
 }
