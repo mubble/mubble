@@ -21,7 +21,7 @@ export interface ClientIdentity {
 
   // only available when client is issued an identity
   clientId      : number
-  userLinkId    : number
+  userLinkId    : string
   userName      : string
 }
 

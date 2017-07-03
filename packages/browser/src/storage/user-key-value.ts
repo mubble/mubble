@@ -15,7 +15,7 @@ const USERS     = 'users'
 export class UserKeyValue {
 
   private _clientId     : number
-  private _userLinkId   : number
+  private _userLinkId   : string
   userName              : string
 
   private users         : {[key: string]: object} = {}
@@ -59,7 +59,7 @@ export class UserKeyValue {
 
   // User Link Id
   get userLinkId()  {return this._userLinkId}
-  set userLinkId(userLinkId : number) {
+  set userLinkId(userLinkId : string) {
     if (userLinkId === this._userLinkId) return
     if (this._userLinkId) throw('Cannot set clientId when it is already set: ' + 
                         JSON.stringify({userLinkId, existing:this._userLinkId}))
