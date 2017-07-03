@@ -116,7 +116,7 @@ export class Repl {
     return ci
   }
 
-  callApi(apiName: string, param: object) {
+  async callApi(apiName: string, param: object) {
     const rc  : any = this.rc, // TODO: Why does RunContextServer not have router?
           ci        = this.ci,
           wo = {
@@ -127,7 +127,7 @@ export class Repl {
           } as WireObject
     ci.url    = '/api/' + apiName,
     rc.router.verifyConnection (rc, ci)
-    return rc.router.routeRequest(rc, ci, wo)
+    await rc.router.routeRequest(rc, ci, wo)
     // TODO: Need to call rc.router.connectionClosed (rc, ci)
   }
 }
