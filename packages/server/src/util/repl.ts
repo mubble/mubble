@@ -115,21 +115,6 @@ export class Repl {
     ci.provider = new ReplProvider (this.rc, ci, (<any>this.rc).router)
     return ci
   }
-
-  async callApi(apiName: string, param: object) {
-    const rc  : any = this.rc, // TODO: Why does RunContextServer not have router?
-          ci        = this.ci,
-          wo = {
-            name    : apiName,
-            type    : WIRE_TYPE.REQUEST, // TODO: Need to be event or request...
-            ts      : Date.now(),
-            data    : param
-          } as WireObject
-    ci.url    = '/api/' + apiName,
-    rc.router.verifyConnection (rc, ci)
-    await rc.router.routeRequest(rc, ci, wo)
-    // TODO: Need to call rc.router.connectionClosed (rc, ci)
-  }
 }
 
 class ReplProvider {
