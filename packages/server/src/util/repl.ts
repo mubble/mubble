@@ -23,7 +23,7 @@ const replHistory: any = require('repl.history') // https://github.com/ohmu/node
 export class Repl {
   
   promise: Promise<any>
-  private ci : ConnectionInfo
+  protected ci : ConnectionInfo
 
   constructor(protected rc: RunContextServer) {
     this.ci = this.getConnectionInfo ()
