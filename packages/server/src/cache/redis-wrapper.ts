@@ -30,12 +30,14 @@ export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' 
                             'zadd' | 'zrange' | 'zrevrange' | 'zrangebyscore' | 'zrem' |
                             'publish' | 'unsubscribe' | 
                             'watch' | 'unwatch' |
-                            'scan' | 'sscan' | 'hscan' | 'zscan'
+                            'scan' | 'sscan' | 'hscan' | 'zscan' |
+                            'exists'
 
 export const redis_commands : string[] =  
 ['del' , 'expire' , 'get' , 
  'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' , 'hincrby' ,
- 'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem'
+ 'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem',
+ 'exists'
  ]                            
                              
 export type redis_async_func        = (...args : string[]) => void
@@ -64,6 +66,8 @@ export interface RedisCmds {
   zadd            : (key: string , option : string , ...scoreValuePairs : any[]  ) => number
   zrange          : (key: string , start : number , end : number , withscore ?: string ) => string[]
   zrem            : (key: string , ...keys : string[]  ) => void // check
+
+  exists          : (key: string , ...keys : string[]  ) => void
   
 }
 
