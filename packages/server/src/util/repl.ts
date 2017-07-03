@@ -117,11 +117,11 @@ export class Repl {
   }
 
   callApi(apiName: string, param: object) {
-    const rc  : any = this.rc,
+    const rc  : any = this.rc, // TODO: Why does RunContextServer not have router?
           ci        = this.ci,
           wo = {
             name    : apiName,
-            type    : WIRE_TYPE.REQUEST,
+            type    : WIRE_TYPE.REQUEST, // TODO: Need to be event or request...
             ts      : Date.now(),
             data    : param
           } as WireObject
@@ -142,6 +142,11 @@ class ReplProvider {
   }
 
   send(rc: RunContextServer, data: WireObject): void {
+    if (data.type == WIRE_TYPE.SYS_EVENT && data.name == "UPGRADE_CLIENT_IDENTITY") {
+      this.ci.clientIdentity = data.data as ClientIdentity
+      rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
+      return
+    }
     rc.status (rc.getName (this), 'Response: ', JSON.stringify (data))
   }  
 }
