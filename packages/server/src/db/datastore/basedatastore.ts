@@ -22,7 +22,6 @@ const GLOBAL_NAMESPACE : string = '--GLOBAL--'
 export abstract class BaseDatastore {
 
   // Common fields in all the tables
-  [index : string]           : any
   protected _id              : number | string
   protected createTs         : number
   protected deleted          : boolean = false
@@ -76,7 +75,7 @@ export abstract class BaseDatastore {
     - value of the childEntity
 ------------------------------------------------------------------------------*/                  
   setChildEntity (rc : RunContextServer, name : string, val : Object) : void {
-    this[name] = val
+    (<any>this)[name] = val
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -318,14 +317,14 @@ private getNamespace() : string {
 
     for (let prop in value) { 
       let val     = value[prop],
-          dVal    = this[prop]
+          dVal    = (<any>this)[prop]
       
       if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
       
       if (dVal && typeof(dVal) === 'object' && dVal.deserialize instanceof Function) {
-        this[prop] = dVal.deserialize(val)
+        (<any>this)[prop] = dVal.deserialize(val)
       } else {
-        this[prop] = val
+        (<any>this)[prop] = val
       }
     }
   }
@@ -387,7 +386,7 @@ private getNamespace() : string {
   getDatastoreKey(rc : RunContextServer, id ?: number | string | null , kindName ?: string, parentPath ?: Array<any>) {
     let datastoreKey
 
-    if (!kindName) kindName = this._kindName || (this.constructor as any)._kindName
+    if (!kindName) kindName = (<any>this)._kindName || (this.constructor as any)._kindName
     if(!parentPath) {
       datastoreKey = BaseDatastore._datastore.key({
         namespace : this.getNamespace(),
@@ -410,10 +409,10 @@ private getNamespace() : string {
   async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolean> {
     const uniqueConstraints : any    = this.getUniqueConstraints(rc),
           childEntities     : any    = this.getChildEntities(rc),
-          kindName          : string = this._kindName || (this.constructor as any)._kindName
+          kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
 
     for( const constraint of uniqueConstraints) {
-      let uniqueEntityKey = this.getDatastoreKey(rc, this[constraint], kindName + '_unique')
+      let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], kindName + '_unique')
       try {
         await BaseDatastore._datastore.insert({key: uniqueEntityKey, data: ''})
       }
@@ -442,10 +441,10 @@ private getNamespace() : string {
   async deleteUnique(rc : RunContextServer) : Promise<boolean> {
     const uniqueConstraints : any    = this.getUniqueConstraints(rc),
           childEntities     : any    = this.getChildEntities(rc),
-          kindName          : string = this._kindName || (this.constructor as any)._kindName
+          kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
 
     for( const constraint of uniqueConstraints) {
-      let uniqueEntityKey = this.getDatastoreKey(rc, this[constraint], kindName + '_unique')
+      let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], kindName + '_unique')
       try {
         await BaseDatastore._datastore.delete(uniqueEntityKey)
       } catch (err) {
@@ -464,7 +463,7 @@ private getNamespace() : string {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
   private async insertInternal(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    const datastoreKey  = (parentKey) ? this.getDatastoreKey(rc, null, this._kindName, parentKey.path) : this.getDatastoreKey(rc),
+    const datastoreKey  = (parentKey) ? this.getDatastoreKey(rc, null, (<any>this)._kindName, parentKey.path) : this.getDatastoreKey(rc),
           childEntities = this.getChildEntities(rc) 
     try {
       const res = await this.setUnique (rc, ignoreDupRec)
@@ -514,4 +513,4 @@ private getNamespace() : string {
     }
     return rec
   }
-} 
+}

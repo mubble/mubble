@@ -38,7 +38,7 @@ export class CloudStorageBase {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-  static async uploadDataToCloudStorage(rc : RunContextServer,  bucket : string, path : string, data : any, mimeVal : string | false) : Promise<string> {
+  static async uploadDataToCloudStorage(rc : RunContextServer, bucket : string, path : string, data : any, mimeVal : string | false) : Promise<string> {
     if(!mimeVal) return ''
 
     const extension = mime.extension(mimeVal),
@@ -51,6 +51,7 @@ export class CloudStorageBase {
                               `${modPath}${filename}.${extension}`)
                        
     await fs.unlinkSync(`/tmp/${filename}.${extension}`)
+   
     return fileUrl
   }
 
@@ -72,7 +73,7 @@ export class CloudStorageBase {
     const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
           data   : any = await bucket.upload(filePath, {destination})
   
-    return data[0].metadata.mediaLink
+    return data[0].metadata.name.split('/')[1]
   }
 
   static async bucketExists(rc : RunContextServer, bucketName: string) {

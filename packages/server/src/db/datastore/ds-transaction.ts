@@ -60,7 +60,7 @@ export class DSTransaction {
   }
 
   async get(rc         : RunContextServer, 
-            model      : BaseDatastore, 
+            model      : any, 
             id         : number | string, 
             ignoreRNF ?: boolean) : Promise<void> {
 
@@ -103,7 +103,7 @@ export class DSTransaction {
   }
 
   async insert(rc            : RunContextServer, 
-               model         : BaseDatastore, 
+               model         : any, 
                parentKey    ?: any, 
                insertTime   ?: number, 
                ignoreDupRec ?: boolean) : Promise<boolean> {
