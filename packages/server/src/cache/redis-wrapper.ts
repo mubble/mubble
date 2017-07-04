@@ -67,7 +67,7 @@ export interface RedisCmds {
   zrange          : (key: string , start : number , end : number , withscore ?: string ) => string[]
   zrem            : (key: string , ...keys : string[]  ) => void // check
 
-  exists          : (key: string , ...keys : string[]  ) => void
+  exists          : (key: string , ...keys : string[]  ) => boolean
   
 }
 
