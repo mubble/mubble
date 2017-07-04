@@ -9,7 +9,7 @@
 
 import {RunContextBase}     from '../rc-base'
 import {ClientIdentity}     from './client-identity'
-import {Protocol}           from '@mubble/core'
+import {Protocol}           from './xmn-core'
 
 export interface ConnectionInfo {
 

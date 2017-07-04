@@ -8,23 +8,27 @@
 ------------------------------------------------------------------------------*/
 
 import * as lo                from 'lodash'
-import {RunContextServer}     from '../rc-server'
-import {XmnRegistry, PERM}    from './xmn-registry'
 import * as http              from 'http'
-import {  EncProviderServer}  from './enc-provider-server'
-
-import {  ConnectionInfo, 
-          ClientIdentity,
-          WIRE_TYPE,
-          WireEvent,
-          WireEventResp,
-          WireObject,
-          WireReqResp,
-          WireRequest,
-          WireSysEvent,
-          SYS_EVENT,
-          InvocationData,
-          Protocol }        from '@mubble/core'
+import {
+        XmnRegistry,
+        PERM
+       }                      from './xmn-registry'
+import { 
+        ConnectionInfo, 
+        ClientIdentity,
+        WIRE_TYPE,
+        WireEvent,
+        WireEventResp,
+        WireObject,
+        WireReqResp,
+        WireRequest,
+        WireSysEvent,
+        SYS_EVENT,
+        InvocationData,
+        Protocol
+       }                      from '@mubble/core'
+import {EncProviderServer}    from './enc-provider-server'
+import {RunContextServer}     from '../rc-server'
 
 interface InvokeStruct {
   name      : string
