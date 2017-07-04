@@ -10,11 +10,19 @@
 import * as repl                    from 'repl'
 import * as path                    from 'path'
 import * as fs                      from 'fs'
-import { ConnectionInfo, WireObject, Protocol, ClientIdentity, WIRE_TYPE } 
-                                    from '@mubble/core'
-import { XmnRouterServer }          from '@mubble/server'
+import { 
+        ConnectionInfo,
+        WireObject,
+        Protocol,
+        ClientIdentity,
+        WIRE_TYPE
+       }                            from '@mubble/core'
+import {
+        RunContextServer,
+        RUN_MODE
+       }                            from '../rc-server'
+import {XmnRouterServer}            from '../xmn/xmn-router-server'
 
-import {RunContextServer, RUN_MODE} from '../rc-server'
 
 // Import from external modules without types
 const replHistory: any = require('repl.history') // https://github.com/ohmu/node-posix
