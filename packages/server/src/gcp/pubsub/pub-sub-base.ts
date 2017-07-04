@@ -26,7 +26,7 @@ export class PubSubBase {
         credentials : gcloudEnv.authKey
       })
     } else {
-      gcloudEnv.bigQuery = PubSub ({
+      gcloudEnv.pubsub = PubSub ({
         projectId   : gcloudEnv.projectId
       })
     }

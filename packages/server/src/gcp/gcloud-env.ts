@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Initialize datastore with the respective credentials,
+   About      : Initialize google-cloud with the respective credentials,
                 with respect to the run mode
    
    Created on : Thu Apr 20 2017
