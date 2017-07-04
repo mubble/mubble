@@ -20,14 +20,16 @@ import {RunContextServer, RUN_MODE} from '../rc-server'
 const replHistory: any = require('repl.history') // https://github.com/ohmu/node-posix
 
 
-export class Repl {
+export abstract class Repl {
   
   promise: Promise<any>
   protected ci : ConnectionInfo
 
-  constructor(protected rc: RunContextServer) {
+  constructor(protected rc: RunContextServer, private clientIdentity: ClientIdentity) {
     this.ci = this.getConnectionInfo ()
   }
+
+  abstract async callApi(apiName: string, param: object) : Promise<void>
 
   init(context ?: any) {
 
@@ -39,7 +41,7 @@ export class Repl {
       context.path     = path
       context.$        = this
       context.rc       = this.rc
-      context.ci       = this.getConnectionInfo ()
+      context.ci       = this.ci
 
       const replServer: any = repl.start({prompt: 'mubble > ', useGlobal: true})
       replHistory(replServer, process.env.HOME + '/.mubble-repl')
@@ -80,8 +82,7 @@ export class Repl {
   }
 
   getConnectionInfo() {
-    const rc  : any = this.rc,
-          ci = {
+    const ci = {
       protocol        : Protocol.WEBSOCKET,
       host            : 'localhost',        // host name of the server
       port            : 1234,               // port of the server
@@ -96,17 +97,7 @@ export class Repl {
       // Information passed by the client used by   
       location        : {},
       networkType     : '4G',
-      clientIdentity  : {
-        appName       : 'NCAPP',
-        channel       : 'ANDROID',
-        appVersion    : '0.9.0',
-        jsVersion     : '0.2.0'
-
-        // only available when client is issued an identity
-        //clientId      : number
-        //userLinkId    : string
-        //userName      : string
-      } as ClientIdentity,
+      clientIdentity  : this.clientIdentity,
 
       // provider for this connection (WebSocket, Http etc.)
       provider        : null
