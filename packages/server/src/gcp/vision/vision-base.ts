@@ -11,7 +11,8 @@ const gVision : any = require('@google-cloud/vision')
 
 import {RunContextServer}           from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
-import * as jimp                    from 'jimp'
+// import * as jimp                    from 'jimp'  // Gives compilation error...
+import jimp  = require ('jimp')
 
 export class VisionBase {
 
