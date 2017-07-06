@@ -60,7 +60,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
 
     return new Promise((resolve, reject) => {
       const httpObj: any = urlObj.protocol === 'http:' ? http : https
-
+      let   statusCode: number = 200
       if(inputData && !urlObj.headers['Content-Length']) 
         urlObj.headers['Content-Length'] = new Buffer(inputData).length
         
@@ -80,15 +80,15 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
           response += chunk
         })
         outputStream.on('end', () => {
+          if (statusCode != 200) return reject(response)
           return resolve(response)
         })
       })
 
       req.on('response', (res: any) => {
-        if (res.statusCode != 200) {
-          return resolve(undefined)
-        }
-      })
+        rc.isStatus () && rc.status (rc.getName (this), 'Status Code: ' + res.statusCode)
+        statusCode = res.statusCode
+        })
       req.on('error', (err: any) => {
         rc.isStatus() && rc.status (err)
         if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
