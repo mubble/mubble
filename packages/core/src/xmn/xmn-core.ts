@@ -147,5 +147,4 @@ export interface InvocationData {
   name    : string
   ts      : number
   params  : object
-  perm    : number
 }

@@ -30,10 +30,21 @@ import {
 import {EncProviderServer}    from './enc-provider-server'
 import {RunContextServer}     from '../rc-server'
 
-interface InvokeStruct {
-  name      : string
-  parent    : any
-  perm      : PERM
+export class InvokeStruct {
+
+  constructor(private name      : string,
+              private parent    : any,
+              private perm      : PERM) {
+
+  }
+
+  async executeFn(...params: any[]) {
+    let fn = this.parent[this.name]
+    if (fn) return await fn.call(parent, ...params)
+
+    const obj = new this.parent()
+    return await obj[this.name].call(obj, ...params)
+  }
 }
 
 export abstract class XmnRouterServer {
@@ -99,11 +110,10 @@ export abstract class XmnRouterServer {
       const ir = {
         name    : wo.name,
         ts      : wo.ts + ci.msOffset,
-        params  : wo.data,
-        perm    : reqStruct.perm
+        params  : wo.data
       } as InvocationData
 
-      const resp = await this.invokeFn(rc, ci, ir, reqStruct)
+      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct)
       ci.provider.send(rc, new WireReqResp(ir.name, wo.ts, resp))
 
     } catch (err) {
@@ -125,11 +135,10 @@ export abstract class XmnRouterServer {
         const ie = {
           name    : wo.name,
           ts      : wo.ts + ci.msOffset,
-          params  : wo.data,
-          perm    : eventStruct.perm
+          params  : wo.data
         } as InvocationData
 
-        await this.invokeFn(rc, ci, ie, eventStruct)
+        await this.invokeXmnFunction(rc, ci, ie, eventStruct)
       }
 
       await this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts))
@@ -138,6 +147,12 @@ export abstract class XmnRouterServer {
       this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, err.name || 'Error'))
     }
+  }
+
+  async invokeXmnFunction(rc: RunContextServer, ci: ConnectionInfo, 
+                          invData: InvocationData, invStruct: InvokeStruct) {
+
+    return await invStruct.executeFn(rc, ci, invData, invStruct)
   }
 
   private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, er: WireEventResp) {
@@ -169,22 +184,6 @@ export abstract class XmnRouterServer {
     }
   }
 
-  private async invokeFn(rc   : RunContextServer, 
-                         ic   : ConnectionInfo, 
-                         ire  : InvocationData, 
-                         info : InvokeStruct) {
-
-    const parent = info.parent,
-          name   = info.name
-
-    let fn = parent[name]
-    if (fn) return await fn.call(parent, rc, ic, ire)
-
-    const obj = new parent()
-    return await obj[name].call(obj, rc, ic, ire)
-  }
-
-
   // Preferred way is to use @xmnApi
   registerApi(rc: RunContextServer, name: string, parent: any, perm: PERM): void {
     if (this.apiMap[name]) {
@@ -192,7 +191,7 @@ export abstract class XmnRouterServer {
     }
     if (parent[name] || (parent.prototype && parent.prototype[name])) {
       if (rc.isDebug()) this.logRegistration(rc, name, parent, true)
-      this.apiMap[name] = {name, parent, perm}
+      this.apiMap[name] = new InvokeStruct(name, parent, perm)
     } else {
       throw(Error(rc.error(rc.getName(this), 'api', name, 'does not exit in', rc.getName(parent))))
     }
@@ -205,7 +204,7 @@ export abstract class XmnRouterServer {
     }
     if (parent[name] || (parent.prototype && parent.prototype[name])) {
       if (rc.isDebug()) this.logRegistration(rc, name, parent, false)
-      this.eventMap[name] = {name, parent, perm}
+      this.eventMap[name] = new InvokeStruct(name, parent, perm)
     } else {
       throw(Error(rc.error(rc.getName(this), 'event', name, 'does not exit in', rc.getName(parent))))
     }
