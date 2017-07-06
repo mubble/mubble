@@ -42,7 +42,14 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
         })
       })
 
+      req.on('response', (res: any) => {
+        if (res.statusCode != 200) {
+          return resolve(undefined)
+        }
+      })
       req.on('error', (err: any) => {
+        rc.isStatus() && rc.status (err)
+        if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
         return reject(err)
       })
       req.end()
@@ -54,6 +61,9 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
     return new Promise((resolve, reject) => {
       const httpObj: any = urlObj.protocol === 'http:' ? http : https
 
+      if(inputData && !urlObj.headers['Content-Length']) 
+        urlObj.headers['Content-Length'] = new Buffer(inputData).length
+        
       const req = httpObj.request(urlObj, (outputStream: any) => {
 
         switch (outputStream.headers['content-encoding']) {
@@ -74,10 +84,17 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
         })
       })
 
+      req.on('response', (res: any) => {
+        if (res.statusCode != 200) {
+          return resolve(undefined)
+        }
+      })
       req.on('error', (err: any) => {
+        rc.isStatus() && rc.status (err)
+        if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
         return reject(err)
       })
-      if (inputData) req.write (inputData)
+      if(inputData) req.write(inputData)
       req.end()
     })
   }
@@ -109,14 +126,19 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
           return resolve({data : data , response : response})
         })
       })
+
       req.on('response', (res: any) => {
-        //rc.isDebug() && rc.debug(rc.getName(this), 'response keys is ', Object.keys(res).reverse())
+        if (res.statusCode != 200) {
+          return resolve(undefined)
+        }
         response = res
       })
       req.on('error', (err: any) => {
+        rc.isStatus() && rc.status (err)
+        if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
         return reject(err)
       })
-      if (inputData) req.write (inputData)
+      if(inputData) req.write(inputData)
       req.end()
     })
   }
