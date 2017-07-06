@@ -10,11 +10,12 @@
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
 export const NetworkType = {
-  Net2G: '2G',
-  Net3G: '3G',
-  Net4G: '4G',
-  Net5G: '5G',
-  Wifi : 'wifi'
+  net2G   : '2G',
+  net3G   : '3G',
+  net4G   : '4G',
+  net5G   : '5G',
+  wifi    : 'wifi',
+  unknown : 'unk'
 }
 
 export const WEB_SOCKET_URL = {

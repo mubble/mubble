@@ -32,7 +32,7 @@ export class UserKeyValue {
     this.deserialize(this.users[this.lastClientId])
   }
 
-  switchUserOnNextRun(clientId) {
+  switchUserOnNextRun(clientId: number) {
     this.lastClientId = clientId
     localStorage.setItem(LAST_USER, String(this.lastClientId))
   }
@@ -74,7 +74,7 @@ export class UserKeyValue {
     }
   }
 
-  deserialize(obj) {
+  deserialize(obj: {[key: string]: any}) {
     this._clientId    = obj.clientId
     this._userLinkId  = obj.userLinkId
     this.userName     = obj.userName

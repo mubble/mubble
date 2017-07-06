@@ -28,6 +28,7 @@
     "repl.history": "^0.1.4",
     "colors": "^1.1.2",
     "@mubble/core": "latest",
+    "ws": "^2.3.1",
     "jimp": "^0.2.28"
   }
 }

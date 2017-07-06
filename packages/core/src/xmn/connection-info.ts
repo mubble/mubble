@@ -23,11 +23,14 @@ export interface ConnectionInfo {
 
   // Information passed by the client: to be used by Xmn internally
   publicRequest   : boolean
+
+  // Server fields. Not used by client
   msOffset        : number    // this is inferred by the server based on client's now field. Api/event need not use this
+  lastEventTs     : number    // Must be set before an event is processed on server
 
   // Information passed by the client used by   
-  location        : any
-  networkType     : any
+  location        : string   // it is in form of serialized json object 
+  networkType     : string
   clientIdentity  : ClientIdentity
 
   // provider for this connection (WebSocket, Http etc.)
