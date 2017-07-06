@@ -28,6 +28,15 @@ export class DSTransaction {
     return this._transaction
   }
 
+  public async getIdFromTransaction(rc : RunContextServer, model : any, parentKey ?: any) {
+    const datastoreKey = (parentKey) ? model.getDatastoreKey(rc, null, model._kindName, parentKey.path) 
+                          : model.getDatastoreKey(rc),
+          key          = await this._transaction.allocateIds(datastoreKey, 1) 
+
+      if(key.id) return Number(key.id)
+      return key.name
+  }
+
   async start(rc : RunContextServer) { // Needed only if we use a transaction outside models.
     try {
       await this._transaction.run()
