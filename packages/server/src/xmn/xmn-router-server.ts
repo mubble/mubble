@@ -38,7 +38,7 @@ interface InvokeStruct {
 
 export abstract class XmnRouterServer {
 
-  private apiMap   : {[index: string]: InvokeStruct}   = {}
+  private apiMap   : {[index: string]: InvokeStruct} = {}
   private eventMap : {[index: string]: InvokeStruct} = {}
 
   constructor(rc: RunContextServer, ...providers: any[]) {
@@ -99,7 +99,8 @@ export abstract class XmnRouterServer {
       const ir = {
         name    : wo.name,
         ts      : wo.ts + ci.msOffset,
-        params  : wo.data
+        params  : wo.data,
+        perm    : reqStruct.perm
       } as InvocationData
 
       const resp = await this.invokeFn(rc, ci, ir, reqStruct)
@@ -124,7 +125,8 @@ export abstract class XmnRouterServer {
         const ie = {
           name    : wo.name,
           ts      : wo.ts + ci.msOffset,
-          params  : wo.data
+          params  : wo.data,
+          perm    : eventStruct.perm
         } as InvocationData
 
         await this.invokeFn(rc, ci, ie, eventStruct)
@@ -170,7 +172,7 @@ export abstract class XmnRouterServer {
   private async invokeFn(rc   : RunContextServer, 
                          ic   : ConnectionInfo, 
                          ire  : InvocationData, 
-                         info : any) {
+                         info : InvokeStruct) {
 
     const parent = info.parent,
           name   = info.name
