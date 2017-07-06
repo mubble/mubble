@@ -16,8 +16,8 @@ export class GlobalKeyValue {
   private _jsVersion     : string
 
   constructor() {
-    this._appVersion = localStorage.getItem(APP_VERSION)
-    this._jsVersion  = localStorage.getItem(JS_VERSION)
+    this._appVersion = localStorage.getItem(APP_VERSION) || ''
+    this._jsVersion  = localStorage.getItem(JS_VERSION)  || ''
   }
 
   setVersions(appVersion: string, jsVersion: string) {

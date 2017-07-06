@@ -8,23 +8,40 @@
 ------------------------------------------------------------------------------*/
 import * as lo                from 'lodash'
 
-interface TimerList {
-  name        : string
+export class TimerInstance {
+
   nextTickAt  : number
-  cb          : () => number
+  
+  constructor(private timer: Timer, public name: string, public cb: () => number) {
+  }
+
+  tickAfter(ms: number, overwrite ?: boolean) {
+    return this.timer._tickAfter(this, ms, overwrite)
+  }
+
+  remove() {
+    return this.timer._remove(this)
+  }
 }
 
+
 /**
- * tickAfter is coded to resemble setTimeout. Here are key differences:
+ * Timer tickAfter is coded to resemble setTimeout. Here are key differences:
  * 
- *  - If you call this function multiple times, it remembers the lowest time interval at which it should call. If you
- *    wish to override the last value, you should pass overwrite flag
+ *  - If you call tickAfter function multiple times, it remembers the lowest time interval at which it should callback.
+ *    If you wish to override the stored value, you should pass overwrite flag
  * 
- *  - The callback if returns a value, timer is rescheduled to tick after that much time. Returning a falsy value will
- *    automatically cancel your subscription
+ *  - When the chosen time arrives, your callback is called. However, callback processing is special as noted below.
+ * 
+ *  - Callbacks are unique and you are allowed to register only one timer per callback function
+ * 
+ *  - The callback if returns a value, timer is rescheduled to tick after that much time. Returning a 0 will
+ *    automatically cancel your subscription. If during the callback processing there is a call to tickAfter/remove
+ *    return value is ignored
  * 
  *  - It provides as a efficient helper in managing the timer. You need not worry about memory leak, if your cb returns
- *    right value, depending on the situation. A remove function is provided, in case you cannot predict this behavior
+ *    right value, depending on the situation. A remove function is provided, in case you never return a zero in 
+ *    your callback
  * 
  *  - One class can have 'n' timers for different purpose, without worrying about managing timer. You should have different
  *    callbacks in such cases
@@ -32,7 +49,7 @@ interface TimerList {
 
 export class Timer {
 
-  private subscriptions: TimerList[] = []
+  private subscriptions: TimerInstance[] = []
   private cbTimer: () => void
 
   private currentTimer               = null
@@ -43,22 +60,30 @@ export class Timer {
     this.cbTimer = this.timerEvent.bind(this)
   }
 
+  public register(name: string, cb: () => number): TimerInstance {
+
+    const subs        = this.subscriptions,
+          sub         = subs.find(s => s.cb === cb)
+    
+    if (sub) return sub // only one timer allowed per callback
+    return new TimerInstance(this, name, cb)
+  }
+
   /**
    * Subscribe to timer
    * @param cb Callback
    * @param ms milli-seconds to tick after
    * @param overwrite Overwrite the old subscription with this one. Read main comment
    */
-   
-  tickAfter(name: string, cb: () => number, ms: number, overwrite ?: boolean): void {
+  _tickAfter(sub: TimerInstance, ms: number, overwrite ?: boolean): void {
 
     const subs        = this.subscriptions,
           now         = Date.now()
 
     let   nextTickAt  = now + ms,
-          sub         = subs.find(s => s.cb === cb)
+          index       = subs.indexOf(sub)
 
-    if (sub) {
+    if (index !== -1) { // already subscribed
       if (overwrite || sub.nextTickAt >= nextTickAt || sub.nextTickAt <= now) {
         sub.nextTickAt = nextTickAt
         this.logging && console.log(`Timer:tickAfter modified ${sub.name} with ${
@@ -68,8 +93,8 @@ export class Timer {
         this.logging && console.log(`Timer:tickAfter ignoring ${sub.name} after ${
           ms} as old value is lower`)
       }
-    } else {
-      sub = {name, nextTickAt, cb}
+    } else { // not subscribed
+      sub.nextTickAt = nextTickAt
       subs.push(sub)
       this.logging && console.log(`Timer:tickAfter inserted ${sub.name} for ${ms}`)
     }
@@ -87,14 +112,12 @@ export class Timer {
    * Removes timer subscription. Read main comments to understand usage of this
    * @param cb 
    */
-  remove(cb: () => number) {
-    const index = lo.findIndex(this.subscriptions, {cb})
+  _remove(sub: TimerInstance) {
+    const index = this.subscriptions.indexOf(sub)
     if (index !== -1) {
-      // We don't worry about the timer as it will manage itself in timer event
+      // We don't worry about the timeout call on timer as it managed in timeout
       const [sub] = this.subscriptions.splice(index, 1)
       this.logging && console.log(`Timer:removed timer ${sub.name} length:${this.subscriptions.length}`)
-    } else {
-      this.logging && console.log(`Timer:failed to remove timer ${cb.name} length:${this.subscriptions.length}`)
     }
   }
 
@@ -104,7 +127,7 @@ export class Timer {
           subs  = this.subscriptions
 
     let   nextTickAt  = Number.MAX_SAFE_INTEGER,
-          selected
+          selectedSub
 
     for (let i = 0; i < subs.length; i++) {
 
@@ -112,10 +135,19 @@ export class Timer {
       let   thisTickAt  = sub.nextTickAt
 
       if (thisTickAt <= now) { // time elapsed
-        const thisNextTick = sub.cb()
+
+        const thisNextTick = sub.cb(),
+              updatedSub   = subs[i]
+
         this.logging && console.log(`Timer:timerEvent called ${sub.name} response:${thisNextTick}`)
         
-        if (!thisNextTick || thisNextTick < 0) {
+
+        if (updatedSub !== sub) { // timer got removed while processing timeout
+          i--
+          continue
+        } else if (thisTickAt !== updatedSub.nextTickAt) { // timeout got modified during the callback, ignore return value
+          thisTickAt = updatedSub.nextTickAt
+        } else if (!thisNextTick || thisNextTick < 0) {
           this.subscriptions.splice(i--, 1)
           continue
         } else {
@@ -124,17 +156,17 @@ export class Timer {
       }
 
       if (nextTickAt > thisTickAt) {
-        nextTickAt = thisTickAt
-        selected   = sub.name
+        nextTickAt  = thisTickAt
+        selectedSub = sub
       }
     }
 
-    if (nextTickAt !== Number.MAX_SAFE_INTEGER) {
+    if (selectedSub) {
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
 
       this.nextTs       = nextTickAt
       this.logging && console.log(`Timer:timerEvent timer scheduled after ${
-        nextTickAt - now} ms length:${subs.length} for ${selected}`)
+        nextTickAt - now} ms length:${subs.length} for ${selectedSub.name}`)
     } else {
       this.currentTimer = null
       this.nextTs       = 0

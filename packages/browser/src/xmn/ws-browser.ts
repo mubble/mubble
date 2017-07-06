@@ -13,6 +13,7 @@ import { ConnectionInfo,
          SYS_EVENT,
          WireSysEvent,
          WebSocketConfig,
+         TimerInstance,
          WireObject }  from '@mubble/core'
 
 import { XmnRouterBrowser } from './xmn-router-browser'
@@ -26,15 +27,16 @@ export class WsBrowser {
   private encProvider: EncryptionBrowser
   private lastMessageTime: number = 0
   private msPingInterval: number  = 30000
-  private cbTimer: any
+  private timerPing: TimerInstance
 
   constructor(private rc : RunContextBrowser, 
               private ci : ConnectionInfo, 
               private router : XmnRouterBrowser) {
+    this.timerPing       = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
-  private init(rc: RunContextBrowser, data: WireObject): string {
+  private init(rc: RunContextBrowser, data: WireObject): string | null {
 
     if (!this.encProvider) this.encProvider = new EncryptionBrowser(rc, this.ci)
 
@@ -51,12 +53,11 @@ export class WsBrowser {
     this.ws.onclose    = this.onClose.bind(this)
     this.ws.onerror    = this.onError.bind(this)
 
-    this.cbTimer       = this.timerEvent.bind(this)
     this.setupTimer(rc)
     return null
   }
 
-  send(rc: RunContextBrowser, data: WireObject): string {
+  send(rc: RunContextBrowser, data: WireObject): string | null {
 
     if (!this.ws) return this.init(rc, data)
 
@@ -113,10 +114,10 @@ export class WsBrowser {
   setupTimer(rc: RunContextBrowser) {
     // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'setupTimer')
     this.lastMessageTime = Date.now()
-    rc.timer.tickAfter('ws-ping', this.cbTimer, this.msPingInterval)
+    this.timerPing.tickAfter(this.msPingInterval)
   }
 
-  timerEvent(): number {
+  cbTimerPing(): number {
 
     if (!this.ci.provider) return 0
 
@@ -136,10 +137,12 @@ export class WsBrowser {
 
   private cleanup() {
     if (this.ci.provider) {
-      this.rc.timer.remove(this.cbTimer)
-      this.ws = null
-      this.ci.provider = null
-      this.encProvider = null
+
+      this.timerPing.remove()
+
+      this.ci.provider  = null
+      this.ws           = null as any
+      this.encProvider  = null as any
     }
   }
 }

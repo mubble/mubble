@@ -115,22 +115,32 @@ export abstract class XmnRouterServer {
   async routeEvent(rc: RunContextServer, ci: ConnectionInfo, wo: WireObject) {
 
     try {
-      const eventStruct = this.eventMap[wo.name]
-      if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
 
-      const ie = {
-        name    : wo.name,
-        ts      : wo.ts + ci.msOffset,
-        params  : wo.data
-      } as InvocationData
+      if (wo.ts > ci.lastEventTs) {
+        
+        const eventStruct = this.eventMap[wo.name]
+        if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
 
-      await this.invokeFn(rc, ci, ie, eventStruct)
-      ci.provider.send(rc, new WireEventResp(wo.name, wo.ts))
+        const ie = {
+          name    : wo.name,
+          ts      : wo.ts + ci.msOffset,
+          params  : wo.data
+        } as InvocationData
+
+        await this.invokeFn(rc, ci, ie, eventStruct)
+      }
+
+      await this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts))
 
     } catch (err) {
-      ci.provider.send(rc, new WireEventResp(wo.name, wo.ts, 
+      this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, err.name || 'Error'))
     }
+  }
+
+  private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, er: WireEventResp) {
+    ci.lastEventTs = er.ts
+    await ci.provider.send(rc, er)
   }
 
   upgradeClientIdentity(rc   : RunContextServer, 
