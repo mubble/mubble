@@ -103,7 +103,7 @@ export abstract class Repl {
       msOffset        : 0,                  // this is inferred by the server based on client's now field. Api/event need not use this
 
       // Information passed by the client used by   
-      location        : {},
+      location        : '{}',
       networkType     : '4G',
       clientIdentity  : this.clientIdentity,
 
