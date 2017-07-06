@@ -81,3 +81,42 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       req.end()
     })
   }
+
+  /* Execute http and return result data as well as response code.
+     Drupal SEO server data sync request fails with # 200 status code and error msg
+  */
+  export function executeHttpResultResponse(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<{response : any , data : string}> {
+
+    let response = {}
+    return new Promise<{response : any , data : string}>((resolve, reject) => {
+      
+      const req = http.request(urlObj, (outputStream: any) => {
+
+        switch (outputStream.headers['content-encoding']) {
+        case 'gzip':
+          outputStream = outputStream.pipe(zlib.createGunzip())
+          break
+        case 'deflate':
+          outputStream = outputStream.pipe(zlib.createInflate())
+          break
+        }
+
+        let data = ''
+        outputStream.on('data', (chunk: any) => {
+          data += chunk
+        })
+        outputStream.on('end', () => {
+          return resolve({data : data , response : response})
+        })
+      })
+      req.on('response', (res: any) => {
+        //rc.isDebug() && rc.debug(rc.getName(this), 'response keys is ', Object.keys(res).reverse())
+        response = res
+      })
+      req.on('error', (err: any) => {
+        return reject(err)
+      })
+      if (inputData) req.write (inputData)
+      req.end()
+    })
+  }

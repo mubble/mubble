@@ -139,14 +139,9 @@ export class DSTransaction {
     return true
   }
 
-  async update(rc : RunContextServer, model : BaseDatastore,        //TODO: remove TEMPs after merge
-                        id        ?: number | string,               //TEMP
-                        updRec    ?: {[index : string] : any},      //TEMP
-                        ignoreRNF ?: boolean) : Promise<void> {     //TEMP
-
-    if(id && updRec) return this.updateInternal(rc, model, id, updRec, ignoreRNF)  //TEMP
-
+  async update(rc : RunContextServer, model : BaseDatastore) : Promise<void> {
     const mId = model.getId(rc)
+    
     if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
     const key = model.getDatastoreKey(rc, mId)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
