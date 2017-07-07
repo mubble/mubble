@@ -32,10 +32,10 @@ import {RunContextServer}     from '../rc-server'
 
 export class InvokeStruct {
 
-  constructor(private name      : string,
-              private parent    : any,
-              private perm      : PERM) {
-
+  constructor(public name      : string,
+              public parent    : any,
+              public perm      : PERM) {
+  
   }
 
   async executeFn(...params: any[]) {
@@ -113,7 +113,7 @@ export abstract class XmnRouterServer {
         params  : wo.data
       } as InvocationData
 
-      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct)
+      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       ci.provider.send(rc, new WireReqResp(ir.name, wo.ts, resp))
 
     } catch (err) {
@@ -138,7 +138,7 @@ export abstract class XmnRouterServer {
           params  : wo.data
         } as InvocationData
 
-        await this.invokeXmnFunction(rc, ci, ie, eventStruct)
+        await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
 
       await this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts))
@@ -150,9 +150,9 @@ export abstract class XmnRouterServer {
   }
 
   async invokeXmnFunction(rc: RunContextServer, ci: ConnectionInfo, 
-                          invData: InvocationData, invStruct: InvokeStruct) {
+                          invData: InvocationData, invStruct: InvokeStruct, isEvent: boolean) {
 
-    return await invStruct.executeFn(rc, ci, invData, invStruct)
+    return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent)
   }
 
   private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, er: WireEventResp) {

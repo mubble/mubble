@@ -129,6 +129,8 @@ private getNamespace() : string {
       const key           = this.getDatastoreKey(rc, id),
             childEntities = this.getChildEntities(rc)
 
+      rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined') 
+      
       if (!childEntities || Object.keys(childEntities).length === 0 || noChildren) {   
         const entityRec = await BaseDatastore._datastore.get(key)
         if (!entityRec[0]) {

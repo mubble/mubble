@@ -64,6 +64,7 @@ export class DSTransaction {
     }
   }
 
+  // Note: This only works for sub-entities = [Entities with a parent key]
   async createQuery(rc : RunContextServer, namespace : string, kindName : string) {
     return this._transaction.createQuery(namespace, kindName)
   }
@@ -72,6 +73,8 @@ export class DSTransaction {
             model      : any, 
             id         : number | string, 
             ignoreRNF ?: boolean) : Promise<void> {
+
+    rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined') 
 
     const key           = model.getDatastoreKey(rc, id),
           entityRec     = await this._transaction.get(key),
