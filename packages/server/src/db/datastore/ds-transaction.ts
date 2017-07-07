@@ -33,8 +33,7 @@ export class DSTransaction {
                           : model.getDatastoreKey(rc),
           key          = await this._transaction.allocateIds(datastoreKey, 1) 
 
-      if(key.id) return Number(key.id)
-      return key.name
+      return Number(key.id)
   }
 
   async start(rc : RunContextServer) { // Needed only if we use a transaction outside models.
