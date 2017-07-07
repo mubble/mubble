@@ -38,11 +38,16 @@ export class CloudStorageBase {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-  static async uploadDataToCloudStorage(rc : RunContextServer, bucket : string, path : string, data : any, mimeVal : string | false) : Promise<string> {
-    if(!mimeVal) return ''
+  static async uploadDataToCloudStorage(rc       : RunContextServer, 
+                                        bucket   : string,
+                                        path     : string,
+                                        data     : any,
+                                        mimeVal  : string,
+                                        name    ?: string) : Promise<{fileUrl : string, filename : string}> {
 
     const extension = mime.extension(mimeVal),
-          filename  = await this.getFileName(rc, bucket, extension, path),
+          newName   = name ? name : await this.getFileName(rc, bucket, extension, path),
+          filename  = name ? `${newName}_low` : `${newName}_high`,
           modPath   = (path) ? (path + '/') : '',
           res       = await fs.writeFileSync(`/tmp/${filename}.${extension}`, data, 'binary'),
           fileUrl   = await this.upload(rc, bucket, 
@@ -51,7 +56,7 @@ export class CloudStorageBase {
                        
     await fs.unlinkSync(`/tmp/${filename}.${extension}`)
    
-    return fileUrl
+    return {fileUrl : fileUrl ? `${newName}.${extension}` : '', filename : newName}
   }
 
   private static async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {

@@ -50,7 +50,7 @@ export class VisionBase {
           })
   }
 
-  static async processToBase64(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) 
+  static async processToBase64(rc : RunContextServer, imagePath : string, ratio ?: number, quality ?: number, shrink ?: {h: number, w: number}) 
   : Promise<{data : string, mime: string | false, height : number, width : number}> {
     //Image path can be a local path or a URL
     const crops  : any  = ratio ? await VisionBase.detectCrops(rc, imagePath, ratio) : null,
@@ -68,8 +68,10 @@ export class VisionBase {
       height = b[3].y - b[0].y,
       
       await image.crop( x, y, width, height)
-      if(shrink) image.resize(shrink.w, shrink.h)
     }
+
+    if(shrink)  image.resize(shrink.w, shrink.h)
+    if(quality) image.quality(quality)
 
     return new Promise<{data : string, mime: string | false, height : number, width : number}>((resolve, reject) => {
         image.getBuffer(image.getMIME(), (err : any, res : any) => {
@@ -85,7 +87,7 @@ export class VisionBase {
       })
   }
 
-  static async processToBinary(rc : RunContextServer, imagePath : string, ratio ?: number, shrink ?: {h: number, w: number}) 
+  static async processToBinary(rc : RunContextServer, imagePath : string, ratio ?: number, quality ?: number, shrink ?: {h: number, w: number}) 
   : Promise<{data : string, mime: string | false, height : number, width : number}>{
     //Image path can be a local path or a URL
     const crops  : any  = await VisionBase.detectCrops(rc, imagePath, ratio || 1.78),
@@ -103,8 +105,11 @@ export class VisionBase {
       height = b[3].y - b[0].y,
       
       await image.crop( x, y, width, height)
-      if(shrink) image.resize(shrink.w, shrink.h)
     }
+
+    if(shrink)  image.resize(shrink.w, shrink.h)
+    if(quality) image.quality(quality)
+
     return new Promise<{data : string, mime: string | false, height : number, width : number}>((resolve, reject) => {
         image.getBuffer(image.getMIME(), (err : any, res : any) => {
           if(err) return reject(err)
