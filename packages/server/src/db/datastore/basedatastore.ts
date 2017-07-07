@@ -10,6 +10,8 @@
 
 const datastore : any = require('@google-cloud/datastore')
 
+import * as lo            from 'lodash'
+
 import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
@@ -155,6 +157,58 @@ private getNamespace() : string {
     }
   }
 
+public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models : BaseDatastore[]) : Promise<boolean> {
+  
+  // Todo case : when child entities are present
+  // transaction bget
+  let result = true
+    
+  try{
+    const keys : any = []
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mget models invalid ')
+
+    models.forEach((model : BaseDatastore)=>{
+      rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore , 'model ',model , 'is not a valid BaseDataStore Model')
+
+      rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc) , 'model id not set',model )
+
+      keys.push( model.getDatastoreKey(rc , model.getId(rc)))
+    
+    })
+    
+    const res = await BaseDatastore._datastore.get(keys)
+    const entityRecords : any[] = res[0]
+    
+    if(entityRecords.length !== models.length){
+      if(!ignoreRNF) throw (ERROR_CODES.RECORD_NOT_FOUND)
+      result = false
+    }
+
+    for(let i=0 ; i<entityRecords.length ; i++){
+      
+      const id : any  = BaseDatastore.getIdFromResult(rc , entityRecords[i]) 
+      // missing model result  are not present as undefined
+      // we have to check the matching by id
+      let model : any = models.find((mod : BaseDatastore)=> {
+        return mod.getId(rc) === id
+      })
+      rc.isAssert() && rc.assert(rc.getName(this), model , 'model not found for ' , entityRecords[i][BaseDatastore._datastore.KEY])
+      model.deserialize(rc , entityRecords[i])
+    }
+
+  }catch(err){
+    
+    if(err.code) {
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+    } else {
+      rc.isError() && rc.error(err)
+    }
+    throw(new Error(ERROR_CODES.GCP_ERROR))
+  }
+
+  return result
+}
+
 /*------------------------------------------------------------------------------
   - Insert to datastore 
 
@@ -263,6 +317,11 @@ private getNamespace() : string {
 ------------------------------------------------------------------------------*/                  
   getId(rc : RunContextServer ) : number | string {
     return this._id
+  }
+
+  setId(id : number | string ) : any {
+    this._id = id
+    return this
   }
 
 /*------------------------------------------------------------------------------

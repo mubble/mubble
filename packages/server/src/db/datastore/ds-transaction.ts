@@ -7,6 +7,8 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import * as lo            from 'lodash'
+
 import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
@@ -113,6 +115,83 @@ export class DSTransaction {
     }
   }
 
+  async mget(rc         : RunContextServer, 
+            ignoreRNF : boolean , ...models : BaseDatastore[] ) : Promise<boolean> {
+    
+    let result = true
+
+    const keys : any = []
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mget models invalid ')
+
+    models.forEach((model : BaseDatastore)=>{
+      rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore , 'model ',model , 'is not a valid BaseDataStore Model')
+
+      rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc) , 'model id not set',model )
+      const childEntities : any = (model as any)._childEntities
+      rc.isAssert() && rc.assert(rc.getName(this), lo.isEmpty(childEntities) , 'child enties not supported in mget', model , childEntities)
+      
+      keys.push( model.getDatastoreKey(rc , model.getId(rc)))
+    
+    })
+                  
+    const res     = await this._transaction.get(keys) ,
+          entityRecords : any [] = res[0]
+          
+
+    if(entityRecords.length !== models.length){
+      if(!ignoreRNF) throw (ERROR_CODES.RECORD_NOT_FOUND)
+      result = false
+    }
+
+    for(let i=0 ; i<entityRecords.length ; i++){
+      
+      const id : any  = BaseDatastore.getIdFromResult(rc , entityRecords[i]) 
+      // missing model result  are not present as undefined
+      // we have to check the matching by id
+      let model : any = models.find((mod : BaseDatastore)=> {
+        return mod.getId(rc) === id
+      })
+      rc.isAssert() && rc.assert(rc.getName(this), model , 'model not found for ' , entityRecords[i][BaseDatastore._datastore.KEY])
+      model.deserialize(rc , entityRecords[i])
+      
+      
+      /*
+      const childEntities = model._childEntities
+      
+      for (let childEntity in childEntities) {
+      
+        const key     = model.getDatastoreKey(rc, id),
+            child     = childEntities[childEntity],
+            cModel    = child.model,
+            dataModel = new cModel.constructor(),
+            query     = cModel.createQuery(rc)
+      
+        query.hasAncestor(key)
+        const res = await query.run(rc)
+
+        if (!child.isArray) {
+          const key = cModel.getKeyFromResult(rc, res[0][0])
+
+          dataModel.getWithTransaction(rc, cModel, key, ignoreRNF)
+          model.setChildEntity(rc, childEntity, dataModel.serialize(rc))
+        } else {
+          const resArr = []
+
+          for (const val of res[0]) {
+            const key = cModel.getKeyFromResult(rc, val)
+
+            dataModel.getWithTransaction(rc, cModel, key, ignoreRNF)
+            resArr.push(dataModel.serialize(rc))
+          }
+          model.setChildEntity(rc, childEntity, resArr)
+      }
+    }*/
+      
+    }  
+    return result
+    
+  }
+
   async insert(rc            : RunContextServer, 
                model         : any,
                id           ?: string | number | null, 
@@ -156,8 +235,23 @@ export class DSTransaction {
     
     if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
     const key = model.getDatastoreKey(rc, mId)
-    this._transaction.save({key: key, data: model.getUpdateRec(rc)})
+    await this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }
+
+  async mUpdate(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<void> {
+    
+    const entities : any [] = []
+    for(const model of models) {
+      const mId = model.getId(rc)
+    
+      if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
+      const key = model.getDatastoreKey(rc, mId)
+      entities.push({key: key, data: model.getUpdateRec(rc)})
+    }
+    
+    await this._transaction.save(entities)
+  }
+
 
   async updateInternal( rc         : RunContextServer, 
                         model      : BaseDatastore, 
