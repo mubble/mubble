@@ -112,7 +112,8 @@ export class DSTransaction {
   }
 
   async insert(rc            : RunContextServer, 
-               model         : any, 
+               model         : any,
+               id           ?: string | number | null, 
                parentKey    ?: any, 
                insertTime   ?: number, 
                ignoreDupRec ?: boolean) : Promise<boolean> {
@@ -120,8 +121,8 @@ export class DSTransaction {
     const newRec        = model.getInsertRec(rc, insertTime),
           childEntities = model._childEntities
           
-    let datastoreKey = (parentKey) ? model.getDatastoreKey(rc, null, model._kindName, parentKey.path) 
-                        : model.getDatastoreKey(rc)
+    let datastoreKey = (parentKey) ? model.getDatastoreKey(rc, id || null, model._kindName, parentKey.path) 
+                        : model.getDatastoreKey(rc, id)
 
     if (!model.getId(rc)) { // If we already have a key, no need to allocate
       const key = await this._transaction.allocateIds(datastoreKey, 1) 
@@ -202,7 +203,7 @@ export class DSTransaction {
                         ignoreDupRec ?: boolean) : Promise<boolean> {
     try {
       await this._transaction.run()
-      await this.insert(rc, model, parentKey, insertTime, ignoreDupRec)
+      await this.insert(rc, model, null, parentKey, insertTime, ignoreDupRec)
       await this._transaction.commit()
       return true
     } catch(err) {
@@ -227,7 +228,7 @@ export class DSTransaction {
       for(const rec of recs) {
         model.deserialize(rc, rec)
         const res = await model.setUnique (rc, ignoreDupRec)
-        if(res) await this.insert(rc, model, null, insertTime, ignoreDupRec )
+        if(res) await this.insert(rc, model, null, null, insertTime, ignoreDupRec )
       }
       await this._transaction.commit()
       return true
