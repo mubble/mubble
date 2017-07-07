@@ -48,6 +48,8 @@ export class UserKeyValue {
     }
   }
 
+  getAllClientIds(): string[] { return Object.keys(this.users) }
+
   // Client Id
   get clientId() {return this._clientId}
   set clientId(clientId : number) {

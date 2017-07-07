@@ -78,7 +78,10 @@ export abstract class XmnRouterBrowser {
   }
 
   setConnectionAttr(netType: string, location: string) {
-    this.ci.networkType     = netType
+
+    console.log(`Came to setConnectionAttr ${netType} ${location}`)
+
+    this.ci.networkType            = netType
     if (location) this.ci.location = JSON.stringify(location)
     this.trySendingEvents(this.rc)
   }
