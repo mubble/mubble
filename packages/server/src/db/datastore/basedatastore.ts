@@ -131,8 +131,7 @@ private getNamespace() : string {
 
       if (!childEntities || Object.keys(childEntities).length === 0 || noChildren) {   
         const entityRec = await BaseDatastore._datastore.get(key)
-
-        if (!entityRec.length) {
+        if (!entityRec[0]) {
           if (ignoreRNF) return false
           throw (ERROR_CODES.RECORD_NOT_FOUND)
         }

@@ -77,7 +77,7 @@ export class DSTransaction {
           entityRec     = await this._transaction.get(key),
           childEntities = model._childEntities
 
-    if (!entityRec.length) {
+    if (!entityRec[0]) {
       if (!ignoreRNF) throw(ERROR_CODES.RECORD_NOT_FOUND)
       return
     }
