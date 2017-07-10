@@ -33,6 +33,7 @@ export class DSTQuery {
   }
 
   filter(key : string, value : any, symbol ?: string) : DSTQuery {
+    if(value === undefined) throw(ERROR_CODES.UNDEFINED_QUERY_FIELD, 'Filter key:', key)
     if(!symbol) symbol = '='
     this._tQuery = this._tQuery.filter(key, symbol, value)
     return this
@@ -40,19 +41,22 @@ export class DSTQuery {
 
   multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: string}}>) : DSTQuery {
     for(let filter of keyPairs) {
+      if(filter.value === undefined) throw(ERROR_CODES.UNDEFINED_QUERY_FIELD, 'Filter key:', filter.key)
       this._tQuery = this._tQuery.filter(filter.key, filter.symbol || '=', filter.value)
     }
     return this
   }
 
-  order(key : string, value ?: any) : DSTQuery {
-    this._tQuery = this._tQuery.order(key, value)
+  order(key : string, descending ?: boolean) : DSTQuery {
+    if (!descending) this._tQuery = this._tQuery.order(key)
+    else this._tQuery = this._tQuery.order(key, { descending: true })
     return this
   }
 
-  multiOrder(keyPairs: Array<{[index : string] : {key : string, value : any}}>) : DSTQuery {
+  multiOrder(keyPairs: Array<{[index : string] : {key : string, descending : boolean}}>) : DSTQuery {
     for(let filter of keyPairs) {
-      this._tQuery = this._tQuery.order(filter.key, filter.value)
+      if (!filter.descending) this._tQuery = this._tQuery.order(filter.key)
+    else this._tQuery = this._tQuery.order(filter.key, { descending: true })
     }
     return this
   }
