@@ -141,6 +141,7 @@ export abstract class RunContextBase {
 
   assert(moduleName: string, condition: any, ...args: any[]) {
     if (!condition) {
+      args.unshift('Assertion failed')
       throw(new Error(this.logger.log(moduleName, LOG_LEVEL.ERROR, args)))
     }
   }
