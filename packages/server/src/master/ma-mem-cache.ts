@@ -6,24 +6,33 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
+
 import * as lo                from 'lodash'
-
+import {
+        MaMap,
+        StringValMap, 
+        GenValMap, 
+        MasterCache 
+       }                      from './ma-types'
+import {
+        MasterBase, 
+        MasterBaseFields
+       }                      from './ma-base'
+import {
+        masterDesc,
+        assert, 
+        concat,
+        log,
+        MaType,
+        FuncUtil
+       }                      from './ma-util'
 import {RunContextServer}     from '../rc-server'
-
-import {MaMap, StringValMap , 
-        GenValMap , 
-       MasterCache }          from './ma-types'
-import {MasterBase , 
-        MasterBaseFields }    from './ma-base'
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
-import {masterDesc , assert , 
-        concat , log ,
-        MaType ,
-        FuncUtil }            from './ma-util'
              
 
 const LOG_ID : string = 'MasterInMemCache'
+
 function MaInMemCacheLog(rc : RunContextServer | null , ...args : any[] ) : void {
   if(rc){
     rc.isStatus() && rc.status(LOG_ID , ...args )
@@ -31,6 +40,7 @@ function MaInMemCacheLog(rc : RunContextServer | null , ...args : any[] ) : void
     log(LOG_ID , ...args)
   }
 }
+
 function debug(rc : RunContextServer | null , ...args : any[] ) : void {
   if(rc){
     rc.isDebug && rc.debug(LOG_ID , ...args )
@@ -40,27 +50,25 @@ function debug(rc : RunContextServer | null , ...args : any[] ) : void {
 }
 
 
-export class SyncInfo  {
-  
-  ts            : number 
-  seg           : object 
-  dataDigest    : string
-  modelDigest   : string
-
+export class SyncInfo {
+  ts          : number 
+  seg         : object 
+  dataDigest  : string
+  modelDigest : string
 }
 
 
 export class DigestInfo {
   
-  fileDigest      : string
-  modelDigest     : string 
-  modTs           : number
-  dataDigest      : string
-  segDigestMap    : StringValMap  = {}
+  fileDigest   : string
+  modelDigest  : string 
+  modTs        : number
+  dataDigest   : string
+  segDigestMap : StringValMap  = {}
 
-  public constructor(fDigest : string , modeldigest : string , ts : number , dDigest : string , segMap : StringValMap ) {
+  public constructor(fDigest : string, modelDigest : string, ts : number, dDigest : string, segMap : StringValMap) {
     this.fileDigest   = fDigest
-    this.modelDigest  = modeldigest
+    this.modelDigest  = modelDigest
     this.modTs        = ts 
     this.dataDigest   = dDigest
     this.segDigestMap = segMap
@@ -111,8 +119,6 @@ export class MasterInMemCache {
   }
 
   public constructor(rc : RunContextServer , public mastername : string , data : GenValMap , dInfo : DigestInfo) {
-    
-    MaInMemCacheLog(rc , 'MasterInMemCache ',mastername)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(mastername)
 
     this.cache          = registry.config.getCached()
@@ -124,12 +130,12 @@ export class MasterInMemCache {
       else assert(dInfo==null , 'Digest Info present for master without data', dInfo, mastername)
 
       if(!size) {
-        MaInMemCacheLog(rc , 'Nothing to populate in memory cache for master',mastername)
+        debug(rc , 'Nothing to populate in memory cache for master',mastername)
         return
       }
       this.digestInfo = dInfo
     }else{
-      MaInMemCacheLog(rc , 'caching is disabled for master ',mastername)
+      debug(rc , 'caching is disabled for master ',mastername)
       if(dInfo!=null) this.digestInfo = dInfo
       return
     }
@@ -137,28 +143,28 @@ export class MasterInMemCache {
     // Populate cache
     // Fields which needs to be cached
     const allCachedFields : string[] = lo.uniq(registry.cachedFields.concat(registry.autoFields)) 
-    MaInMemCacheLog(rc , 'allCachedFields ', allCachedFields , 'destiSynFields', registry.destSyncFields )
+    // MaInMemCacheLog(rc , 'allCachedFields ', allCachedFields , 'destSyncFields', registry.destSyncFields )
     
     this.hash =  lo.mapValues(data , (val : any , key : string)=>{
       return lo.pick(val , allCachedFields)
     })
     
-    // sort them by modTs field decending order
+    // sort them by modTs field descending order
     this.records = lo.sortBy(lo.valuesIn(this.hash) , [this.modTSField]).reverse()
     assert(this.getMaxTS() === this.digestInfo.modTs , mastername, 'Digest Info data inconsistency ',this.getMaxTS() , this.digestInfo)
 
-    // Freez the records
+    // Freeze the records
     this.records.forEach((rec : any)=>{ Object.freeze(rec)})
     
-    MaInMemCacheLog(rc , 'MasterInMemCache loading finished',mastername, this.records)
+    debug(rc , `MasterInMemCache loading finished for ${mastername}, Count: ${this.records.length}`)
   }
 
-  public update(rc : RunContextServer , newData : GenValMap , dinfo : DigestInfo) : {inserts : number , updates : number} {
+  public update(rc : RunContextServer , newData : GenValMap , dInfo : DigestInfo) : {inserts : number , updates : number} {
     
-    MaInMemCacheLog(rc , 'update ',this.mastername , lo.size(newData) , dinfo , lo.size(this.hash))
+    debug(rc , 'update ',this.mastername , lo.size(newData) , dInfo , lo.size(this.hash))
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
 
-    this.digestInfo = dinfo
+    this.digestInfo = dInfo
     
     const result = {inserts : 0 , updates : 0 , cache : this.cache}
     if(!this.cache) return result
@@ -166,38 +172,38 @@ export class MasterInMemCache {
     // Fields which needs to be cached
     const allCachedFields : string[] = lo.uniq(registry.cachedFields.concat(registry.autoFields)) 
     
-    const cacheNewdata : GenValMap = lo.mapValues(newData , (val : any , key : string)=>{
+    const cacheNewData : GenValMap = lo.mapValues(newData , (val : any , key : string)=>{
 
       return lo.pick(val , allCachedFields)
     })
     
     // Ensure that all the data available is modified
-    lo.forEach(cacheNewdata , (newData : any , newPk : string) => {
+    lo.forEach(cacheNewData , (newData : any , newPk : string) => {
       
       if(!lo.hasIn(this.hash , newPk)) {
         // new data
         result.inserts++
         return 
       } 
-      assert(!lo.isEqual(cacheNewdata , this.hash[newPk]) , 'same data given for memory cache update ',newPk , newData)
+      assert(!lo.isEqual(cacheNewData , this.hash[newPk]) , 'same data given for memory cache update ',newPk , newData)
       result.updates++
     })
 
-    this.hash = lo.assign({} , this.hash , cacheNewdata)
+    this.hash = lo.assign({} , this.hash , cacheNewData)
     
-    // sort them by modTs field decending order
+    // sort them by modTs field descending order
     this.records = lo.sortBy(lo.valuesIn(this.hash) , [this.modTSField]).reverse()
     assert(this.getMaxTS() === this.digestInfo.modTs , this.mastername, 'Digest Info data inconsistency ',this.getMaxTS() , this.digestInfo)
 
     this.records.forEach((rec : any)=>{ Object.freeze(rec)})
 
-    MaInMemCacheLog(rc , 'MasterInMemCache update finished', this.mastername , this.records)
+    debug(rc , 'MasterInMemCache update finished', this.mastername , this.records)
     return result
   }
 
   public syncCachedData(rc : RunContextServer , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
-    MaInMemCacheLog(rc , 'syncCachedData', syncHash , syncData , syncInfo , purge)
+    debug(rc , 'syncCachedData', syncHash , syncData , syncInfo , purge)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
     
     // Get all the items >= syncInfo.ts
@@ -227,12 +233,12 @@ export class MasterInMemCache {
     
     syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
     
-    MaInMemCacheLog(rc , 'syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
+    debug(rc , 'syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
   public syncNonCachedData(rc : RunContextServer , masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
-    MaInMemCacheLog(rc , 'syncNonCachedData', syncHash , syncData , syncInfo , purge)
+    debug(rc , 'syncNonCachedData', syncHash , syncData , syncInfo , purge)
     
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
     
@@ -263,7 +269,7 @@ export class MasterInMemCache {
     
     syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
 
-    MaInMemCacheLog(rc , 'syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
+    debug(rc , 'syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
 }

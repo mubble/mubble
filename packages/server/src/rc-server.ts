@@ -163,7 +163,7 @@ export abstract class RunContextServer extends RunContextBase {
   }
 
   private freeRunId() {
-    this.isStatus() && this.hasLogged() && this.status(this.getName(this), '....done....')
+    this.isStatus() && this.hasLogged() && this.status(this.getName(this), '....Done....')
   }
 
 }

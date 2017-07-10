@@ -109,7 +109,7 @@ export class FieldInfo {
 export class MasterRegistry {
   
   constructor(master : string) {
-    MaRegistryLog(null , 'Creating Master ',master)
+    debug(null , 'Creating Master ',master)
     this.mastername = master
   }
 
@@ -206,7 +206,7 @@ export class MasterRegistry {
 
   public verify(context : RunContextServer) {
     
-    MaRegistryLog(context , 'Verifying ',this.mastername)
+    debug(context , 'Verifying ',this.mastername)
     
     // Todo
     /*
@@ -235,9 +235,6 @@ export class MasterRegistry {
     this.ownFields = lo.filter(this.fieldsMap , (finfo : FieldInfo , key : string)=>{
       return !finfo.isMasterBaseField()
     }).map(info=>info.name)
-    
-
-    MaRegistryLog(context, this.mastername , 'FieldsMap:' , this.fieldsMap)
 
     lo.forEach(this.config.getDependencyMasters() , (parent : string)=>{
       assert(MasterRegistryMgr.getMasterRegistry(parent)!=null , 'parent ',parent , 'doesn\'t exists for master ',this.mastername)
@@ -318,7 +315,7 @@ export class MasterRegistry {
 
   public addFieldRule(fieldName : string , target : object , rule : ((obj : any)=> void)) {
     
-    MaRegistryLog(null , 'addFieldRule', this.mastername , fieldName )
+    debug(null , 'addFieldRule', this.mastername , fieldName )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')
@@ -338,7 +335,7 @@ export class MasterRegistry {
 
   public addField(fieldName : string , masType : Master.FieldType , target : object) {
     
-    MaRegistryLog(null , 'addField', this.mastername , fieldName , Master.FieldType[masType] )
+    debug(null , 'addField', this.mastername , fieldName , Master.FieldType[masType] )
     
     var t = Reflect.getMetadata("design:type", target, fieldName)
     assert(t && t.name , masterDesc(this.mastername , fieldName , null) , 'field information is missing')

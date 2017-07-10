@@ -215,8 +215,8 @@ export class MasterMgr {
 
     })
     // Todo : remove empty array values masters / master with no dependency
-    MaMgrLog(rc , 'build Dependency Map finished\r\n',this.dependencyMap)
-    MaMgrLog(rc ,'build Reverse DependencyMap finished\r\n',this.revDepMap)
+    debug(rc , 'build Dependency Map finished')
+    debug(rc ,'build Reverse Dependency Map finished')
   }
     
 
@@ -224,7 +224,7 @@ export class MasterMgr {
     
     type ts_info =  {key ?: string , ts ?: number}
     
-    MaMgrLog(rc , 'checkSlaveMasterSync started')
+    debug(rc , 'Check Slave Master Sync started')
     
     for(const master of MasterRegistryMgr.masterList()){
       
@@ -232,7 +232,7 @@ export class MasterMgr {
       const sDetail : ts_info = await MasterMgr._getLatestRec(this.sredis , master)
       
       if(lo.isEmpty(mDetail) && lo.isEmpty(sDetail)){
-        MaMgrLog(rc , 'Master Slave Sync No records for master',master)
+        debug(rc , 'Master Slave Sync No records for master:',master)
       }
       else if(!lo.isEqual(mDetail , sDetail) ){
         // should not happen
@@ -242,11 +242,9 @@ export class MasterMgr {
         await FuncUtil.sleep(15*1000)
         return this.checkSlaveMasterSync(rc , false)
       }
-
-      MaMgrLog(rc , 'Master Slave Sync', mDetail , master)
     }
 
-    MaMgrLog(rc , 'checkSlaveMasterSync finished')
+    debug(rc , 'Check Slave Master Sync finished')
   }
 
   // sRedis subscribing to master publish records
@@ -366,14 +364,14 @@ export class MasterMgr {
     MaMgrLog(rc , 'applyData' , 'results',results)
   }
 
-  public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , josnFilePath : string} []) {  
+  public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , jsonFilePath : string} []) {  
     
     MaMgrLog(rc , 'applyFileDataFromPath ', masters)
     const arModels : {master : string , source: string} [] = []
 
     for(let i=0 ; i<masters.length ; i++){
       const master : string   = masters[i].master,
-      jsonFile : string = masters[i].josnFilePath
+      jsonFile : string = masters[i].jsonFilePath
 
       assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
       const buff : Buffer = await fs.readFileSync(jsonFile)
@@ -528,19 +526,18 @@ export class MasterMgr {
 
   private async buildInMemoryCache(rc : RunContextServer) {
     
-    MaMgrLog(rc , 'buildInMemoryCache started')
+    debug(rc , 'Build InMemory Cache Started')
     const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() 
     
     for(const mastername of MasterRegistryMgr.masterList()) {
       
-      MaMgrLog(rc , 'Building InMemory Cache for ',mastername)
       assert(!lo.hasIn(this.masterCache , mastername) , 'mastercache already present for ',mastername)
       
       const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
       this.masterCache[mastername] = new MasterInMemCache(rc , mastername , masterData , digestMap[mastername])
     }
 
-    MaMgrLog(rc , 'buildInMemoryCache finished')
+    debug(rc , 'Build InMemory Cache Finished')
   }
 
   private async getDigestMap() : Promise<MaMap<DigestInfo>> {

@@ -111,7 +111,7 @@ export class MasterRegistryMgr {
   // Verify all the MasterRegistry for data sanity
   public static init (rc : RunContextServer ) : void {
     
-    MaRegMgrLog(rc , 'starting init')
+    MaRegMgrLog(rc , '....Done....')
     
     // check masterbase registry exists
     const masterbaseReg : MasterRegistry =  MasterRegistryMgr.regMap[MASTERBASE]
