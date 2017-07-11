@@ -115,8 +115,9 @@ export class DSTransaction {
     }
   }
 
-  async mget(rc         : RunContextServer, 
-            ignoreRNF : boolean , ...models : BaseDatastore[] ) : Promise<boolean> {
+  async mget(rc        : RunContextServer, 
+             ignoreRNF : boolean ,
+             ...models : BaseDatastore[]) : Promise<boolean> {
     
     let result = true
 
@@ -125,33 +126,31 @@ export class DSTransaction {
 
     models.forEach((model : BaseDatastore)=>{
       rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore , 'model ',model , 'is not a valid BaseDataStore Model')
+      rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc) , 'model id not set',model)
 
-      rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc) , 'model id not set',model )
       const childEntities : any = (model as any)._childEntities
-      rc.isAssert() && rc.assert(rc.getName(this), lo.isEmpty(childEntities) , 'child enties not supported in mget', model , childEntities)
+
+      rc.isAssert() && rc.assert(rc.getName(this), lo.isEmpty(childEntities) , 'child entities not supported in mget', model , childEntities)
       
       keys.push( model.getDatastoreKey(rc , model.getId(rc)))
-    
     })
                   
-    const res     = await this._transaction.get(keys) ,
-          entityRecords : any [] = res[0]
+    const res           = await this._transaction.get(keys) ,
+          entityRecords = res[0]
           
-
     if(entityRecords.length !== models.length){
       if(!ignoreRNF) throw (ERROR_CODES.RECORD_NOT_FOUND)
       result = false
     }
 
-    for(let i=0 ; i<entityRecords.length ; i++){
-      
-      const id : any  = BaseDatastore.getIdFromResult(rc , entityRecords[i]) 
+    for(let i = 0; i < entityRecords.length; i++) {
+      const id : any = BaseDatastore.getIdFromResult(rc , entityRecords[i]) 
       // missing model result  are not present as undefined
       // we have to check the matching by id
       let model : any = models.find((mod : BaseDatastore)=> {
         return mod.getId(rc) === id
       })
-      rc.isAssert() && rc.assert(rc.getName(this), model , 'model not found for ' , entityRecords[i][BaseDatastore._datastore.KEY])
+      rc.isAssert() && rc.assert(rc.getName(this), model, 'model not found for ', entityRecords[i][BaseDatastore._datastore.KEY])
       model.deserialize(rc , entityRecords[i])
       
       
@@ -188,8 +187,15 @@ export class DSTransaction {
     }*/
       
     }  
-    return result
-    
+    return result 
+  }
+
+  save(rc : RunContextServer, key : any, data : any) {
+    this._transaction.save({key: key, data: data})
+  }
+
+  delete(rc : RunContextServer, key : any) {
+    this._transaction.delete(key)
   }
 
   async insert(rc            : RunContextServer, 
@@ -323,7 +329,7 @@ export class DSTransaction {
       await this._transaction.run()
       for(const rec of recs) {
         model.deserialize(rc, rec)
-        const res = await model.setUnique (rc, ignoreDupRec)
+        const res = await model.setUnique(rc, this._transaction, ignoreDupRec)
         if(res) await this.insert(rc, model, null, null, insertTime, ignoreDupRec )
       }
       await this._transaction.commit()
@@ -331,7 +337,7 @@ export class DSTransaction {
     } catch(err) {
       for (let i in recs) { 
         model.deserialize(rc, recs[i])
-        await model.deleteUnique(rc) 
+        await model.deleteUnique(rc, this._transaction) 
       }
       await this._transaction.rollback()
       if(err.code) {
@@ -394,7 +400,7 @@ export class DSTransaction {
     try {
       await this._transaction.run()
       await this.updateInternal(rc, model, id, params, false)
-      await model.deleteUnique(rc)
+      await model.deleteUnique(rc, this._transaction)
       await this._transaction.commit()
       return true
     } catch(err) {

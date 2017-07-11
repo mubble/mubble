@@ -466,7 +466,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolean> {
+  async setUnique(rc : RunContextServer, transaction : DSTransaction, ignoreDupRec ?: boolean) : Promise<boolean> {
     const uniqueConstraints : any    = this.getUniqueConstraints(rc),
           childEntities     : any    = this.getChildEntities(rc),
           kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
@@ -474,7 +474,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     for( const constraint of uniqueConstraints) {
       let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], kindName + '_unique')
       try {
-        await BaseDatastore._datastore.insert({key: uniqueEntityKey, data: ''})
+        transaction.save(rc, uniqueEntityKey, '')
       }
       catch (err) {
         if(!ignoreDupRec) {
@@ -490,7 +490,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
       }
     }
     for(let child in childEntities) {
-      await childEntities[child].model.setUnique()
+      await childEntities[child].model.setUnique(rc, transaction, ignoreDupRec)
     }
     return true
   }
@@ -498,7 +498,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
 /*------------------------------------------------------------------------------
   - The unique keys are to be deleted when the corresponding entity is deleted
 ------------------------------------------------------------------------------*/
-  async deleteUnique(rc : RunContextServer) : Promise<boolean> {
+  async deleteUnique(rc : RunContextServer, transaction : DSTransaction) : Promise<boolean> {
     const uniqueConstraints : any    = this.getUniqueConstraints(rc),
           childEntities     : any    = this.getChildEntities(rc),
           kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
@@ -506,14 +506,14 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     for( const constraint of uniqueConstraints) {
       let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], kindName + '_unique')
       try {
-        await BaseDatastore._datastore.delete(uniqueEntityKey)
+        transaction.delete(rc, uniqueEntityKey)
       } catch (err) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         throw (new Error(ERROR_CODES.GCP_ERROR))
       }
     }
     for (let child in childEntities) {
-      await childEntities[child].model.deleteUnique()
+      await childEntities[child].model.deleteUnique(rc, transaction)
     }
     return true
   } 
@@ -523,25 +523,24 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
 
   private async insertInternal(rc : RunContextServer, parentKey : any, insertTime ?: number, ignoreDupRec ?: boolean, noChildren ?: boolean) : Promise<boolean> {
-    const datastoreKey  = (parentKey) ? this.getDatastoreKey(rc, null, (<any>this)._kindName, parentKey.path) : this.getDatastoreKey(rc),
-          childEntities = this.getChildEntities(rc) 
+    const datastoreKey                = (parentKey) ? this.getDatastoreKey(rc, null, (<any>this)._kindName, parentKey.path) : this.getDatastoreKey(rc),
+          childEntities               = this.getChildEntities(rc),
+          transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, this.getNamespace())
     try {
-      const res = await this.setUnique (rc, ignoreDupRec)
+      const res = await this.setUnique(rc, transaction, ignoreDupRec)
       if(res) {
         if ((!childEntities || Object.keys(childEntities).length === 0 || noChildren)) {
-          await BaseDatastore._datastore.insert({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
-          this.setIdFromKey(rc, datastoreKey)
+          await transaction.insert(rc, this, undefined, undefined, undefined, ignoreDupRec)
+          await transaction.commit(rc)
           return true
         } else {
-          const transaction : DSTransaction = new DSTransaction(rc, BaseDatastore._datastore, this.getNamespace())
-          return await transaction.bdInsert(rc, this, parentKey, insertTime, ignoreDupRec)
+          return transaction.bdInsert(rc, this, parentKey, insertTime, ignoreDupRec)
         }
       } else {
         return false
       }
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      await this.deleteUnique (rc)
       if (err.toString().split(':')[1] !== ' entity already exists') {
         throw(new Error(ERROR_CODES.GCP_ERROR))
       } else {
