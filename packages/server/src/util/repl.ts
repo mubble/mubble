@@ -32,6 +32,7 @@ export abstract class Repl {
   
   promise: Promise<any>
   protected ci : ConnectionInfo
+  protected replServer : any
 
   constructor(protected rc: RunContextServer, private clientIdentity: ClientIdentity) {
     this.ci = this.getConnectionInfo ()
@@ -51,19 +52,21 @@ export abstract class Repl {
       context.rc       = this.rc
       context.ci       = this.ci
 
-      const replServer: any = repl.start({prompt: 'mubble > ', useGlobal: true})
-      replHistory(replServer, process.env.HOME + '/.mubble-repl')
+      this.replServer = repl.start({prompt: 'mubble > ', useGlobal: true})
+      replHistory(this.replServer, process.env.HOME + '/.mubble-repl')
 
-      Object.assign(replServer.context, context)
-      replServer.on('exit', function () {
+      Object.assign(this.replServer.context, context)
+      this.replServer.on('exit', function () {
         resolve()
       })
 
-      replServer.on('error', (err: Error) => {
+      this.replServer.on('error', (err: Error) => {
         reject(err)
       })
     })
   }
+
+
 
   _print(...args: any[]) {
     args.forEach((val, index) => {

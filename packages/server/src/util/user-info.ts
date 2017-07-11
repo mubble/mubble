@@ -9,8 +9,14 @@
 
 import * as os from 'os'
 
-export function getSystemUserId () {
+export function getSystemUserId() {
   return os.userInfo().username
+}
+export function getDatastoreNamespace() {
+  const username = os.userInfo().username
+  
+  if(username.toLowerCase() === 'mubble') return os.hostname().split('.').join('-')
+  return username
 }
 
 export function getHomeDir() {

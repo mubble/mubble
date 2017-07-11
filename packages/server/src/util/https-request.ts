@@ -59,8 +59,9 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
   export function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
 
     return new Promise((resolve, reject) => {
-      const httpObj: any = urlObj.protocol === 'http:' ? http : https
-      let   statusCode: number = 200
+      const httpObj    : any    = urlObj.protocol === 'http:' ? http : https
+      let   statusCode : number = 200
+      
       if(inputData && !urlObj.headers['Content-Length']) 
         urlObj.headers['Content-Length'] = new Buffer(inputData).length
         
@@ -80,7 +81,6 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
           response += chunk
         })
         outputStream.on('end', () => {
-          if (statusCode != 200) return reject(response)
           return resolve(response)
         })
       })
@@ -114,8 +114,8 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
     let response: any
     
     return new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
-      
-      const req = http.request(urlObj, (outputStream: any) => {
+      const httpObj: any = urlObj.protocol === 'http:' ? http : https
+      const req = httpObj.request(urlObj, (outputStream: any) => {
 
         switch (outputStream.headers['content-encoding']) {
         case 'gzip':
