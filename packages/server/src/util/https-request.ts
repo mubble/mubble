@@ -114,8 +114,8 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
     let response: any
     
     return new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
-      
-      const req = http.request(urlObj, (outputStream: any) => {
+      const httpObj: any = urlObj.protocol === 'http:' ? http : https
+      const req = httpObj.request(urlObj, (outputStream: any) => {
 
         switch (outputStream.headers['content-encoding']) {
         case 'gzip':
