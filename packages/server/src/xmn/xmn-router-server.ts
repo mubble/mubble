@@ -114,11 +114,11 @@ export abstract class XmnRouterServer {
       } as InvocationData
 
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
-      ci.provider.send(rc, new WireReqResp(ir.name, wo.ts, resp))
+      this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp))
 
     } catch (err) {
       console.log(err)
-      ci.provider.send(rc, new WireReqResp(wo.name, wo.ts, 
+      this.sendToProvider(rc, ci, new WireReqResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, err.name || 'Error'))
     }
  }
@@ -141,7 +141,7 @@ export abstract class XmnRouterServer {
         await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
 
-      await this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts))
+      this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts))
 
     } catch (err) {
       this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
@@ -156,8 +156,16 @@ export abstract class XmnRouterServer {
   }
 
   private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, er: WireEventResp) {
-    ci.lastEventTs = er.ts
-    await ci.provider.send(rc, er)
+    if (ci.lastEventTs < er.ts) ci.lastEventTs = er.ts
+    await this.sendToProvider(rc, ci, er)
+  }
+
+  private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, data: WireObject): void {
+    if (ci.provider) {
+      ci.provider.send(rc, data)
+    } else {
+      rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
+    }
   }
 
   upgradeClientIdentity(rc   : RunContextServer, 
@@ -180,7 +188,7 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      ci.provider.send(rc, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity))
+      this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity))
     }
   }
 

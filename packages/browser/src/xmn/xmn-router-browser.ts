@@ -186,6 +186,7 @@ export abstract class XmnRouterBrowser {
         case WIRE_TYPE.REQUEST:
         case WIRE_TYPE.EVENT:
           this.rc.isError() && this.rc.error(this.rc.getName(this), 'Not implemented', wo)
+          break
 
         case WIRE_TYPE.EVENT_RESP:
           const eventResp = wo as WireEventResp

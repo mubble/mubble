@@ -11,7 +11,6 @@
 import * as http          from 'http'
 import * as ws            from 'ws'
 import * as url           from 'url'
-import * as querystring   from 'querystring'
 import * as lo            from 'lodash'
 import {  
         ConnectionInfo,

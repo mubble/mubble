@@ -9,9 +9,9 @@
 
 export const XmnError = {
 
-  ConnectionFailed  : 'ConnectionFailed',
-  RequestTimedOut   : 'RequestTimedOut',
-  SendTimedOut      : 'SendTimedOut',
+  ConnectionFailed  : 'ConnectionFailed',  // server connect problem: server not running, no network, connection break
+  RequestTimedOut   : 'RequestTimedOut',   // ideally means api bug
+  SendTimedOut      : 'SendTimedOut',      // ideally means terribly slow connection
 
   _NotReady         : '_NotReady'
 }
