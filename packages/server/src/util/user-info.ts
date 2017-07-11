@@ -10,7 +10,10 @@
 import * as os from 'os'
 
 export function getSystemUserId () {
-  return os.userInfo().username
+  const username = os.userInfo().username
+  
+  if(username.toLowerCase() === 'mubble') return os.hostname().split('.').join('-')
+  return username
 }
 
 export function getHomeDir() {
