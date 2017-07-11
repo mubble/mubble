@@ -11,10 +11,10 @@
 import {
         RunContextServer,
         RUN_MODE,
-       }                      from '../rc-server'
-import {getSystemUserId}      from '../util/user-info'
-import * as url               from 'url'
-import * as http              from 'http'
+       }                            from '../rc-server'
+import {getDatastoreNamespace}      from '../util/user-info'
+import * as url                     from 'url'
+import * as http                    from 'http'
 
 const Credentials = {
   AUTH_KEY   : {
@@ -75,7 +75,7 @@ export class GcloudEnv {
 
       } else {
         return new GcloudEnv(Credentials.PROJECT_ID, 
-                             getSystemUserId().toUpperCase(),
+                             getDatastoreNamespace().toUpperCase(),
                              Credentials.AUTH_KEY)
       }
     }
