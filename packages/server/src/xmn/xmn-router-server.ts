@@ -11,6 +11,7 @@ import * as lo                from 'lodash'
 import * as http              from 'http'
 import {
         XmnRegistry,
+        XmnInfoBase,
         PERM
        }                      from './xmn-registry'
 import { 
@@ -34,7 +35,7 @@ export class InvokeStruct {
 
   constructor(public name      : string,
               public parent    : any,
-              public perm      : PERM) {
+              public xmnInfo   : XmnInfoBase) {
   
   }
 
@@ -193,26 +194,26 @@ export abstract class XmnRouterServer {
   }
 
   // Preferred way is to use @xmnApi
-  registerApi(rc: RunContextServer, name: string, parent: any, perm: PERM): void {
+  registerApi(rc: RunContextServer, name: string, parent: any, xmnInfo: XmnInfoBase): void {
     if (this.apiMap[name]) {
       throw(Error(rc.error(rc.getName(this), 'Duplicate api:' + name)))
     }
     if (parent[name] || (parent.prototype && parent.prototype[name])) {
       if (rc.isDebug()) this.logRegistration(rc, name, parent, true)
-      this.apiMap[name] = new InvokeStruct(name, parent, perm)
+      this.apiMap[name] = new InvokeStruct(name, parent, xmnInfo)
     } else {
       throw(Error(rc.error(rc.getName(this), 'api', name, 'does not exit in', rc.getName(parent))))
     }
   }
 
   // Preferred way is to use @xmnEvent
-  registerEvent(rc: RunContextServer, name: string, parent: any, perm: PERM): void {
+  registerEvent(rc: RunContextServer, name: string, parent: any, xmnInfo: XmnInfoBase): void {
     if (this.eventMap[name]) {
       throw(Error(rc.error(rc.getName(this), 'Duplicate event:' + name)))
     }
     if (parent[name] || (parent.prototype && parent.prototype[name])) {
       if (rc.isDebug()) this.logRegistration(rc, name, parent, false)
-      this.eventMap[name] = new InvokeStruct(name, parent, perm)
+      this.eventMap[name] = new InvokeStruct(name, parent, xmnInfo)
     } else {
       throw(Error(rc.error(rc.getName(this), 'event', name, 'does not exit in', rc.getName(parent))))
     }
