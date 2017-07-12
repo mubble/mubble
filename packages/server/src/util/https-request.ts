@@ -43,9 +43,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       })
 
       req.on('response', (res: any) => {
-        if (res.statusCode != 200) {
-          return resolve(undefined)
-        }
+        rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response, Status Code: ' + res.statusCode)
       })
       req.on('error', (err: any) => {
         rc.isStatus() && rc.status (err)
