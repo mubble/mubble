@@ -11,11 +11,11 @@ import {XmnRouterServer}  from './xmn-router-server'
 
 export enum PERM {PUBLIC, PUBLIC_ENC, SESSION, SYS_OP, SYS_ADMIN}
 
-export class XmnInfoBase {
+export interface XmnInfoBase {
   name      : string
   perm      : PERM
   type      : any           // Defined by the Client
-  param     : object
+  params    : object
   retval    : object
 }
 
