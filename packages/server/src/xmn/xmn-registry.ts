@@ -9,11 +9,9 @@
 import {RunContextServer} from '../rc-server'
 import {XmnRouterServer}  from './xmn-router-server'
 
-export enum PERM {PUBLIC, PUBLIC_ENC, SESSION, SYS_OP, SYS_ADMIN}
-
 export interface XmnInfoBase {
   name      : string
-  type      : any
+  type      : any                            // Defined by the Client
 }
 
 export function xmnApi<T extends XmnInfoBase>(xmnType: { new () : T } ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
@@ -29,19 +27,18 @@ export function xmnEvent<T extends XmnInfoBase>(xmnType: { new () : T } ): (targ
     XmnRegistry.enrollEvent(propertyKey, target, xmnInfo)
   }
 }
-
 export interface EnrollmentInfo {
   name      : string
   isApi     : boolean
   parent    : any
-  xmnInfo   : XmnInfoBase
+  xmnInfo   : any
 }
 
 export class XmnRegistry {
 
   private static register: {[index: string]: EnrollmentInfo} = {}
 
-  static enrollApi(name: string, parent: any, xmnInfo: XmnInfoBase) {
+  static enrollApi(name: string, parent: any, xmnInfo: any) {
 
     if (this.register[name]) {
       const msg = `Duplicate definition for xmn api/event found: ${name}`
@@ -53,7 +50,7 @@ export class XmnRegistry {
     this.register[name] = {name, isApi: true, parent, xmnInfo}
   }
 
-  static enrollEvent(name: string, parent: any, xmnInfo: XmnInfoBase) {
+  static enrollEvent(name: string, parent: any, xmnInfo: any) {
 
     if (this.register[name]) {
       const msg = `Duplicate definition for xmn api/event found: ${name}`

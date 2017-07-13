@@ -10,9 +10,7 @@
 import * as lo                from 'lodash'
 import * as http              from 'http'
 import {
-        XmnRegistry,
-        XmnInfoBase,
-        PERM
+        XmnRegistry
        }                      from './xmn-registry'
 import { 
         ConnectionInfo, 
@@ -35,7 +33,7 @@ export class InvokeStruct {
 
   constructor(public name      : string,
               public parent    : any,
-              public xmnInfo   : XmnInfoBase) {
+              public xmnInfo   : any) {
   
   }
 
@@ -194,7 +192,7 @@ export abstract class XmnRouterServer {
   }
 
   // Preferred way is to use @xmnApi
-  registerApi(rc: RunContextServer, name: string, parent: any, xmnInfo: XmnInfoBase): void {
+  registerApi(rc: RunContextServer, name: string, parent: any, xmnInfo: any): void {
     if (this.apiMap[name]) {
       throw(Error(rc.error(rc.getName(this), 'Duplicate api:' + name)))
     }
@@ -207,7 +205,7 @@ export abstract class XmnRouterServer {
   }
 
   // Preferred way is to use @xmnEvent
-  registerEvent(rc: RunContextServer, name: string, parent: any, xmnInfo: XmnInfoBase): void {
+  registerEvent(rc: RunContextServer, name: string, parent: any, xmnInfo: any): void {
     if (this.eventMap[name]) {
       throw(Error(rc.error(rc.getName(this), 'Duplicate event:' + name)))
     }
