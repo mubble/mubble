@@ -37,3 +37,11 @@ export function execFn(fn: any, context: any, ...params: any[]) : Promise<any> {
   const promiseFn = getFn(fn, context)
   return promiseFn(...params)
 }
+
+export function delayedPromise(ms: number, fulfillWith ?: any): Promise<any> {
+  return new Promise( function(resolve : any, reject : any) {
+    setTimeout(ms, function() {
+      resolve(fulfillWith)
+    })
+  })
+}

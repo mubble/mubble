@@ -22,15 +22,18 @@ import {  ConnectionInfo,
           ClientIdentity,
           TimerInstance,
           SYS_EVENT,
+          delayedPromise,
           NetworkType       } from '@mubble/core'
 
 import {  WsBrowser }         from './ws-browser'      
 import * as lo                from 'lodash'
 import Dexie                  from 'dexie'
 
-const TIMEOUT_MS    = 55000,
-      SEND_RETRY_MS = 1000,
-      SEND_TIMEOUT  = 10000
+const TIMEOUT_MS          = 55000,
+      SEND_RETRY_MS       = 1000,
+      SEND_TIMEOUT        = 10000,
+      EVENT_SEND_DELAY    = 1000,
+      MAX_EVENTS_TO_SEND  = 5
 
 export abstract class XmnRouterBrowser {
 
@@ -48,8 +51,8 @@ export abstract class XmnRouterBrowser {
   // getting client identity or login. But in background runs, events can be sent 
   // immediately
 
-  private sendEventPermitted = false
-  private lastSentEventTs    = 0
+  private lastEventTs      = 0
+  private lastEventSendTs  = 0
 
   constructor(private rc: RunContextBrowser, serverUrl: string) {
 
@@ -73,24 +76,24 @@ export abstract class XmnRouterBrowser {
     this.ci.clientIdentity  = clientIdentity
     this.ci.networkType     = netType
     this.ci.location        = JSON.stringify(location)
-    this.db                 = new XmnDb()
-    await EventTable.removeOldByTs(this.rc, this.db, Date.now() - 7 * 24 * 3600000 /* 7 days */)
+    if (clientIdentity && clientIdentity.clientId) {
+      await this.initEvents()
+      this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
+    }
   }
 
-  setConnectionAttr(netType: string, location: string) {
+  async setConnectionAttr(netType: string, location: string) {
 
     console.log(`Came to setConnectionAttr ${netType} ${location}`)
 
     this.ci.networkType            = netType
     if (location) this.ci.location = JSON.stringify(location)
-    this.trySendingEvents(this.rc)
-  }
 
-  sendPendingEvents() {
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), !this.ci.publicRequest)
-
-    this.sendEventPermitted = true
-    this.trySendingEvents(this.rc)
+    const clientIdentity = this.ci.clientIdentity
+    if (clientIdentity && clientIdentity.clientId) {
+      await this.initEvents()
+      this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
+    }
   }
 
   abstract upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: ClientIdentity): void
@@ -117,8 +120,10 @@ export abstract class XmnRouterBrowser {
 
   async sendEvent(rc: RunContextBrowser, eventName: string, data: object) {
 
-    rc.isAssert() && rc.assert(rc.getName(this), !this.ci.publicRequest)
-    if (!this.sendEventPermitted) this.sendEventPermitted = true
+    const clientIdentity = this.ci.clientIdentity
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
+      'You cannot send events without clientId')
+    await this.initEvents()
 
     const event = new WireEvent(eventName, data)
 
@@ -127,26 +132,32 @@ export abstract class XmnRouterBrowser {
     await this.trySendingEvents(rc)
   }
 
-  async trySendingEvents(rc: RunContextBrowser) {
+  private async initEvents() {
 
-    if (!this.sendEventPermitted || !this.ci.clientIdentity || 
-        !this.ci.networkType || this.lastSentEventTs) {
+    if (!this.db) {
+      this.db = new XmnDb(this.ci.clientIdentity.clientId)
+      await EventTable.removeOldByTs(this.rc, this.db, Date.now() - 7 * 24 * 3600000 /* 7 days */)
+    }
+  }
 
+  private async trySendingEvents(rc: RunContextBrowser) {
+
+    if (!this.ci.networkType || this.lastEventTs) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Skipping sending event as not ready', {
-        sendEventPermitted  : this.sendEventPermitted,
         networkType         : this.ci.networkType,
-        lastSentEventTs     : this.lastSentEventTs
+        lastEventTs         : this.lastEventTs
       })
       return
     }
 
     const arEvent = await EventTable.getOldEvents(rc, this.db)
-    if (!arEvent.length) {
-      this.timerEventTimeout.remove()
-      return
-    }
+    if (!arEvent.length) return
 
-    for (let index = 0; index < arEvent.length; index++) {
+    // We need to guard trigger from the timeout timer, while waiting to get data from event table, earlier trySendingEvents
+    // has succeeded
+    if (this.lastEventTs) return
+
+    for (let index = 0, count = 0; index < arEvent.length && count < MAX_EVENTS_TO_SEND; index++, count++) {
 
       if (!this.ci.provider) this.ci.provider = new WsBrowser(rc, this.ci, this)
       
@@ -156,13 +167,21 @@ export abstract class XmnRouterBrowser {
       if (this.ci.provider.send(rc, wireEvent)) break // failed to send
 
       rc.isDebug() && rc.debug(rc.getName(this), 'sent event', wireEvent)
-      this.lastSentEventTs = wireEvent.ts
+      this.lastEventTs      = wireEvent.ts
+      this.lastEventSendTs  = Date.now()
       this.timerEventTimeout.tickAfter(TIMEOUT_MS, true)
+      await delayedPromise(EVENT_SEND_DELAY)
     }
   }
 
-  providerReady() {
+  async providerReady() {
     this.cbTimerReqResend()
+
+    const clientIdentity = this.ci.clientIdentity
+    if (clientIdentity && clientIdentity.clientId) {
+      await this.initEvents()
+      this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
+    }
   }
 
   providerFailed() {
@@ -171,8 +190,9 @@ export abstract class XmnRouterBrowser {
       const wr = this.ongoingRequests[index];
       this.finishRequest(this.rc, index, XmnError.ConnectionFailed)
     }
-    this.ongoingRequests = []
-    this.lastSentEventTs = 0
+    this.ongoingRequests  = []
+    this.lastEventTs      = 0
+    this.lastEventSendTs  = 0
   }
 
   async providerMessage(rc: RunContextBrowser, arData: WireObject[]) {
@@ -193,8 +213,10 @@ export abstract class XmnRouterBrowser {
           rc.isAssert() && rc.assert(rc.getName(this), eventResp.ts)
 
           await EventTable.removeOldByTs(rc, this.db, eventResp.ts)
-          if (this.lastSentEventTs === eventResp.ts) {
-            this.lastSentEventTs = 0
+          if (this.lastEventTs === eventResp.ts) {
+            this.lastEventTs      = 0
+            this.lastEventSendTs  = 0
+            this.timerEventTimeout.remove()
             await this.trySendingEvents(rc)
           }
           break
@@ -277,10 +299,14 @@ export abstract class XmnRouterBrowser {
 
   private cbTimerEventTimeout(): number {
 
-    const diff = this.lastSentEventTs + TIMEOUT_MS - Date.now()
+    if (!this.lastEventSendTs) return 0
+
+    const diff = this.lastEventSendTs + TIMEOUT_MS - Date.now()
     if (diff > 0) return diff
 
-    this.lastSentEventTs = 0
+    this.lastEventTs      = 0
+    this.lastEventSendTs  = 0
+
     this.trySendingEvents(this.rc)
     return TIMEOUT_MS
   }
@@ -364,8 +390,8 @@ class EventTable {
 class XmnDb extends Dexie {
 
   events: Dexie.Table<EventTable, number>
-  constructor () {
-    super('xmn')
+  constructor (clientId: number) {
+    super('xmn-' + clientId)
     this.version(1).stores({
       events: 'ts'
     })
