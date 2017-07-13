@@ -107,9 +107,8 @@ class HttpServerProvider {
 
     const res = this.res
 
-    res.setHeader('Content-Type', 'text/html');
-    res.writeHead(200, {'Content-Type': 'text/plain'});
-    res.end('ok');
+    res.writeHead(200, {'Content-Type': 'application/json'})
+    res.end(JSON.stringify(data))
   }
 
   private parseBody(rc: RunContextServer) {
@@ -153,12 +152,11 @@ class HttpServerProvider {
         this.rejectRequest(rc)
         resolve(null)
       })
-
     })
   }
 
   private rejectRequest(rc: RunContextServer) {
-    
+
     const res = this.res
     res.writeHead(200)
 
