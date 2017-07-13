@@ -11,15 +11,25 @@ import {XmnRouterServer}  from './xmn-router-server'
 
 export enum PERM {PUBLIC, PUBLIC_ENC, SESSION, SYS_OP, SYS_ADMIN}
 
-export function xmnApi(perm ?: PERM): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
+export interface XmnInfoBase {
+  name      : string
+  perm      : PERM
+  type      : any           // Defined by the Client
+  params    : object
+  retval    : object
+}
+
+export function xmnApi<T extends XmnInfoBase>(xmnType: { new () : T } ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    XmnRegistry.enrollApi(propertyKey, target, perm || PERM.PUBLIC)
+    const xmnInfo = new xmnType ()
+    XmnRegistry.enrollApi(propertyKey, target, xmnInfo)
   }
 }
 
-export function xmnEvent(perm ?: PERM): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
+export function xmnEvent<T extends XmnInfoBase>(xmnType: { new () : T } ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
   return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    XmnRegistry.enrollEvent(propertyKey, target, perm || PERM.PUBLIC)
+    const xmnInfo = new xmnType ()
+    XmnRegistry.enrollEvent(propertyKey, target, xmnInfo)
   }
 }
 
@@ -27,14 +37,14 @@ export interface EnrollmentInfo {
   name      : string
   isApi     : boolean
   parent    : any
-  perm      : PERM
+  xmnInfo   : XmnInfoBase
 }
 
 export class XmnRegistry {
 
   private static register: {[index: string]: EnrollmentInfo} = {}
 
-  static enrollApi(name: string, parent: any, perm: PERM) {
+  static enrollApi(name: string, parent: any, xmnInfo: XmnInfoBase) {
 
     if (this.register[name]) {
       const msg = `Duplicate definition for xmn api/event found: ${name}`
@@ -43,10 +53,10 @@ export class XmnRegistry {
     }
 
     // console.log('enrolled api', api)
-    this.register[name] = {name, isApi: true, parent, perm}
+    this.register[name] = {name, isApi: true, parent, xmnInfo}
   }
 
-  static enrollEvent(name: string, parent: any, perm: PERM) {
+  static enrollEvent(name: string, parent: any, xmnInfo: XmnInfoBase) {
 
     if (this.register[name]) {
       const msg = `Duplicate definition for xmn api/event found: ${name}`
@@ -55,7 +65,7 @@ export class XmnRegistry {
     }
 
     // console.log('enrolled event', name)
-    this.register[name] = {name, isApi: false, parent, perm}
+    this.register[name] = {name, isApi: false, parent, xmnInfo}
   }
 
   static commitRegister(rc: RunContextServer, router: XmnRouterServer, providers: any[]) {
@@ -63,7 +73,6 @@ export class XmnRegistry {
     providers.forEach(provider => {
 
       let providerUsed = false
-
        while (provider !== Function && provider !== Object) {
         if (this.checkForProvider(rc, router, provider)) providerUsed = true
         provider = provider.constructor
@@ -103,9 +112,9 @@ export class XmnRegistry {
 
       if (match) {
         if (eInfo.isApi) {
-          router.registerApi(rc, key, provider, eInfo.perm)
+          router.registerApi(rc, key, provider, eInfo.xmnInfo)
         } else {
-          router.registerEvent(rc, key, provider, eInfo.perm)
+          router.registerEvent(rc, key, provider, eInfo.xmnInfo)
         }
         delete this.register[key]
         providerUsed = true
