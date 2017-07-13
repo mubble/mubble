@@ -13,10 +13,7 @@ export enum PERM {PUBLIC, PUBLIC_ENC, SESSION, SYS_OP, SYS_ADMIN}
 
 export interface XmnInfoBase {
   name      : string
-  perm      : PERM
-  type      : any           // Defined by the Client
-  params    : object
-  retval    : object
+  type      : any
 }
 
 export function xmnApi<T extends XmnInfoBase>(xmnType: { new () : T } ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
