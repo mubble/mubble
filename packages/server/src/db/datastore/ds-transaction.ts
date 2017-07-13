@@ -35,7 +35,7 @@ export class DSTransaction {
                           : model.getDatastoreKey(rc),
           key          = await this._transaction.allocateIds(datastoreKey, 1) 
 
-      return Number(key.id)
+      return Number(key[0][0].id)
   }
 
   async start(rc : RunContextServer) { // Needed only if we use a transaction outside models.
@@ -211,7 +211,7 @@ export class DSTransaction {
     let datastoreKey = (parentKey) ? model.getDatastoreKey(rc, id || null, model._kindName, parentKey.path) 
                         : model.getDatastoreKey(rc, id)
 
-    if (!model.getId(rc)) { // If we already have a key, no need to allocate
+    if (!id) { // If we already have a key, no need to allocate
       const key = await this._transaction.allocateIds(datastoreKey, 1) 
 
       model.setIdFromKey(rc, key[0][0])

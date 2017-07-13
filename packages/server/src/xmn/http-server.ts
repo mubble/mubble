@@ -78,7 +78,9 @@ class HttpServerProvider {
   async readRequest(rc: RunContextServer, urlObj: url.Url): Promise<WireRequest | null> {
 
     const req = this.req,
-          wr  = new WireRequest(urlObj.pathname || '', {}, Date.now())
+          pathName = urlObj.pathname || '',
+          urlName = pathName.startsWith('/') ? pathName.substr(1) : pathName,
+          wr  = new WireRequest(urlName, {}, Date.now())
 
     if (SUPPORTED_METHODS.indexOf(req.method || '') === -1) {
       rc.isWarn() && rc.warn(rc.getName(this), 'Rejecting request with invalid method', req.method)

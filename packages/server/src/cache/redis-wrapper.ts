@@ -25,7 +25,7 @@ function redisLog(rc : RunContextServer , ...args : any[] ) : void {
 const LOG_ID = 'RedisWrapper'
 
 export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
-                            'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'hincrby' | 'exists' |
+                            'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'hincrby' |
                             'lpush' | 'rpush' | 'lrange' |
                             'zadd' | 'zrange' | 'zrevrange' | 'zrangebyscore' | 'zrem' |
                             'publish' | 'unsubscribe' | 
@@ -35,7 +35,7 @@ export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' 
 
 export const redis_commands : string[] =  
 ['del' , 'expire' , 'get' , 
- 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' , 'hincrby' ,
+ 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' , 'hincrby' , 'hscan' ,
  'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem',
  'exists'
  ]                            
@@ -57,6 +57,7 @@ export interface RedisCmds {
   hdel      : (args : string[]) => void
   hget      : (key : string , field : string) => string 
   hgetall   : (key : string) => {[key:string] : string}
+  hscan     : (key: string , ...args : string[]) => [string, string []] // TODO: Check the return value 
   hmget     : (key: string , ...args : string[]) => string []
   hmset     : (key: string , ...args : string[] ) => void
   hset      : (key: string , field : string , value : string ) => void

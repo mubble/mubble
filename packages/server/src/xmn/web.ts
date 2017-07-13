@@ -10,7 +10,7 @@
 import * as http              from 'http'
 import {XmnRouterServer}      from './xmn-router-server'
 
-import {HttpXmn}              from './http-xmn'
+import {HttpServer}           from './http-server'
 import {WsServer}             from './ws-server'
 import {RunContextServer}     from '../rc-server'
 import {clusterWorker}        from '../cluster/worker'
@@ -53,8 +53,7 @@ export class Web {
         router           : XmnRouterServer,
         httpConfig      ?: HttpConfig, 
         websocketConfig ?: WebsocketConfig, 
-        httpsConfig     ?: HttpsConfig,
-        azure           ?: any) : void {
+        httpsConfig     ?: HttpsConfig) : void {
 
     this.httpConfig      = httpConfig
     this.websocketConfig = websocketConfig
@@ -62,7 +61,7 @@ export class Web {
     this.router          = router
 
     if (this.httpConfig) {
-      const httpReqManager = new HttpXmn(rc, azure)
+      const httpReqManager = new HttpServer(rc, router)
       this.httpServer      = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
 
@@ -87,7 +86,7 @@ export class Web {
         throw('https port cannot be same as ws port')
       }
 
-      const httpReqManager = new HttpXmn(rc, azure)
+      const httpReqManager = new HttpServer(rc, router)
       this.httpsServer     = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
   }
