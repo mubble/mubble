@@ -15,7 +15,8 @@ import {
         WireObject,
         Protocol,
         ClientIdentity,
-        WIRE_TYPE
+        WIRE_TYPE,
+        NetworkType
        }                            from '@mubble/core'
 import {
         RunContextServer,
@@ -107,7 +108,7 @@ export abstract class Repl {
 
       // Information passed by the client used by   
       location        : '{}',
-      networkType     : '4G',
+      networkType     : NetworkType.net4G,
       clientIdentity  : this.clientIdentity,
 
       // provider for this connection (WebSocket, Http etc.)
