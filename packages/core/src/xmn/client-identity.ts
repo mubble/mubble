@@ -10,7 +10,7 @@
 /**
  * It is allowed to add members to this interface by extending it
  * Any new member must be either string or a number
- * plain objects and arrays can also be supported on need basis
+ * plain objects 
  */
 export interface ClientIdentity {
 
@@ -23,5 +23,8 @@ export interface ClientIdentity {
   clientId      : number
   userLinkId    : string
   userName      : string
+
+  // master data hash
+  syncHash      : object
 }
 
