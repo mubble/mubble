@@ -31,7 +31,6 @@ const replHistory: any = require('repl.history') // https://github.com/ohmu/node
 
 export abstract class Repl {
   
-  promise: Promise<any>
   protected ci : ConnectionInfo
   protected replServer : any
 
@@ -123,10 +122,19 @@ export abstract class Repl {
 class ReplProvider {
 
   private configSent = false
+  private resolver    : any
+  private rejecter    : any
 
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
               private router      : XmnRouterServer) {
+  }
+
+  start(rc: RunContextServer, resolver: any, rejecter: any) {
+    return new Promise ((resolve, reject) => {
+      this.resolver = resolve
+      this.rejecter = reject
+    })
   }
 
   send(rc: RunContextServer, data: WireObject): void {
@@ -135,6 +143,7 @@ class ReplProvider {
       rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
       return
     }
+    this.resolver (data)
     rc.status (rc.getName (this), 'Response: ', JSON.stringify (data))
   }  
 }
