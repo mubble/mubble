@@ -483,7 +483,8 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
           if (err.toString().split(':')[1] !== ' entity already exists') {
             throw(new Error(ERROR_CODES.GCP_ERROR))
           } else {
-            throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
+             rc.isError() && rc.error(rc.getName(this), ERROR_CODES.UNIQUE_KEY_EXISTS)
+             return false
           }
         } else {
           return false
