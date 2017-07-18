@@ -24,7 +24,7 @@ export abstract class ModelConfig {
   
   protected hasFileSource         : boolean = false
   protected cache                 : boolean = false
-  protected segment               : object  
+  protected segment              ?: {key : string , cols : string[]}
   protected fkConstrains          : Master.ForeignKeys = {}
   protected accompanyMasters      : string [] = []
   protected masterTsField         : string = MasterTsField

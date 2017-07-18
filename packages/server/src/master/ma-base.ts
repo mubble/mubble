@@ -154,7 +154,7 @@ export namespace Master{
   export type ForeignKeys = {[master : string] : StringValMap}
   
 
-  export function getDefaultConfig (segment : object  , fk ?: ForeignKeys )  : ModelConfig {
+  export function getDefaultConfig (segment ?: {key : string , cols : string[]}  , fk ?: ForeignKeys )  : ModelConfig {
     //const masConfig : ModelConfig = new MasterModelConfig('Sample')
     
     const masConfig : ModelConfig = new class TestModelConfig extends MasterModelConfig {
