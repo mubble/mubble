@@ -130,11 +130,38 @@ class ReplProvider {
               private router      : XmnRouterServer) {
   }
 
-  start(rc: RunContextServer, resolver: any, rejecter: any) {
+  start(rc: RunContextServer) {
     return new Promise ((resolve, reject) => {
       this.resolver = resolve
       this.rejecter = reject
     })
+  }
+
+  async routeRequest (rc: RunContextServer, apiName: string, param: object) {
+    const  wo = {
+            name    : apiName,
+            type    : WIRE_TYPE.REQUEST,
+            ts      : Date.now(),
+            data    : param
+          } as WireObject
+    let promise = this.start (rc)
+    await this.router.routeRequest(rc, this.ci, wo)
+    const res = await promise
+    return res
+  }
+
+  async routeEvent (rc: RunContextServer, eventName: string, param: object) {
+    const wo = {
+            name    : eventName,
+            type    : WIRE_TYPE.EVENT,
+            ts      : Date.now(),
+            data    : param
+          } as WireObject
+
+    let promise = this.start (rc)
+    await this.router.routeRequest(rc, this.ci, wo)
+    const res = await promise
+    return res
   }
 
   send(rc: RunContextServer, data: WireObject): void {
@@ -143,7 +170,13 @@ class ReplProvider {
       rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
       return
     }
-    this.resolver (data)
-    rc.status (rc.getName (this), 'Response: ', JSON.stringify (data))
+    if (data && (<any>data).error) {
+      rc.debug (rc.getName (this), 'Send Error to client: ', data)
+      this.rejecter ((<any>data).error)
+    }
+    else {
+      rc.debug (rc.getName (this), 'Sending Response to client: ', data)
+      this.resolver (data)
+    }
   }  
 }
