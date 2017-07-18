@@ -119,12 +119,12 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       (typeof(value) === 'number' && fInfo.type !== 'number') || 
       (Array.isArray(value) && fInfo.type !== 'array')   )
       
-      throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
+      throwError (reg.mastername , 'has invalid value for colum ' , key , rec , idStr , fInfo.type)
       
       // Object check
-      if(value && typeof(value) === 'object' && fInfo.type !== 'object') {
+      if(!Array.isArray(value) && value && typeof(value) === 'object' && fInfo.type !== 'object') {
 
-        throwError (reg.mastername , 'has invalid value for colum ',key , rec , idStr)
+        throwError (reg.mastername , 'has invalid value for colum ' , key , rec , idStr , fInfo.type)
 
       }
 
@@ -133,7 +133,7 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
       // check PK and Mandatory Fields
       if(fInfo.constraint !== Master.FieldType.OPTIONAL) {
         //[null , undefined , '' , 0] check only allowed for OPTIONAL Fields
-        if(!value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec , idStr)
+        if(fInfo.type !== 'boolean' && !value) throwError(reg.mastername , 'column ',key , 'can not be null/empty', rec , idStr)
 
         if(fInfo.type === 'array' && lo.isEmpty(value)) {
 

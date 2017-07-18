@@ -78,7 +78,7 @@ export namespace Master{
     function versionFieldCheck(rec : any) {
       const mastername : string = prototype.constructor.name
       const val : any = rec[propKey]
-      assert( semver.valid(val)!=null , masterDesc(mastername,propKey,val) , 'is not a version field' )
+      assert( !val || semver.valid(val)!=null , masterDesc(mastername,propKey,val) , 'is not a version field' )
     }
 
     MasterRegistryMgr.fieldValidationRule(prototype , propKey , versionFieldCheck)

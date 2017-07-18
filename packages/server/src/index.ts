@@ -30,6 +30,7 @@ export *                      from './cache/redis-wrapper'
 export *                      from './logger/server-ext-logger'
 export *                      from './master/ma-manager'
 export *                      from './master/ma-base'
+export *                      from './master/ma-model-config'
 
 /* TODO:
 
