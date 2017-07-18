@@ -121,6 +121,7 @@ export abstract class Repl {
 
 class ReplProvider {
 
+  // NOTE: Only a single API at any time. As only one resolver/rejecter is stored.
   private configSent = false
   private resolver    : any
   private rejecter    : any
@@ -178,5 +179,7 @@ class ReplProvider {
       rc.debug (rc.getName (this), 'Sending Response to client: ', data)
       this.resolver (data)
     }
+    this.rejecter = null
+    this.resolver = null
   }  
 }
