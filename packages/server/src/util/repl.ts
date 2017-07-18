@@ -160,7 +160,7 @@ class ReplProvider {
           } as WireObject
 
     let promise = this.start (rc)
-    await this.router.routeRequest(rc, this.ci, wo)
+    await this.router.routeEvent(rc, this.ci, wo)
     const res = await promise
     return res
   }
