@@ -25,6 +25,8 @@ export const Segment = {
   version: 'version'
 }
 
+export const MASTER_UPDATE_EVENT = 'mubble-master-update'
+
 // ----------- shared between request and response data structures -----------
 
 

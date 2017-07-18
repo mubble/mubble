@@ -6,6 +6,8 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
+import * as lo                from 'lodash'
+import Dexie                  from 'dexie'
 
 import {  RunContextBrowser } from '../rc-browser'
 
@@ -25,9 +27,8 @@ import {  ConnectionInfo,
           delayedPromise,
           NetworkType       } from '@mubble/core'
 
-import {  WsBrowser }         from './ws-browser'      
-import * as lo                from 'lodash'
-import Dexie                  from 'dexie'
+import {  WsBrowser }         from './ws-browser'
+import {  EventSystem }       from '../util'
 
 const TIMEOUT_MS          = 55000,
       SEND_RETRY_MS       = 1000,
@@ -204,8 +205,11 @@ export abstract class XmnRouterBrowser {
       switch (wo.type) {
 
         case WIRE_TYPE.REQUEST:
-        case WIRE_TYPE.EVENT:
           this.rc.isError() && this.rc.error(this.rc.getName(this), 'Not implemented', wo)
+          break
+
+        case WIRE_TYPE.EVENT:
+          EventSystem.broadcast(rc, wo.name, wo.data)
           break
 
         case WIRE_TYPE.EVENT_RESP:
