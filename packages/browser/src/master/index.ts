@@ -9,4 +9,5 @@
 
 export * from './master-manager'
 export * from './master-db'
+export * from './sync-hash-table'
 

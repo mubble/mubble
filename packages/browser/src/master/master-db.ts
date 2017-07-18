@@ -8,42 +8,41 @@ import {  SyncHashModel,
           SyncResponse
         }                     from '@mubble/core'
 
-export class SyncHashTable {
+import { SyncHashTable }      from './sync-hash-table'
 
-  model : string
-  hash  : SyncHashModel
+export abstract class MasterDb extends Dexie {
 
-  constructor(model: string, hash ?: SyncHashModel) {
-    this.model = model
-    this.hash  = hash || null
-  }
+  tableMap: { [modelName: string] : Dexie.Table<any, any> } = {}
 
-  /**
-  * Static functions
-  */
-  static async getAllHashes(rc: RunContextBrowser, db: MasterDb): Promise<SyncHashTable[]> {
-    const ar = await db.hashes.toArray()
-    rc.isDebug() && rc.debug(rc.getName(this), 'Retrieved hashes from db, count:', ar.length)
-    return ar
-  }
-
-  async save(db: MasterDb) {
-    await db.transaction('rw', db.hashes, async() => {
-      await db.hashes.put(this)
-    })
-  }
-}
-
-export class MasterDb extends Dexie {
-
-  hashes: Dexie.Table<SyncHashTable, string>
+  syncHash: Dexie.Table<SyncHashTable, string>
 
   constructor () {
     super('MasterDb')
-    this.version(1).stores({
-      hashes: 'model'
-    })
-    this.hashes.mapToClass(SyncHashTable)
+  }
+
+  getSyncHashIndex() {
+    return 'model'
+  }
+
+  async clear(rc: RunContextBrowser, modelName: string) {
+
+    // await this.transaction('rw', db.synchash, async() => {
+    //   await this.synchash.clear()
+    // })
+
+  }
+
+  async bulkPut(rc: RunContextBrowser, modelName: string, arMod: object[]) {
+
+
+
+  }
+
+  async bulkDelete(rc: RunContextBrowser, modelName: string, arDel: object[]) {
+
+    
+
   }
 }
+
 

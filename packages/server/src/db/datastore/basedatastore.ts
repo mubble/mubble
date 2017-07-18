@@ -466,15 +466,16 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  async setUnique(rc : RunContextServer, transaction : DSTransaction, ignoreDupRec ?: boolean) : Promise<boolean> {
+  async setUnique(rc : RunContextServer, transaction ?: DSTransaction, ignoreDupRec ?: boolean) : Promise<boolean> {
     const uniqueConstraints : any    = this.getUniqueConstraints(rc),
           childEntities     : any    = this.getChildEntities(rc),
           kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
 
-    for( const constraint of uniqueConstraints) {
+    for(const constraint of uniqueConstraints) {
       let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], kindName + '_unique')
       try {
-        transaction.save(rc, uniqueEntityKey, '')
+        await BaseDatastore._datastore.insert({key: uniqueEntityKey, data: ''})
+        // transaction.save(rc, uniqueEntityKey, '')
       }
       catch (err) {
         if(!ignoreDupRec) {
@@ -482,7 +483,8 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
           if (err.toString().split(':')[1] !== ' entity already exists') {
             throw(new Error(ERROR_CODES.GCP_ERROR))
           } else {
-            throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
+             rc.isError() && rc.error(rc.getName(this), ERROR_CODES.UNIQUE_KEY_EXISTS)
+             return false
           }
         } else {
           return false
