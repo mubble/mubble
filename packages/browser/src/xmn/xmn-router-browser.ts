@@ -347,6 +347,26 @@ export abstract class XmnRouterBrowser {
 
 class EventTable {
 
+  ts    : number
+  name  : string
+  data  : string
+
+  constructor(event ?: WireEvent) {
+    if (!event) return
+    this.ts = event.ts
+    this.name = event.name
+    this.data = JSON.stringify(event.data)
+  }
+
+  async save(db: XmnDb) {
+    await db.transaction('rw', db.events, async() => {
+      await db.events.put(this)
+    })
+  }
+
+  /**
+   * Static functions for io
+   */
   static async getOldEvents(rc: RunContextBrowser, db: XmnDb): Promise<EventTable[]> {
     const ar = await db.events.orderBy('ts').limit(5).toArray(),
           arEt = ar.map(item => {
@@ -367,29 +387,11 @@ class EventTable {
     })
     rc.isDebug() && rc.debug(rc.getName(this), 'Deleted events from db with ts belowOrEqual:', ts)
   }
-
-  ts    : number
-  name  : string
-  data  : string
-
-  constructor(event ?: WireEvent) {
-    if (!event) return
-    this.ts = event.ts
-    this.name = event.name
-    this.data = JSON.stringify(event.data)
-  }
-
-  async save(db: XmnDb) {
-    await db.transaction('rw', db.events, async() => {
-      await db.events.put(this)
-    })
-  }
-
 }
-
+// http://dexie.org/docs/Typescript.html
 class XmnDb extends Dexie {
 
-  events: Dexie.Table<EventTable, number>
+  events: Dexie.Table<EventTable, number> // number: type of primary key
   constructor (clientId: number) {
     super('xmn-' + clientId)
     this.version(1).stores({
