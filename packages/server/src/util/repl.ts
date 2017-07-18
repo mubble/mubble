@@ -179,7 +179,5 @@ class ReplProvider {
       rc.debug (rc.getName (this), 'Sending Response to client: ', data)
       this.resolver (data)
     }
-    this.rejecter = null
-    this.resolver = null
   }  
 }
