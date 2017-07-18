@@ -79,7 +79,6 @@ export class MasterModelConfig extends ModelConfig {
     this.cachedFields =   {fields : [] , cache : false}
     this.destSynFields =  {fields : [] , cache : false}
     // Todo
-    this.segment = {}
     
     this.srcValidationrules = [fieldTypeCheck]
   }

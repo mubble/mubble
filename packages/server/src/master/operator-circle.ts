@@ -10,7 +10,7 @@
 import {RunContextServer}     from '../rc-server'
 import {Master , MasterBase}  from './ma-base'
 
-@Master.modelType(Master.getDefaultConfig({}))
+@Master.modelType(Master.getDefaultConfig())
 export class Operator extends MasterBase {
   
   @Master.primaryKey()
@@ -22,7 +22,7 @@ export class Operator extends MasterBase {
   }
 }
 
-@Master.modelType(Master.getDefaultConfig({}))
+@Master.modelType(Master.getDefaultConfig())
 export class Circle extends MasterBase {
   
   @Master.primaryKey()
@@ -34,7 +34,7 @@ export class Circle extends MasterBase {
   }
 }
 
-@Master.modelType(Master.getDefaultConfig ({} , 
+@Master.modelType(Master.getDefaultConfig (undefined , 
   {
     operator         : {name : 'operator'} ,
     circle           : {name : 'circle'}   
@@ -57,7 +57,7 @@ export class OperatorCircle extends MasterBase {
   
 }
 
-@Master.modelType(Master.getDefaultConfig ({} , 
+@Master.modelType(Master.getDefaultConfig (undefined, 
   
   {
     operator         : {name : 'operator'} ,
