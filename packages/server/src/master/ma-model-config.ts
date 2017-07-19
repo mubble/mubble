@@ -159,9 +159,9 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
     })
 
     // check all the mandatory fields are present
-    ownFields.forEach((ownField : string) =>{
+    ownFields.forEach((field : string) =>{
 
-      assert(lo.hasIn(rec , ownField) , 'field',ownField , 'is missing in record ',idStr)
+      assert(optionalFields.indexOf(field)!=-1 ||  lo.hasIn(rec , field) , 'field',field , 'is missing in record ',idStr)
       
     })
 

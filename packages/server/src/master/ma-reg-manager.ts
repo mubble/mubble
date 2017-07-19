@@ -234,10 +234,7 @@ export class MasterRegistryMgr {
           masTsField : string  = config.getMasterTsField() ,
           fldMap : {[field : string] : FieldInfo}    = registry.fieldsMap ,
           ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIds , targetMap , now) ,
-          instanceObj : MasterBase = registry.masterInstance , 
-          allFields : string [] = registry.allFields ,
-          ownFields : string [] = registry.ownFields 
-
+          instanceObj : MasterBase = registry.masterInstance
 
     lo.forEach(sourceIds , (srcRec : any , pk: string) => {
       
@@ -254,7 +251,7 @@ export class MasterRegistryMgr {
         srcRec[MasterBaseFields.CreateTs] = srcRec[masTsField] = now
         ssd.inserts[pk] = srcRec
 
-      }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , allFields , ownFields , masTsField , ref , srcRec ) ){
+      }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , registry , masTsField , ref , srcRec ) ){
         
         instanceObj.verifyRecord(rc , srcRec , ref)
 
@@ -287,13 +284,13 @@ export class MasterRegistryMgr {
     return ssd
   }
 
-  private static isModified(rc : RunContextServer , allFields : string[] , ownFields : string[] , masterTs : string , ref : any , src : any ) : boolean {
+  private static isModified(rc : RunContextServer , registry : MasterRegistry , masterTs : string , ref : any , src : any ) : boolean {
     
     //debug('isModified', 'all:',allFields , 'own:',ownFields , 'masterTs:',masterTs)
-    let res : boolean = ownFields.some((key : string) : boolean => {
+    let res : boolean = registry.ownFields.some((key : string) : boolean => {
       if(key === masterTs) return false 
       const val = src[key] , refVal = ref[key] 
-      if(lo.isUndefined(val)) return true
+      if(registry.optionalFields.indexOf(key ) == -1 && lo.isUndefined(val)) return true
 
       return !lo.isEqual(val , refVal)
 
@@ -302,7 +299,7 @@ export class MasterRegistryMgr {
     if(res) return true
 
     res = lo.some(ref , (refval : any , refKey : string)=>{
-      return allFields.indexOf(refKey) === -1
+      return registry.allFields.indexOf(refKey) === -1
     })
     //if(res) debug('isModified results 2',src , ref)
     
