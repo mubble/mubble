@@ -13,8 +13,14 @@ import {
   InitConfig,
   RunState,
   RCLoggerBase,
-  Timer
+  Timer,
+  Mubble
 }  from '@mubble/core'
+
+import {
+  GlobalKeyValue,
+  UserKeyValue
+} from './storage'
 
 const CONSOLE_FN_MAP : ((message?: any, ...optionalParams: any[]) => void)[] = []
 
@@ -59,18 +65,26 @@ export class RCBrowserLogger extends RCLoggerBase {
 
 export abstract class RunContextBrowser extends RunContextBase {
 
-  public timer: Timer
+  public timer  : Timer
+  public lang   : string
+  globalKeyVal  : GlobalKeyValue
+  userKeyVal    : UserKeyValue
 
   protected constructor(public initConfig   : InitConfigBrowser,
                         public runState     : RunStateBrowser,
                         contextId          ?: string, 
                         contextName        ?: string) {
     super(initConfig, runState, contextId, contextName)
+  }
+
+  // Called only once in the lifetime of app during app load
+  init() {
+    this.timer  = new Timer()
+    this.lang   = Mubble.Lang.English
     this.logger = new RCBrowserLogger(this)
   }
 
   clone(newRc : RunContextBrowser) {
-    // nothing to do, I have no member variables
     super.clone(newRc)
     newRc.timer = this.timer
   }

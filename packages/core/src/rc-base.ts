@@ -57,6 +57,8 @@ export abstract class RunContextBase {
               public contextName ?: string) {
   }
 
+  // Called only once in the lifetime of execution during initialization
+  abstract init(): void
   abstract copyConstruct(contextId ?: string, contextName ?: string): any
 
   clone(newRcb: RunContextBase) {
@@ -166,7 +168,7 @@ export abstract class RCLoggerBase {
   
   protected constructor(public rc : RunContextBase) {
 
-  } 
+  }
 
   public  finish(ic : ConnectionInfo, ire: InvocationData) : void {
     // default Implementation . 

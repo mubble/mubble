@@ -28,9 +28,7 @@ export *                      from './gcp/bigquery/bigquery-base'
 export *                      from './gcp/pubsub/pub-sub-base'
 export *                      from './cache/redis-wrapper'
 export *                      from './logger/server-ext-logger'
-export *                      from './master/ma-manager'
-export *                      from './master/ma-base'
-export *                      from './master/ma-model-config'
+export *                      from './master'
 
 /* TODO:
 

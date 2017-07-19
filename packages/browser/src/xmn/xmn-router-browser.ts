@@ -72,32 +72,18 @@ export abstract class XmnRouterBrowser {
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
-  async init(clientIdentity: ClientIdentity, netType: string, location: string) {
-    this.ci.publicRequest   = !clientIdentity
-    this.ci.clientIdentity  = clientIdentity
-    this.ci.networkType     = netType
-    this.ci.location        = JSON.stringify(location)
-    if (clientIdentity && clientIdentity.clientId) {
-      await this.initEvents()
-      this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
-    }
-  }
-
-  async setConnectionAttr(netType: string, location: string) {
-
-    console.log(`Came to setConnectionAttr ${netType} ${location}`)
-
-    this.ci.networkType            = netType
-    if (location) this.ci.location = JSON.stringify(location)
-
-    const clientIdentity = this.ci.clientIdentity
-    if (clientIdentity && clientIdentity.clientId) {
+  async setNetwork(netType: string) {
+    if (netType) {
+      this.prepareConnection(this.rc)
       await this.initEvents()
       this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
     }
   }
 
   abstract upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: ClientIdentity): void
+  abstract getNetworkType(rc: RunContextBrowser): string
+  abstract getLocation(rc: RunContextBrowser): string
+  abstract getClientIdentity(rc: RunContextBrowser): ClientIdentity
 
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
@@ -106,7 +92,7 @@ export abstract class XmnRouterBrowser {
       const wr = new WireRequest(apiName, data, 0, resolve, reject)
       this.ongoingRequests.push(wr)
 
-      if (!this.ci.provider) this.ci.provider = new WsBrowser(rc, this.ci, this)
+      if (!this.ci.provider) this.prepareConnection(rc)
 
       if (!this.ci.provider.send(rc, wr)) {
         wr._isSent = true
@@ -133,9 +119,20 @@ export abstract class XmnRouterBrowser {
     await this.trySendingEvents(rc)
   }
 
+  private prepareConnection(rc: RunContextBrowser) {
+
+    this.ci.networkType     = this.getNetworkType(rc)
+    this.ci.location        = this.getLocation(rc)
+    this.ci.clientIdentity  = this.getClientIdentity(rc)
+    this.ci.publicRequest   = !this.ci.clientIdentity
+    this.ci.provider        = new WsBrowser(rc, this.ci, this)
+  }
+
   private async initEvents() {
 
-    if (!this.db) {
+    const clientIdentity = this.ci.clientIdentity
+
+    if (!this.db && clientIdentity && clientIdentity.clientId) {
       this.db = new XmnDb(this.ci.clientIdentity.clientId)
       await EventTable.removeOldByTs(this.rc, this.db, Date.now() - 7 * 24 * 3600000 /* 7 days */)
     }
@@ -160,7 +157,7 @@ export abstract class XmnRouterBrowser {
 
     for (let index = 0, count = 0; index < arEvent.length && count < MAX_EVENTS_TO_SEND; index++, count++) {
 
-      if (!this.ci.provider) this.ci.provider = new WsBrowser(rc, this.ci, this)
+      if (!this.ci.provider) this.prepareConnection(rc)
       
       const eventTable = arEvent[index],
             wireEvent  = new WireEvent(eventTable.name, JSON.parse(eventTable.data), eventTable.ts)
@@ -261,7 +258,7 @@ export abstract class XmnRouterBrowser {
   private cbTimerReqResend(): number {
 
     const wr = this.ongoingRequests.find(wr => !wr._isSent)
-    if (!wr) return 0
+    if (!wr || !this.ci.provider) return 0
 
     if (!this.ci.provider.send(this.rc, wr)) {
 

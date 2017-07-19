@@ -56,6 +56,17 @@ export abstract class XmnRouterServer {
   }
 
   abstract verifyConnection(rc: RunContextServer, ci: ConnectionInfo): boolean 
+
+  public sendEvent(rc: RunContextServer, ci: ConnectionInfo, eventName: string, data: object) {
+
+    if (!ci.provider) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'Could not send event as connection closed', eventName)
+      return
+    }
+
+    const we = new WireEvent(eventName, data)
+    ci.provider.send(rc, data)
+  }
   
   getIp(req: any) {
 

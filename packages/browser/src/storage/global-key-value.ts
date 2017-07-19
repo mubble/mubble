@@ -7,6 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
+import { RunContextBrowser } from '..'
 
 const BOOL_TRUE   = 'true',
       BOOL_FALSE  = 'false',
@@ -14,6 +15,10 @@ const BOOL_TRUE   = 'true',
       META_KEY    = 'autoStore'
 
 export abstract class GlobalKeyValue {
+
+  @GlobalKeyValue.autoStore() appVersion    : string
+  @GlobalKeyValue.autoStore() jsVersion     : string
+  @GlobalKeyValue.autoStore() syncSegments  : object
 
   public static autoStore(): any {
 
@@ -57,17 +62,21 @@ export abstract class GlobalKeyValue {
               console.log('autoStore:setter', 'unknown field type', fieldType)
               throw(new Error('autoStore:setter - unknown field type' + fieldType))
           }
-          localStorage.setItem(PREFIX + '.' + propertyKey, convertedValue)
+          const rc  = window['rc'],
+                key = PREFIX + '.' + propertyKey
+
+          localStorage.setItem(key, convertedValue)
+          if (rc && rc.isDebug) {
+            rc.isDebug() && rc.debug('GlobalKeyValue', 'Saved key=', key, 'value=', convertedValue)
+          }
         }
       }
     }
   }
-
-  @GlobalKeyValue.autoStore() appVersion : string
-  @GlobalKeyValue.autoStore() jsVersion  : string
+  
   private autoFields: {name: string, type: object}[] = []
 
-  constructor() {
+  constructor(private rc: RunContextBrowser) {
 
     this.autoFields = []
     this.extractFields(this, this.autoFields)

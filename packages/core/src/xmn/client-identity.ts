@@ -7,6 +7,8 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import { SyncRequest } from '@mubble/core' 
+
 /**
  * It is allowed to add members to this interface by extending it
  * Any new member must be either string or a number
@@ -25,6 +27,6 @@ export interface ClientIdentity {
   userName      : string
 
   // master data hash
-  syncHash      : object
+  syncReq       : SyncRequest
 }
 
