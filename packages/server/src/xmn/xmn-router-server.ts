@@ -116,7 +116,7 @@ export abstract class XmnRouterServer {
       const reqStruct = this.apiMap[wo.name]
       rc.isDebug() && rc.debug(rc.getName(this), wo, reqStruct)
       // Todo : create a separate api to handle this
-      if(wo.name === 'httpecho') return // Temp fix
+      // if(wo.name === 'httpecho') return // Temp fix
       
       if (!reqStruct) throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
 
