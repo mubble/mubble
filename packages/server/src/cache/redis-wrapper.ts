@@ -7,12 +7,18 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as lo                          from 'lodash'
-import {RedisClient , createClient , 
-        ResCallbackT , Multi}           from 'redis'
-import {log , concat}                   from '../master/ma-util' 
+import {
+        RedisClient,
+        createClient, 
+        ResCallbackT,
+        Multi
+       }                                from 'redis'
+import {
+        log,
+        concat
+       }                                from '../master/ma-util' 
 import {RunContextServer}               from '../rc-server'
-
+import * as lo                          from 'lodash'
 
 
 function redisLog(rc : RunContextServer , ...args : any[] ) : void {
@@ -22,34 +28,34 @@ function redisLog(rc : RunContextServer , ...args : any[] ) : void {
     log(LOG_ID , ...args)
   }
 }
+
 const LOG_ID = 'RedisWrapper'
 
-export type redis_command = 'del' | 'expire' | 'get' | 'incr' | 'mget' | 'mset' | 'psetex' | 'set' | 'setex' | 'ttl' | 'quit' | 'info' |
-                            'hdel' | 'hget' | 'hgetall' | 'hmget' | 'hmset' | 'hset' | 'hincrby' |
-                            'lpush' | 'rpush' | 'lrange' |
-                            'zadd' | 'zrange' | 'zrevrange' | 'zrangebyscore' | 'zrem' |
-                            'publish' | 'unsubscribe' | 
-                            'watch' | 'unwatch' |
-                            'scan' | 'sscan' | 'hscan' | 'zscan' |
-                            'exists'
+export type redis_command = 'del'     | 'expire'      | 'get'              | 'incr'  | 'mget'    |
+                            'hdel'    | 'hget'        | 'hgetall'          | 'hmget' | 'hincrby' |
+                            'lpush'   | 'rpush'       | 'lrange'           | 'hmset' | 'psetex'  |
+                            'zadd'    | 'zrange'      | 'zrevrange'        | 'zrem'  | 'set'     | 
+                            'publish' | 'unsubscribe' | 'zrevrangebyscore' | 'hset'  | 'setex'   |
+                            'watch'   | 'unwatch'     | 'zrangebyscore'    | 'mset'  | 'ttl'     | 
+                            'scan'    | 'sscan'       | 'hscan'            | 'zscan' | 'quit'    |
+                            'exists'  |  'info'       
 
 export const redis_commands : string[] =  
-['del' , 'expire' , 'get' , 
- 'hdel', 'hget',  'hgetall' , 'hmget', 'hmset' , 'hset' , 'hincrby' , 'hscan' ,
- 'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem',
- 'exists'
+['del'   , 'expire'  , 'get'   , 'hdel' , 'hget'   , 'hgetall'  , 'hmget'         , 'hmset',
+ 'hset'  , 'hincrby' , 'hscan' , 'zadd' , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem' ,
+ 'exists', 'zrevrangebyscore'
  ]                            
                              
-export type redis_async_func        = (...args : string[]) => void
-export type redis_async_func_str    = (...args : string[]) => string[]
-export type redis_async_func_arr    = (key: string , ...args : string[]) => string []
-export type redis_async_func_map    = (key : string) => {[key:string] : string}  //Map<string , string>
+export type redis_async_func     = (...args : string[]) => void
+export type redis_async_func_str = (...args : string[]) => string[]
+export type redis_async_func_arr = (key: string , ...args : string[]) => string []
+export type redis_async_func_map = (key : string) => {[key:string] : string}  //Map<string , string>
 
 export interface RedisCmds {
   
   del       : (...args : string[]) => void
   expire    : redis_async_func // check
-  get       : (key: string ) => string
+  get       : (key : string ) => string
   incr      : redis_async_func // check
   mget      : (...args : string[]) => string []
   mset      : redis_async_func
@@ -57,18 +63,18 @@ export interface RedisCmds {
   hdel      : (args : string[]) => void
   hget      : (key : string , field : string) => string 
   hgetall   : (key : string) => {[key:string] : string}
-  hscan     : (key: string , ...args : string[]) => [string, string []] // TODO: Check the return value 
-  hmget     : (key: string , ...args : string[]) => string []
-  hmset     : (key: string , ...args : string[] ) => void
-  hset      : (key: string , field : string , value : string ) => void
-  hincrby   : (key : string , field : string, incr: number) => number 
+  hscan     : (key : string , ...args : string[]) => [string, string []] // TODO: Check the return value 
+  hmget     : (key : string , ...args : string[]) => string []
+  hmset     : (key : string , ...args : string[] ) => void
+  hset      : (key : string , field : string , value : string) => void
+  hincrby   : (key : string , field : string, incr : number) => number 
   
   // z sorted set apis 
-  zadd            : (key: string , option : string , ...scoreValuePairs : any[]  ) => number
-  zrange          : (key: string , start : number , end : number , withscore ?: string ) => string[]
-  zrem            : (key: string , ...keys : string[]  ) => void // check
+  zadd      : (key : string , option : string , ...scoreValuePairs : any[]) => number
+  zrange    : (key : string , start : number , end : number , withscore ?: string) => string[]
+  zrem      : (key : string , ...keys : string[]) => void // check
 
-  exists          : (key: string , ...keys : string[]  ) => boolean
+  exists    : (key : string , ...keys : string[]) => boolean
   
 }
 
@@ -122,7 +128,7 @@ export class RedisWrapper {
     
   }
 
-  private async _connect (url : string , options ?: {max_attempts ?: number , connect_timeout ?: number}) {
+  private async _connect(url : string , options ?: {max_attempts ?: number , connect_timeout ?: number}) {
     
     await new Promise ((resolve : any , reject : any) => {
       
@@ -169,7 +175,6 @@ export class RedisWrapper {
 
     })
   }
-  
 
   async _info() {
     const _             = this,
@@ -209,39 +214,43 @@ export class RedisWrapper {
     return this.info['role'] === 'slave'
   }
 
-  async rwScan (pattern ?: string   , count ?: number) : Promise<Set<string>> {
-    
+  async rwScan(pattern ?: string, count ?: number) : Promise<Set<string>> { 
     return this._scan('scan' , '' , 0 , pattern , count)
   }
 
-  async rwSscan (key : string , pattern ?: string , count ?: number) : Promise<Set<string>> {
-    
+  async rwSscan(key : string, pattern ?: string, count ?: number) : Promise<Set<string>> {
     return this._scan('sscan' , key , 0 , pattern , count)
   }
 
-  async rwHscan(key : string , pattern ?: string , count ?: number) : Promise<Map<string , object >> {
+  async rwHscan(key : string, pattern ?: string, count ?: number) : Promise<Map<string , object >> {
     return this._hscan('hscan' , key , 0 , pattern , count)
   }
   
-  async rwZscan(key : string , pattern ?: string , count ?: number) : Promise<Map<string , object>> {
+  async rwZscan(key : string, pattern ?: string, count ?: number) : Promise<Map<string , object>> {
     return this._hscan('zscan' , key , 0 , pattern , count)
   }
 
-  async rwZrevrange (key: string , start : string|number  , end : string|number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
+  async rwZrevrange(key: string, start : string|number, end : string|number, withscore : boolean) : Promise<Array<any>> {
+    let redis_cmd = [key, start, end] as Array<any>
+    if (withscore) redis_cmd.push ('WITHSCORES')
+    return this._execute('zrevrange', redis_cmd) 
+  }
+
+  async rwZrangebyscore(key: string, start : string|number, end : string|number, withscore : boolean, offset ?: number, limit ?: number ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
     if (withscore) redis_cmd.push ('WITHSCORES')
     if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
-    return this._execute ('zrevrange', redis_cmd) 
+    return this._execute('zrangebyscore', redis_cmd) 
   }
 
-  async rwZrangebyscore (key: string , start : string|number , end : string|number , withscore : boolean , offset ?: number, limit ?: number ) : Promise<Array<any>> {
+  async rwZrevrangebyscore(key: string, start : string|number, end : string|number, withscore : boolean, offset ?: number, limit ?: number ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
     if (withscore) redis_cmd.push ('WITHSCORES')
     if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
-    return this._execute ('zrangebyscore', redis_cmd) 
+    return this._execute('zrevrangebyscore', redis_cmd) 
   }
 
-  async _scan(cmd : redis_command , key : string , cursor : number ,  pattern ?: string , count ?: number , out ?: Set<string>) : Promise<Set<string> > {
+  async _scan(cmd : redis_command, key : string, cursor : number, pattern ?: string, count ?: number, out ?: Set<string>) : Promise<Set<string> > {
     const args : any[] = cmd === 'scan' ? [cursor] : [key , cursor]
     if(pattern) args.push('MATCH' , pattern)
     if(count) args.push('COUNT' , count)
@@ -255,7 +264,7 @@ export class RedisWrapper {
     return this._scan(cmd , key , cursor , pattern , count , out)
   }
 
-  async _hscan(cmd : redis_command , key : string , cursor : number ,  pattern ?: string , count ?: number , out ?: Map<string , object > ) : Promise<Map<string , object> > {
+  async _hscan(cmd : redis_command, key : string, cursor : number, pattern ?: string, count ?: number, out ?: Map<string, object >) : Promise<Map<string , object> > {
     const args : any[] = [key , cursor]
     if(pattern) args.push('MATCH' , pattern)
     if(count) args.push('COUNT' , count)
@@ -269,7 +278,7 @@ export class RedisWrapper {
     }
     if(cursor === 0) return out
 
-    return this._hscan(cmd , key , cursor , pattern , count , out)
+    return this._hscan(cmd, key, cursor, pattern, count, out)
   }
 
   private async execMulti(batchOrMulti : Multi) : Promise<any[]> {
