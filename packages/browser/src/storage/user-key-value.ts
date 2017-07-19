@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {  RunContextBrowser } from '../rc-browser'
+import { RunContextBrowser } from '../rc-browser'
 
 const LAST_USER = 'lastUser'
 const USERS     = 'users'
@@ -49,6 +49,8 @@ export class UserKeyValue {
   }
 
   getAllClientIds(): string[] { return Object.keys(this.users) }
+
+  getUserInfo(clientId: number): object { return this.users[clientId] }
 
   // Client Id
   get clientId() {return this._clientId}
