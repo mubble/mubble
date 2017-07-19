@@ -29,6 +29,15 @@ import {
 import {RunContextServer}     from '../rc-server'
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
+
+import {SyncHashModel , 
+        SyncHashModels ,
+        SyncRequest ,
+        SyncResponse ,
+        Segments , 
+        SegmentType ,
+        SyncModelResponse}     from '@mubble/core'                             
+
              
 
 const LOG_ID : string = 'MasterInMemCache'
@@ -201,7 +210,108 @@ export class MasterInMemCache {
     return result
   }
 
-  public syncCachedData(rc : RunContextServer , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncCachedData(rc : RunContextServer , syncInfo : SyncHashModel , purge : boolean ) : SyncModelResponse {
+    
+    debug(rc , 'syncCachedData', syncInfo , purge)
+    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
+    
+    // Get all the items >= syncInfo.ts
+    const updates : any [] = [] ,
+          deletes : any [] = [] 
+    
+    let   data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
+    
+    // Todo : Seg Impl
+
+    for(const rec of this.records) {
+      // should this be just < . let = comparison be there to be on safe side
+      if(rec[this.modTSField] <= syncInfo.ts) break
+      
+      if(rec[MasterBaseFields.Deleted] === true){
+        deletes.push(registry.getIdObject(rec))
+      }else{
+        const destRec : any = lo.pick(rec , registry.destSyncFields )
+        updates.push(destRec)
+      }
+    }
+    
+    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
+
+    const synHash : SyncHashModel = {
+      ts            : this.digestInfo.modTs ,
+      seg           : syncInfo.seg
+      
+      /*modelDigest   : this.digestInfo.modelDigest ,
+      dataDigest    : this.digestInfo.dataDigest,*/
+      
+    }
+    
+    data = registry.masterInstance.syncGetModifications( rc , data )
+    
+    const syncResp : SyncModelResponse = {
+      mod          : data.mod ,
+      del          : data.del ,
+      purge        : purge ,
+      hash         : synHash
+    }
+    
+    debug(rc , 'syncCachedData' , synHash , updates.length , deletes.length , updates , deletes  )
+
+    return syncResp
+  }
+  
+  public syncNonCachedData(rc : RunContextServer , masterData : GenValMap , syncInfo : SyncHashModel , purge : boolean  ) : SyncModelResponse {
+    
+    debug(rc , 'syncNonCachedData', syncInfo , purge)
+    
+    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
+    
+    // Get all the items >= syncInfo.ts
+    const updates : any [] = [] ,
+          deletes : any [] = [] 
+    
+    let data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
+    
+    lo.forEach(masterData , (pk : string , rec : any) => {
+      
+      // should this be just < . let = comparison be there to be on safe side
+      if(rec[this.modTSField] <= syncInfo.ts) return
+
+      if(rec[MasterBaseFields.Deleted] === true){
+        deletes.push(registry.getIdObject(rec))
+      }else{
+        const destRec  : any = lo.pick(rec , registry.destSyncFields )
+        updates.push(destRec)
+      }
+
+    })
+
+    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
+
+    const synHash : SyncHashModel = {
+      ts            : this.digestInfo.modTs ,
+      seg           : syncInfo.seg
+      /*modelDigest   : this.digestInfo.modelDigest ,
+      dataDigest    : this.digestInfo.dataDigest,*/
+      
+    }
+    
+    data = registry.masterInstance.syncGetModifications( rc , data )
+    
+    const syncResp : SyncModelResponse = {
+      mod          : data.mod ,
+      del          : data.del ,
+      purge        : purge ,
+      hash         : synHash
+    }
+    
+    debug(rc , 'syncNonCachedData' , synHash , updates.length , deletes.length , updates , deletes  )
+
+    return syncResp
+  }
+  
+
+  public syncCachedDataOld(rc : RunContextServer , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
     debug(rc , 'syncCachedData', syncHash , syncData , syncInfo , purge)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
@@ -236,7 +346,7 @@ export class MasterInMemCache {
     debug(rc , 'syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
-  public syncNonCachedData(rc : RunContextServer , masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncNonCachedDataOld(rc : RunContextServer , masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
     
     debug(rc , 'syncNonCachedData', syncHash , syncData , syncInfo , purge)
     

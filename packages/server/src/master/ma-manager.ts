@@ -29,7 +29,14 @@ import {MaMap, StringValMap ,
        MasterCache }          from './ma-types'
 import {MasterInMemCache , 
         DigestInfo , 
-        SyncInfo}             from './ma-mem-cache'                     
+        SyncInfo}             from './ma-mem-cache'
+
+import {SyncHashModel , 
+        SyncHashModels ,
+        SyncRequest ,
+        SyncResponse ,
+        Segments , 
+        SegmentType}          from '@mubble/core'                             
 
 const LOG_ID : string = 'MasterMgr'
 
@@ -252,12 +259,12 @@ export class MasterMgr {
     
     MaMgrLog(rc , "Subscribing sredis to master ",CONST.REDIS_CHANNEL)
     
-    await this.subRedis.subscribe([CONST.REDIS_CHANNEL] , (channel : string , msg : string)=>{
+    await this.subRedis.subscribe([CONST.REDIS_CHANNEL] , async (channel : string , msg : string)=>{
       MaMgrLog(rc , 'Sredis','on', channel, 'channel received message', msg)
       const masters : string[] = JSON.parse(msg) as string[]
       assert(Array.isArray(masters) , 'invalid masters array received ',msg)
 
-      this.refreshSelectModels(masters)
+      await this.refreshSelectModels(masters)
 
     })
   }
@@ -338,6 +345,7 @@ export class MasterMgr {
       assert(registry!=null , 'Unknow master ',oModel.master.toLowerCase() , 'for file upload')
       registry.isAllowedFileUpload()
       
+      //debug(rc , 'applyFileData', oModel.master.toLowerCase() , oModel.source)
       const master  : string              = oModel.master.toLowerCase() ,
             mDigest : string              = digestMap[master] ? digestMap[master].fileDigest  : '' ,
             json    : object              = JSON.parse(oModel.source),
@@ -375,7 +383,7 @@ export class MasterMgr {
 
       assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
       const buff : Buffer = await fs.readFileSync(jsonFile)
-      arModels.push({master : master , source : buff.toString()})
+      arModels.push({master : master , source : buff.toString('utf8')})
     }
 
     return this.applyFileData(rc , arModels)
@@ -411,7 +419,65 @@ export class MasterMgr {
 
   }
 
-  public async destinationSync (rc : RunContextServer , syncMap : MaMap<SyncInfo> ) {
+  public async destinationSync (rc : RunContextServer , syncReq : SyncRequest) : Promise<SyncResponse> {
+
+    const resp : SyncResponse = {}
+    
+    // check if there is any new data sync required
+    const dataSyncRequired : string [] = [] ,
+          purgeRequired    : string [] = []
+    
+    lo.forEach(syncReq.hash , (synInfo : SyncHashModel , mastername : string)=>{
+
+      const memcache : MasterInMemCache = this.masterCache[mastername]
+
+      assert(memcache!=null , 'Unknown master data sync request ',mastername)
+      
+      assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
+      
+      if(memcache.cache && !memcache.hasRecords() ){
+        // No Data in this master
+        assert(synInfo.ts ===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
+
+      }else if( /*synInfo.modelDigest !== memcache.digestInfo.modelDigest ||*/
+                synInfo.ts < memcache.getMinTS()) 
+      {
+        MaMgrLog(rc , 'master digest change purging all',mastername , memcache.digestInfo.modelDigest)
+        synInfo.ts = 0
+        dataSyncRequired.push(mastername)
+        purgeRequired.push(mastername)
+
+      }else if(synInfo.ts < memcache.latestRecTs()) {
+        // sync required
+        dataSyncRequired.push(mastername)
+      
+      }else {
+        // Both are in sync
+        assert(synInfo.ts === memcache.latestRecTs())
+      }
+
+    })
+
+    if(!dataSyncRequired.length) return resp
+
+    for(const mastername of dataSyncRequired) {
+      
+      const memcache : MasterInMemCache = this.masterCache[mastername]
+      
+      if(memcache.cache){
+        resp[mastername] = memcache.syncCachedData(rc , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+      }else{
+        
+        const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+        resp[mastername] = memcache.syncNonCachedData(rc , masterData , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+      }
+    }    
+
+    return resp
+  }
+
+  
+  public async destinationSyncOld (rc : RunContextServer , syncMap : MaMap<SyncInfo> ) {
     
     const response : {syncHash : GenValMap , syncData : GenValMap} = {syncHash : {} , syncData : {}}
     
@@ -455,11 +521,11 @@ export class MasterMgr {
       
       const memcache : MasterInMemCache = this.masterCache[mastername]
       if(memcache.cache){
-        memcache.syncCachedData(rc , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        memcache.syncCachedDataOld(rc , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }else{
         
         const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
-        memcache.syncNonCachedData(rc , masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        memcache.syncNonCachedDataOld(rc , masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }
     }
     
