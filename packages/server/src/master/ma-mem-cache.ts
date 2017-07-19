@@ -228,7 +228,7 @@ export class MasterInMemCache {
       if(rec[this.modTSField] <= syncInfo.ts) break
       
       if(rec[MasterBaseFields.Deleted] === true){
-        deletes.push(registry.getIdObject(rec))
+        deletes.push(lo.pick(rec , registry.pkFields ))
       }else{
         const destRec : any = lo.pick(rec , registry.destSyncFields )
         updates.push(destRec)
@@ -278,7 +278,7 @@ export class MasterInMemCache {
       if(rec[this.modTSField] <= syncInfo.ts) return
 
       if(rec[MasterBaseFields.Deleted] === true){
-        deletes.push(registry.getIdObject(rec))
+        deletes.push(lo.pick(rec , registry.pkFields ))
       }else{
         const destRec  : any = lo.pick(rec , registry.destSyncFields )
         updates.push(destRec)
