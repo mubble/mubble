@@ -10,7 +10,8 @@
 import * as lo            from 'lodash'
 
 import {RunContextServer} from '../../rc-server'
-import {ERROR_CODES}      from './error-codes'
+import {ERROR_CODES,DSError}
+                          from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {BaseDatastore}    from './basedatastore'
 
@@ -75,7 +76,8 @@ export class DSTransaction {
             id         : number | string, 
             ignoreRNF ?: boolean) : Promise<void> {
 
-    rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined') 
+    const kindName = (<any>model)._kindName || (model.constructor as any)._kindName
+    rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
 
     const key           = model.getDatastoreKey(rc, id),
           entityRec     = await this._transaction.get(key),
@@ -264,12 +266,17 @@ export class DSTransaction {
                         id         : number | string, 
                         updRec     : {[index : string] : any}, 
                         ignoreRNF ?: boolean) : Promise<void> {
-                         
+
     const key = model.getDatastoreKey(rc, id)
     if(updRec.modTs || updRec.createTs) throw(ERROR_CODES.UNSUPPORTED_UPDATE_FIELDS)
     const oldModTs = model.modTs
     await this.get(rc, model, id, ignoreRNF)
-    if (oldModTs && oldModTs != model.modTs) throw(ERROR_CODES.MOD_TS_MISMATCH)
+    if (oldModTs && oldModTs != model.modTs) {
+      const kindName = (<any>model)._kindName || (model.constructor as any)._kindName
+      const msg = 'Mod TS mismatch [' + kindName + '], ID = ' + id + ', Mod Times = ' + oldModTs + '/' + model.modTs
+      rc.isError () && rc.error (rc.getName (this), msg)
+      throw(new DSError (ERROR_CODES.MOD_TS_MISMATCH, msg))
+    }
     Object.assign(model, updRec)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }

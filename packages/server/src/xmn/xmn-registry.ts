@@ -9,24 +9,6 @@
 import {RunContextServer} from '../rc-server'
 import {XmnRouterServer}  from './xmn-router-server'
 
-export interface XmnInfoBase {
-  name      : string
-  type      : any                            // Defined by the Client
-}
-
-export function xmnApi<T extends XmnInfoBase>(xmnType: { new () : T } ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const xmnInfo = new xmnType ()
-    XmnRegistry.enrollApi(propertyKey, target, xmnInfo)
-  }
-}
-
-export function xmnEvent<T extends XmnInfoBase>(xmnType: { new () : T } ): (target: any, propertyKey: string, descriptor: PropertyDescriptor) => void {
-  return function (target: any, propertyKey: string, descriptor: PropertyDescriptor) {
-    const xmnInfo = new xmnType ()
-    XmnRegistry.enrollEvent(propertyKey, target, xmnInfo)
-  }
-}
 export interface EnrollmentInfo {
   name      : string
   isApi     : boolean

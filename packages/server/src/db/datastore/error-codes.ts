@@ -18,3 +18,10 @@ export const ERROR_CODES = {
   MOD_TS_MISMATCH           : 'MOD_TS_MISMATCH',
   UNDEFINED_QUERY_FIELD     : 'UNDEFINED_QUERY_FIELD'
 }
+
+export class DSError extends Error {
+    constructor(name: string, msg: string) {
+        super(msg)
+        super['name'] = name
+    }
+}

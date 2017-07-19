@@ -131,7 +131,8 @@ private getNamespace() : string {
       const key           = this.getDatastoreKey(rc, id),
             childEntities = this.getChildEntities(rc)
 
-      rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined') 
+      const kindName = (<any>this)._kindName || (this.constructor as any)._kindName
+      rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
       
       if (!childEntities || Object.keys(childEntities).length === 0 || noChildren) {   
         const entityRec = await BaseDatastore._datastore.get(key)
