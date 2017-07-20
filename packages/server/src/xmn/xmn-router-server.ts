@@ -65,7 +65,7 @@ export abstract class XmnRouterServer {
     }
 
     const we = new WireEvent(eventName, data)
-    ci.provider.send(rc, data)
+    ci.provider.send(rc, we)
     rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
   }
   

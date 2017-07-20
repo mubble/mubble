@@ -106,6 +106,8 @@ export abstract class XmnRouterBrowser {
   }
 
   async sendEvent(rc: RunContextBrowser, eventName: string, data: object) {
+    
+    if (!this.ci.provider) this.prepareConnection(rc)
 
     const clientIdentity = this.ci.clientIdentity
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
