@@ -48,7 +48,16 @@ export class UserKeyValue {
     }
   }
 
-  getAllClientIds(): string[] { return Object.keys(this.users) }
+  getAllClientIds(): number[] { return Object.keys(this.users).map(Number) }
+
+  getClientIdForUserLink(reqUserLinkId: string): number {
+
+    for (let clientId in this.users) {
+      const userLinkId: string = this.users[clientId]['userLinkId']
+      if (userLinkId === reqUserLinkId) return Number(clientId)
+    }
+    return null
+  }
 
   getUserInfo(clientId: number): object { return this.users[clientId] }
 
@@ -65,7 +74,7 @@ export class UserKeyValue {
   get userLinkId()  {return this._userLinkId}
   set userLinkId(userLinkId : string) {
     if (userLinkId === this._userLinkId) return
-    if (this._userLinkId) throw('Cannot set clientId when it is already set: ' + 
+    if (this._userLinkId) throw('Cannot set userLinkId when it is already set: ' + 
                         JSON.stringify({userLinkId, existing:this._userLinkId}))
     this._userLinkId = userLinkId                    
   }
