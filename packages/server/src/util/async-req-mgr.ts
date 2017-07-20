@@ -23,7 +23,7 @@ import {RunContextServer}                              from '../rc-server'
 import {executeHttpResultResponse}                     from './https-request'
 
 
-export type NcAsyncReq = {id : string , reqTs : number , rc : RunContextServer , func : any  , args : any[] , resolve : (val : any) => void , reject : (val : any) => void , running : boolean }
+export type NcAsyncReq = {id : string , reqTs : number , rc : RunContextServer , func : any  , args : any[] , resolve : (val : any) => void , reject : (val : any) => void }
 
 export class AsyncReqManager {
   
@@ -47,7 +47,7 @@ export class AsyncReqManager {
 
     if(AsyncReqManager.k > 100000) AsyncReqManager.k = 0
 
-    let req : NcAsyncReq = {id : id  , rc : rc , reqTs : now ,  args : funcArgs , running : false ,  func : asyncFunc.bind(thisObj) , resolve : null as any , reject : null as any }
+    let req : NcAsyncReq = {id : id  , rc : rc , reqTs : now ,  args : funcArgs , func : asyncFunc.bind(thisObj) , resolve : null as any , reject : null as any }
     
     const pr : Promise<T> = new Promise<T> ((resolve : (val : T) => void , reject : (val : T) => void ) => {
         req.resolve = resolve
@@ -71,12 +71,10 @@ export class AsyncReqManager {
   // classes can override this. ex : n per sec etc   
   public canStartRequest() : NcAsyncReq {
     
-    const pendingReq : NcAsyncReq [] = this.requests.filter((val)=>!val.running)
-    if(pendingReq.length && this.activeReqCount < this.maxParallelReqCount) {
+    if(this.requests.length && this.activeReqCount < this.maxParallelReqCount) {
       // we can start a new http request
-      // take the first non running  request
-      const startReq = pendingReq[0]
-      if(!startReq) throw Error('start Request not found in req que')
+      // take the first request
+      const startReq = this.requests.splice(0,1)[0]
       // we will not wait (await) for this async function
       return startReq
     }
@@ -95,24 +93,22 @@ export class AsyncReqManager {
     try{
       
       this.activeReqCount ++
-      req.running = true
       
       rc.isDebug() && rc.debug(rc.getName(this), 'starting the request ',req.id , this.activeReqCount)
       const res : any  = await req.func(...req.args)
       
       rc.isDebug() && rc.debug(rc.getName(this), 'request finished ',req.id , this.activeReqCount)
       
-      this.finish(req.id , startTime , res , undefined )
+      this.finish(req , startTime , res , undefined )
     }catch(err){
       
       rc.isError() && rc.error(rc.getName(this), 'request failed' , req.id , err , this.activeReqCount)
-      this.finish(req.id , startTime , undefined , err)
-      
+      this.finish(req , startTime , undefined , err)
     }
     
   }
   
-  private finish(id : string , startTime : number , resolvedValue : any , err : any ) {
+  private finish(req : NcAsyncReq  , startTime : number , resolvedValue : any , err : any ) {
     
     this.activeReqCount --
     
@@ -122,26 +118,14 @@ export class AsyncReqManager {
       resolvedValue.latency = latency
     }
 
-    // find the request with running true and given ts
-    const reqIndex : number = this.requests.findIndex((val)=>{
-      return val.id === id
-    })
-    
-    if(reqIndex === -1){
-      throw Error('Request id '+ id + 'not found in queue')
-    }
-    
-    const req = this.requests[reqIndex] ,
-          rc = req.rc
-    
-    // Remove this req from queue
-    this.requests.splice(reqIndex , 1)
+    const rc = req.rc
     
     rc.isDebug() && rc.debug(rc.getName(this), 'finish active request count ',this.activeReqCount)
     
     if(resolvedValue) req.resolve(resolvedValue)
     else req.reject(err)
-
+    
+    // start request from the que if any  
     this.startRequest(this.canStartRequest())
 
   }
