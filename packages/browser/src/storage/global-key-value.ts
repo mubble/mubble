@@ -67,7 +67,7 @@ export abstract class GlobalKeyValue {
 
           localStorage.setItem(key, convertedValue)
           if (rc && rc.isDebug) {
-            rc.isDebug() && rc.debug('GlobalKeyValue', 'Saved key=', key, 'value=', convertedValue)
+            rc.isDebug() && rc.debug('GlobalKeyValue', `Saved key ${key}=${convertedValue}`)
           }
         }
       }
@@ -128,7 +128,7 @@ export abstract class GlobalKeyValue {
     return this.extractFields(Object.getPrototypeOf(proto), fields)
   }
 
-  dump() {
+  $dump() {
 
     for (const autoField of this.autoFields) {
 

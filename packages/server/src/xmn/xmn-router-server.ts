@@ -66,6 +66,7 @@ export abstract class XmnRouterServer {
 
     const we = new WireEvent(eventName, data)
     ci.provider.send(rc, data)
+    rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
   }
   
   getIp(req: any) {

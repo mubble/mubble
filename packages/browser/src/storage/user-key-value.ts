@@ -83,4 +83,13 @@ export class UserKeyValue {
     this._userLinkId  = obj.userLinkId
     this.userName     = obj.userName
   }
+
+  $dump() {
+    const keys = Object.getOwnPropertyNames(this)
+
+    for (const key of keys) {
+      console.log(`${key}=${JSON.stringify(this[key])}`)
+    }
+  }
+  
 }

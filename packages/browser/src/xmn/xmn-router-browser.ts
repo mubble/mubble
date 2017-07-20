@@ -69,7 +69,7 @@ export abstract class XmnRouterBrowser {
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
     this.timerEventTimeout = rc.timer.register('router-event-timeout', this.cbTimerEventTimeout.bind(this))
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
+    // rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
   async setNetwork(netType: string) {
@@ -155,7 +155,7 @@ export abstract class XmnRouterBrowser {
     // has succeeded
     if (this.lastEventTs) return
 
-    for (let index = 0, count = 0; index < arEvent.length && count < MAX_EVENTS_TO_SEND; index++, count++) {
+    for (let index = 0; index < arEvent.length; index++) {
 
       if (!this.ci.provider) this.prepareConnection(rc)
       
@@ -249,6 +249,7 @@ export abstract class XmnRouterBrowser {
   private processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
     if (se.name === SYS_EVENT.UPGRADE_CLIENT_IDENTITY) {
       this.upgradeClientIdentity(rc, se.data as ClientIdentity)
+      this.prepareConnection(rc)
       return true
     } else {
       return false
@@ -369,7 +370,7 @@ class EventTable {
    * Static functions for io
    */
   static async getOldEvents(rc: RunContextBrowser, db: XmnDb): Promise<EventTable[]> {
-    const ar = await db.events.orderBy('ts').limit(5).toArray(),
+    const ar = await db.events.orderBy('ts').limit(MAX_EVENTS_TO_SEND).toArray(),
           arEt = ar.map(item => {
             const et = new EventTable()
             et.ts   = item.ts

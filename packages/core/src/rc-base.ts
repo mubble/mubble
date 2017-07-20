@@ -143,7 +143,7 @@ export abstract class RunContextBase {
 
   assert(moduleName: string, condition: any, ...args: any[]) {
     if (!condition) {
-      args.unshift('Assertion failed')
+      args.unshift('Assertion failed!')
       throw(new Error(this.logger.log(moduleName, LOG_LEVEL.ERROR, args)))
     }
   }
@@ -151,7 +151,6 @@ export abstract class RunContextBase {
   hasLogged(): boolean {
     return this.logger.lastLogTS !== 0
   }
-
 }
 
 export type LogCacheEntry = {

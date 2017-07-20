@@ -60,7 +60,7 @@ export abstract class MasterDb extends Dexie {
 
     if (!fields) fields = collection[modelName] = {}
     fields[field.name] = field
-    console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
+    // console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
   }
 
   constructor (rc: RunContextBrowser, version: string) {
@@ -76,7 +76,7 @@ export abstract class MasterDb extends Dexie {
 
     const schema = {syncHashTable: 'model'}
     this.buildSchema(schema)
-    console.log(schema)
+    // console.log(schema)
     this.version(1).stores(schema)
 
     EventSystem.subscribe(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
@@ -91,8 +91,9 @@ export abstract class MasterDb extends Dexie {
 
     for (const modelName of models) {
       const st = ar.find(item => item.model === modelName)
-      this.syncHashModels[modelName] = st ? st.hash : {ts: 0, seg: [[]]}
+      this.syncHashModels[modelName] = st ? st.hash : {ts: 0}
     }
+    rc.isDebug() && rc.debug(rc.getName(this), 'syncHashModels', this.syncHashModels)
   }
 
   public getSyncRequest(rc: RunContextBrowser): SyncRequest {
@@ -107,8 +108,11 @@ export abstract class MasterDb extends Dexie {
 
     const [[oldVersion]] = segments[Segment.version]
     if (oldVersion !== version) {
+      console.log('oldVersion, version', oldVersion, version)
       segments[Segment.version] = [[version]]
       rc.globalKeyVal.syncSegments = segments
+    } else {
+      console.log('Versions are same', oldVersion, version)
     }
   }
 
