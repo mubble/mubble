@@ -9,9 +9,7 @@
 import 'reflect-metadata'
 import { RunContextBrowser } from '..'
 
-const BOOL_TRUE   = 'true',
-      BOOL_FALSE  = 'false',
-      PREFIX      = 'global',
+const PREFIX      = 'global',
       META_KEY    = 'autoStore'
 
 export abstract class GlobalKeyValue {
@@ -37,37 +35,51 @@ export abstract class GlobalKeyValue {
 
         set: function(value: any) {
 
-          const fieldType = Reflect.getMetadata('design:type', target, propertyKey)
-
           // console.log('autoStore:setter', fieldType, this['_' + propertyKey], value)
 
+          const fieldType = Reflect.getMetadata('design:type', target, propertyKey),
+                oldValue  = this['_' + propertyKey],
+                rc        = this['rc'],
+                key       = PREFIX + '.' + propertyKey
+
+          if ((value !== null && value.constructor !== fieldType) || 
+              (value === null) && fieldType !== Object) {
+            throw(new Error(`You are trying to set ${propertyKey}=${value} with invalid type ${typeof(value)}`))
+          }
+
           this['_' + propertyKey] = value
-          let convertedValue: string
+
+          // undefined indicates that value is being set in the constructor
+          if (oldValue === undefined) return
+
+          let strValue: string,
+              strOldValue: string
 
           switch (fieldType) {
             case String:
             case Number:
-              convertedValue = value
-              break
-
             case Boolean:
-              convertedValue = value === true ? BOOL_TRUE : BOOL_FALSE
+              strValue    = String(value)
+              strOldValue = String(oldValue)
               break
 
             case Object:
-              convertedValue = JSON.stringify(value)  
+
+              strValue    = JSON.stringify(value)
+              strOldValue = JSON.stringify(oldValue)
               break
             
             default:
               console.log('autoStore:setter', 'unknown field type', fieldType)
               throw(new Error('autoStore:setter - unknown field type' + fieldType))
           }
-          const rc  = window['rc'],
-                key = PREFIX + '.' + propertyKey
+          
+          // no change in the value
+          if (strOldValue === strValue) return
 
-          localStorage.setItem(key, convertedValue)
+          localStorage.setItem(key, strValue)
           if (rc && rc.isDebug) {
-            rc.isDebug() && rc.debug('GlobalKeyValue', `Saved key ${key}=${convertedValue}`)
+            rc.isDebug() && rc.debug('GlobalKeyValue', `Saved key ${key}=${strValue}`)
           }
         }
       }
@@ -86,27 +98,27 @@ export abstract class GlobalKeyValue {
       const name      = autoField.name,
             strValue  = localStorage.getItem(PREFIX + '.' + name)
 
-      let convertedValue
+      let value
 
       switch (autoField.type) {
         case String:
-          convertedValue = strValue || ''
+          value = strValue || ''
           break
 
         case Number:
-          convertedValue = Number(strValue) || 0
+          value = Number(strValue) || 0
           break
 
         case Boolean:
-          convertedValue = strValue === BOOL_TRUE
+          value = strValue === String(true)
           break
 
         case Object:
-          convertedValue = JSON.parse(strValue || null)  
+          value = strValue === 'null' ? null : JSON.parse(strValue)  
           break
       }
 
-      this[name] = convertedValue
+      this[name] = value
     }
   }
 

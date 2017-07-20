@@ -146,12 +146,15 @@ export abstract class MasterDb extends Dexie {
 
     if (modelData.purge) {
       await this.clear(rc, modelName)
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'purged')
     } else if (modelData.del && modelData.del.length) {
       await this.bulkDelete(rc, modelName, modelData.del)
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'deleted', modelData.del.length)
     }
 
     if (modelData.mod && modelData.mod.length) {
       await this.bulkPut(rc, modelName, modelData.mod)
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'upsert', modelData.mod.length)
     }
 
     this.syncHashModels[modelName] = modelData.hash

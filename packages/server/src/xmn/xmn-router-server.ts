@@ -131,7 +131,7 @@ export abstract class XmnRouterServer {
       this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp))
 
     } catch (err) {
-      console.log(err)
+      rc.isWarn() && rc.warn(rc.getName(this), err)
       this.sendToProvider(rc, ci, new WireReqResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, err.name || 'Error'))
     }
