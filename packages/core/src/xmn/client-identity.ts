@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { SyncRequest } from '@mubble/core' 
+import { SyncRequest } from '../master' 
 
 /**
  * It is allowed to add members to this interface by extending it
