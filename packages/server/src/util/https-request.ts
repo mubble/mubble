@@ -61,7 +61,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       let   statusCode : number = 200
       
       if(inputData && !urlObj.headers['Content-Length']) 
-        urlObj.headers['Content-Length'] = new Buffer(inputData).length
+        urlObj.headers['Content-Length'] = Buffer.byteLength(inputData)
         
       const req = httpObj.request(urlObj, (outputStream: any) => {
 
