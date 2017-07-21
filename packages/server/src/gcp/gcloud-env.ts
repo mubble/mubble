@@ -35,8 +35,8 @@ const Credentials = {
 const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/v1/',
       metadataProjectIdCmd   = 'project/project-id',
       metadataHostNameCmd    = 'instance/hostname',
-      metadataInstanceEnvCmd = 'instance/attributes/MUBBLE_ENV',
-      metadataProjectEnvCmd  = 'project/attributes/PROJECT_ENV',
+      metadataInstanceEnvCmd = 'instance/attributes/NC_ENV',
+      metadataProjectEnvCmd  = 'project/attributes/NC_PROJECT_ENV',
       metadataOptions : http.RequestOptions   = {
         host: 'metadata.google.internal',
         port: 80,
