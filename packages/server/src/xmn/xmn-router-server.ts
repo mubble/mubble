@@ -173,6 +173,13 @@ export abstract class XmnRouterServer {
   }
 
   private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, data: WireObject): void {
+    try{
+      rc.finish(data.data , ci , null as any)
+    }
+    catch(err){
+      console.log('rc finish err',err)
+    }
+    
     if (ci.provider) {
       ci.provider.send(rc, data)
     } else {
