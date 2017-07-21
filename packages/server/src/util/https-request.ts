@@ -110,6 +110,9 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       inputData ?: string): Promise<{error : string | undefined, response: any, data : string}> {
 
     let response: any
+    if(inputData && !urlObj.headers['Content-Length']) 
+        urlObj.headers['Content-Length'] = inputData.length
+      
     
     return new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
       const httpObj: any = urlObj.protocol === 'http:' ? http : https
