@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Class for managing async request based on load
+   About      : Class for managing async request based on requests load
 
    This manager class make sure that more than maxParallelReqCount async request are not exucuted parallaly
    Useful in case of making http request. Ensuring that more than n http request of a type are not created
@@ -10,6 +10,14 @@
    Example use : 
    const asycMgr  = new AsyncReqManager(rc , 'AzureRequestManager' , 2)
    await asycMgr.makeRequest(rc , executeHttpResultResponse , this , rc , options)
+
+   or 
+   // adding n requests and wait till all of them finishes 
+   
+   asycMgr.makeRequest(rc , executeHttpResultResponse , this , rc , options1)
+   asycMgr.makeRequest(rc , executeHttpResultResponse , this , rc , options2)
+   asycMgr.makeRequest(rc , executeHttpResultResponse , this , rc , options3)
+   await asycMgr.waitTillAllFinished()
    
    Created on : Thu Jul 20 2017
    Author     : Gaurav Kulshreshtha
@@ -27,16 +35,18 @@ export type NcAsyncReq = {id : string , reqTs : number , rc : RunContextServer ,
 
 export class AsyncReqManager {
   
-  private requests  : NcAsyncReq [] = []
-  private activeReqCount : number = 0
   private static k : number = 0
   private static buff : string = 'ABCDEFGHIJKLKMNOPQRSTUVWXYZ'
+  
+  private requests  : NcAsyncReq [] = []
+  private activeReqCount : number = 0
+  private startTimeEntries : number [] = []
+  private promiseArr : Promise<any> [] = []
 
-  public constructor(rc : RunContextServer , private name : string , private maxParallelReqCount : number , private load ?: {count : number , duration : number } ) {
+  public constructor(private rc : RunContextServer , private name : string , private maxParallelReqCount : number , private load ?: {count : number , duration : number } ) {
     rc.isDebug() && rc.debug(rc.getName(this), 'AsyncReqManager created ',name , maxParallelReqCount , load)
   }
 
-  
   public async makeRequest<T> (rc : RunContextServer , asyncFunc : (...args : any[] ) => Promise<T> , thisObj : any ,   ...funcArgs : any[] ) : Promise<T> {
     
     const now : number = Date.now(),
@@ -55,28 +65,50 @@ export class AsyncReqManager {
     })
     
     this.requests.push(req)
+    this.promiseArr.push(pr)
     
-    const startReq : NcAsyncReq = this.canStartRequest()
+    const startReq : NcAsyncReq = this.canStartRequest(rc)
     if(!startReq)
     {
       rc.isDebug() && rc.debug(rc.getName(this), 'can\'t start a request for now ack reqId', req.id , this.activeReqCount )
     }else{
       this.startRequest(startReq)
     }
-
+    
     return pr
+  }
+
+  public async waitTillAllFinished(){
+    await Promise.all(this.promiseArr)
+    this.promiseArr = []
   }
 
   // Request load bandwidth logic.
   // classes can override this. ex : n per sec etc   
-  public canStartRequest() : NcAsyncReq {
+  public canStartRequest(rc : RunContextServer) : NcAsyncReq {
     
-    if(this.requests.length && this.activeReqCount < this.maxParallelReqCount) {
+    if(this.requests.length && (this.maxParallelReqCount <= 0 ||  (this.activeReqCount < this.maxParallelReqCount)) ) {
+      // check load 
+      if(this.load){ 
+        const dur = this.load.duration , 
+              now = Date.now()
+        // get all the startts entries in last n=dur seconds
+        const lastReqs  = this.startTimeEntries.filter((ts) => { 
+          return ts >= (now - dur*1000)
+        })
+        if(lastReqs.length >= this.load.count) {
+          //rc.isDebug() && rc.debug(rc.getName(this), `load high ${lastReqs.length} >= ${this.load.count} request per ${dur} second ` )
+          // check after half second
+          setTimeout(()=>{this.startRequest(this.canStartRequest(this.rc))} , 500 )
+          return null as any
+        }
+      }
+      
       // we can start a new http request
       // take the first request
-      const startReq = this.requests.splice(0,1)[0]
+      const startReq = this.requests.shift()
       // we will not wait (await) for this async function
-      return startReq
+      return startReq as NcAsyncReq
     }
 
     return null as any
@@ -90,18 +122,23 @@ export class AsyncReqManager {
     const rc        : RunContextServer = req.rc ,
           startTime : number  = Date.now()
     
+    // store this requests start time
+    this.startTimeEntries.unshift(startTime)
+    
+    if(this.startTimeEntries.length > 100) this.startTimeEntries.splice(0,100)
+    
     try{
-      
+    
       this.activeReqCount ++
-      
+    
       rc.isDebug() && rc.debug(rc.getName(this), 'starting the request ',req.id , this.activeReqCount)
       const res : any  = await req.func(...req.args)
-      
+    
       rc.isDebug() && rc.debug(rc.getName(this), 'request finished ',req.id , this.activeReqCount)
-      
+    
       this.finish(req , startTime , res , undefined )
     }catch(err){
-      
+    
       rc.isError() && rc.error(rc.getName(this), 'request failed' , req.id , err , this.activeReqCount)
       this.finish(req , startTime , undefined , err)
     }
@@ -126,8 +163,15 @@ export class AsyncReqManager {
     else req.reject(err)
     
     // start request from the que if any  
-    this.startRequest(this.canStartRequest())
+    this.startRequest(this.canStartRequest(rc))
 
+  }
+
+  public reset() {
+    this.requests = []
+    this.activeReqCount = 0
+    this.startTimeEntries = []
+    this.promiseArr = []
   }
 
 }
