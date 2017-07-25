@@ -9,12 +9,15 @@
 
 import { MasterDb } from '.'
 
+const META_KEY = Symbol('ModelName')
+
 export class Master {
 
   public static field(optional ?: boolean) {
     return function(target: any, propertyKey: string) {
-      const type = Reflect.getMetadata('design:type', target, propertyKey)
-      MasterDb.registerSchema(target.constructor.name, 
+      const type = Reflect.getMetadata('design:type', target, propertyKey),
+            name = Reflect.getMetadata(META_KEY, target)
+      MasterDb.registerSchema(name, 
                               propertyKey, 
                               false, 
                               Master.getType(type), 
@@ -22,10 +25,14 @@ export class Master {
     }
   }
 
-  public static key() {
+  public static key(modelName ?: string) {
+    
     return function(target: any, propertyKey: string) {
-      const type = Reflect.getMetadata('design:type', target, propertyKey)
-      MasterDb.registerSchema(target.constructor.name, 
+
+      if (modelName) Reflect.defineMetadata(META_KEY, modelName, target)
+      const type = Reflect.getMetadata('design:type', target, propertyKey),
+            name = Reflect.getMetadata(META_KEY, target)
+      MasterDb.registerSchema(name, 
                               propertyKey, 
                               true, 
                               Master.getType(type), 

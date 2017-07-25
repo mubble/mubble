@@ -51,8 +51,6 @@ export abstract class MasterDb extends Dexie {
                         fieldType     : 'string' | 'number' | 'boolean' | 'array' | 'object',
                         optional      : boolean) {
 
-    modelName = modelName.toLowerCase()
-
     const field      = new ModelField(fieldName, fieldType, optional),
           collection = isPrimaryKey ? this.schemaKey : this.schemaField
 
@@ -60,7 +58,7 @@ export abstract class MasterDb extends Dexie {
 
     if (!fields) fields = collection[modelName] = {}
     fields[field.name] = field
-    // console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
+    console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
   }
 
   constructor (rc: RunContextBrowser, version: string) {
