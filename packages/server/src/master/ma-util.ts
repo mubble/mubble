@@ -104,9 +104,9 @@ export namespace FuncUtil {
   }
 
   // create a map from array based on mapping function for each item
-  export function maArrayMap<T> (arr : T[] , mapFn : (rec : T) => {key : string , value : T} ) : {[key : string] : T} {
+  export function maArrayMap<T> (arr : T[] , mapFn : (rec : T) => {key : string , value : T} ) : Mubble.uObject<T> {
     
-    const res : {[key : string] : T} = {}
+    const res : Mubble.uObject<T> = {}
     arr.forEach((item : T)=> {
       const val : {key : string , value : T} = mapFn(item)
       res[val.key] = val.value
@@ -117,9 +117,9 @@ export namespace FuncUtil {
   /**
    * Select only those properties from a object which satisfy the criteria 
    */
-  export function reduce<T>(obj : {[key : string] : T} , reduceFn : (value : T , key ?: string) => boolean ) : {[key : string] : T} {
+  export function reduce<T>(obj : Mubble.uObject<T> , reduceFn : (value : T , key ?: string) => boolean ) : Mubble.uObject<T> {
     
-    return lo.reduce(obj , (memo : {[key : string] : T} , value : T, key : string ) : {} => {
+    return lo.reduce(obj , (memo : Mubble.uObject<T> , value : T, key : string ) : {} => {
       // If key value pairs satisfy the condition
       // set them in result function
       if(reduceFn(value , key)) memo[key] = value
@@ -130,7 +130,7 @@ export namespace FuncUtil {
 
   /*
   // Object to map
-  export function toMap<T>(obj : {[key : string] : T}) : Map<string , T> {
+  export function toMap<T>(obj : Mubble.uObject<T> ) : Map<string , T> {
     const map : Map<string , T> = new Map()
     lo.forEach(obj , (value : T , key : string)=>{
       map.set(key , value)
@@ -139,8 +139,8 @@ export namespace FuncUtil {
   }
 
  // Map to object
- export function toObject<T> (map : Map<string , T>) : {[key : string] : T} {
-  const res : {[key : string] : T} = {}
+ export function toObject<T> (map : Map<string , T>) : Mubble.uObject<T> {
+  const res : Mubble.uObject<T> = {}
 
   map.forEach((value : T , key : string)=>{
     res[key] = value

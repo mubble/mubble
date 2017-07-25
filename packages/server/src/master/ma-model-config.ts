@@ -15,6 +15,7 @@ import * as lo                from 'lodash'
 import {concat , masterDesc , 
         assert , throwError } from './ma-util'
 
+import {Mubble}               from '@mubble/core' 
         
 
 export type MasterValidationRule = (rc : RunContextServer ,  reg : MasterRegistry , rec : any[]) => void
@@ -89,7 +90,7 @@ function fieldTypeCheck(rc : RunContextServer ,  reg : MasterRegistry , records 
   
   const autoCols : string [] = lo.clone(reg.autoFields) ,
         masterTsField : string = reg.config.getMasterTsField() ,
-        fieldsMap : {[field : string] : FieldInfo} = lo.clone(reg.fieldsMap) ,
+        fieldsMap : Mubble.uObject<FieldInfo> = lo.clone(reg.fieldsMap) ,
         optionalFields : string[] = lo.clone(reg.optionalFields),
         instance  : any = reg.masterInstance,
         pkeys : string [] = lo.clone(reg.pkFields),

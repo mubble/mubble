@@ -127,13 +127,13 @@ export class MasterMgr {
     return memCache.records
   }
   
-  public getMasterHashRecords<T extends MasterBase> (mastername : string) : {[key : string] : T} {
+  public getMasterHashRecords<T extends MasterBase> (mastername : string) : Mubble.uObject<T> {
     
     mastername = mastername.toLocaleLowerCase()
     const memCache : MasterInMemCache = this.masterCache[mastername]
     assert(memCache!=null , 'master ',mastername , 'is not present')
     assert(memCache.cache , 'master ',mastername , 'is not not cached')
-    return memCache.hash as {[key : string] : T}
+    return memCache.hash as Mubble.uObject<T>
   }
 
   /*
@@ -177,8 +177,8 @@ export class MasterMgr {
 
   private buildDependencyMap(rc : RunContextServer) : void {
     
-    const dMap : {[master : string] : string[]} = this.dependencyMap
-    const rdMap : {[master : string] : string[]} = this.revDepMap
+    const dMap  : Mubble.uObject<string[]> = this.dependencyMap
+    const rdMap : Mubble.uObject<string[]> = this.revDepMap
     
     function getDepMasters(mas : string) : string[] {
       if(dMap[mas]) return dMap[mas]

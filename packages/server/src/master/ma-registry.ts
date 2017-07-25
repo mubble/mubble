@@ -120,7 +120,7 @@ export class MasterRegistry {
   
   pkFields                  : string[] = []
   
-  fieldsMap                 : {[fieldName : string] : FieldInfo} = {}
+  fieldsMap                 : Mubble.uObject<FieldInfo> = {}
   
   config                    : ModelConfig 
 

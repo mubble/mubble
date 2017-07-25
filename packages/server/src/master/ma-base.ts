@@ -18,7 +18,8 @@ import {MasterRegistryMgr}    from './ma-reg-manager'
 import {assert , masterDesc,
         log , concat ,
         MaType      }         from './ma-util'
-import {Mubble}               from '@mubble/core'                                     
+import {Mubble}               from '@mubble/core' 
+import {MasterCache}          from './ma-types'                                    
 
 const LOG_ID : string = 'MasterBase'
 function mbLog(...args : any[] ) : void {
@@ -204,7 +205,7 @@ export class MasterBase {
   }
 
   // Each master can override this
-  public verifyAllDependency (context : RunContextServer , masterCache : Map<string , {[pk : string] : object}> ) : (string | undefined) {
+  public verifyAllDependency (context : RunContextServer , masterCache : MasterCache ) : (string | undefined) {
     return 
   }
 

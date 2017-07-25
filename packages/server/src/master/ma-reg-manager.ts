@@ -50,7 +50,7 @@ function debug(rc : RunContextServer | null , ...args : any[] ) : void {
  */
 export class MasterRegistryMgr {
 
-  static regMap : {[mastername : string] : MasterRegistry} = {}
+  static regMap : Mubble.uObject<MasterRegistry> = {}
 
   public static masterList() : string[] {
     return lo.keysIn(this.regMap).filter((mas : string)=> {
@@ -233,7 +233,7 @@ export class MasterRegistryMgr {
 
     const config : ModelConfig = registry.config , 
           masTsField : string  = config.getMasterTsField() ,
-          fldMap : {[field : string] : FieldInfo}    = registry.fieldsMap ,
+          fldMap : Mubble.uObject<FieldInfo> = registry.fieldsMap ,
           ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIds , targetMap , now) ,
           instanceObj : MasterBase = registry.masterInstance
 
