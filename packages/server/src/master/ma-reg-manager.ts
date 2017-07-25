@@ -21,9 +21,10 @@ import {SourceSyncData}       from './ma-manager'
 import {masterDesc , assert , 
         concat , log ,
         FuncUtil}             from './ma-util' 
-import {StringValMap , 
-        GenValMap , 
-        MasterCache}          from './ma-types'              
+import {MasterCache}          from './ma-types' 
+
+import {Mubble}               from '@mubble/core'
+
           
 
 const LOG_ID : string = 'MasterRegistryMgr'
@@ -137,13 +138,13 @@ export class MasterRegistryMgr {
   }
 
 
-  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : GenValMap , now : number ) : SourceSyncData {
+  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : Mubble.uObject<object> , now : number ) : SourceSyncData {
     
     const registry : MasterRegistry = this.getMasterRegistry(mastername)
     this.verifySourceRecords(rc , registry , source )
 
     //todo : accompny master check
-    const sourceIdsMap : GenValMap = FuncUtil.maArrayMap<any>(source , (rec : any)=>{
+    const sourceIdsMap : Mubble.uObject<object> = FuncUtil.maArrayMap<any>(source , (rec : any)=>{
       return {key : registry.getIdStr(rec) , value : rec}
     })
     
@@ -157,13 +158,13 @@ export class MasterRegistryMgr {
     //if(lo.stubTrue()) return
     const registry : MasterRegistry = this.getMasterRegistry(mastername) ,
           fkConst  : Master.ForeignKeys = registry.config.getForeignKeys() ,
-          selfData : GenValMap = masterCache[mastername] 
+          selfData : Mubble.uObject<object> = masterCache[mastername] 
     //debug('fk for master',mastername , fkConst)
 
-    lo.forEach(fkConst , (props : StringValMap , parent : string)=> {
+    lo.forEach(fkConst , (props : Mubble.uObject<string> , parent : string)=> {
 
       assert(lo.hasIn(masterCache , parent) , 'parent mastercache', parent , 'is missing for master',mastername)
-      const parentData : GenValMap = masterCache[parent] 
+      const parentData : Mubble.uObject<object> = masterCache[parent] 
       
       //debug('parent size ',lo.size(parentData))
       lo.forEach(props , (selfField : string , parentField : string)=>{
@@ -226,7 +227,7 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIds : GenValMap , targetMap : GenValMap , now : number ) : SourceSyncData {
+  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIds : Mubble.uObject<object> , targetMap : Mubble.uObject<object> , now : number ) : SourceSyncData {
     
     MaRegMgrLog(rc , 'verifyModifications' , registry.mastername ,'source size:' , lo.size(sourceIds) , 'target size:', lo.size(targetMap) )
 

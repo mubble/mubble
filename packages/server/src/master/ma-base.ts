@@ -10,16 +10,15 @@
 import * as lo                from 'lodash'
 import * as semver            from 'semver'
 
-import {StringValMap , 
-        GenValMap , 
-       MasterCache }          from './ma-types'              
 
 import {RunContextServer}     from '../rc-server'
-import {ModelConfig,MasterModelConfig}          from './ma-model-config'  
+import {ModelConfig, 
+   MasterModelConfig}         from './ma-model-config'  
 import {MasterRegistryMgr}    from './ma-reg-manager'
 import {assert , masterDesc,
         log , concat ,
         MaType      }         from './ma-util'
+import {Mubble}               from '@mubble/core'                                     
 
 const LOG_ID : string = 'MasterBase'
 function mbLog(...args : any[] ) : void {
@@ -151,7 +150,7 @@ export namespace Master{
   }
   
 
-  export type ForeignKeys = {[master : string] : StringValMap}
+  export type ForeignKeys = Mubble.uObject<Mubble.uObject<string>> 
   
 
   export function getDefaultConfig (segment ?: {key : string , cols : string[]}  , fk ?: ForeignKeys )  : ModelConfig {

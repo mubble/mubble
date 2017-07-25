@@ -11,9 +11,7 @@ import "reflect-metadata"
 import * as lo                from 'lodash'
 
 import {RunContextServer}     from '../rc-server'
-import {StringValMap , 
-        GenValMap , 
-       MasterCache }          from './ma-types'              
+import {MasterCache }          from './ma-types'              
 import {masterDesc , assert , 
         concat , log ,
         throwError , MaType}  from './ma-util'   
@@ -23,6 +21,7 @@ import {ModelConfig ,
   MasterValidationRule}       from './ma-model-config'
 import {MasterRegistryMgr}    from './ma-reg-manager'  
 
+import {Mubble}               from '@mubble/core'
 
 const LOG_ID : string = 'MasterRegistry'
 function MaRegistryLog(rc : RunContextServer | null , ...args : any[] ) : void {
@@ -243,7 +242,7 @@ export class MasterRegistry {
     // check FK contrains are okay
     const fkConst  : Master.ForeignKeys = this.config.getForeignKeys()
 
-    lo.forEach(fkConst , (props : StringValMap , parent : string)=>{
+    lo.forEach(fkConst , (props : Mubble.uObject<string> , parent : string)=>{
 
       const parentRegistry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(parent)
       // parent master must exists

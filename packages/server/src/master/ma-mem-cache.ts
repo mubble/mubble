@@ -9,9 +9,6 @@
 
 import * as lo                from 'lodash'
 import {
-        MaMap,
-        StringValMap, 
-        GenValMap, 
         MasterCache 
        }                      from './ma-types'
 import {
@@ -36,7 +33,8 @@ import {SyncHashModel ,
         SyncResponse ,
         Segments , 
         SegmentType ,
-        SyncModelResponse}     from '@mubble/core'                             
+        SyncModelResponse,
+        Mubble}               from '@mubble/core'                             
 
              
 
@@ -73,9 +71,9 @@ export class DigestInfo {
   modelDigest  : string 
   modTs        : number
   dataDigest   : string
-  segDigestMap : StringValMap  = {}
+  segDigestMap : Mubble.uObject<string>  = {}
 
-  public constructor(fDigest : string, modelDigest : string, ts : number, dDigest : string, segMap : StringValMap) {
+  public constructor(fDigest : string, modelDigest : string, ts : number, dDigest : string, segMap : Mubble.uObject<string>) {
     this.fileDigest   = fDigest
     this.modelDigest  = modelDigest
     this.modTs        = ts 
@@ -103,7 +101,7 @@ export class MasterInMemCache {
   public records             : any [] = []
   
   // hash key / record
-  public hash                : GenValMap = {} 
+  public hash                : Mubble.uObject<object> = {} 
   
   public modTSField          : string = MasterBaseFields.ModTs
   
@@ -127,7 +125,7 @@ export class MasterInMemCache {
     return this.digestInfo.modTs
   }
 
-  public constructor(rc : RunContextServer , public mastername : string , data : GenValMap , dInfo : DigestInfo) {
+  public constructor(rc : RunContextServer , public mastername : string , data : Mubble.uObject<object> , dInfo : DigestInfo) {
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(mastername)
 
     this.cache          = registry.config.getCached()
@@ -168,7 +166,7 @@ export class MasterInMemCache {
     debug(rc , `MasterInMemCache loading finished for ${mastername}, Count: ${this.records.length}`)
   }
 
-  public update(rc : RunContextServer , newData : GenValMap , dInfo : DigestInfo) : {inserts : number , updates : number} {
+  public update(rc : RunContextServer , newData : Mubble.uObject<object> , dInfo : DigestInfo) : {inserts : number , updates : number} {
     
     debug(rc , 'update ',this.mastername , lo.size(newData) , dInfo , lo.size(this.hash))
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
@@ -181,7 +179,7 @@ export class MasterInMemCache {
     // Fields which needs to be cached
     const allCachedFields : string[] = lo.uniq(registry.cachedFields.concat(registry.autoFields)) 
     
-    const cacheNewData : GenValMap = lo.mapValues(newData , (val : any , key : string)=>{
+    const cacheNewData : Mubble.uObject<object> = lo.mapValues(newData , (val : any , key : string)=>{
 
       return lo.pick(val , allCachedFields)
     })
@@ -260,7 +258,7 @@ export class MasterInMemCache {
     return syncResp
   }
   
-  public syncNonCachedData(rc : RunContextServer , masterData : GenValMap , syncInfo : SyncHashModel , purge : boolean  ) : SyncModelResponse {
+  public syncNonCachedData(rc : RunContextServer , masterData : Mubble.uObject<object> , syncInfo : SyncHashModel , purge : boolean  ) : SyncModelResponse {
     
     debug(rc , 'syncNonCachedData', syncInfo , purge)
     
@@ -311,7 +309,7 @@ export class MasterInMemCache {
   }
   
 
-  public syncCachedDataOld(rc : RunContextServer , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncCachedDataOld(rc : RunContextServer , syncHash : Mubble.uObject<object> , syncData : Mubble.uObject<object> , syncInfo : SyncInfo , purge : boolean ) {
     
     debug(rc , 'syncCachedData', syncHash , syncData , syncInfo , purge)
     const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
@@ -346,7 +344,7 @@ export class MasterInMemCache {
     debug(rc , 'syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
-  public syncNonCachedDataOld(rc : RunContextServer , masterData : GenValMap , syncHash : GenValMap , syncData : GenValMap , syncInfo : SyncInfo , purge : boolean ) {
+  public syncNonCachedDataOld(rc : RunContextServer , masterData : Mubble.uObject<object> , syncHash : Mubble.uObject<object> , syncData : Mubble.uObject<object> , syncInfo : SyncInfo , purge : boolean ) {
     
     debug(rc , 'syncNonCachedData', syncHash , syncData , syncInfo , purge)
     

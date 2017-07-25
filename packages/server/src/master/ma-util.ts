@@ -8,8 +8,8 @@
 ------------------------------------------------------------------------------*/
 import * as lo                from 'lodash'
 
-import {StringValMap ,
-        GenValMap }           from './ma-types'  
+import {Mubble}               from '@mubble/core'
+
 
 const LOG_ID = 'Master-Util'
 
@@ -150,7 +150,7 @@ export namespace FuncUtil {
  } 
  */
 
- export function toParseObjectMap(srcObj : StringValMap) : GenValMap {
+ export function toParseObjectMap(srcObj : Mubble.uObject<string>) : Mubble.uObject<object> {
   
   return lo.mapValues(srcObj , (val : string)=>{
     return JSON.parse(val)
@@ -158,7 +158,7 @@ export namespace FuncUtil {
 
  }
 
- export function toStringifyMap(srcObj : GenValMap) : StringValMap {
+ export function toStringifyMap(srcObj : Mubble.uObject<object>) : Mubble.uObject<string> {
   
   return lo.mapValues(srcObj , (val : any)=>{
     return JSON.stringify(val)

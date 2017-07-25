@@ -24,19 +24,18 @@ import {masterDesc , assert ,
 import {ModelConfig}          from './ma-model-config'             
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
-import {MaMap, StringValMap , 
-        GenValMap , 
-       MasterCache }          from './ma-types'
 import {MasterInMemCache , 
         DigestInfo , 
         SyncInfo}             from './ma-mem-cache'
+import  {MasterCache}         from './ma-types'        
 
 import {SyncHashModel , 
         SyncHashModels ,
         SyncRequest ,
         SyncResponse ,
         Segments , 
-        SegmentType}          from '@mubble/core'                             
+        SegmentType, Mubble}          from '@mubble/core'
+
 
 const LOG_ID : string = 'MasterMgr'
 
@@ -74,17 +73,17 @@ var CONST = {
 export class SourceSyncData {
   
   mastername : string
-  source     : GenValMap
-  redisData  : GenValMap
+  source     : Mubble.uObject<object>
+  redisData  : Mubble.uObject<object>
   
-  inserts    : GenValMap = {}
-  updates    : GenValMap = {}
-  deletes    : GenValMap = {}
+  inserts    : Mubble.uObject<object> = {}
+  updates    : Mubble.uObject<object> = {}
+  deletes    : Mubble.uObject<object> = {}
 
 
   modifyTs   : number 
 
-  public constructor(master : string , source : GenValMap , target : GenValMap , now : number ) {
+  public constructor(master : string , source : Mubble.uObject<object> , target : Mubble.uObject<object> , now : number ) {
     this.mastername = master
     this.source = source
     this.redisData = target
@@ -102,13 +101,13 @@ export class MasterMgr {
   // sub redis can only issue limited commands
   subRedis : RedisWrapper
 
-  masterCache : MaMap<MasterInMemCache> = {}
+  masterCache : Mubble.uObject<MasterInMemCache> = {}
 
   rc : RunContextServer
 
-  dependencyMap : {[mastername : string] : string[]} = {}
+  dependencyMap : Mubble.uObject<string[]> = {}
   
-  revDepMap : {[mastername : string] : string[]} = {}
+  revDepMap : Mubble.uObject<string[]> = {}
   
   static created : boolean = false
   // Todo : make sure singleton instance
@@ -278,7 +277,7 @@ export class MasterMgr {
       assert(all.indexOf(mas)!==-1 , 'Invalid Master Obtained from Publish',mas , masters)
     })
     
-    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap()
+    const digestMap   : Mubble.uObject<DigestInfo> =  await this.getDigestMap()
     
     for(const mas of masters){
       await this.refreshAModel(mas , digestMap[mas] )
@@ -313,7 +312,7 @@ export class MasterMgr {
 
     assert(resultKeys.length === recs.length , 'invalid result from refresg redis' , resultKeys.length , recs.length)
     
-    const newData : GenValMap = {}
+    const newData : Mubble.uObject<object> = {}
     for(let i=0 ; i<resultKeys.length ; i++) {
       const pk : string = resultKeys[i] ,
             val : object = JSON.parse(recs[i])
@@ -329,7 +328,7 @@ export class MasterMgr {
     
     const results : object [] = []
     
-    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() ,
+    const digestMap   : Mubble.uObject<DigestInfo> =  await this.getDigestMap() ,
           masterCache : MasterCache = {} ,
           todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}} = {},
           // all masters update records will have same timestamp
@@ -359,7 +358,7 @@ export class MasterMgr {
         continue
      }
 
-     const redisData : GenValMap = await this.listAllMasterData(rc , master) ,
+     const redisData : Mubble.uObject<object> = await this.listAllMasterData(rc , master) ,
            ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData , now )       
      
      MaMgrLog(rc , 'applyFileData' , master ,'inserts:' , lo.size(ssd.inserts) ,'updates:', lo.size(ssd.updates) , 'deletes:',lo.size(ssd.deletes) )
@@ -395,7 +394,7 @@ export class MasterMgr {
      // master dependency data settings      
      if((lo.hasIn(masterCache , master) && masterCache[master] )){
         
-        const depMap : GenValMap = masterCache[master]
+        const depMap : Mubble.uObject<object> = masterCache[master]
         MaMgrLog(rc , master , 'overriding source ',  lo.size(depMap) , lo.size(ssd.source)  )
         masterCache[master] = ssd.source
      }else{
@@ -408,14 +407,14 @@ export class MasterMgr {
        
        const depMasters : string [] = this.dependencyMap[master]
        depMasters.forEach((depMas : string)=>{
-         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as GenValMap
+         if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as Mubble.uObject<object>
        })
      }
     
   }
 
   // Used for all source sync apis (partial , full , multi)
-  public async applyJsonData(context : RunContextServer ,  mastername : string , jsonRecords : any [] , redisRecords : GenValMap ) {
+  public async applyJsonData(context : RunContextServer ,  mastername : string , jsonRecords : any [] , redisRecords : Mubble.uObject<object> ) {
 
   }
 
@@ -468,7 +467,7 @@ export class MasterMgr {
         resp[mastername] = memcache.syncCachedData(rc , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }else{
         
-        const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+        const masterData : Mubble.uObject<object> =  await this.listAllMasterData(rc , mastername)
         resp[mastername] = memcache.syncNonCachedData(rc , masterData , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }
     }    
@@ -477,9 +476,9 @@ export class MasterMgr {
   }
 
   
-  public async destinationSyncOld (rc : RunContextServer , syncMap : MaMap<SyncInfo> ) {
+  public async destinationSyncOld (rc : RunContextServer , syncMap : Mubble.uObject<SyncInfo> ) {
     
-    const response : {syncHash : GenValMap , syncData : GenValMap} = {syncHash : {} , syncData : {}}
+    const response : {syncHash : Mubble.uObject<object> , syncData : Mubble.uObject<object> } = {syncHash : {} , syncData : {}}
     
     // check if there is any new data sync required
     const dataSyncRequired : string [] = [] ,
@@ -524,7 +523,7 @@ export class MasterMgr {
         memcache.syncCachedDataOld(rc , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }else{
         
-        const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+        const masterData : Mubble.uObject<object> =  await this.listAllMasterData(rc , mastername)
         memcache.syncNonCachedDataOld(rc , masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }
     }
@@ -562,12 +561,12 @@ export class MasterMgr {
     for(const master  of lo.keysIn(todoModelz) ){
       
       const modData : {ssd : SourceSyncData , fDigest : string , modelDigest : string } = todoModelz[master] ,
-            inserts : GenValMap = modData.ssd.inserts ,
-            updates : GenValMap = modData.ssd.updates ,
-            deletes : GenValMap = modData.ssd.deletes ,
+            inserts : Mubble.uObject<object> = modData.ssd.inserts ,
+            updates : Mubble.uObject<object> = modData.ssd.updates ,
+            deletes : Mubble.uObject<object> = modData.ssd.deletes ,
             ts      : number = modData.ssd.modifyTs
 
-      const modifications : StringValMap = FuncUtil.toStringifyMap(lo.assign({} , inserts , updates , deletes))  
+      const modifications : Mubble.uObject<string> = FuncUtil.toStringifyMap(lo.assign({} , inserts , updates , deletes))  
 
       lo.forEach(modifications , (recStr : string , pk : string) => {
         
@@ -593,24 +592,24 @@ export class MasterMgr {
   private async buildInMemoryCache(rc : RunContextServer) {
     
     debug(rc , 'Build InMemory Cache Started')
-    const digestMap   : MaMap<DigestInfo> =  await this.getDigestMap() 
+    const digestMap   : Mubble.uObject<DigestInfo> =  await this.getDigestMap() 
     
     for(const mastername of MasterRegistryMgr.masterList()) {
       
       assert(!lo.hasIn(this.masterCache , mastername) , 'mastercache already present for ',mastername)
       
-      const masterData : GenValMap =  await this.listAllMasterData(rc , mastername)
+      const masterData : Mubble.uObject<object> =  await this.listAllMasterData(rc , mastername)
       this.masterCache[mastername] = new MasterInMemCache(rc , mastername , masterData , digestMap[mastername])
     }
 
     debug(rc , 'Build InMemory Cache Finished')
   }
 
-  private async getDigestMap() : Promise<MaMap<DigestInfo>> {
+  private async getDigestMap() : Promise<Mubble.uObject<DigestInfo>> {
     
     const digestKey   : string = CONST.REDIS_NS + CONST.REDIS_DIGEST_KEY ,
-          stringMap   : StringValMap =  await this.mredis.redisCommand().hgetall(digestKey),
-          genMap      : GenValMap = FuncUtil.toParseObjectMap(stringMap)
+          stringMap   : Mubble.uObject<string> =  await this.mredis.redisCommand().hgetall(digestKey),
+          genMap      : Mubble.uObject<object> = FuncUtil.toParseObjectMap(stringMap)
     
     // Empty      
     if(!stringMap) return {}
@@ -621,27 +620,27 @@ export class MasterMgr {
     })
   }
 
-  public async listAllMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
+  public async listAllMasterData(rc : RunContextServer , master : string) : Promise<Mubble.uObject<object>> {
 
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
-    const map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
+    const map : Mubble.uObject<string> =  await this.mredis.redisCommand().hgetall(masterKey)
     
     // Parse the string value to object
     return FuncUtil.toParseObjectMap(map)
   }
 
-  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<GenValMap> {
+  public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<Mubble.uObject<object>> {
 
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
-    let map : StringValMap =  await this.mredis.redisCommand().hgetall(masterKey)
+    let map : Mubble.uObject<string> =  await this.mredis.redisCommand().hgetall(masterKey)
     
     // Parse the string value to object
-    let pMap : GenValMap = FuncUtil.toParseObjectMap(map)
+    let pMap : Mubble.uObject<object> = FuncUtil.toParseObjectMap(map)
     
     // remove deleted
     return lo.omitBy(pMap , (val : any , key : string) => {
       return (val[MasterBaseFields.Deleted] === true)
-    }) as GenValMap
+    }) as Mubble.uObject<object>
 
   }
 
