@@ -33,7 +33,8 @@ export namespace EventSystem {
       fullName, 'to', nodeList.length, 'element(s) and window')
   }
 
-  // Use it only in global context
+  // Any class whose object is globally alive in the app should use this 
+  // since it does not unsubscribe for the events
   export function subscribe(eventName: string, cb: any) {
     if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
     window.addEventListener(eventName, cb)
