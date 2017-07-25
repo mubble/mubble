@@ -107,17 +107,16 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
    * Execute http and return result data as well as response code.
    * Drupal SEO server data sync request fails with # 200 status code and error msg
    */ 
-  export function executeHttpResultResponse(rc: RunContextServer, urlObj: any, 
+  export function executeHttpResultResponse(rc: RunContextServer, options: http.RequestOptions, 
       inputData ?: string): Promise<{error : string | undefined, response: any, data : string}> {
 
     let response: any
-    if(inputData && !urlObj.headers['Content-Length']) 
-        urlObj.headers['Content-Length'] = inputData.length
+    if(inputData && options.headers && !options.headers['Content-Length']) 
+        options.headers['Content-Length'] = inputData.length
       
-    
     return new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
-      const httpObj: any = urlObj.protocol === 'http:' ? http : https
-      const req = httpObj.request(urlObj, (outputStream: any) => {
+      const httpObj: any = options.protocol === 'http:' ? http : https
+      const req = httpObj.request(options, (outputStream: any) => {
 
         switch (outputStream.headers['content-encoding']) {
         case 'gzip':
