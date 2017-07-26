@@ -11,6 +11,7 @@ import * as https            from 'https'
 import * as http             from 'http'
 import * as zlib             from 'zlib'
 import * as url              from 'url'
+import * as request          from 'request'
 import {RunContextServer}    from '../rc-server'
 
 export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
@@ -95,6 +96,16 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       })
       if(inputData) req.write(inputData)
       req.end()
+    })
+  }
+
+  export function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string> {
+    return new Promise((resolve, reject) => {
+     request( { method: "HEAD", url: shortUrl, followAllRedirects: true },
+      function (error : any, response : any) {
+        if(error) reject(error)
+        return resolve(response.request.href)
+      })
     })
   }
 
