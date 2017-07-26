@@ -58,7 +58,7 @@ export abstract class MasterDb extends Dexie {
 
     if (!fields) fields = collection[modelName] = {}
     fields[field.name] = field
-    console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
+    // console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
   }
 
   constructor (rc: RunContextBrowser, version: string) {
