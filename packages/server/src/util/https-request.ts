@@ -85,7 +85,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       })
 
       req.on('response', (res: any) => {
-        rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + urlObj.hostname + '], Status Code: ' + res.statusCode)
+        rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + urlObj.host + '], Status Code: ' + res.statusCode)
         statusCode = res.statusCode
       })
       req.on('error', (err: any) => {
