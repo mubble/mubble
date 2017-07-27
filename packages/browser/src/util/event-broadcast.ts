@@ -39,4 +39,11 @@ export namespace EventSystem {
     if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
     window.addEventListener(eventName, cb)
   }
+
+  export function subscribeAll(eventNames : string[], cb : any) {
+    eventNames.forEach((eventName) => {
+      if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
+        window.addEventListener(eventName, cb.bind(null , eventName))
+    })
+  }
 }
