@@ -20,6 +20,8 @@ import {
 import {RunContextServer}               from '../rc-server'
 import * as lo                          from 'lodash'
 
+import {Mubble}                         from '@mubble/core'
+
 
 function redisLog(rc : RunContextServer , ...args : any[] ) : void {
   if(rc){
@@ -106,7 +108,7 @@ export class RedisWrapper {
 
   public redis       : RedisClient
   public monitoring  : boolean = false
-  public info        : { [index : string] : string } = {}
+  public info        : Mubble.uObject<string> = {}
   static inited      : boolean = false
   constructor(private name : string, private rc : RunContextServer ){
     

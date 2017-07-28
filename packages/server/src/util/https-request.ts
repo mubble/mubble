@@ -119,7 +119,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
    * Drupal SEO server data sync request fails with # 200 status code and error msg
    */ 
   export function executeHttpResultResponse(rc: RunContextServer, options: http.RequestOptions, 
-      inputData ?: string): Promise<{error : string | undefined, response: any, data : string}> {
+      inputData ?: string , encoding ?: string ): Promise<{error : string | undefined, response: any, data : string}> {
 
     let response: any
     if(inputData && options.headers && !options.headers['Content-Length']) 
@@ -137,13 +137,17 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
           outputStream = outputStream.pipe(zlib.createInflate())
           break
         }
+        
+              
 
-        let data = ''
-        outputStream.on('data', (chunk: any) => {
-          data += chunk
+        let data = new Buffer('')
+        outputStream.on('data', (chunk: Buffer) => {
+          //data += chunk
+          data = Buffer.concat([data , chunk])
         })
         outputStream.on('end', () => {
-          return resolve({error: undefined, response: response, data: data})
+          // If encoding is not defined . default is utf8
+          return resolve({error: undefined, response: response, data: data.toString(encoding)})
         })
       })
 
