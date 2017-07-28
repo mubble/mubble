@@ -12,6 +12,7 @@ export class TimerInstance {
 
   nextTickAt  : number
   
+  // The callback should return ms to tick after (not the absolute time)
   constructor(private timer: Timer, public name: string, public cb: () => number) {
   }
 
