@@ -75,7 +75,10 @@ export class CloudStorageBase {
 
   static async upload(rc : RunContextServer, bucketName: string, filePath : string, destination : string) : Promise<string> {
     const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
-          data   : any = await bucket.upload(filePath, {destination})
+          data   : any = await bucket.upload(filePath, {  
+                                                         destination : destination, 
+                                                         metadata    : {'Cache-Control': 'public, max-age=31536000'}
+                                                       })
   
     return data[0].metadata.name.split('/')[1]
   }
