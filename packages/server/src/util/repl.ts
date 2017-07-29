@@ -165,19 +165,24 @@ class ReplProvider {
     return res
   }
 
-  send(rc: RunContextServer, data: WireObject): void {
-    if (data.type == WIRE_TYPE.SYS_EVENT && data.name == "UPGRADE_CLIENT_IDENTITY") {
-      this.ci.clientIdentity = data.data as ClientIdentity
-      rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
+  send(rc: RunContextServer, wo: WireObject): void {
+    if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == "UPGRADE_CLIENT_IDENTITY") {
+      this.ci.clientIdentity = wo.data as ClientIdentity
+      rc.isStatus() && rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
       return
     }
-    if (data && (<any>data).error) {
-      rc.debug (rc.getName (this), 'Send Error to client: ', data)
-      this.rejecter ((<any>data).error)
+
+    if (wo && (<any>wo).error) {
+      rc.isDebug() && rc.debug (rc.getName (this), 'Send Error to client: ', wo)
+      this.rejecter ((<any>wo).error)
+    }
+    else if (!wo.data) {
+        rc.isWarn() && rc.warn (rc.getName (this), 'Invalid Response to client: WireOBject data is undefined')
+        this.rejecter ('Invalid Response to client: WireObject data is undefined')
     }
     else {
-      rc.debug (rc.getName (this), 'Sending Response to client: ', data)
-      this.resolver (data)
+      rc.isDebug() && rc.debug (rc.getName (this), 'Sending Response to client: ', wo)
+      this.resolver (wo)
     }
   }  
 }
