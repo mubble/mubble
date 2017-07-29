@@ -7,13 +7,14 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as lo            from 'lodash'
-
-import {RunContextServer} from '../../rc-server'
-import {ERROR_CODES,DSError}
-                          from './error-codes'
+import {
+        ERROR_CODES,
+        DSError
+       }                  from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {BaseDatastore}    from './basedatastore'
+import {RunContextServer} from '../../rc-server'
+import * as lo            from 'lodash'
 
 export class DSTransaction {
 
@@ -48,7 +49,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     }
   }
 
@@ -62,7 +63,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     }
   }
 
@@ -84,7 +85,7 @@ export class DSTransaction {
           childEntities = model._childEntities
 
     if (!entityRec[0]) {
-      if (!ignoreRNF) throw(ERROR_CODES.RECORD_NOT_FOUND)
+      if (!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${id}`))
       return
     }
     model.deserialize(rc, entityRec[0])
@@ -141,7 +142,7 @@ export class DSTransaction {
           entityRecords = res[0]
           
     if(entityRecords.length !== models.length){
-      if(!ignoreRNF) throw (ERROR_CODES.RECORD_NOT_FOUND)
+      if(!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Keys: ${keys}`))
       result = false
     }
 
@@ -241,7 +242,7 @@ export class DSTransaction {
   async update(rc : RunContextServer, model : BaseDatastore) : Promise<void> {
     const mId = model.getId(rc)
     
-    if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
+    if(!mId) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${mId}`))
     const key = model.getDatastoreKey(rc, mId)
     await this._transaction.save({key: key, data: model.getUpdateRec(rc)})
   }
@@ -252,7 +253,7 @@ export class DSTransaction {
     for(const model of models) {
       const mId = model.getId(rc)
     
-      if(!mId) throw(ERROR_CODES.RECORD_NOT_FOUND)
+      if(!mId) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${mId}`))
       const key = model.getDatastoreKey(rc, mId)
       entities.push({key: key, data: model.getUpdateRec(rc)})
     }
@@ -268,14 +269,14 @@ export class DSTransaction {
                         ignoreRNF ?: boolean) : Promise<void> {
 
     const key = model.getDatastoreKey(rc, id)
-    if(updRec.modTs || updRec.createTs) throw(ERROR_CODES.UNSUPPORTED_UPDATE_FIELDS)
+    if(updRec.modTs || updRec.createTs) throw(new DSError(ERROR_CODES.UNSUPPORTED_UPDATE_FIELDS, 'modTs and createTs Cannot be Updated'))
     const oldModTs = model.modTs
     await this.get(rc, model, id, ignoreRNF)
     if (oldModTs && oldModTs != model.modTs) {
       const kindName = (<any>model)._kindName || (model.constructor as any)._kindName
       const msg = 'Mod TS mismatch [' + kindName + '], ID = ' + id + ', Mod Times = ' + oldModTs + '/' + model.modTs
       rc.isError () && rc.error (rc.getName (this), msg)
-      throw(new DSError (ERROR_CODES.MOD_TS_MISMATCH, msg))
+      throw(new DSError(ERROR_CODES.MOD_TS_MISMATCH, msg))
     }
     Object.assign(model, updRec)
     this._transaction.save({key: key, data: model.getUpdateRec(rc)})
@@ -301,7 +302,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, err.message))
     }
   }
 
@@ -322,7 +323,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, err.message))
     }
   }
 
@@ -352,7 +353,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, err.message))
     }
   }
 
@@ -373,7 +374,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, err.message))
     }
   }
 
@@ -396,7 +397,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, err.message))
     }
   }
 
@@ -417,7 +418,7 @@ export class DSTransaction {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.TRANSACTION_ERROR))
+      throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, err.message))
     }
   }
 }

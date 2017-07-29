@@ -10,14 +10,16 @@
 
 const datastore : any = require('@google-cloud/datastore')
 
-import * as lo            from 'lodash'
-
-import {RunContextServer} from '../../rc-server'
-import {ERROR_CODES}      from './error-codes'
+import {
+        ERROR_CODES,
+        DSError
+       }                  from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {DSQuery}          from './ds-query'
 import {DSTQuery}         from './dst-query'
 import {DSTransaction}    from './ds-transaction'
+import {RunContextServer} from '../../rc-server'
+import * as lo            from 'lodash'
 
 const GLOBAL_NAMESPACE : string = '--GLOBAL--'
 
@@ -138,7 +140,7 @@ private getNamespace() : string {
         const entityRec = await BaseDatastore._datastore.get(key)
         if (!entityRec[0]) {
           if (ignoreRNF) return false
-          throw (ERROR_CODES.RECORD_NOT_FOUND)
+          throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${id}`))
         }
         this.deserialize(rc, entityRec[0])
 
@@ -154,7 +156,7 @@ private getNamespace() : string {
       } else {
         rc.isError() && rc.error(err)
       }
-      throw(new Error(ERROR_CODES.GCP_ERROR))
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     }
   }
 
@@ -181,7 +183,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     const entityRecords : any[] = res[0]
     
     if(entityRecords.length !== models.length){
-      if(!ignoreRNF) throw (ERROR_CODES.RECORD_NOT_FOUND)
+      if(!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Keys: ${keys}`))
       result = false
     }
 
@@ -204,7 +206,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     } else {
       rc.isError() && rc.error(err)
     }
-    throw(new Error(ERROR_CODES.GCP_ERROR))
+    throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
   }
 
   return result
@@ -241,7 +243,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     }
     catch(err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      throw(new Error(ERROR_CODES.GCP_ERROR))
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     }
   }
 
@@ -254,7 +256,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
       return transaction.bdUpdate(rc, this, id, updRec, ignoreRNF)
     } 
     catch (err) {
-      throw(new Error(ERROR_CODES.GCP_ERROR))
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     }
   }
 
@@ -273,7 +275,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     }
     catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      throw(new Error(ERROR_CODES.GCP_ERROR))
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     }   
   }
 
@@ -292,7 +294,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     } 
     catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      throw(new Error(ERROR_CODES.GCP_ERROR))
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     }
   }
   
@@ -482,7 +484,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
         if(!ignoreDupRec) {
           rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
           if (err.toString().split(':')[1] !== ' entity already exists') {
-            throw(new Error(ERROR_CODES.GCP_ERROR))
+            throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
           } else {
              rc.isError() && rc.error(rc.getName(this), ERROR_CODES.UNIQUE_KEY_EXISTS)
              return false
@@ -512,7 +514,7 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
         transaction.delete(rc, uniqueEntityKey)
       } catch (err) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-        throw (new Error(ERROR_CODES.GCP_ERROR))
+        throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
       }
     }
     for (let child in childEntities) {
@@ -545,10 +547,10 @@ public static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       if (err.toString().split(':')[1] !== ' entity already exists') {
-        throw(new Error(ERROR_CODES.GCP_ERROR))
+        throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
       } else {
         if (ignoreDupRec) return true
-        throw(new Error(ERROR_CODES.RECORD_ALREADY_EXISTS))
+        throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
       }
     }
   }
