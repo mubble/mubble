@@ -9,7 +9,9 @@
 import      {format}              from './util/date'
 import {
   ConnectionInfo, 
-  InvocationData
+  WireEventResp,
+  WireReqResp,
+  WireObject
 } from './xmn'
 
 // first index is dummy
@@ -71,11 +73,8 @@ export abstract class RunContextBase {
     }*/
   }
 
-  public finish(resData : any , ic : ConnectionInfo, ire: InvocationData) : Promise<any> {
-    return new Promise((resolve : any , reject : any)=> {
-      this.logger.finish(ic, ire)
-      resolve(resData)
-    })
+  public finish(ic : ConnectionInfo, resp: WireEventResp | WireReqResp  , req : WireObject) : void {
+      this.logger.finish(ic, resp , req)
   }
   
   public setSessionContext(sContext : string) {
@@ -170,7 +169,7 @@ export abstract class RCLoggerBase {
 
   }
 
-  public  finish(ic : ConnectionInfo, ire: InvocationData) : void {
+  public  finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject) : void {
     // default Implementation . 
   }
 
@@ -201,6 +200,8 @@ export abstract class RCLoggerBase {
       return buf ? buf + ' ' + strVal : strVal
     }, '')
     
+    if (buffer.length > 500) buffer = buffer.substr(0, 500)
+
     const logStr = this.rc.contextId ?
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.rc.contextId}] ${moduleName}(${this.rc.contextName}): ${buffer}` :
               `${LEVEL_CHARS[level]}${dateStr} ${durStr} ${moduleName}: ${buffer}`

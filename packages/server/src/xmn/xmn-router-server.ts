@@ -126,12 +126,12 @@ export abstract class XmnRouterServer {
       } as InvocationData
 
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
-      this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp))
+      this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp) , wo)
 
     } catch (err) {
       rc.isWarn() && rc.warn(rc.getName(this), err)
       this.sendToProvider(rc, ci, new WireReqResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, err.name || 'Error'))
+                       {error: err.message || err.name}, err.name || 'Error') , wo)
     }
  }
 
@@ -153,11 +153,11 @@ export abstract class XmnRouterServer {
         await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
 
-      this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts))
+      this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts) , wo)
 
     } catch (err) {
       this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, err.name || 'Error'))
+                       {error: err.message || err.name}, err.name || 'Error') ,wo)
     }
   }
 
@@ -167,21 +167,23 @@ export abstract class XmnRouterServer {
     return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent)
   }
 
-  private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, er: WireEventResp) {
-    if (ci.lastEventTs < er.ts) ci.lastEventTs = er.ts
-    await this.sendToProvider(rc, ci, er)
+  private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, resp: WireEventResp , req : WireObject ) {
+    if (ci.lastEventTs < resp.ts) ci.lastEventTs = resp.ts
+    await this.sendToProvider(rc, ci, resp , req)
   }
 
-  private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, data: WireObject): void {
+  private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null ): void {
     try{
-      rc.finish(data.data , ci , null as any)
+      if(request && (response.type === WIRE_TYPE.EVENT_RESP || response.type === WIRE_TYPE.REQ_RESP)){
+          rc.finish(ci ,  response as any , request )
+      }
     }
     catch(err){
       console.log('rc finish err',err)
     }
     
     if (ci.provider) {
-      ci.provider.send(rc, data)
+      ci.provider.send(rc, response)
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
     }
@@ -207,7 +209,7 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity))
+      this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , null)
     }
   }
 
