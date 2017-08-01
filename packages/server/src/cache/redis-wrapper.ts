@@ -40,12 +40,12 @@ export type redis_command = 'del'     | 'expire'      | 'get'              | 'in
                             'publish' | 'unsubscribe' | 'zrevrangebyscore' | 'hset'  | 'setex'   |
                             'watch'   | 'unwatch'     | 'zrangebyscore'    | 'mset'  | 'ttl'     | 
                             'scan'    | 'sscan'       | 'hscan'            | 'zscan' | 'quit'    |
-                            'exists'  |  'info'       | 'zcount'   
+                            'exists'  |  'info'       | 'zcount' | 'flushall'  
 
 export const redis_commands : string[] =  
 ['del'   , 'expire'  , 'get'   , 'hdel'   , 'hget'   , 'hgetall'  , 'hmget'         , 'hmset',
  'hset'  , 'hincrby' , 'hscan' , 'zadd'   , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem' ,
- 'exists', 'zrevrangebyscore'  , 'zcount'  
+ 'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  
  ]                            
                              
 export type redis_async_func     = (...args : string[]) => void
@@ -189,6 +189,10 @@ export class RedisWrapper {
       if (strParts.length !== 2) return
       _.info[strParts[0]] = strParts[1].trim()
     })
+  }
+
+  async flushRedis() {
+    return this._execute('flushall',[]) 
   }
 
   async _execute(cmd : redis_command , args ?: any[]) {
