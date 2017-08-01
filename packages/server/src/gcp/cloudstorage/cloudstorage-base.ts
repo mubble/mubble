@@ -43,11 +43,12 @@ export class CloudStorageBase {
                                         path     : string,
                                         data     : any,
                                         mimeVal  : string,
+                                        append  ?: string,
                                         name    ?: string) : Promise<{fileUrl : string, filename : string}> {
 
     const extension = mime.extension(mimeVal),
           newName   = name ? name : await this.getFileName(rc, bucket, extension, path),
-          filename  = name ? `${newName}_low` : `${newName}_high`,
+          filename  = newName + append,
           modPath   = (path) ? (path + '/') : '',
           res       = await fs.writeFileSync(`/tmp/${filename}.${extension}`, data, 'binary'),
           fileUrl   = await this.upload(rc, bucket, 
