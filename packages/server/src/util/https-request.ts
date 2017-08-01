@@ -64,7 +64,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       
       if(inputData && !urlObj.headers['Content-Length']) 
         urlObj.headers['Content-Length'] = Buffer.byteLength(inputData)
-      urlObj.agent = new https.Agent(urlObj)
+      if(httpObj==https) urlObj.agent = new https.Agent(urlObj)
       const req = httpObj.request(urlObj, (outputStream: any) => {
 
         switch (outputStream.headers['content-encoding']) {
