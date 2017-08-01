@@ -64,10 +64,11 @@ export abstract class RunContextBase {
   clone(newRcb: RunContextBase) {
     newRcb.initConfig   = this.initConfig
     newRcb.runState     = this.runState
+    /*
     if (newRcb.contextId === this.contextId && newRcb.contextName === this.contextName) {
       newRcb.logger.lastLogTS = this.logger.lastLogTS
       newRcb.startTs   = this.startTs
-    }
+    }*/
   }
 
   public finish(resData : any , ic : ConnectionInfo, ire: InvocationData) : Promise<any> {
@@ -211,7 +212,7 @@ export abstract class RCLoggerBase {
     {
       if(this.rc.sessionContext){
         this.sesLogCache.push({
-                ts : curDate.getTime() , 
+                ts : Date.now() , 
                 moduleName : moduleName , 
                 level : level , 
                 log : buffer  })
