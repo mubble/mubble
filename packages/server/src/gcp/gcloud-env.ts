@@ -85,7 +85,8 @@ export class GcloudEnv {
   public cloudStorage : any 
   public vision       : any 
   public bigQuery     : any
-  public pubsub       : any  
+  public pubsub       : any
+  public monitoring   : any
 
   constructor(public projectId  : string,
               public namespace  : string,

@@ -10,7 +10,7 @@ export {
         startCluster,
         isClusterMaster
        }                      from './cluster/master'
-export *                     from './xmn'
+export *                      from './xmn'
 export *                      from './rc-server'
 export {Repl}                 from './util/repl'
 export *                      from './util/user-info'
@@ -24,6 +24,7 @@ export *                      from './db/datastore/ds-query'
 export *                      from './db/datastore/dst-query'
 export *                      from './db/datastore/ds-transaction'
 export *                      from './gcp/cloudstorage/cloudstorage-base'
+export *                      from './gcp/monitoring/monitoring-base'
 export *                      from './gcp/vision/vision-base'
 export *                      from './gcp/bigquery/bigquery-base'
 export *                      from './gcp/pubsub/pub-sub-base'
