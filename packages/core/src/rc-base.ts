@@ -49,9 +49,7 @@ export class RunState {
 
 export abstract class RunContextBase {
 
-  public  sessionContext   : string   
   public  logger           : RCLoggerBase
-  public  startTs          : number = Date.now()
   
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
@@ -77,10 +75,6 @@ export abstract class RunContextBase {
       this.logger.finish(ic, resp , req)
   }
   
-  public setSessionContext(sContext : string) {
-    this.sessionContext = sContext
-  }
-
   changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
     this.runState.moduleLLMap[moduleName] = logLevel
     const keys = Object.keys(this.runState.moduleLLMap)
@@ -162,15 +156,17 @@ export type LogCacheEntry = {
 
 export abstract class RCLoggerBase {
 
-  public  sesLogCache   : LogCacheEntry[]  = []
-  public  lastLogTS     : number    = 0
+  public  sesLogCache       : LogCacheEntry[]  = []
+  public  lastLogTS         : number = 0
+  public  sessionContext    : boolean = false
+  public  startTs           : number = Date.now()
   
   protected constructor(public rc : RunContextBase) {
-
+    
   }
 
   public  finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject) : void {
-    // default Implementation . 
+    // default Implementation .
   }
 
   abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
@@ -211,7 +207,7 @@ export abstract class RCLoggerBase {
     }
     if(this.rc.initConfig.externalLogger)
     {
-      if(this.rc.sessionContext){
+      if(this.sessionContext){
         this.sesLogCache.push({
                 ts : Date.now() , 
                 moduleName : moduleName , 
@@ -243,7 +239,7 @@ export abstract class RCLoggerBase {
     return '+++'
   }
 
-  private objectToString(obj: Object, maxLevels: number, pendingLevels ?:number): string {
+  protected objectToString(obj: Object, maxLevels: number, pendingLevels ?:number): string {
     
     const isArray = Array.isArray(obj),
           isSet   = obj instanceof Set,

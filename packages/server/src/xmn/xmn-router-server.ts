@@ -118,20 +118,20 @@ export abstract class XmnRouterServer {
       rc.isDebug() && rc.debug(rc.getName(this), wo, reqStruct)
       
       if (!reqStruct) throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
-
+      
       const ir = {
         name    : wo.name,
         ts      : wo.ts + ci.msOffset,
         params  : wo.data
       } as InvocationData
-
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp) , wo)
 
     } catch (err) {
-      rc.isWarn() && rc.warn(rc.getName(this), err)
+      let errStr = (err instanceof Error) ? (err.stack || `Error ${err.name}: ${err.message} (no stack)`) : JSON.stringify(err)
+      rc.isError() && rc.error(rc.getName(this), err)
       this.sendToProvider(rc, ci, new WireReqResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, err.name || 'Error') , wo)
+                       {error: err.message || err.name}, errStr) , wo)
     }
  }
 
@@ -143,7 +143,6 @@ export abstract class XmnRouterServer {
         
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
-
         const ie = {
           name    : wo.name,
           ts      : wo.ts + ci.msOffset,
@@ -156,8 +155,11 @@ export abstract class XmnRouterServer {
       this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts) , wo)
 
     } catch (err) {
+      
+      let errStr = (err instanceof Error) ? (err.stack || `Error ${err.name}: ${err.message} (no stack)`) : JSON.stringify(err)
+      rc.isError() && rc.error(rc.getName(this), err)
       this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, err.name || 'Error') ,wo)
+                       {error: err.message || err.name}, errStr ) ,wo)
     }
   }
 
