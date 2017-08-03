@@ -166,7 +166,7 @@ class ReplProvider {
   }
 
   send(rc: RunContextServer, wo: WireObject): void {
-    if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == "UPGRADE_CLIENT_IDENTITY") {
+    if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == 'UPGRADE_CLIENT_IDENTITY') {
       this.ci.clientIdentity = wo.data as ClientIdentity
       rc.isStatus() && rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
       return
