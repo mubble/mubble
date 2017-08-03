@@ -128,7 +128,7 @@ export abstract class XmnRouterServer {
       this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp) , wo)
 
     } catch (err) {
-      let errStr = (err instanceof Error) ? (err.stack || `Error ${err.name}: ${err.message} (no stack)`) : JSON.stringify(err)
+      let errStr = (err instanceof Error) ? err.message : err
       rc.isError() && rc.error(rc.getName(this), err)
       this.sendToProvider(rc, ci, new WireReqResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, errStr) , wo)
@@ -156,7 +156,7 @@ export abstract class XmnRouterServer {
 
     } catch (err) {
       
-      let errStr = (err instanceof Error) ? (err.stack || `Error ${err.name}: ${err.message} (no stack)`) : JSON.stringify(err)
+      let errStr = (err instanceof Error) ? err.message : err
       rc.isError() && rc.error(rc.getName(this), err)
       this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, errStr ) ,wo)

@@ -33,7 +33,7 @@ export class DSQuery {
   }
 
   filter(key : string, value : any, symbol ?: string) : DSQuery {
-    if(value === undefined) throw(ERROR_CODES.UNDEFINED_QUERY_FIELD, 'Filter key:', key)
+    if(value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD + ' Filter key:' + key)
     if(!symbol) symbol = '='
     this._query = this._query.filter(key, symbol, value)
     return this
@@ -41,7 +41,7 @@ export class DSQuery {
 
   multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: string}}>) : DSQuery {
     for(let filter of keyPairs) {
-      if(filter.value === undefined) throw(ERROR_CODES.UNDEFINED_QUERY_FIELD, 'Filter key:', filter.key)
+      if(filter.value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD+ ' Filter key:'+ filter.key)
       this._query = this._query.filter(filter.key, filter.symbol || '=', filter.value)
     }
     return this
