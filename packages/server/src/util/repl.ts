@@ -145,10 +145,15 @@ class ReplProvider {
             ts      : Date.now(),
             data    : param
           } as WireObject
-    let promise = this.start (rc)
-    await this.router.routeRequest(rc, this.ci, wo)
-    const res = await promise
-    return res
+    try {
+      let promise = this.start (rc)
+      await this.router.routeRequest(rc, this.ci, wo)
+      const res = await promise
+      return res
+    } catch (e) {
+      console.log ('Error routing R', e)
+      throw e
+    }
   }
 
   async routeEvent (rc: RunContextServer, eventName: string, param: object) {
@@ -159,10 +164,15 @@ class ReplProvider {
             data    : param
           } as WireObject
 
-    let promise = this.start (rc)
-    await this.router.routeEvent(rc, this.ci, wo)
-    const res = await promise
-    return res
+    try {
+      let promise = this.start (rc)
+      await this.router.routeEvent(rc, this.ci, wo)
+      const res = await promise
+      return res
+    } catch (e) {
+      console.log ('Error routing event', e)
+      throw e
+    }
   }
 
   send(rc: RunContextServer, wo: WireObject): void {

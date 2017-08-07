@@ -47,7 +47,7 @@ export class DSTransaction {
       if(err.code) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       } else {
-        rc.isError() && rc.error(err)
+        rc.isError() && rc.error(rc.getName(this), 'Unable to start transaction', err)
       }
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     }
@@ -61,7 +61,7 @@ export class DSTransaction {
       if(err.code) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       } else {
-        rc.isError() && rc.error(err)
+        rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
       }
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     }
