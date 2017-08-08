@@ -51,6 +51,11 @@ export function isClusterMaster () {
   return cluster.isMaster
 }
 
+export function getWorkerIndex() : number {
+  return clusterWorker.workerIndex
+}
+
+
 interface UserInfo {
   uid: number
   gid: number

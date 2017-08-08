@@ -8,7 +8,8 @@
 ------------------------------------------------------------------------------*/
 export {
         startCluster,
-        isClusterMaster
+        isClusterMaster,
+        getWorkerIndex
        }                      from './cluster/master'
 export *                      from './xmn'
 export *                      from './rc-server'
