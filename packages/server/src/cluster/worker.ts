@@ -54,7 +54,6 @@ export class ClusterWorker {
   }
 
   onMessage(rc: RunContextServer, msg: any) {
-
     if (!_.isPlainObject(msg)) {
       return rc.isError() && rc.error(rc.getName(this), 'Received invalid message', msg)
     }
@@ -62,12 +61,15 @@ export class ClusterWorker {
     switch (msg.id) {
 
     case ipc.CWInitializeWorker.name:
-      this.workerIndex = msg.workerIndex
+      const wMsg : ipc.CWInitializeWorker = msg
+      this.workerIndex = wMsg.workerIndex
+      rc.initConfig.runMode = wMsg.runMode
+
       process.title = this.config.SERVER_NAME + '_' + this.workerIndex
       const fn = this.pendingInitResolve
       this.pendingInitResolve = null
       fn() // resolve so that we can go ahead with further init
-      rc.isStatus() && rc.status(rc.getName(this), 'Started worker with index', this.workerIndex)
+      rc.isStatus() && rc.status(rc.getName(this), 'Started worker with index', this.workerIndex , 'RunMode' , wMsg.runMode)
       break
     }
 

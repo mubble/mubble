@@ -27,7 +27,7 @@ export abstract class BaseIpcMsg {
 // Used to pass the initial startup params to worker
 export class CWInitializeWorker extends BaseIpcMsg {
 
-  constructor(public workerIndex: number) {
+  constructor(public workerIndex: number , public runMode : number) {
     super(CWInitializeWorker.name)
   }
 }

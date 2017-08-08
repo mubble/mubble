@@ -331,7 +331,7 @@ class WorkerInfo {
 
   public online(rc: RunContextServer): void {
     this.state = WORKER_STATE.ONLINE
-    const msgObj = new ipc.CWInitializeWorker(this.workerIndex)
+    const msgObj = new ipc.CWInitializeWorker(this.workerIndex , rc.getRunMode())
     msgObj.send(this.worker)
   }
 

@@ -34,13 +34,11 @@ const CONS = "BCDFGHJKLMNPQRSTVWXYZ",
 export {RUN_MODE, LOG_LEVEL} from '@mubble/core'
 export class InitConfigServer extends InitConfig {
 
-  constructor(       runMode    : RUN_MODE,
-                     logLevel  ?: LOG_LEVEL, 
+  constructor(       logLevel  ?: LOG_LEVEL, 
                      tzMin     ?: number,
               public accessLog ?: boolean) {
 
-    super(runMode,  
-          logLevel || LOG_LEVEL.STATUS, 
+    super(logLevel || LOG_LEVEL.STATUS, 
           !!process.stdout.isTTY,
           tzMin)
 

@@ -175,6 +175,12 @@ export abstract class XmnRouterServer {
   }
 
   private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null ): void {
+    if (ci.provider) {
+      ci.provider.send(rc, response)
+    } else {
+      rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
+    }
+    
     try{
       if(request && (response.type === WIRE_TYPE.EVENT_RESP || response.type === WIRE_TYPE.REQ_RESP)){
           rc.finish(ci ,  response as any , request )
@@ -184,11 +190,6 @@ export abstract class XmnRouterServer {
       console.log('rc finish err',err)
     }
     
-    if (ci.provider) {
-      ci.provider.send(rc, response)
-    } else {
-      rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
-    }
   }
 
   upgradeClientIdentity(rc   : RunContextServer, 

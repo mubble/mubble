@@ -31,14 +31,14 @@ export abstract class ExternalLogger {
 }
 
 export class InitConfig {
-
-  constructor(public runMode         : RUN_MODE,
-              public logLevel        : LOG_LEVEL,
+  
+  public runMode         : RUN_MODE
+  constructor(public logLevel        : LOG_LEVEL,
               public consoleLogging  : boolean,
               public tzMin          ?: number,
               public externalLogger ?: ExternalLogger 
 ) {
-
+    this.runMode = RUN_MODE.DEV
   }
 }
 
