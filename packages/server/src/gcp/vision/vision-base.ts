@@ -8,11 +8,13 @@
 ------------------------------------------------------------------------------*/
 
 const gVision : any = require('@google-cloud/vision')
+import jimp         = require('jimp')
 
 import {RunContextServer}           from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
-// import * as jimp                    from 'jimp'  // Gives compilation error...
-import jimp  = require ('jimp')
+import * as request                 from 'request' 
+import * as fs                      from 'fs' 
+import * as images                  from 'images'
 
 export class VisionBase {
 
@@ -90,9 +92,27 @@ export class VisionBase {
   static async processToBinary(rc : RunContextServer, imagePath : string, ratio ?: number, quality ?: number, shrink ?: {h: number, w: number}) 
   : Promise<{data : string, mime: string | false, height : number, width : number}>{
     //Image path can be a local path or a URL
-    const crops  : any  = await VisionBase.detectCrops(rc, imagePath, ratio || 1.78),
-          image  : any  = await jimp.read(imagePath)
+    let crops : any  = await VisionBase.detectCrops(rc, imagePath, ratio || 1.78),
+        image : any  = await jimp.read(imagePath)
+
+    if(image._originalMime === `image/gif`) {
+      await new Promise((res, rej) => {
+        request({
+                  url      : imagePath,
+                  method   : 'GET',
+                  encoding : null
+                }, (err, response, val) => {
+          images(val).save('/tmp/opImage.jpg')
+          res('')
+        })
+      })
+      image = await jimp.read(`/tmp/opImage.jpg`)
+      await fs.unlinkSync(`/tmp/opImage.jpg`)
+    }
+
+
     
+
     let height : number,
         width  : number
 
