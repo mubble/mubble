@@ -139,7 +139,7 @@ export abstract class XmnRouterServer {
 
     try {
 
-      if (wo.ts > ci.lastEventTs) {
+      if (!ci.lastEventTs || wo.ts > ci.lastEventTs) { // TODO: (CG) To fix...
         
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
