@@ -138,9 +138,10 @@ export abstract class XmnRouterServer {
   async routeEvent(rc: RunContextServer, ci: ConnectionInfo, wo: WireObject) {
 
     try {
-
-      if (!ci.lastEventTs || wo.ts > ci.lastEventTs) { // TODO: (CG) To fix...
-        
+      if (!ci.lastEventTs && ci.lastEventTs !== 0) { // TODO: Need this to be removed once fixed..
+        rc.isWarn && rc.warn (rc.getName (this), '======ERROR====== Routing Event, ', wo.name, '@', wo.ts, 'ci.LastEventTs is', ci.lastEventTs)
+      }
+      if (wo.ts > ci.lastEventTs) {
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
         const ie = {
