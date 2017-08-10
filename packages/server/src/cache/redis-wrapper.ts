@@ -75,7 +75,7 @@ export interface RedisCmds {
   zadd      : (key : string , option : string , ...scoreValuePairs : any[]) => number
   zrange    : (key : string , start : number , end : number , withscore ?: string) => string[]
   zrem      : (key : string , ...keys : string[]) => void // check
-  zremrangebyscore : (key : string , ...keys : string[]) => void // check
+  zremrangebyscore : (key : string , start : string , end : string) => void // check
   zcount    : (key : string , start : string , end : string) => number
 
   exists    : (key : string , ...keys : string[]) => boolean
@@ -258,9 +258,8 @@ export class RedisWrapper {
     return this._execute('zrevrangebyscore', redis_cmd) 
   }
 
-  async rwZremrangebyscore(key: string, start : string|number, end : string|number, withscore : boolean ) : Promise<Array<any>> {
+  async rwZremrangebyscore(key: string, start : string|number, end : string|number ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
-    if (withscore) redis_cmd.push ('WITHSCORES')
     return this._execute('zrevrangebyscore', redis_cmd) 
   }
 
