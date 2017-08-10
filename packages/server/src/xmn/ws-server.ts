@@ -70,6 +70,7 @@ export class WsServer {
     ci.url            = mainUrl
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)
+    //ci.lastEventTs    = 0
 
     ci.publicRequest  = mainUrl === WEB_SOCKET_URL.PUBLIC
     
@@ -128,7 +129,8 @@ class ServerWebSocket {
   }
 
   processMessage(rc: RunContextServer, data: string) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage() length:', data.length)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage() length:', data.length,
+            'key:', (<any>this.ci.headers)['sec-websocket-key'] )
 
     const decodedData = this.encProvider.decodeBody(rc, data)
     this.router.providerMessage(rc, this.ci, decodedData)

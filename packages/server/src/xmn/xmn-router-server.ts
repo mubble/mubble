@@ -139,7 +139,9 @@ export abstract class XmnRouterServer {
 
     try {
       if (!ci.lastEventTs && ci.lastEventTs !== 0) { // TODO: Need this to be removed once fixed..
-        rc.isWarn && rc.warn (rc.getName (this), '======ERROR====== Routing Event, ', wo.name, '@', wo.ts, 'ci.LastEventTs is', ci.lastEventTs)
+        rc.isWarn && rc.warn (rc.getName (this), '======ERROR====== Routing Event,', wo.name, '@', wo.ts, 
+            'ci.LastEventTs is', ci.lastEventTs)
+        ci.lastEventTs = 0
       }
       if (wo.ts > ci.lastEventTs) {
         const eventStruct = this.eventMap[wo.name]
