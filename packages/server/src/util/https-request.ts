@@ -164,3 +164,15 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       req.end()
     })
   }
+
+export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
+
+export function httpRequest(rc : RunContextServer , options : NCRequestOptions ) : Promise<{error : string | undefined, response: any, data : string | any }>
+  {
+    return new Promise<{error : string | undefined, response: any, data : string | any }>((resolve , reject)=>{
+      request(options , function(error , response , body){
+        resolve({error : error, response: response , data : body })
+      })
+  })
+
+}
