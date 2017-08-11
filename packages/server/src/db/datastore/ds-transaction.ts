@@ -219,8 +219,9 @@ export class DSTransaction {
 
       model.setIdFromKey(rc, key[0][0])
       datastoreKey = key[0][0]
+    } else {
+      model.setId(id)
     }
-
     this._transaction.save({key: datastoreKey, data: newRec})
 
     // Check for Child Entities

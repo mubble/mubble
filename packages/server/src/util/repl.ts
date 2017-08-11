@@ -55,7 +55,7 @@ export abstract class Repl {
       this.replServer = repl.start({prompt: 'mubble > ', useGlobal: true})
       replHistory(this.replServer, process.env.HOME + '/.mubble-repl')
 
-      Object.assign(this.replServer.context, context)
+      Object.assign((this.replServer as any).context, context)
       this.replServer.on('exit', function () {
         resolve()
       })
@@ -65,8 +65,6 @@ export abstract class Repl {
       })
     })
   }
-
-
 
   _print(...args: any[]) {
     args.forEach((val, index) => {
@@ -119,7 +117,7 @@ export abstract class Repl {
   }
 }
 
-class ReplProvider {
+export class ReplProvider {
 
   // NOTE: Only a single API at any time. As only one resolver/rejecter is stored.
   private configSent = false

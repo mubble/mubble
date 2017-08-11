@@ -13,7 +13,7 @@ export {
        }                      from './cluster/master'
 export *                      from './xmn'
 export *                      from './rc-server'
-export {Repl}                 from './util/repl'
+export {Repl, ReplProvider}   from './util/repl'
 export *                      from './util/user-info'
 export *                      from './util/execute'
 export *                      from './util/script'
