@@ -127,7 +127,7 @@ export abstract class XmnRouterBrowser {
     this.ci.location        = this.getLocation(rc)
     this.ci.clientIdentity  = this.getClientIdentity(rc)
     this.ci.publicRequest   = !this.ci.clientIdentity
-    this.ci.provider        = new WsBrowser(rc, this.ci, this)
+    if (!this.ci.provider) this.ci.provider = new WsBrowser(rc, this.ci, this)
   }
 
   private async initEvents() {
