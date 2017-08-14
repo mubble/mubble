@@ -91,6 +91,8 @@ class HttpServerProvider {
     let body: any
     if (req.method === 'GET') {
       body = querystring.parse(urlObj.query || '')
+    } else if (req.method === 'HEAD'){
+      body = {data : ''}
     } else { // POST
       body = await this.parseBody(rc)
     }
@@ -143,7 +145,6 @@ class HttpServerProvider {
             const resp = JSON.parse(body)
             resolve(resp)
           } catch(err) {
-            // Todo : separate logic for head request. (echo)
             rc.isDebug() && rc.debug(rc.getName(this), 'Could not parse body. Will be available as data')
             resolve({data: body} as object)
           }
