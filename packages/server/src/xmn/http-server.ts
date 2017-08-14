@@ -54,7 +54,7 @@ export class HttpServer {
   }
 }
 
-const SUPPORTED_METHODS = ['GET', 'POST']
+const SUPPORTED_METHODS = ['HEAD','GET', 'POST']
 
 
 class HttpServerProvider {
@@ -83,7 +83,7 @@ class HttpServerProvider {
           wr  = new WireRequest(urlName, {}, Date.now())
 
     if (SUPPORTED_METHODS.indexOf(req.method || '') === -1) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'Rejecting request with invalid method', req.method)
+      rc.isWarn() && rc.warn(rc.getName(this), 'Rejecting request with invalid method', req.method, urlName)
       this.rejectRequest(rc)
       return null
     }
@@ -143,6 +143,7 @@ class HttpServerProvider {
             const resp = JSON.parse(body)
             resolve(resp)
           } catch(err) {
+            // Todo : separate logic for head request. (echo)
             rc.isDebug() && rc.debug(rc.getName(this), 'Could not parse body. Will be available as data')
             resolve({data: body} as object)
           }
@@ -161,6 +162,6 @@ class HttpServerProvider {
 
     const res = this.res
     res.writeHead(200)
-
+    res.end()
   }
 }
