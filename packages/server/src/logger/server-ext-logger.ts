@@ -14,22 +14,32 @@ import * as mkdirp                         from 'mkdirp'
 
 import {LOG_LEVEL  
         , format , set ,
-        ExternalLogger }                    from '@mubble/core'
+        ExternalLogger , 
+        Mubble }                           from '@mubble/core'
+//import {isClusterMaster}                   from '@mubble/server'        
 import {RunContextServer}                  from '../rc-server'
 
-const ONE_DAY_MS  : number  = 1 * 24 * 60 * 60 * 1000 
-const LOG_LEVEL_ACCESS : number = 10
+const ONE_DAY_MS  : number  = 1 * 24 * 60 * 60 * 1000 ,
+      ONE_MINUTE_MS : number = 1 * 60 * 1000
 
-function asNumber(level : LOG_LEVEL) : number {
-  return level as number 
+const TZ_OFF_SET : number = -330
+
+const ROTATION : Mubble.uObject<{TIMESTAMP_FORMAT : string , MS : number}> = {
+  PER_DAY : {TIMESTAMP_FORMAT : '%yy%-%mm%-%dd%' , MS : ONE_DAY_MS},
+  PER_MINUTE : {TIMESTAMP_FORMAT : '%yy%-%mm%-%dd%-%hh%:%MM%' , MS : ONE_MINUTE_MS},
+  PER_FIVE_MINUTE : {TIMESTAMP_FORMAT : '%yy%-%mm%-%dd%-%hh%:%MM%' , MS : ONE_MINUTE_MS*5}
 }
+
+const ROTATION_LOGIC : string = 'PER_DAY'
+          
+const LOG_LEVEL_ACCESS : number = 10
 
 const Log_Level_Map : number[][] = []
 
 export class RcServerExtLogger extends ExternalLogger {
 
   private logPath     : string
-  private dateNum     : number = -1
+  private dateTs      : string = ''
 
   private loggerMap   : FileEntry[] = []
   private timerId     : any
@@ -44,35 +54,36 @@ export class RcServerExtLogger extends ExternalLogger {
     await mkdirp.sync(path.join(this.logPath , 'session'))
 
 
-    Log_Level_Map[asNumber(LOG_LEVEL.DEBUG)]  = [asNumber(LOG_LEVEL.DEBUG)]
-    Log_Level_Map[asNumber(LOG_LEVEL.STATUS)] = [asNumber(LOG_LEVEL.DEBUG)]
-    Log_Level_Map[asNumber(LOG_LEVEL.WARN)]   = [asNumber(LOG_LEVEL.DEBUG) , asNumber(LOG_LEVEL.ERROR)]
-    Log_Level_Map[asNumber(LOG_LEVEL.ERROR)]  = [asNumber(LOG_LEVEL.DEBUG) , asNumber(LOG_LEVEL.ERROR)]
+    Log_Level_Map[LOG_LEVEL.DEBUG]  = [LOG_LEVEL.DEBUG]
+    Log_Level_Map[LOG_LEVEL.STATUS] = [LOG_LEVEL.DEBUG]
+    Log_Level_Map[LOG_LEVEL.WARN]   = [LOG_LEVEL.DEBUG , LOG_LEVEL.ERROR]
+    Log_Level_Map[LOG_LEVEL.ERROR]  = [LOG_LEVEL.DEBUG , LOG_LEVEL.ERROR]
     // No logging for Log level NONE
-    Log_Level_Map[asNumber(LOG_LEVEL.NONE)]   = []
+    Log_Level_Map[LOG_LEVEL.NONE]   = []
 
     Log_Level_Map[LOG_LEVEL_ACCESS]           = [LOG_LEVEL_ACCESS]
 
     this.setLogger()
-
   }
 
   private setRotationTimer() {
-    const dateStr : string = format(new Date() , '%yy%-%mm%-%dd%') ,
-          currDate : Date  = new Date()
+    const currDate = new Date() ,
+          currTime = currDate.getTime() + (currDate.getTimezoneOffset() - TZ_OFF_SET) * 60 * 1000 
     
-    set(currDate , dateStr , '%yy%-%mm%-%dd%')
-    const nextDateMs : number = currDate.getTime() + ONE_DAY_MS 
-    
-    this.timerId = setTimeout( this.setLogger.bind(this) , nextDateMs - Date.now())
+    const rem = ROTATION[ROTATION_LOGIC].MS - (currTime % ROTATION[ROTATION_LOGIC].MS)
+    //console.log('setRotationTimer ', format(new Date(), '%dd%/%mm% %hh%:%MM%:%ss%.%ms%' , TZ_OFF_SET) , rem , Date.now())
+    this.timerId = setTimeout( this.setLogger.bind(this) , rem +2000) // +2 second to be on safe side
   }
 
   private setLogger() {
-    
-    const date : number = new Date().getDate()
-    if(date === this.dateNum) return
-    const dateStr : string = format(new Date() , '%yy%-%mm%-%dd%')
-    
+    const dateStr : string = format(new Date() , ROTATION[ROTATION_LOGIC].TIMESTAMP_FORMAT , TZ_OFF_SET)
+    //console.log('date str is ',dateStr , this.dateTs , format(new Date(), '%dd%/%mm% %hh%:%MM%:%ss%.%ms%' , TZ_OFF_SET) )
+    if(dateStr === this.dateTs) {
+      this.setRotationTimer()
+      return
+    }
+    this.dateTs = dateStr
+
     const oldLoggerMap : FileEntry[] = this.loggerMap
     this.loggerMap = []
 
@@ -80,14 +91,15 @@ export class RcServerExtLogger extends ExternalLogger {
           errLogentry   : FileEntry = this.getNewFileEntry(dateStr , 'error') ,
           accLogEntry   : FileEntry = this.getNewFileEntry(dateStr , 'access') 
 
-     this.loggerMap[asNumber(LOG_LEVEL.DEBUG)] =  debugLogEntry
-     this.loggerMap[asNumber(LOG_LEVEL.ERROR)] =  errLogentry
-     this.loggerMap[LOG_LEVEL_ACCESS]          =  accLogEntry
+     this.loggerMap[LOG_LEVEL.DEBUG]  =  debugLogEntry
+     this.loggerMap[LOG_LEVEL.ERROR]  =  errLogentry
+     this.loggerMap[LOG_LEVEL_ACCESS] =  accLogEntry
      
       oldLoggerMap.forEach((entry : FileEntry) => {
         if(entry) entry.closeEntry()
       })
-    this.setRotationTimer() 
+    
+    this.setRotationTimer()    
   }
 
   private getNewFileEntry(dateStr : string , loglevel : string ) : FileEntry {
@@ -98,7 +110,7 @@ export class RcServerExtLogger extends ExternalLogger {
 
   public log(level : LOG_LEVEL , logMsg: string ) {
     
-    const loggerIndexes : number[] = Log_Level_Map[asNumber(level)]
+    const loggerIndexes : number[] = Log_Level_Map[level]
     loggerIndexes.forEach((index : number)=>{
       
       const entry : FileEntry = this.loggerMap[index]
@@ -131,7 +143,7 @@ export class RcServerExtLogger extends ExternalLogger {
 
   public sessionLog(sessionLogBuf: string, sessionFileName: string): void {
     const filename : string = path.join(this.logPath , 'session', sessionFileName) + '.log'
-    fs.writeFile(filename , sessionLogBuf , {flag: 'a'} , ()=>{/*do nothing*/})
+    fs.writeFile(filename , sessionLogBuf , {flag: 'a'} , (err)=>{console.error('log writing error',err)})
   }
 
   public accessLog(logBuf: string): void {
