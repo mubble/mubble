@@ -143,7 +143,9 @@ export class RcServerExtLogger extends ExternalLogger {
 
   public sessionLog(sessionLogBuf: string, sessionFileName: string): void {
     const filename : string = path.join(this.logPath , 'session', sessionFileName) + '.log'
-    fs.writeFile(filename , sessionLogBuf , {flag: 'a'} , (err)=>{console.error('log writing error',err)})
+    fs.writeFile(filename , sessionLogBuf , {flag: 'a'} , (err)=>{
+      if(err){console.error('log writing error',err)}
+    })
   }
 
   public accessLog(logBuf: string): void {
