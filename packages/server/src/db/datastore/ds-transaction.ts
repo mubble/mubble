@@ -85,7 +85,7 @@ export class DSTransaction {
           childEntities = model._childEntities
 
     if (!entityRec[0]) {
-      if (!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${id}`))
+      if (!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `[Kind: ${kindName}, Id: ${id}]`))
       return
     }
     model.deserialize(rc, entityRec[0])
