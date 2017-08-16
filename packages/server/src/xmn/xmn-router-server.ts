@@ -77,44 +77,68 @@ export abstract class XmnRouterServer {
     return i === -1 ? ip : ip.substr(i + 1).trim()
   }
 
-  providerMessage(rc: RunContextServer, ci: ConnectionInfo, arData: any[]) {
-
+  providerMessage(refRc: RunContextServer, ci: ConnectionInfo, arData: WireObject[]) {
+    
     for (const wo of arData) {
-
-      rc.isDebug() && rc.debug(rc.getName(this), 'providerMessage', wo)
-
+      
+      const rc : RunContextServer = refRc.copyConstruct('', refRc.contextName)
+      if(wo.type === WIRE_TYPE.REQUEST || wo.type === WIRE_TYPE.EVENT ){
+        rc.isDebug() && rc.debug(rc.getName(this), 'providerMessage', wo)
+      }
+      
+      let wPrResp : Promise<WireObject> | undefined 
       switch (wo.type) {
 
         case WIRE_TYPE.REQUEST:
-        this.routeRequest(rc, ci, wo)
+        wPrResp = this.routeRequest(rc, ci, wo)
         break
 
         case WIRE_TYPE.EVENT:
-        this.routeEvent(rc, ci, wo)
+        wPrResp = this.routeEvent(rc, ci, wo)
         break
 
         case WIRE_TYPE.EVENT_RESP:
         case WIRE_TYPE.REQ_RESP:
+        case WIRE_TYPE.SYS_EVENT:
         rc.isDebug() && rc.debug(rc.getName(this), 'Received', wo)
         break
+      }
+
+      if(wPrResp){
+        wPrResp.then ( (resp : WireObject)=>{
+          if(wo && resp && (resp.type === WIRE_TYPE.EVENT_RESP || resp.type === WIRE_TYPE.REQ_RESP)){
+            rc.finish(ci ,  resp as any , wo)
+          }
+        })
+      }else{
+        if(
+          (wo.type === WIRE_TYPE.EVENT_RESP) || 
+          (wo.type === WIRE_TYPE.REQ_RESP) || 
+          (wo.type === WIRE_TYPE.SYS_EVENT) 
+        ){
+          rc.finish(ci , null as any , wo)
+        }
       }
     }
   }
 
-  providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
-    this.connectionClosed(rc, ci)
+  async providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
+    await this.connectionClosed(rc, ci)
+    rc.finish(ci , null as any , null as any)
   }
   
-  providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
-    this.connectionClosed(rc, ci)
+  async providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
+    await this.connectionClosed(rc, ci)
+    rc.finish(ci , null as any , null as any)
   }
 
   abstract connectionClosed(rc: RunContextServer, ci: ConnectionInfo): void
 
-  async routeRequest(rc: RunContextServer, ci : ConnectionInfo, wo: WireObject) {
-
+  async routeRequest(rc: RunContextServer, ci : ConnectionInfo, wo: WireObject) : Promise<WireReqResp> {
+    
+    let wResp : WireReqResp  = null as any
     try {
-      const reqStruct = this.apiMap[wo.name]
+      const reqStruct = this.apiMap[wo.name] 
       rc.isDebug() && rc.debug(rc.getName(this), wo, reqStruct)
       
       if (!reqStruct) throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
@@ -125,18 +149,23 @@ export abstract class XmnRouterServer {
         params  : wo.data
       } as InvocationData
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
-      this.sendToProvider(rc, ci, new WireReqResp(ir.name, wo.ts, resp) , wo)
+      wResp = new WireReqResp(ir.name, wo.ts, resp)
+      this.sendToProvider(rc, ci, wResp , wo)
 
     } catch (err) {
       let errStr = (err instanceof Error) ? err.message : err
       rc.isError() && rc.error(rc.getName(this), err)
-      this.sendToProvider(rc, ci, new WireReqResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr) , wo)
+      wResp = new WireReqResp(wo.name, wo.ts, 
+                       {error: err.message || err.name}, errStr)
+      this.sendToProvider(rc, ci, wResp , wo)
+    }finally{
+      return wResp
     }
  }
 
-  async routeEvent(rc: RunContextServer, ci: ConnectionInfo, wo: WireObject) {
-
+  async routeEvent(rc: RunContextServer, ci: ConnectionInfo, wo: WireObject) : Promise<WireEventResp> {
+    
+    let wResp : WireEventResp  = null as any
     try {
       if (!ci.lastEventTs && ci.lastEventTs !== 0) { // TODO: Need this to be removed once fixed..
         rc.isWarn && rc.warn (rc.getName (this), '======ERROR====== Routing Event,', wo.name, '@', wo.ts, 
@@ -154,15 +183,18 @@ export abstract class XmnRouterServer {
 
         await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
-
-      this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts) , wo)
+      wResp = new WireEventResp(wo.name, wo.ts)
+      this.sendEventResponse(rc, ci, wResp , wo)
 
     } catch (err) {
       
       let errStr = (err instanceof Error) ? err.message : err
       rc.isError() && rc.error(rc.getName(this), err)
-      this.sendEventResponse(rc, ci, new WireEventResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr ) ,wo)
+      wResp = new WireEventResp(wo.name, wo.ts, 
+                       {error: err.message || err.name}, errStr )
+      this.sendEventResponse(rc, ci, wResp  ,wo)
+    }finally{
+      return wResp
     }
   }
 
@@ -183,16 +215,6 @@ export abstract class XmnRouterServer {
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
     }
-    
-    try{
-      if(request && (response.type === WIRE_TYPE.EVENT_RESP || response.type === WIRE_TYPE.REQ_RESP)){
-          rc.finish(ci ,  response as any , request )
-      }
-    }
-    catch(err){
-      console.log('rc finish err',err)
-    }
-    
   }
 
   upgradeClientIdentity(rc   : RunContextServer, 

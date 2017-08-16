@@ -90,7 +90,7 @@ export class WsServer {
 class ServerWebSocket {
 
   private configSent = false
-
+  
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
               private encProvider : EncProviderServer,
@@ -132,7 +132,7 @@ class ServerWebSocket {
     rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage() length:', data.length,
             'key:', (<any>this.ci.headers)['sec-websocket-key'] )
 
-    const decodedData = this.encProvider.decodeBody(rc, data)
+    const decodedData : WireObject[] = this.encProvider.decodeBody(rc, data)
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
@@ -148,14 +148,14 @@ class ServerWebSocket {
   }
 
   onError(err: any) {
-    const rc = this.refRc.copyConstruct('', 'ws-request')
-    rc.isWarn() && rc.warn(rc.getName(this), 'Websocket onError()', err)
+    const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')
+    rc.isError() && rc.error(rc.getName(this), 'Websocket onError()', err)
     this.cleanup()
     this.router.providerFailed(rc, this.ci)
   }
 
   onClose() {
-    const rc = this.refRc.copyConstruct('', 'ws-request')
+    const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')
     rc.isDebug() && rc.debug(rc.getName(this), 'Websocket onClose()')
     this.cleanup()
     this.router.providerClosed(rc, this.ci)
@@ -173,6 +173,5 @@ class ServerWebSocket {
 
   private cleanup() {
     this.ci.provider = null
-  }  
-  
+  }
 }
