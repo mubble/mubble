@@ -32,6 +32,15 @@ export class UserKeyValue {
     this.deserialize(this.users[this.lastClientId])
   }
 
+  switchNewUser(rc: RunContextBrowser, clientId: number, 
+    userLinkId: string, userName: string) {
+
+    this._clientId    = clientId
+    this._userLinkId  = userLinkId
+    this.userName     = userName
+    this.save(rc)
+  }
+
   switchUserOnNextRun(clientId: number) {
     this.lastClientId = clientId
     localStorage.setItem(LAST_USER, String(this.lastClientId))
