@@ -8,6 +8,8 @@
 ------------------------------------------------------------------------------*/
 
 import * as lo                from 'lodash'
+import * as crypto            from 'crypto'
+
 import {
         MasterCache 
        }                      from './ma-types'
@@ -134,7 +136,7 @@ export class MasterInMemCache {
     if(this.cache){
       const size : number = lo.size(data)
       if(size) assert(dInfo!=null , 'Digest Info Missing for master with data',mastername, size)
-      else assert(dInfo==null , 'Digest Info present for master without data', dInfo, mastername)
+      else assert( (dInfo==null) || dInfo.fileDigest === (crypto.createHash('md5').update(JSON.stringify([])).digest('hex'))  , 'Digest Info present for master without data', dInfo, mastername)
 
       if(!size) {
         debug(rc , 'Nothing to populate in memory cache for master',mastername)
