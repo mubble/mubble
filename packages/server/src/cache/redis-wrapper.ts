@@ -62,7 +62,7 @@ export interface RedisCmds {
   mget      : (...args : string[]) => string []
   mset      : redis_async_func
 
-  hdel      : (args : string[]) => void
+  hdel      : (key : string , ...args : string[]) => void
   hget      : (key : string , field : string) => string 
   hgetall   : (key : string) => {[key:string] : string}
   hscan     : (key : string , ...args : string[]) => [string, string []] // TODO: Check the return value 
