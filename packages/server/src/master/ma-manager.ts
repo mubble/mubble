@@ -135,7 +135,6 @@ export class MasterMgr {
     assert(memCache.cache , 'master ',mastername , 'is not not cached')
     return memCache.hash as Mubble.uObject<T>
   }
-
   /*
   Actions : 
   0. MasterRegistry init. Verify all master registries
@@ -432,11 +431,11 @@ export class MasterMgr {
 
       assert(memcache!=null , 'Unknown master data sync request ',mastername)
       
-      assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
+      memcache.hasRecords() && assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
       
       if(memcache.cache && !memcache.hasRecords() ){
         // No Data in this master
-        assert(synInfo.ts ===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
+        assert(memcache.latestRecTs()===0 || synInfo.ts===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts , memcache.latestRecTs())
 
       }else if( /*synInfo.modelDigest !== memcache.digestInfo.modelDigest ||*/
                 synInfo.ts < memcache.getMinTS()) 
