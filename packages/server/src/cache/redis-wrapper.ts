@@ -40,12 +40,13 @@ export type redis_command = 'del'     | 'expire'      | 'get'              | 'in
                             'publish' | 'unsubscribe' | 'zrevrangebyscore' | 'hset'  | 'setex'   |
                             'watch'   | 'unwatch'     | 'zrangebyscore'    | 'mset'  | 'ttl'     | 
                             'scan'    | 'sscan'       | 'hscan'            | 'zscan' | 'quit'    |
-                            'exists'  |  'info'       | 'zremrangebyscore' | 'zcount'| 'flushall'
+                            'exists'  |  'info'       | 'zremrangebyscore' | 'zcount'| 'flushall'|
+                            'hsetnx'
 
 export const redis_commands : string[] =  
 ['del'   , 'expire'  , 'get'   , 'hdel'   , 'hget'   , 'hgetall'  , 'hmget'         , 'hmset',
  'hset'  , 'hincrby' , 'hscan' , 'zadd'   , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem' ,
- 'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore'
+ 'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore' , 'hsetnx'
  ]                            
                              
 export type redis_async_func     = (...args : string[]) => void
@@ -68,7 +69,8 @@ export interface RedisCmds {
   hscan     : (key : string , ...args : string[]) => [string, string []] // TODO: Check the return value 
   hmget     : (key : string , ...args : string[]) => string []
   hmset     : (key : string , ...args : string[] ) => void
-  hset      : (key : string , field : string , value : string) => void
+  hset      : (key : string , field : string , value : string | number) => number
+  hsetnx      : (key : string , field : string , value : string | number) => number
   hincrby   : (key : string , field : string, incr : number) => number 
   
   // z sorted set apis 
