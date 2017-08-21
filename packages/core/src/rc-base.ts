@@ -267,7 +267,12 @@ export abstract class RCLoggerBase {
       const fn = obj as Function
       return maxLevels === pendingLevels ? fn.toString() : 'function ' + fn.name
     }
-
+    //console.log(`obj: ${obj} ,${typeof(obj)}, ${obj.toString()} , ${typeof(obj.toString())}`)
+    if (!isArray && typeof(obj.toString) === 'function' && typeof(obj.toString())=== 'number') {
+      //console._log('toString did not match', obj.toString, ({}).toString)
+      return obj.toString()
+    }
+    
     if (!isArray && typeof(obj.toString) === 'function' && (!(str = obj.toString()).startsWith('[object'))) {
       //console._log('toString did not match', obj.toString, ({}).toString)
       return str
