@@ -28,6 +28,8 @@ export const Segment = {
   version: 'version'
 }
 
+const SYNC_HASH = 'syncHashTable'
+
 class ModelField {
   constructor(public name: string,
               public type: 'string' | 'number' | 'boolean' | 'array' | 'object',
@@ -42,8 +44,17 @@ export abstract class MasterDb extends Dexie {
 
   static schemaKey    : Mubble.uObject<Mubble.uObject<ModelField>> = {}
   static schemaField  : Mubble.uObject<Mubble.uObject<ModelField>> = {}
+  static classMap     : Map<Function, string>                      = new Map()
 
   syncHashModels: SyncHashModels = {}
+
+  static registerModelClass(modelName: string, classFn: Function) {
+    this.classMap.set(classFn, modelName)
+  }
+
+  static getModelName(classFn: Function) {
+    return this.classMap.get(classFn)
+  }
 
   static registerSchema(modelName     : string,
                         fieldName     : string,
@@ -72,7 +83,7 @@ export abstract class MasterDb extends Dexie {
       && modelsWithKeys >= modelsWithFields, {modelsWithKeys, modelsWithFields})
 
 
-    const schema = {syncHashTable: 'model'}
+    const schema = {[SYNC_HASH]: 'model'}
     this.buildSchema(schema)
     // console.log(schema)
     this.version(1).stores(schema)
@@ -83,7 +94,7 @@ export abstract class MasterDb extends Dexie {
 
   public async init(rc: RunContextBrowser) {
 
-    const ar        = await this['syncHashTable'].toArray(),
+    const ar        = await this[SYNC_HASH].toArray(),
           modelMap  = MasterDb.schemaKey,
           models    = Object.keys(modelMap)
 
@@ -96,6 +107,13 @@ export abstract class MasterDb extends Dexie {
 
   public getSyncRequest(rc: RunContextBrowser): SyncRequest {
     return {hash: this.syncHashModels, segments: (rc.globalKeyVal.syncSegments as Segments)}
+  }
+
+  getTableForClass(rc: RunContextBrowser, classFn: Function) {
+
+    const modelName = MasterDb.getModelName(classFn)
+    rc.isAssert() && rc.assert(rc.getName(this), modelName, 'unknown class object', classFn)
+    return this.getTable(rc, modelName)
   }
 
   private verifySegmentVersion(rc: RunContextBrowser, version: string) {
@@ -156,7 +174,7 @@ export abstract class MasterDb extends Dexie {
     }
 
     this.syncHashModels[modelName] = modelData.hash
-    const syncHashTable = this['syncHashTable']
+    const syncHashTable = this[SYNC_HASH]
 
     await this.transaction('rw', syncHashTable, async() => {
       await syncHashTable.put({model: modelName, hash: modelData.hash})

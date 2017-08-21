@@ -44,8 +44,6 @@ export class InitConfigBrowser extends InitConfig {
     }
   }
 
-
-
 }
 
 export class RunStateBrowser extends RunState {
