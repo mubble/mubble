@@ -123,6 +123,8 @@ export class ReplProvider {
   private configSent = false
   private resolver    : any
   private rejecter    : any
+  private currWR      : WireObject
+  private currWE      : WireObject
 
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
@@ -143,6 +145,7 @@ export class ReplProvider {
             ts      : Date.now(),
             data    : param
           } as WireObject
+    this.currWR = wo
     try {
       let promise = this.start (rc)
       await this.router.routeRequest(rc, this.ci, wo)
@@ -161,6 +164,8 @@ export class ReplProvider {
             ts      : Date.now(),
             data    : param
           } as WireObject
+
+    this.currWE = wo
 
     try {
       let promise = this.start (rc)
@@ -189,8 +194,17 @@ export class ReplProvider {
         this.rejecter ('Invalid Response to client: WireObject data is undefined')
     }
     else {
+      const res = wo.type === 'EVENT_RESP' ? this.check(this.currWE, wo) : this.check(this.currWR, wo)
+      if (res) return
       rc.isDebug() && rc.debug (rc.getName (this), 'Sending Response to client: ', wo)
       this.resolver (wo)
     }
-  }  
+  } 
+
+  check(reqwo: WireObject, reswo: WireObject) {
+    if (reqwo.name !== reswo.name && reqwo.ts !== reswo.ts) return true
+    return false
+  }
 }
+
+
