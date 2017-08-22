@@ -659,7 +659,7 @@ export class MasterMgr {
     if(res.length) assert(res.length === 2 , '_getLatestRec invalid result ',res , master)
     else return {}
 
-    assert( lo.isNumber(lo.toNumber(res[1]))) , '_getLatestRec invalid result ', res , master)
+    assert( lo.isNumber(lo.toNumber(res[1])) , '_getLatestRec invalid result ', res , master)
     return {key : res[0] , ts: lo.toNumber(res[1])}
   }
 
