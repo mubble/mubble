@@ -49,38 +49,38 @@ export const redis_commands : string[] =
  'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore' , 'hsetnx'
  ]                            
                              
-export type redis_async_func     = (...args : string[]) => void
-export type redis_async_func_str = (...args : string[]) => string[]
-export type redis_async_func_arr = (key: string , ...args : string[]) => string []
-export type redis_async_func_map = (key : string) => {[key:string] : string}  //Map<string , string>
+export type redis_async_func     = (...args : string[]) => Promise<void>
+export type redis_async_func_str = (...args : string[]) => Promise<string[]>
+export type redis_async_func_arr = (key: string , ...args : string[]) => Promise<string []>
+export type redis_async_func_map = (key : string) => Promise<{[key:string] : string}>  //Map<string , string>
 
 export interface RedisCmds {
   
-  del       : (...args : string[]) => void
+  del       : (...args : string[]) => Promise<void>
   expire    : redis_async_func // check
-  get       : (key : string ) => string
+  get       : (key : string ) => Promise<string>
   incr      : redis_async_func // check
-  mget      : (...args : string[]) => string []
+  mget      : (...args : string[]) => Promise<string []>
   mset      : redis_async_func
 
-  hdel      : (key : string , ...args : string[]) => void
-  hget      : (key : string , field : string) => string 
-  hgetall   : (key : string) => {[key:string] : string}
-  hscan     : (key : string , ...args : string[]) => [string, string []] // TODO: Check the return value 
-  hmget     : (key : string , ...args : string[]) => string []
-  hmset     : (key : string , ...args : string[] ) => void
-  hset      : (key : string , field : string , value : string | number) => number
-  hsetnx      : (key : string , field : string , value : string | number) => number
-  hincrby   : (key : string , field : string, incr : number) => number 
+  hdel      : (key : string , ...args : string[]) => Promise<void>
+  hget      : (key : string , field : string) => Promise<string> 
+  hgetall   : (key : string) => Promise<{[key:string] : string}>
+  hscan     : (key : string , ...args : string[]) => Promise<[string, string []]> // TODO: Check the return value 
+  hmget     : (key : string , ...args : string[]) => Promise<string []>
+  hmset     : (key : string , ...args : string[] ) => Promise<void>
+  hset      : (key : string , field : string , value : string | number) => Promise<number>
+  hsetnx      : (key : string , field : string , value : string | number) => Promise<number>
+  hincrby   : (key : string , field : string, incr : number) => Promise<number> 
   
   // z sorted set apis 
-  zadd      : (key : string , option : string , ...scoreValuePairs : any[]) => number
-  zrange    : (key : string , start : number , end : number , withscore ?: string) => string[]
-  zrem      : (key : string , ...keys : string[]) => void // check
-  zremrangebyscore : (key : string , start : string , end : string) => void // check
-  zcount    : (key : string , start : string , end : string) => number
+  zadd      : (key : string , option : string , ...scoreValuePairs : any[]) => Promise<number>
+  zrange    : (key : string , start : number , end : number , withscore ?: string) => Promise<string[]>
+  zrem      : (key : string , ...keys : string[]) => Promise<void> // check
+  zremrangebyscore : (key : string , start : string , end : string) => Promise<void> // check
+  zcount    : (key : string , start : string , end : string) => Promise<number>
 
-  exists    : (key : string , ...keys : string[]) => boolean
+  exists    : (key : string , ...keys : string[]) => Promise<boolean>
   
 }
 
