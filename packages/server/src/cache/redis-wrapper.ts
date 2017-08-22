@@ -56,7 +56,7 @@ export type redis_async_func_map = (key : string) => {[key:string] : string}  //
 
 export interface RedisCmds {
   
-  del       : (...args : string[]) => void
+  del       : (...args : string[]) => number
   expire    : redis_async_func // check
   get       : (key : string ) => string
   incr      : redis_async_func // check
