@@ -28,6 +28,7 @@ import {
 import {RunContextServer}     from '../rc-server'
 import {MasterRegistry}       from './ma-registry'             
 import {MasterRegistryMgr}    from './ma-reg-manager'
+import {ModelConfig}          from './ma-model-config'  
 
 import {SyncHashModel , 
         SyncHashModels ,
@@ -107,7 +108,7 @@ export class MasterInMemCache {
   
   public modTSField          : string = MasterBaseFields.ModTs
   
-  public digestInfo          : DigestInfo = new DigestInfo('','',0 , '' , {})
+  public digestInfo          : DigestInfo = new DigestInfo('','', 0 , '' , {})
   //public lastUpdateTS        : number = lo.now()
 
   private getMaxTS() : number {
@@ -210,23 +211,51 @@ export class MasterInMemCache {
     return result
   }
 
-  public syncCachedData(rc : RunContextServer , syncInfo : SyncHashModel , purge : boolean ) : SyncModelResponse {
+  public syncCachedData(rc : RunContextServer , segments : Segments , syncInfo : SyncHashModel , purge : boolean ) : SyncModelResponse {
     
-    debug(rc , 'syncCachedData', syncInfo , purge)
-    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
+    const registry      : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername),
+          config        : ModelConfig = registry.config ,
+          configSegment  : {key : string , cols : string[]} | undefined = config.getSegment() 
     
-    // Get all the items >= syncInfo.ts
+    debug(rc , 'syncCachedData request', registry.mastername, syncInfo , purge)
+          
+    let segRef        : SegmentType = configSegment ? (segments || {})[configSegment.key] : []
+    segRef = segRef || []
+    let modelSeg     : SegmentType = syncInfo.ts ? (syncInfo.seg || []) : []
+    
+    let arrSame      : SegmentType = [] ,
+        arrPlus      : SegmentType = [] ,
+        arrMinus     : SegmentType = []
+    
+    if(configSegment) this.arrayDiff(segRef , modelSeg , arrPlus , arrMinus , arrSame)
+    
     const updates : any [] = [] ,
-          deletes : any [] = [] 
+          deletes : any [] = [] ,
+          segEqual : boolean =  (arrPlus.length > 0) || (arrMinus.length > 0)
     
     let   data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
     
-    // Todo : Seg Impl
+    if(arrMinus.length){ // some segments have been removed
+      syncInfo.ts = 0
+      purge = true
+      rc.isWarn() && rc.warn(rc.getName(this), 'destination sync remove old data', segRef , {model : registry.mastername , minus : arrMinus })
+    }else if(syncInfo.ts && arrPlus.length){
+      rc.isWarn() && rc.warn(rc.getName(this), 'destinationSync: add new data. Removing Old',segRef , {modelName: registry.mastername, plus: arrPlus })
+      // Not doing match segment for arrsame for ts > syncInfo.ts & arrPlus for ts > 0
+      // App is data heavy . why be so frugal with data
+      syncInfo.ts = 0
+      purge = true
+    }
+    
 
     for(const rec of this.records) {
       // should this be just < . let = comparison be there to be on safe side
-      if(rec[this.modTSField] <= syncInfo.ts) break
+      if(segEqual && syncInfo.ts && rec[this.modTSField] <= syncInfo.ts) break
       
+      if(configSegment){
+        if(!registry.masterInstance.matchSegment(rc , segRef , configSegment.cols , rec)) continue // segment does not match
+      }
+
       if(rec[MasterBaseFields.Deleted] === true){
         deletes.push(lo.pick(rec , registry.pkFields ))
       }else{
@@ -235,16 +264,14 @@ export class MasterInMemCache {
       }
     }
     
-    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
+    assert(configSegment!=null ||  (deletes.length!==0  || updates.length!==0) , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
 
     const synHash : SyncHashModel = {
-      ts            : this.digestInfo.modTs ,
-      seg           : syncInfo.seg
-      
+      ts            : this.digestInfo.modTs 
       /*modelDigest   : this.digestInfo.modelDigest ,
       dataDigest    : this.digestInfo.dataDigest,*/
-      
     }
+    if(configSegment) synHash.seg = segRef
     
     data = registry.masterInstance.syncGetModifications( rc , data )
     
@@ -255,12 +282,37 @@ export class MasterInMemCache {
       hash         : synHash
     }
     
-    debug(rc , 'syncCachedData' , synHash , updates.length , deletes.length , updates , deletes  )
+    debug(rc , 'syncCachedData response', registry.mastername , synHash , updates.length , deletes.length )
+    debug(rc , 'syncCachedData updates response', registry.mastername , updates.length ,  updates )
+    debug(rc , 'syncCachedData deletes response', registry.mastername , deletes.length  , deletes  )
 
     return syncResp
   }
+
+  /*
+  private addModDelRecs(rc : RunContextServer , modelObj : MasterBase, refTS : number , arSeg : SegmentType , colSeg : any[] , oRet : {mod : any [] , del : any []} , checkDuplicate : boolean ) {
+
+
+  }*/
+
+  private arrayDiff(arMain : SegmentType , arModel : SegmentType , arPlus : SegmentType , arMinus : SegmentType , arSame : SegmentType) {
+    
+    arMain.forEach(function(item : any[]) {
+      if (arModel.find((seg: any[])=>{ return lo.isEqual(seg , item)})) {
+        arSame.push(item)
+      } else {
+        arPlus.push(item)
+      }
+    })
+
+    arModel.forEach(function(item : any[]) {
+      if (arMain.find((seg: any[])=>{ return lo.isEqual(seg , item)})) {
+        arMinus.push(item)
+      }
+    })
+  }
   
-  public syncNonCachedData(rc : RunContextServer , masterData : Mubble.uObject<object> , syncInfo : SyncHashModel , purge : boolean  ) : SyncModelResponse {
+  public syncNonCachedData(rc : RunContextServer ,  segments : Segments  , masterData : Mubble.uObject<object> , syncInfo : SyncHashModel , purge : boolean  ) : SyncModelResponse {
     
     debug(rc , 'syncNonCachedData', syncInfo , purge)
     

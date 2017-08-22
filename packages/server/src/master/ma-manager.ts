@@ -433,12 +433,12 @@ export class MasterMgr {
       
       memcache.hasRecords() && assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
       
-      if(memcache.cache && !memcache.hasRecords() ){
+      if(memcache.cache && !memcache.hasRecords() && memcache.latestRecTs()>0 ){
         // No Data in this master
-        assert(memcache.latestRecTs()===0 || synInfo.ts===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts , memcache.latestRecTs())
+        assert(synInfo.ts===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
 
       }else if( /*synInfo.modelDigest !== memcache.digestInfo.modelDigest ||*/
-                synInfo.ts < memcache.getMinTS()) 
+        synInfo.ts && synInfo.ts < memcache.getMinTS()) 
       {
         MaMgrLog(rc , 'master digest change purging all',mastername , memcache.digestInfo.modelDigest)
         synInfo.ts = 0
@@ -456,6 +456,8 @@ export class MasterMgr {
 
     })
 
+    //rc.isDebug() && rc.debug(rc.getName(this), 'dataSyncRequired',dataSyncRequired)
+
     if(!dataSyncRequired.length) return resp
 
     for(const mastername of dataSyncRequired) {
@@ -463,11 +465,11 @@ export class MasterMgr {
       const memcache : MasterInMemCache = this.masterCache[mastername]
       
       if(memcache.cache){
-        resp[mastername] = memcache.syncCachedData(rc , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        resp[mastername] = memcache.syncCachedData(rc , syncReq.segments, syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }else{
         
         const masterData : Mubble.uObject<object> =  await this.listAllMasterData(rc , mastername)
-        resp[mastername] = memcache.syncNonCachedData(rc , masterData , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
+        resp[mastername] = memcache.syncNonCachedData(rc , syncReq.segments, masterData , syncReq.hash[mastername] , purgeRequired.indexOf(mastername) !== -1 )
       }
     }    
 

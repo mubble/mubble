@@ -214,8 +214,25 @@ export class MasterBase {
   }
 
   public matchSegment(context : RunContextServer, arClientSeg : any[][] , colSeg : string[] , rec : any) : boolean {
+    
+    if(!colSeg || !colSeg.length) return true  // No segment
+    
+    const arrVal : any[] = colSeg.map((val : string) => rec[val])
+    return !!arClientSeg.find((seg : any[])=>{
+      return lo.isEqual(seg , arrVal)
+    })
+  }
+  
+  public static matchSegmentStartEndVersion ( rc : RunContextServer, arClientSeg : any[][] , colSeg : string[] , rec : any) : boolean {
+    
+    if(!Array.isArray(arClientSeg) || !Array.isArray(arClientSeg[0]))  return false
+      const clientVersion  : string = arClientSeg[0][0]
+
+    if(semver.lt(clientVersion , rec.startVersion )) return false
+    if(rec.endVersion &&  semver.gt(clientVersion , rec.endVersion )) return false
+      
     return true
-  } 
+  }
 
   // not used - remove
   /*

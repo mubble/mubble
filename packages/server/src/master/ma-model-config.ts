@@ -70,6 +70,10 @@ export abstract class ModelConfig {
   public getDestSynFields() : {fields :  string [] , cache : boolean} {
     return this.destSynFields || {fields : [] , cache : false}
   }
+
+  public getSegment() : {key : string , cols : string[]} | undefined {
+    return this.segment
+  }
   
 }
 
