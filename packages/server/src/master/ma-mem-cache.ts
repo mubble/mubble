@@ -140,6 +140,7 @@ export class MasterInMemCache {
       else assert( (dInfo==null) || dInfo.fileDigest === (crypto.createHash('md5').update(JSON.stringify([])).digest('hex'))  , 'Digest Info present for master without data', dInfo, mastername)
 
       if(!size) {
+        if(dInfo!=null) this.digestInfo = dInfo
         debug(rc , 'Nothing to populate in memory cache for master',mastername)
         return
       }

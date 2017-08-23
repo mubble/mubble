@@ -17,7 +17,8 @@ export abstract class GlobalKeyValue {
   @GlobalKeyValue.autoStore() appVersion    : string
   @GlobalKeyValue.autoStore() jsVersion     : string
   @GlobalKeyValue.autoStore() syncSegments  : object
-
+  @GlobalKeyValue.autoStore() logLevel      : number
+  
   public static autoStore(): any {
 
     return function(target: any, propertyKey: string) {

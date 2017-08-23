@@ -655,11 +655,11 @@ export class MasterMgr {
     
     const redisTskey : string = CONST.REDIS_NS + CONST.REDIS_TS_SET + master
     const position : number = oldest ? 0 : -1
-    const res : string[] = redis.redisCommand().zrange(redisTskey , position , position , CONST.WITHSCORES)
+    const res : string[] = await redis.redisCommand().zrange(redisTskey , position , position , CONST.WITHSCORES)
     if(res.length) assert(res.length === 2 , '_getLatestRec invalid result ',res , master)
     else return {}
 
-    assert(lo.isNumber(res[1]) , '_getLatestRec invalid result ', res , master)
+    assert( lo.isNumber(lo.toNumber(res[1])) , '_getLatestRec invalid result ', res , master)
     return {key : res[0] , ts: lo.toNumber(res[1])}
   }
 
