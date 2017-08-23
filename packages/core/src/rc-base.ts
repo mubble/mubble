@@ -6,7 +6,9 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import      {format}              from './util/date'
+import * as lo                      from 'lodash'  
+
+import  {format}                    from './util/date'
 import {
   ConnectionInfo, 
   WireEventResp,
@@ -196,6 +198,14 @@ export abstract class RCLoggerBase {
         // Error.name typically has class name of the ErrorCLass like EvalError
         // Error.message has the user readable message, this is also included in the stack
         strVal = val.stack || `Error ${val.name}: ${val.message} (no stack)`
+        let errObj = lo.omit(val , ['message'])
+        if(lo.keysIn(errObj).length){
+          strVal = this.objectToString(errObj , 5) + ' '+ strVal
+        }
+        if(val.message && strVal.indexOf(val.message)==-1){
+          // case when stack does not contain the message
+          strVal = val.message + ' '+ strVal
+        }
       } else if (val && (typeof(val) === 'object')) {
         strVal = this.objectToString(val, 2)
       } else {
