@@ -73,10 +73,11 @@ export abstract class XmnRouterBrowser {
   }
 
   async setNetwork(netType: string) {
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'setNetwork', netType)
     if (netType) {
       this.prepareConnection(this.rc)
-      await this.initEvents()
-      this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
+      if (await this.initEvents()) this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
     }
   }
 
@@ -108,21 +109,28 @@ export abstract class XmnRouterBrowser {
   async sendEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
     if (!this.ci.provider) this.prepareConnection(rc)
+      const clientIdentity = this.ci.clientIdentity
 
-    const clientIdentity = this.ci.clientIdentity
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendEvent', eventName, 
+      'clientIdentity', clientIdentity && clientIdentity.clientId)
+
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
       'You cannot send events without clientId')
-    await this.initEvents()
 
-    const event = new WireEvent(eventName, data)
+    if (await this.initEvents()) {
 
-    const eventTable = new EventTable(event)
-    await eventTable.save(this.db)
-    await this.trySendingEvents(rc)
+      const event      = new WireEvent(eventName, data),
+            eventTable = new EventTable(event)
+
+      await eventTable.save(this.db)
+      await this.trySendingEvents(rc)
+    }
+
   }
 
   private prepareConnection(rc: RunContextBrowser) {
 
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.ci.provider)
     this.ci.networkType     = this.getNetworkType(rc)
     this.ci.location        = this.getLocation(rc)
     this.ci.clientIdentity  = this.getClientIdentity(rc)
@@ -134,10 +142,13 @@ export abstract class XmnRouterBrowser {
 
     const clientIdentity = this.ci.clientIdentity
 
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'initEvents', !!this.db)
+
     if (!this.db && clientIdentity && clientIdentity.clientId) {
       this.db = new XmnDb(this.ci.clientIdentity.clientId)
       await EventTable.removeOldByTs(this.rc, this.db, Date.now() - 7 * 24 * 3600000 /* 7 days */)
     }
+    return !!this.db
   }
 
   private async trySendingEvents(rc: RunContextBrowser) {
@@ -149,6 +160,8 @@ export abstract class XmnRouterBrowser {
       })
       return
     }
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'trySendingEvents', !!this.db)
 
     const arEvent = await EventTable.getOldEvents(rc, this.db)
     if (!arEvent.length) return
@@ -175,12 +188,12 @@ export abstract class XmnRouterBrowser {
   }
 
   async providerReady() {
+
     this.cbTimerReqResend()
 
     const clientIdentity = this.ci.clientIdentity
     if (clientIdentity && clientIdentity.clientId) {
-      await this.initEvents()
-      this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
+      if (await this.initEvents()) this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
     }
   }
 

@@ -124,11 +124,11 @@ export abstract class MasterDb extends Dexie {
 
     const [[oldVersion]] = segments[Segment.version]
     if (oldVersion !== version) {
-      console.log('oldVersion, version', oldVersion, version)
+      rc.isDebug() && rc.debug(rc.getName(this), 'version changed', oldVersion, version)
       segments[Segment.version] = [[version]]
       rc.globalKeyVal.syncSegments = segments
     } else {
-      console.log('Versions are same', oldVersion, version)
+      rc.isDebug() && rc.debug(rc.getName(this), 'Versions are same', oldVersion, version)
     }
   }
 

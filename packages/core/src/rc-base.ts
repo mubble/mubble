@@ -124,7 +124,7 @@ export abstract class RunContextBase {
   }
 
   isAssert(): boolean {
-    return this.initConfig.runMode != RUN_MODE.PROD
+    return this.initConfig.runMode !== RUN_MODE.PROD
   }
 
   debug(moduleName: string, ...args: any[]) {
