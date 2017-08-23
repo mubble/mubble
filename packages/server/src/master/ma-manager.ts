@@ -450,8 +450,9 @@ export class MasterMgr {
         dataSyncRequired.push(mastername)
       
       }else {
+        rc.isDebug() && rc.debug(rc.getName(this), mastername , synInfo.ts , memcache.latestRecTs())
         // Both are in sync
-        assert(synInfo.ts === memcache.latestRecTs())
+        //assert(synInfo.ts === memcache.latestRecTs())
       }
 
     })
