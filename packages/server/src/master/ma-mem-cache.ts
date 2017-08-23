@@ -111,7 +111,7 @@ export class MasterInMemCache {
   public digestInfo          : DigestInfo = new DigestInfo('','', 0 , '' , {})
   //public lastUpdateTS        : number = lo.now()
 
-  private getMaxTS() : number {
+  public getMaxTS() : number {
     return this.records.length ?  lo.nth(this.records , 0)[this.modTSField] : 0
   } 
   
@@ -361,78 +361,6 @@ export class MasterInMemCache {
     debug(rc , 'syncNonCachedData' , synHash , updates.length , deletes.length , updates , deletes  )
 
     return syncResp
-  }
-  
-
-  public syncCachedDataOld(rc : RunContextServer , syncHash : Mubble.uObject<object> , syncData : Mubble.uObject<object> , syncInfo : SyncInfo , purge : boolean ) {
-    
-    debug(rc , 'syncCachedData', syncHash , syncData , syncInfo , purge)
-    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
-    
-    // Get all the items >= syncInfo.ts
-    const updates : any [] = [] ,
-          deletes : any [] = [] ,
-          data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
-    
-    // Todo : Seg Impl
-    this.records.forEach((rec : any)=>{
-      // should this be just < . let = comparison be there to be on safe side
-      if(rec[this.modTSField] <= syncInfo.ts) return
-
-      if(rec[MasterBaseFields.Deleted] === true){
-        deletes.push(registry.getIdObject(rec))
-      }else{
-        const destRec : any = lo.pick(rec , registry.destSyncFields )
-        updates.push(destRec)
-      }
-
-    })
-
-    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
-
-    syncHash[this.mastername] = {purge : purge , ts : this.digestInfo.modTs , 
-                                 seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
-                                 modelDigest : this.digestInfo.modelDigest  }
-    
-    syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
-    
-    debug(rc , 'syncCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
-  }
-
-  public syncNonCachedDataOld(rc : RunContextServer , masterData : Mubble.uObject<object> , syncHash : Mubble.uObject<object> , syncData : Mubble.uObject<object> , syncInfo : SyncInfo , purge : boolean ) {
-    
-    debug(rc , 'syncNonCachedData', syncHash , syncData , syncInfo , purge)
-    
-    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(this.mastername)
-    
-    // Get all the items >= syncInfo.ts
-    const updates : any [] = [] ,
-          deletes : any [] = [] ,
-          data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
-    
-    lo.forEach(masterData , (pk : string , rec : any) => {
-      
-      // should this be just < . let = comparison be there to be on safe side
-      if(rec[this.modTSField] <= syncInfo.ts) return
-
-      if(rec[MasterBaseFields.Deleted] === true){
-        deletes.push(registry.getIdObject(rec))
-      }else{
-        const destRec  : any = lo.pick(rec , registry.destSyncFields )
-        updates.push(destRec)
-      }
-
-    })
-
-    assert( deletes.length!==0  || updates.length!==0 , 'syncData Invalid results', this.mastername , syncInfo , this.digestInfo )
-
-    syncHash[this.mastername] = {purge : purge , ts : this.digestInfo.modTs , 
-                                 seg : syncInfo.seg , dataDigest : this.digestInfo.dataDigest , 
-                                 modelDigest : this.digestInfo.modelDigest  }
-    
-    syncData[this.mastername] = registry.masterInstance.syncGetModifications( rc , data )
-
-    debug(rc , 'syncNonCachedData' , syncHash[this.mastername] , updates.length , deletes.length , updates , deletes  )
   }
 
 }
