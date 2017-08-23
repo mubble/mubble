@@ -121,20 +121,21 @@ export class ReplProvider {
 
   // NOTE: Only a single API at any time. As only one resolver/rejecter is stored.
   private configSent = false
-  private resolver    : any
-  private rejecter    : any
-  private currWR      : WireObject
-  private currWE      : WireObject
+  private requests : { [index: string] : { rejecter: any, resolver: any }}
+  // private resolver    : any
+  // private rejecter    : any
+  // private currWR      : WireObject
+  // private currWE      : WireObject
 
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
               private router      : XmnRouterServer) {
   }
 
-  start(rc: RunContextServer) {
+  start(rc: RunContextServer, wo: WireObject) {
+    const apiSignature = wo.name + ':' + wo.type + ':' + wo.ts
     return new Promise ((resolve, reject) => {
-      this.resolver = resolve
-      this.rejecter = reject
+      this.requests[apiSignature] = { rejecter: reject, resolver: resolve }
     })
   }
 
@@ -145,14 +146,14 @@ export class ReplProvider {
             ts      : Date.now(),
             data    : param
           } as WireObject
-    this.currWR = wo
+    const apiSignature = wo.name + ':' + wo.type + ':' + wo.ts
     try {
-      let promise = this.start (rc)
+      let promise = this.start (rc, wo)
       await this.router.routeRequest(rc, this.ci, wo)
       const res = await promise
       return res
     } catch (e) {
-      console.log ('Error routing R', e)
+      console.log ('Error routing Request', e)
       throw e
     }
   }
@@ -165,10 +166,8 @@ export class ReplProvider {
             data    : param
           } as WireObject
 
-    this.currWE = wo
-
     try {
-      let promise = this.start (rc)
+      let promise = this.start (rc, wo)
       await this.router.routeEvent(rc, this.ci, wo)
       const res = await promise
       return res
@@ -185,26 +184,25 @@ export class ReplProvider {
       return
     }
 
+    const apiSignature = wo.name + ':' + wo.type + ':' + wo.ts
     if (wo && (<any>wo).error) {
       rc.isDebug() && rc.debug (rc.getName (this), 'Send Error to client: ', wo)
-      this.rejecter ((<any>wo).error)
+      this.requests[apiSignature].rejecter ((<any>wo).error)
     }
     else if (!wo.data) {
-        rc.isWarn() && rc.warn (rc.getName (this), 'Invalid Response to client: WireOBject data is undefined')
-        this.rejecter ('Invalid Response to client: WireObject data is undefined')
+        rc.isWarn() && rc.warn (rc.getName (this), 'Invalid Response to client: WireObject data is undefined')
+        this.requests[apiSignature].rejecter ('Invalid Response to client: WireObject data is undefined')
     }
     else {
-      const res = wo.type === 'EVENT_RESP' ? this.check(this.currWE, wo) : this.check(this.currWR, wo)
-      if (res) return
       rc.isDebug() && rc.debug (rc.getName (this), 'Sending Response to client: ', wo)
-      this.resolver (wo)
+      switch (wo.type) {
+        case 'REQ_RESP': case 'EVENT_RESP':
+          this.requests[apiSignature].resolver (wo)
+        case 'EVENT': default:
+          break
+      }
     }
   } 
-
-  check(reqwo: WireObject, reswo: WireObject) {
-    if (reqwo.name !== reswo.name && reqwo.ts !== reswo.ts) return true
-    return false
-  }
 }
 
 
