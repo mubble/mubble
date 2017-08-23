@@ -431,14 +431,15 @@ export class MasterMgr {
 
       assert(memcache!=null , 'Unknown master data sync request ',mastername)
       
-      memcache.hasRecords() && assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
+      assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
       
-      if(memcache.cache && !memcache.hasRecords() && memcache.latestRecTs()>0 ){
+      if(memcache.cache && !memcache.hasRecords() && !memcache.latestRecTs()){
         // No Data in this master
-        assert(synInfo.ts===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
-
+        assert( synInfo.ts===0  , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
+      
       }else if( /*synInfo.modelDigest !== memcache.digestInfo.modelDigest ||*/
-        synInfo.ts && synInfo.ts < memcache.getMinTS()) 
+        synInfo.ts && ( (synInfo.ts < memcache.getMinTS()) || 
+                        (memcache.cache && !memcache.hasRecords()) )) 
       {
         MaMgrLog(rc , 'master digest change purging all',mastername , memcache.digestInfo.modelDigest)
         synInfo.ts = 0
@@ -451,7 +452,7 @@ export class MasterMgr {
       
       }else {
         // Both are in sync
-        assert(synInfo.ts === memcache.latestRecTs())
+        assert(synInfo.ts === memcache.latestRecTs() , "syncInfo ts and master Latest Ts not in match",mastername , memcache.records.length , synInfo.ts , memcache.latestRecTs() , memcache.getMinTS() , memcache.getMaxTS() )
       }
 
     })
@@ -475,62 +476,6 @@ export class MasterMgr {
 
     return resp
   }
-
-  
-  public async destinationSyncOld (rc : RunContextServer , syncMap : Mubble.uObject<SyncInfo> ) {
-    
-    const response : {syncHash : Mubble.uObject<object> , syncData : Mubble.uObject<object> } = {syncHash : {} , syncData : {}}
-    
-    // check if there is any new data sync required
-    const dataSyncRequired : string [] = [] ,
-          purgeRequired    : string [] = []
-    
-    lo.forEach(syncMap , (synInfo : SyncInfo , mastername : string) =>{
-      
-      const memcache : MasterInMemCache = this.masterCache[mastername]
-
-      assert(memcache!=null , 'Unknown master data sync request ',mastername)
-      assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
-      
-      if(memcache.cache && !memcache.hasRecords() ){
-        // No Data in this master
-        assert(synInfo.ts ===0 , 'No data in master ',mastername , 'last ts can not ', synInfo.ts)
-
-      }else if( synInfo.modelDigest !== memcache.digestInfo.modelDigest ||
-                synInfo.ts < memcache.getMinTS()) 
-      {
-        MaMgrLog(rc , 'master digest change purging all',mastername , synInfo.modelDigest , memcache.digestInfo.modelDigest)
-        synInfo.ts = 0
-        dataSyncRequired.push(mastername)
-        purgeRequired.push(mastername)
-
-      }else if(synInfo.ts < memcache.latestRecTs()) {
-        // sync required
-        dataSyncRequired.push(mastername)
-      
-      }else {
-        // Both are in sync
-        assert(synInfo.ts === memcache.latestRecTs())
-      }
-
-    })
-
-    if(!dataSyncRequired.length) return response
-
-    for(const mastername of dataSyncRequired) {
-      
-      const memcache : MasterInMemCache = this.masterCache[mastername]
-      if(memcache.cache){
-        memcache.syncCachedDataOld(rc , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
-      }else{
-        
-        const masterData : Mubble.uObject<object> =  await this.listAllMasterData(rc , mastername)
-        memcache.syncNonCachedDataOld(rc , masterData , response.syncHash , response.syncData , syncMap[mastername] , purgeRequired.indexOf(mastername) !== -1 )
-      }
-    }
-    
-  }
-
 
   // Update the mredis with required changes 
   private async applyData(rc : RunContextServer , results : object[] , masterCache : MasterCache  , todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}}  ) {
@@ -655,11 +600,11 @@ export class MasterMgr {
     
     const redisTskey : string = CONST.REDIS_NS + CONST.REDIS_TS_SET + master
     const position : number = oldest ? 0 : -1
-    const res : string[] = redis.redisCommand().zrange(redisTskey , position , position , CONST.WITHSCORES)
+    const res : string[] = await redis.redisCommand().zrange(redisTskey , position , position , CONST.WITHSCORES)
     if(res.length) assert(res.length === 2 , '_getLatestRec invalid result ',res , master)
     else return {}
 
-    assert(lo.isNumber(res[1]) , '_getLatestRec invalid result ', res , master)
+    assert( lo.isNumber(lo.toNumber(res[1])) , '_getLatestRec invalid result ', res , master)
     return {key : res[0] , ts: lo.toNumber(res[1])}
   }
 
