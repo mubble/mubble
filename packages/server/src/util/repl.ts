@@ -119,13 +119,8 @@ export abstract class Repl {
 
 export class ReplProvider {
 
-  // NOTE: Only a single API at any time. As only one resolver/rejecter is stored.
   private configSent = false
   private requests : { [index: string] : { rejecter: any, resolver: any }}
-  // private resolver    : any
-  // private rejecter    : any
-  // private currWR      : WireObject
-  // private currWE      : WireObject
 
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
@@ -133,7 +128,8 @@ export class ReplProvider {
   }
 
   start(rc: RunContextServer, wo: WireObject) {
-    const apiSignature = wo.name + ':' + wo.type + ':' + wo.ts
+    const apiSignature = wo.name + ':' + wo.ts
+    if (!this.requests) this.requests = {} 
     return new Promise ((resolve, reject) => {
       this.requests[apiSignature] = { rejecter: reject, resolver: resolve }
     })
@@ -146,7 +142,6 @@ export class ReplProvider {
             ts      : Date.now(),
             data    : param
           } as WireObject
-    const apiSignature = wo.name + ':' + wo.type + ':' + wo.ts
     try {
       let promise = this.start (rc, wo)
       await this.router.routeRequest(rc, this.ci, wo)
@@ -184,20 +179,23 @@ export class ReplProvider {
       return
     }
 
-    const apiSignature = wo.name + ':' + wo.type + ':' + wo.ts
+    const apiSignature = wo.name + ':' + wo.ts
     if (wo && (<any>wo).error) {
       rc.isDebug() && rc.debug (rc.getName (this), 'Send Error to client: ', wo)
       this.requests[apiSignature].rejecter ((<any>wo).error)
+      delete this.requests[apiSignature]
     }
     else if (!wo.data) {
         rc.isWarn() && rc.warn (rc.getName (this), 'Invalid Response to client: WireObject data is undefined')
         this.requests[apiSignature].rejecter ('Invalid Response to client: WireObject data is undefined')
+        delete this.requests[apiSignature]
     }
     else {
       rc.isDebug() && rc.debug (rc.getName (this), 'Sending Response to client: ', wo)
       switch (wo.type) {
         case 'REQ_RESP': case 'EVENT_RESP':
           this.requests[apiSignature].resolver (wo)
+          delete this.requests[apiSignature]
         case 'EVENT': default:
           break
       }
