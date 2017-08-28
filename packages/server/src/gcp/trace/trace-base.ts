@@ -83,7 +83,7 @@ export function createDummyTrace(rc : RunContextServer) {
         }
       ]
     }
-    //if(labels) (trace.spans[0] as any)["labels"] = labels
+    if(labels) (trace.spans[0] as any)["labels"] = labels
     return trace
 }
 
@@ -129,8 +129,8 @@ export class TraceBase {
     this.cloudTrace = google.cloudtrace('v1')
   } 
 
-  public static sendTrace(rc : RunContextServer , logger : RCServerLogger, apiName : string){
-    this.sendTraceInternal(rc , this.createTrace(rc , logger , apiName))
+  public static sendTrace(rc : RunContextServer , logger : RCServerLogger, apiName : string , labels ?: Mubble.uObject<string> ){
+    this.sendTraceInternal(rc , this.createTrace(rc , logger , apiName , labels))
   }
 
   public static sendTraceInternal(rc : RunContextServer , trace : any) {
@@ -150,7 +150,7 @@ export class TraceBase {
     })
   }
 
-  public static createTrace(rc : RunContextServer , logger : RCServerLogger , apiName : string) {
+  public static createTrace(rc : RunContextServer , logger : RCServerLogger , apiName : string , labels ?: Mubble.uObject<string>) {
     const name = apiName
     const trace  = {
     projectId : TraceBase.projectId ,
@@ -161,7 +161,8 @@ export class TraceBase {
         kind      : 'RPC_SERVER',
         name      : name ,
         startTime : format(new Date(logger.startTs) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
-        endTime   : format(new Date() , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0)
+        endTime   : format(new Date() , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+        labels    : labels
       }
       ]
     }
