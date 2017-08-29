@@ -156,7 +156,7 @@ export abstract class XmnRouterServer {
       let errStr = (err instanceof Error) ? err.message : err
       rc.isError() && rc.error(rc.getName(this), err)
       wResp = new WireReqResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr)
+                       {error: err.message || err.name}, errStr , err)
       this.sendToProvider(rc, ci, wResp , wo)
     }finally{
       return wResp
@@ -191,7 +191,7 @@ export abstract class XmnRouterServer {
       let errStr = (err instanceof Error) ? err.message : err
       rc.isError() && rc.error(rc.getName(this), err)
       wResp = new WireEventResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr )
+                       {error: err.message || err.name}, errStr , err)
       this.sendEventResponse(rc, ci, wResp  ,wo)
     }finally{
       return wResp
