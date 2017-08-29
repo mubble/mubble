@@ -186,6 +186,10 @@ export abstract class RCLoggerBase {
     // default Implementation .
   }
 
+  public getWorkerIdentifier() : string | null {
+    return null
+  }
+
   abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
 
   public log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
@@ -223,9 +227,10 @@ export abstract class RCLoggerBase {
     
     if (buffer.length > 500) buffer = buffer.substr(0, 500)
 
-    const logStr = this.rc.contextId ?
-              `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.rc.contextId}] ${moduleName}(${this.rc.contextName}): ${buffer}` :
-              `${LEVEL_CHARS[level]}${dateStr} ${durStr} ${moduleName}: ${buffer}`
+    let workerIdentifer = this.getWorkerIdentifier() || '' ,
+        logStr = this.rc.contextId ?
+              `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${this.rc.contextId}][${workerIdentifer}] ${moduleName}(${this.rc.contextName}): ${buffer}` :
+              `${LEVEL_CHARS[level]}${dateStr} ${durStr} [${workerIdentifer}] ${moduleName}: ${buffer}`
 
     if (this.rc.initConfig.consoleLogging) {
       this.logToConsole(level, logStr)
