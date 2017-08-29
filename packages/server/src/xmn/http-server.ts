@@ -25,7 +25,7 @@ import {XmnRouterServer}              from './xmn-router-server'
 
 export class HttpServer {
 
-  constructor(private refRc: RunContextServer, private router: XmnRouterServer) {
+  constructor(private refRc: RunContextServer, private router: XmnRouterServer , private secure : boolean) {
 
   }
 
@@ -39,7 +39,7 @@ export class HttpServer {
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
 
-    ci.protocol       = Protocol.HTTP
+    ci.protocol       = this.secure ? Protocol.HTTPS : Protocol.HTTP
     ci.host           = host
     ci.port           = port || (urlObj.protocol === 'https' ? 443 : 80)
     ci.url            = req.url || ''

@@ -8,6 +8,8 @@
 ------------------------------------------------------------------------------*/
 
 import * as http              from 'http'
+import * as https             from 'https'
+
 import {XmnRouterServer}      from './xmn-router-server'
 
 import {HttpServer}           from './http-server'
@@ -41,7 +43,7 @@ export class Web {
 
   private httpServer      : http.Server 
   private wsHttpServer    : http.Server
-  private httpsServer     : http.Server
+  private httpsServer     : https.Server
 
   private router          : XmnRouterServer
 
@@ -61,7 +63,7 @@ export class Web {
     this.router          = router
 
     if (this.httpConfig) {
-      const httpReqManager = new HttpServer(rc, router)
+      const httpReqManager = new HttpServer(rc, router , false)
       this.httpServer      = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
     }
 
@@ -86,8 +88,8 @@ export class Web {
         throw('https port cannot be same as ws port')
       }
 
-      const httpReqManager = new HttpServer(rc, router)
-      this.httpsServer     = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
+      const httpReqManager = new HttpServer(rc, router , true)
+      this.httpsServer     = https.createServer(this.httpsConfig , httpReqManager.requestHandler.bind(httpReqManager))
     }
   }
 
@@ -97,7 +99,7 @@ export class Web {
     if (this.httpsServer) await this.listen(rc, this.httpsServer, this.httpsConfig as WebConfig)
   }
 
-  listen(rc: RunContextServer, httpServer: http.Server, config: WebConfig) {
+  listen(rc: RunContextServer, httpServer: http.Server | https.Server , config: WebConfig) {
 
     return new Promise((resolve, reject) => {
 
