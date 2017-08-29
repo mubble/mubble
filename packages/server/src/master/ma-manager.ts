@@ -418,7 +418,7 @@ export class MasterMgr {
   }
 
   public async destinationSync (rc : RunContextServer , syncReq : SyncRequest) : Promise<SyncResponse> {
-
+    console.log('destinationSync',syncReq)
     const resp : SyncResponse = {}
     
     // check if there is any new data sync required
@@ -439,7 +439,7 @@ export class MasterMgr {
       
       }else if( /*synInfo.modelDigest !== memcache.digestInfo.modelDigest ||*/
         synInfo.ts && ( (synInfo.ts < memcache.getMinTS()) || 
-                        (memcache.cache && !memcache.hasRecords()) )) 
+                        (memcache.cache && !memcache.hasRecords() && (synInfo.ts < memcache.latestRecTs()) ) )) 
       {
         MaMgrLog(rc , 'master digest change purging all',mastername , memcache.digestInfo.modelDigest)
         synInfo.ts = 0
