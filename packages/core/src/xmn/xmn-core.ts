@@ -111,17 +111,21 @@ export class WireEvent extends WireObject {
 
 export class WireReqResp extends WireObject {
   error: string | null
-  constructor(name: string, ts: number, data: object, error ?: string) {
+  _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
+  constructor(name: string, ts: number, data: object, error ?: string , fullErr ?: any) {
     super(WIRE_TYPE.REQ_RESP, name, data, ts)
     this.error = error || null
+    this._err = fullErr
   }
 }
 
 export class WireEventResp extends WireObject {
   error: string  | null
-  constructor(name: string, ts: number, data ?: object, error ?: string) {
+  _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
+  constructor(name: string, ts: number, data ?: object, error ?: string , fullErr ?: any) {
     super(WIRE_TYPE.EVENT_RESP, name, data || {}, ts)
     this.error = error || null
+    this._err = fullErr
   }
 }
 
