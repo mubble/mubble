@@ -330,13 +330,15 @@ export abstract class XmnRouterBrowser {
 
   private finishRequest(rc: RunContextBrowser, index: number, errorCode: string | null, data ?: object) {
 
-    const wr = this.ongoingRequests[index]
+    const wr  = this.ongoingRequests[index],
+          now = Date.now()
+
     this.ongoingRequests.splice(index, 1)
 
     if (!wr.resolve) {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Trying to finish already finished request', errorCode,
-        wr.name, 'created at', new Date(wr.ts))
+        wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
 
       return  
     }
@@ -344,14 +346,14 @@ export abstract class XmnRouterBrowser {
     if (errorCode) {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Request failed with code', errorCode,
-        wr.name, 'created at', new Date(wr.ts))
+        wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
       
       wr.reject(new Error(errorCode))
 
     } else {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Request succeeded', 
-        wr.name, 'created at', new Date(wr.ts))
+        wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
 
       wr.resolve(data)  
     }

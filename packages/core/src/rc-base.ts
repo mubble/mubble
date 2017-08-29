@@ -47,6 +47,7 @@ export class InitConfig {
 export class RunState {
   moduleLLMap   : { [key: string]: any } = {}
   modLogLevel   : LOG_LEVEL = LOG_LEVEL.NONE
+  moduleNameMap : WeakMap<any, string>   = new WeakMap()
 }
 
 export abstract class RunContextBase {
@@ -77,13 +78,18 @@ export abstract class RunContextBase {
       this.logger.finish(ic, resp , req)
   }
   
-  public changeLogLevel(moduleName: string, logLevel: LOG_LEVEL) {
-    this.runState.moduleLLMap[moduleName] = logLevel
-    const keys = Object.keys(this.runState.moduleLLMap)
-    this.runState.modLogLevel = LOG_LEVEL.NONE
-    for (const key of keys) {
-      if (this.runState.moduleLLMap[key] < this.runState.modLogLevel) {
-        this.runState.modLogLevel = this.runState.moduleLLMap[key]
+  public setupLogger(obj: any, moduleName: string, logLevel ?: LOG_LEVEL) {
+
+    this.runState.moduleNameMap.set(obj, moduleName)
+
+    if (this.initConfig.logLevel !== LOG_LEVEL.NONE && logLevel !== undefined) {
+      this.runState.moduleLLMap[moduleName] = logLevel
+      const keys = Object.keys(this.runState.moduleLLMap)
+      this.runState.modLogLevel = LOG_LEVEL.NONE
+      for (const key of keys) {
+        if (this.runState.moduleLLMap[key] < this.runState.modLogLevel) {
+          this.runState.modLogLevel = this.runState.moduleLLMap[key]
+        }
       }
     }
   }
@@ -106,7 +112,8 @@ export abstract class RunContextBase {
    * @param obj: this 
    */
   getName(obj: any): string {
-    return obj ? (obj.name || (obj.constructor ? obj.constructor.name : '?')) : '?'
+    return obj ? (this.runState.moduleNameMap.get(obj) || obj.name || 
+                 (obj.constructor ? obj.constructor.name : '?')) : '?'
   }
 
   isDebug(): boolean {

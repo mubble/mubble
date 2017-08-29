@@ -9,9 +9,16 @@
 
 export class DomHelper {
 
-
-  addClass(className: string): void {
+  static addClass(className: string): void {
 
   }
 
+  static getTransform(xPixel, yPixel, zPixel) {
+    return {transform: `translate3d(${xPixel}px, ${yPixel}px, ${zPixel}px)`}
+  }
+
+  static getPercentTransform(xPercent, yPercent) {
+    return {transform: `translate3d(${xPercent}%, ${yPercent}%, 0)`}
+  }
+  
 }

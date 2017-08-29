@@ -12,7 +12,7 @@ import { RunContextBrowser } from '../rc-browser'
 const LAST_USER = 'lastUser'
 const USERS     = 'users'
 
-export class UserKeyValue {
+export abstract class UserKeyValue {
 
   private _clientId     : number
   private _userLinkId   : string
@@ -21,7 +21,8 @@ export class UserKeyValue {
   private users         : {[key: string]: object} = {}
   private lastClientId  : number
 
-  constructor() {
+  constructor(private rc: RunContextBrowser) {
+
     const users = localStorage.getItem(USERS)
     if (!users) return
 

@@ -102,7 +102,7 @@ export abstract class MasterDb extends Dexie {
       const st = ar.find(item => item.model === modelName)
       this.syncHashModels[modelName] = st ? st.hash : {ts: 0}
     }
-    rc.isDebug() && rc.debug(rc.getName(this), 'syncHashModels', this.syncHashModels)
+    rc.isDebug() && rc.debug(rc.getName(this), 'restored syncHashModels', this.syncHashModels)
   }
 
   public getSyncRequest(rc: RunContextBrowser): SyncRequest {
@@ -124,11 +124,11 @@ export abstract class MasterDb extends Dexie {
 
     const [[oldVersion]] = segments[Segment.version]
     if (oldVersion !== version) {
-      rc.isDebug() && rc.debug(rc.getName(this), 'version changed', oldVersion, version)
+      rc.isDebug() && rc.debug(rc.getName(this), 'version changed', {last: oldVersion, current: version})
       segments[Segment.version] = [[version]]
       rc.globalKeyVal.syncSegments = segments
     } else {
-      rc.isDebug() && rc.debug(rc.getName(this), 'Versions are same', oldVersion, version)
+      rc.isDebug() && rc.debug(rc.getName(this), 'Versions are same', {last: oldVersion, current: version})
     }
   }
 
@@ -149,6 +149,7 @@ export abstract class MasterDb extends Dexie {
     const syncResponse:SyncResponse = event.detail.data,
           rc:RunContextBrowser      = event.detail.rc
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'onMasterUpdate', JSON.stringify(syncResponse))
     for (const modelName of Object.keys(syncResponse)) {
 
       if (!(syncResponse as object).hasOwnProperty(modelName)) continue
@@ -178,6 +179,7 @@ export abstract class MasterDb extends Dexie {
 
     await this.transaction('rw', syncHashTable, async() => {
       await syncHashTable.put({model: modelName, hash: modelData.hash})
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'saved hash', modelData.hash)
     })
   }
   

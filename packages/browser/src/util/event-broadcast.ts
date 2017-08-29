@@ -29,8 +29,8 @@ export namespace EventSystem {
 
     window.dispatchEvent(event)
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Completed broadcast of', 
-      fullName, 'to', nodeList.length, 'element(s) and window')
+    rc.isStatus() && rc.status('EventSystem.broadcast', 'Completed broadcast of', 
+      fullName, 'to', nodeList.length, 'ui element(s) and to global components via window')
   }
 
   // Any class whose object is globally alive in the app should use this 

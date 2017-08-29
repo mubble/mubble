@@ -18,7 +18,11 @@ import { ConnectionInfo,
 
 import { XmnRouterBrowser } from './xmn-router-browser'
 
-import {  RunContextBrowser } from '../rc-browser'
+import {  
+  RunContextBrowser,
+  LOG_LEVEL
+} from '../rc-browser'
+
 import {  EncryptionBrowser } from './enc-provider-browser'         
 
 export class WsBrowser {
@@ -28,10 +32,13 @@ export class WsBrowser {
   private lastMessageTime: number = 0
   private msPingInterval: number  = 30000
   private timerPing: TimerInstance
-
+  private socketOpenTs: number = 0
+  
   constructor(private rc : RunContextBrowser, 
               private ci : ConnectionInfo, 
               private router : XmnRouterBrowser) {
+
+    rc.setupLogger(this, 'WsBrowser', LOG_LEVEL.DEBUG)
     this.timerPing       = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
@@ -54,6 +61,7 @@ export class WsBrowser {
     this.ws.onerror    = this.onError.bind(this)
 
     this.setupTimer(rc)
+    this.socketOpenTs = Date.now()
     return null
   }
 
@@ -73,12 +81,18 @@ export class WsBrowser {
   }
 
   onOpen() {
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onOpen()')
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onOpen() in', Date.now() - this.socketOpenTs, 'ms')
     this.router.providerReady()
   }
 
   onMessage(msgEvent: MessageEvent) {
     const data = msgEvent.data
+
+    if (this.socketOpenTs) {
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'First message in', Date.now() - this.socketOpenTs, 'ms')
+      this.socketOpenTs = 0
+    }
+    
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onMessage() length:', data.length)
     this.router.providerMessage(this.rc, this.encProvider.decodeBody(this.rc, data))
   }
