@@ -146,6 +146,7 @@ export class DSTransaction {
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
     
+    model.setId(id)
     this.setUnique(rc, model)
     this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
   }
