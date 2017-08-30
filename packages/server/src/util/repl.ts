@@ -16,7 +16,8 @@ import {
         Protocol,
         ClientIdentity,
         WIRE_TYPE,
-        NetworkType
+        NetworkType,
+        WireEventResp
        }                            from '@mubble/core'
 import {
         RunContextServer,
@@ -128,6 +129,7 @@ export class ReplProvider {
   }
 
   start(rc: RunContextServer, wo: WireObject) {
+    console.log('start called')
     const apiSignature = wo.name + ':' + wo.ts
     if (!this.requests) this.requests = {} 
     return new Promise ((resolve, reject) => {
@@ -147,9 +149,10 @@ export class ReplProvider {
       await this.router.routeRequest(rc, this.ci, wo)
       const res = await promise
       return res
-    } catch (e) {
-      console.log ('Error routing Request', e)
-      throw e
+    } catch (err) {
+      console.log ('Error routing Request', err)
+      //throw e
+      return {data : {error :err}}
     }
   }
 
