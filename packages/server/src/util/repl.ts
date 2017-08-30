@@ -129,7 +129,6 @@ export class ReplProvider {
   }
 
   start(rc: RunContextServer, wo: WireObject) {
-    console.log('start called')
     const apiSignature = wo.name + ':' + wo.ts
     if (!this.requests) this.requests = {} 
     return new Promise ((resolve, reject) => {
