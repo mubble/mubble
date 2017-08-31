@@ -28,7 +28,6 @@ import {
        }                      from '@mubble/core'
 import {EncProviderServer}    from './enc-provider-server'
 import {RunContextServer}     from '../rc-server'
-import {HttpServerProvider}   from './http-server'
 
 export class InvokeStruct {
 
