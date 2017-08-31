@@ -127,6 +127,7 @@ export namespace Master{
         const mastername : string = prototype.constructor.name
         const val : any = rec[propKey]
         assert( val!=null , masterDesc(mastername,propKey,val) , 'is null')
+        assert( false , 'Todo: Not Done Yet')
         // This is wrong. Have to check each field manually , recursively
         //assert( val instanceof struc , masterDesc(mastername,propKey,val) , 'is null')  
       }
