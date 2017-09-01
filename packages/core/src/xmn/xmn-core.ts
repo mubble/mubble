@@ -55,7 +55,7 @@ export class WireObject {
       return new WireSysEvent(json.name, json.data)
 
       default:
-      console.log('Error: Invalid wire object ' + JSON.stringify(json))
+      console.info('Error: Invalid wire object ' + JSON.stringify(json))
       return null
     }
   }

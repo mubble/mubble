@@ -78,7 +78,7 @@ export class PerformanceMetrics {
       }
     }
 
-    console.log(output)
+    console.info(output)
 
     let marks = []
     for (const stepName in output.steps) {
@@ -86,7 +86,7 @@ export class PerformanceMetrics {
       let entry = output.steps[stepName], cycle
       entry.avg = entry.avg / entry.count
 
-      console.log(stepName, entry.toString())
+      console.info(stepName, entry.toString())
 
       if (entry.minIdx !== -1) {
         const cycle = this.cycles[entry.minIdx]
@@ -100,11 +100,11 @@ export class PerformanceMetrics {
     }
 
     marks = lo.sortBy(marks, 'startTs')
-    console.log(marks)
+    console.info(marks)
     for (const mark of marks) {
-      console.log(mark.toString())
+      console.info(mark.toString())
     }
-    console.log(this.cycles)
+    console.info(this.cycles)
   }
 
   private markEntry(ts: number, index: number, entry: Entry) {

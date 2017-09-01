@@ -87,24 +87,24 @@ export class Timer {
     if (index !== -1) { // already subscribed
       if (overwrite || sub.nextTickAt >= nextTickAt || sub.nextTickAt <= now) {
         sub.nextTickAt = nextTickAt
-        this.logging && console.log(`Timer:tickAfter modified ${sub.name} with ${
+        this.logging && console.info(`Timer:tickAfter modified ${sub.name} with ${
           ms} ms overwrite:${overwrite} for supplied value`)
       } else {
         nextTickAt = sub.nextTickAt
-        this.logging && console.log(`Timer:tickAfter ignoring ${sub.name} after ${
+        this.logging && console.info(`Timer:tickAfter ignoring ${sub.name} after ${
           ms} as old value is lower`)
       }
     } else { // not subscribed
       sub.nextTickAt = nextTickAt
       subs.push(sub)
-      this.logging && console.log(`Timer:tickAfter inserted ${sub.name} for ${ms}`)
+      this.logging && console.info(`Timer:tickAfter inserted ${sub.name} for ${ms}`)
     }
 
     if (this.nextTs > nextTickAt || !this.nextTs) {
       if (this.currentTimer) clearTimeout(this.currentTimer as any)
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
       this.nextTs       = nextTickAt
-      this.logging && console.log(`Timer:tickAfter timer scheduled after ${
+      this.logging && console.info(`Timer:tickAfter timer scheduled after ${
         nextTickAt - now} ms length:${subs.length} for ${sub.name}`)
     }
   }
@@ -118,7 +118,7 @@ export class Timer {
     if (index !== -1) {
       // We don't worry about the timeout call on timer as it managed in timeout
       const [sub] = this.subscriptions.splice(index, 1)
-      this.logging && console.log(`Timer:removed timer ${sub.name} length:${this.subscriptions.length}`)
+      this.logging && console.info(`Timer:removed timer ${sub.name} length:${this.subscriptions.length}`)
     }
   }
 
@@ -140,7 +140,7 @@ export class Timer {
         const thisNextTick = sub.cb(),
               updatedSub   = subs[i]
 
-        this.logging && console.log(`Timer:timerEvent called ${sub.name} response:${thisNextTick}`)
+        this.logging && console.info(`Timer:timerEvent called ${sub.name} response:${thisNextTick}`)
         
 
         if (updatedSub !== sub) { // timer got removed while processing timeout
@@ -166,12 +166,12 @@ export class Timer {
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
 
       this.nextTs       = nextTickAt
-      this.logging && console.log(`Timer:timerEvent timer scheduled after ${
+      this.logging && console.info(`Timer:timerEvent timer scheduled after ${
         nextTickAt - now} ms length:${subs.length} for ${selectedSub.name}`)
     } else {
       this.currentTimer = null
       this.nextTs       = 0
-      this.logging && console.log(`Timer:timerEvent removed timer`)
+      this.logging && console.info(`Timer:timerEvent removed timer`)
     }
   }
 }

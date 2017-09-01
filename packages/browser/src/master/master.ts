@@ -54,7 +54,7 @@ export class Master {
 
       default:
         const msg = 'getType: unknown field type - ' + fieldType
-        console.log(msg)
+        // console.log(msg)
         throw(new Error(msg))
     }
     

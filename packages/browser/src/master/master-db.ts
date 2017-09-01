@@ -274,7 +274,7 @@ export abstract class MasterDb extends Dexie {
 
     const modelTable = this.getTable(rc, modelName)
     const ar = await modelTable.toArray()
-    console.log(ar)
+    console.info(ar)
   }
 }
 

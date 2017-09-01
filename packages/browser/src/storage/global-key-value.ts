@@ -71,7 +71,7 @@ export abstract class GlobalKeyValue {
               break
             
             default:
-              console.log('autoStore:setter', 'unknown field type', fieldType)
+              // console.log('autoStore:setter', 'unknown field type', fieldType)
               throw(new Error('autoStore:setter - unknown field type' + fieldType))
           }
           
@@ -135,7 +135,7 @@ export abstract class GlobalKeyValue {
           fields.push({name: key, type: Reflect.getMetadata('design:type', proto, key)})
         }
       } catch(err) {
-        console.log('GlobalKeyValue:extractFields()', 'failed for', key)
+        console.info('GlobalKeyValue:extractFields()', 'failed for', key)
       }
     }
     return this.extractFields(Object.getPrototypeOf(proto), fields)
@@ -150,7 +150,7 @@ export abstract class GlobalKeyValue {
             memory  = this[name],
             store   = localStorage.getItem(PREFIX + '.' + name)
 
-      console.log({name, type, memory, store})
+      console.info({name, type, memory, store})
     }
   }
 

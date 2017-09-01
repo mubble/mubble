@@ -107,7 +107,7 @@ export abstract class UserKeyValue {
     const keys = Object.getOwnPropertyNames(this)
 
     for (const key of keys) {
-      console.log(`${key}=${JSON.stringify(this[key])}`)
+      console.info(`${key}=${JSON.stringify(this[key])}`)
     }
   }
   
