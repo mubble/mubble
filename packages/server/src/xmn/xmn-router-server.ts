@@ -211,7 +211,11 @@ export abstract class XmnRouterServer {
 
   private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null ): void {
     if (ci.provider) {
-      ci.provider.send(rc, response)
+      if((response.type === WIRE_TYPE.REQ_RESP) && (response as WireReqResp).error){
+        ci.provider.send(rc, response , 500)
+      }else{
+        ci.provider.send(rc, response)
+      }
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
     }

@@ -107,13 +107,14 @@ class HttpServerProvider {
   }
 
 
-  send(rc: RunContextServer, data: WireObject): void {
+  send(rc: RunContextServer, data: WireObject , httpErrorStatus ?: number): void {
 
     const res = this.res
-
-    res.writeHead(200, {'Content-Type': 'application/json'})
+    res.writeHead(httpErrorStatus || 200 , {'Content-Type': 'application/json'})
     res.end(JSON.stringify(data))
   }
+
+
 
   private parseBody(rc: RunContextServer) {
     /*
