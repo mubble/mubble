@@ -184,7 +184,7 @@ export class ReplProvider {
     const apiSignature = wo.name + ':' + wo.ts
     if (wo && (<any>wo).error) {
       rc.isDebug() && rc.debug (rc.getName (this), 'Send Error to client: ', wo)
-      this.requests[apiSignature].rejecter ((<any>wo).error)
+      this.requests[apiSignature].rejecter ((<any>wo)._err)
       delete this.requests[apiSignature]
     }
     else if (!wo.data) {
