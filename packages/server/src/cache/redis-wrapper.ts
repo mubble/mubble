@@ -236,6 +236,22 @@ export class RedisWrapper {
     return this._hscan('hscan' , key , 0 , pattern , count)
   }
   
+  async rwHscanCb(key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
+    let cursor         = 0
+    const cmd          = 'hscan'
+    const args : any[] = [key , cursor]
+    if(params.pattern) args.push('MATCH' , params.pattern)
+    if(params.count) args.push('COUNT' , params.count)
+
+    do {
+      const res  : any[] = await this._execute(cmd , args)
+      cursor  = Number(res[0])
+      const resMapArr : string [] =  <string[]> res[1]
+      for(let i=0 ; i<resMapArr.length ; i = i+2) cbFunc (resMapArr[i] , JSON.parse(resMapArr[i+1]))
+      args[1] = cursor // Update cursor in the command...
+    } while (cursor)
+  }
+  
   async rwZscan(key : string, pattern ?: string, count ?: number) : Promise<Map<string , object>> {
     return this._hscan('zscan' , key , 0 , pattern , count)
   }
