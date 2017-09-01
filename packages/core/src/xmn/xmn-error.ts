@@ -15,4 +15,3 @@ export const XmnError = {
 
   _NotReady         : '_NotReady'
 }
-

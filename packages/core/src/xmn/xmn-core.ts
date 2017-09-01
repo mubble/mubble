@@ -15,7 +15,8 @@ export const NetworkType = {
   net4G   : '4G',
   net5G   : '5G',
   wifi    : 'wifi',
-  unknown : 'unk'
+  unknown : 'unk',
+  absent  : 'absent'
 }
 
 export const WEB_SOCKET_URL = {
