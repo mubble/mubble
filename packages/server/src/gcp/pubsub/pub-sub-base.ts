@@ -99,7 +99,7 @@ export class PubSubBase {
    * @param pushEndPoint  push end point url . Must be https. Has to be registred with project
    * @param ackDeadLineSec The maximum time after receiving a message that you must ack/responde with 200 OK ,  a message before it is redelivered
    */
-  public static async createSubscription(rc : RunContextServer , topic : NCPubSubTopic , subscriptionName : string , pushEndPoint : string , ackDeadLineSec ?: number) : Promise<NCPubSubSubscrption> {
+  public static async createSubscription(rc : RunContextServer , gcloud : GcloudEnv , topic : NCPubSubTopic , subscriptionName : string , pushEndPoint : string , ackDeadLineSec ?: number) : Promise<NCPubSubSubscrption> {
     let subscription : NCPubSubSubscrption = topic.subscription(subscriptionName)
 
     const res: any = await subscription.exists()
@@ -110,8 +110,7 @@ export class PubSubBase {
       
       rc.isDebug() && rc.debug(rc.getName(this), 'meta is ',meta)
 
-      const gcloud : GcloudEnv = rc.gcloudEnv, 
-            projectBase = 'projects/'+ gcloud.projectId,
+      const projectBase = 'projects/'+ gcloud.projectId,
             topicFullName = topic.name ,
             subFullName   = projectBase + '/subscriptions/'+ subscriptionName 
       

@@ -78,7 +78,6 @@ export abstract class RunContextServer extends RunContextBase {
   ------------------------------------------------------------------------------*/
 
   private static initDone: boolean
-  public gcloudEnv : GcloudEnv
   
   static init(minNodeVersion  : string): void {
     if (!semver.gte(process.version, minNodeVersion)) {

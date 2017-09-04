@@ -10,6 +10,7 @@
 import * as lo                      from 'lodash'  
 import {format}                     from '@mubble/core'
 import {RunContextServer}           from '../../rc-server'
+import {BigQueryBase}               from './bigquery-base'
 
 export type table_create_options = {schema : any }
 
@@ -57,7 +58,7 @@ export abstract class BaseBigQuery {
     !lo.isEmpty(this.options.DATA_STORE_NAME) && 
     !lo.isEmpty(this.options.table_options) , 'Table properties not set' )
 
-    const dataset  : any = await rc.gcloudEnv.bigQuery.dataset(this.options.DATA_STORE_NAME),
+    const dataset  : any = await BigQueryBase._bigQuery.dataset(this.options.DATA_STORE_NAME),
           dsRes    : any = await dataset.get({autoCreate : true})
     
     const tableName : string = getTableName(rc , this.options) ,
@@ -95,7 +96,7 @@ export abstract class BaseBigQuery {
 
   private static async takeTableBackup(rc : RunContextServer , tableName : string , tableSchema : any) {
     
-    const bigQuery : any = rc.gcloudEnv.bigQuery ,
+    const bigQuery : any = BigQueryBase._bigQuery ,
           overwrite = false ,
           backup_table_name : string = this.options._tableName + '_' + format(new Date() , '%yy%%mm%%dd%%hh%%nn%%ss%') 
     
@@ -171,9 +172,9 @@ export abstract class BaseBigQuery {
 
   async insert(rc : RunContextServer , day_timestamp ?: string) {
     
-  const clazz         : any                  = this.constructor as any ,
-        options       : BigQueryTableOptions = clazz.options ,
-        dataset       : any                  = rc.gcloudEnv.bigQuery.dataset(options.DATA_STORE_NAME),
+  const clazz : any                          = this.constructor as any ,
+        options : BigQueryTableOptions       = clazz.options ,
+        dataset : any                        = BigQueryBase._bigQuery.dataset(options.DATA_STORE_NAME),
         table_options : table_create_options = options.table_options,
         tableName     : string               = getTableName(rc , options , day_timestamp) ,
         table         : any                  = dataset.table(tableName)
