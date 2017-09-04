@@ -7,8 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {  RunContextBase, 
-          format,
+import {  format,
           Mubble 
 } from '..'  
 import * as lo from 'lodash'
@@ -22,7 +21,7 @@ export class PerformanceMetrics {
   private cycles: Cycle[] = []
   private cycle: Cycle
 
-  constructor(private rc: RunContextBase, private taskName: string) {
+  constructor(private taskName: string) {
     this.startTs = this.now()
   }
 
@@ -33,95 +32,103 @@ export class PerformanceMetrics {
     if (!this.cycle || this.cycle.stepMap[stepName]) {
 
       if (this.cycle) {
-        this.cycle.ts = now - this.cycle.startTs
+        this.cycle.endTs = now
         this.cycles.push(this.cycle)
       }
 
       this.cycle = new Cycle(this.cycles.length, now, stepName)
 
     } else {
-      this.cycle.stepMap[stepName] = now
+      this.cycle.stepMap[stepName] = new Step(now)
     }
   }
 
   public endStep(stepName: string) {
-    const startTs = this.cycle.stepMap[stepName]
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), startTs, 
-        stepName, 'ended without start for', this.taskName)
+    const step = this.cycle.stepMap[stepName]
 
-    this.cycle.stepMap[stepName] = this.now() - startTs
+    if (!step) {
+      console.error(stepName, 'ended without start for', this.taskName)
+      return
+    }
+
+    step.endTs = this.now()
   }
 
   public finish() {
 
-    const now = this.now(),
-          output = {
-            task    : this.taskName, 
-            totalMs : now - this.startTs,
-            steps : {} as Mubble.uObject<Entry>
+    const now     = this.now(),
+          output  = {
+            task        : this.taskName, 
+            totalMs     : now - this.startTs,
+            cycleCount  : this.cycles.length,
+            cyclePerf   : new ResultEntry(),
+            stepPerf    : {} as Mubble.uObject<ResultEntry>
           }
 
     if (this.cycle) {
-      this.cycle.ts = now - this.cycle.startTs
+      this.cycle.endTs = now
       this.cycles.push(this.cycle)
     }
 
     for (let index = 0; index < this.cycles.length; index++) {
       
       const cycle = this.cycles[index]
-      output.steps[CYCLE_STEP] = this.markEntry(cycle.ts, index, output.steps[CYCLE_STEP])
+      output.cyclePerf = this.markEntry(cycle.endTs - cycle.startTs, index, output.cyclePerf)
 
       for (const stepName in cycle.stepMap) {
-        const entry = output.steps[stepName]
-        output.steps[stepName] = this.markEntry(cycle.stepMap[stepName], index, entry)
+        const step = cycle.stepMap[stepName]
+
+        if (!step.endTs) {
+          console.error('You forgot to call endStep for ' + stepName + ' for cycle index:' + index)
+          continue
+        }
+        output.stepPerf[stepName] = this.markEntry(step.endTs - step.startTs, index, output.stepPerf[stepName])
       }
     }
 
-    console.info(output)
+    let marks: Cycle[]  = []
+    this.logEntry('all cycles', output.cyclePerf, marks)
 
-    let marks = []
-    for (const stepName in output.steps) {
-
-      let entry = output.steps[stepName], cycle
-      entry.avg = entry.avg / entry.count
-
-      console.info(stepName, entry.toString())
-
-      if (entry.minIdx !== -1) {
-        const cycle = this.cycles[entry.minIdx]
-        if (marks.indexOf(cycle) === -1) marks.push(cycle)
-      }
-
-      if (entry.maxIdx !== -1) {
-        const cycle = this.cycles[entry.maxIdx]
-        if (marks.indexOf(cycle) === -1) marks.push(cycle)
-      }
+    for (const stepName in output.stepPerf) {
+      this.logEntry(stepName, output.stepPerf[stepName], marks)
     }
 
+    console.info('Result summary ', output)
+    
     marks = lo.sortBy(marks, 'startTs')
-    console.info(marks)
+    console.info('Highlighted cycles, that have min or max time >>')
     for (const mark of marks) {
       console.info(mark.toString())
     }
-    console.info(this.cycles)
+    console.info('all cycles to deep dive >>', this.cycles)
   }
 
-  private markEntry(ts: number, index: number, entry: Entry) {
+  private verifyStepsEnded() {
+    const steps = this.cycle.stepMap
+    for (const stepName of Object.keys(steps)) {
+      const step = steps[stepName]
+      if (!step.endTs) {
+        console.error('You forgot to end ', stepName, ' for task ', this.taskName, ' cycle #', this.cycles.length)
+      }
+    }
+  }
 
-    entry = entry || new Entry()
+  private markEntry(ts: number, index: number, entry: ResultEntry): ResultEntry {
+
+    entry = entry || new ResultEntry()
 
     if (entry.min > ts) {
       entry.min     = ts
       entry.minIdx  = index
-    } 
+    }
     
     if (entry.count && entry.max < ts) {
       entry.max     = ts
       entry.maxIdx  = index
     }
 
-    entry.avg += ts // it is averaged at the end
+    entry.total += ts 
     entry.count++
 
     return entry
@@ -130,38 +137,70 @@ export class PerformanceMetrics {
   private now() {
     return performance ? performance.timing.navigationStart + performance.now() : Date.now()
   }
+
+  private logEntry(name: string, entry: ResultEntry, insertInto: Cycle[]) {
+
+    console.info(name + ' performance >> ' + entry)
+
+    if (entry.minIdx !== -1) {
+      const cycle = this.cycles[entry.minIdx]
+      if (insertInto.indexOf(cycle) === -1) insertInto.push(cycle)
+    }
+
+    if (entry.maxIdx !== -1) {
+      const cycle = this.cycles[entry.maxIdx]
+      if (insertInto.indexOf(cycle) === -1) insertInto.push(cycle)
+    }
+
+  }
+
 }
 
-class Cycle {
+class BaseTime {
+
+  startTs : number
+  endTs   : number
+
+  constructor(startTs: number) {
+    this.startTs = startTs
+  }
+}
+
+class Step extends BaseTime {
+
+}
+
+class Cycle extends BaseTime {
   index    : number
-  startTs  : number
-  stepMap  : Mubble.uObject<number>
-  ts       : number
+  stepMap  : Mubble.uObject<Step>
 
   constructor(index: number, now: number, step: string) {
-    this.startTs  = now 
+    super(now)
     this.index = index
-    this.stepMap = {[step]: now}
+    this.stepMap = {[step]: new Step(now)}
   }
 
   toString() {
-    return `Cycle(${this.index}) @ ${format(this.startTs, '%hh%:%mm%:%ss%')} timeTaken: ${this.ts.toFixed(3)}ms`
+    const ts = this.endTs - this.startTs
+    return `Cycle(${this.index}) @ ${format(this.startTs, '%hh%:%mm%:%ss% %ms%')} timeTaken: ${ts.toFixed(3)}ms`
   }
 }
 
-class Entry {
+class ResultEntry {
 
   count   : number = 0
   min     : number =  Number.MAX_SAFE_INTEGER
   max     : number = -1
-  avg     : number = 0
+  total   : number = 0
   minIdx  : number = -1
   maxIdx  : number = -1
 
   toString() {
-    return `min: ${this.min.toFixed(3)
-      } ${this.max !== -1 ? 'max: ' + this.max.toFixed(3) : ''
-      } avg: ${this.avg.toFixed(3)} count: ${this.count
+
+    const average = this.count ? this.total / this.count : 0
+    return `minMs: ${this.min.toFixed(3)
+      } ${this.max !== -1 ? 'maxMs: ' + this.max.toFixed(3) : ''
+      } avgMs: ${average.toFixed(3)} count: ${this.count
       } ${this.minIdx !== -1 ? 'minIdx: ' + this.minIdx : ''
       } ${this.maxIdx !== -1 ? 'maxIdx: ' + this.maxIdx : ''}`
   }
