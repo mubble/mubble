@@ -9,7 +9,7 @@
 
 import * as lo                      from 'lodash'  
 import {format}                     from '@mubble/core'
-import {RunContextServer}           from '@mubble/server'
+import {RunContextServer}           from '../../rc-server'
 
 export type table_create_options = {schema : any }
 
