@@ -170,7 +170,16 @@ export abstract class BaseBigQuery {
     lo.assign(this , bqItemClone)
   }
 
+  public fieldsError(rc : RunContextServer) : string | null {
+    return null
+  }
+
   async insert(rc : RunContextServer , day_timestamp ?: string) {
+  let err = this.fieldsError(rc)  
+  if(err) {
+    rc.isWarn() && rc.warn(rc.getName(this), 'Data Sanity Failed. Not inserting the model.',err)
+    return
+  }  
     
   const clazz : any                          = this.constructor as any ,
         options : BigQueryTableOptions       = clazz.options ,
