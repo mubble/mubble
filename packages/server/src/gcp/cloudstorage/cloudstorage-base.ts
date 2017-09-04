@@ -12,9 +12,8 @@ const cloudStorage : any = require('@google-cloud/storage')
 import {RunContextServer}    from '../../rc-server'
 import {GcloudEnv}           from '../../gcp/gcloud-env'
 import {v4 as UUIDv4}        from 'uuid'
-
 import * as mime             from 'mime-types'
-import * as fs               from 'fs'
+import * as stream           from 'stream'
 
 export class CloudStorageBase {
 
@@ -38,26 +37,30 @@ export class CloudStorageBase {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-  static async uploadDataToCloudStorage(rc       : RunContextServer, 
-                                        bucket   : string,
-                                        path     : string,
-                                        data     : any,
-                                        mimeVal  : string,
-                                        append  ?: string,
-                                        name    ?: string) : Promise<{fileUrl : string, filename : string}> {
+  static async uploadDataToCloudStorage(rc         : RunContextServer, 
+                                        bucketName : string,
+                                        path       : string,
+                                        data       : any,
+                                        mimeVal    : string,
+                                        append    ?: string,
+                                        name      ?: string) : Promise<{fileUrl : string, filename : string}> {
 
-    const extension = mime.extension(mimeVal),
-          newName   = name ? name : await this.getFileName(rc, bucket, extension, path),
-          filename  = newName + append,
-          modPath   = (path) ? (path + '/') : '',
-          res       = await fs.writeFileSync(`/tmp/${filename}.${extension}`, data, {encoding :'binary'}),
-          fileUrl   = await this.upload(rc, bucket, 
-                                `/tmp/${filename}.${extension}`,
-                                `${modPath}${filename}.${extension}`)
-                       
-    await fs.unlinkSync(`/tmp/${filename}.${extension}`)
-   
-    return {fileUrl : fileUrl ? `${newName}.${extension}` : '', filename : newName}
+    const extension    = mime.extension(mimeVal),
+          newName      = name ? name : await this.getFileName(rc, bucketName, extension, path),
+          filename     = newName + append,
+          modPath      = (path) ? (path + '/') : '',
+          gcBucket     = CloudStorageBase._cloudStorage.bucket(bucketName),
+          gcFile       = gcBucket.file(`${modPath}${filename}.${extension}`),
+          bufferStream = new stream.PassThrough()
+  
+    await new Promise((resolve, reject) => {
+      bufferStream.end(new Buffer(data, 'base64'))
+      bufferStream.pipe(gcFile.createWriteStream({metadata : {'Cache-Control': 'public, max-age=31536000'}}))
+      .on('error', (err : any) => {reject(err)})
+      .on('finish', () => {resolve()})
+    })
+
+    return {fileUrl : `${newName}.${extension}`, filename : newName}
   }
 
   private static async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
