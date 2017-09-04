@@ -46,7 +46,8 @@ export type redis_command = 'del'     | 'expire'      | 'get'              | 'in
 export const redis_commands : string[] =  
 ['del'   , 'expire'  , 'get'   , 'hdel'   , 'hget'   , 'hgetall'  , 'hmget'         , 'hmset',
  'hset'  , 'hincrby' , 'hscan' , 'zadd'   , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem' ,
- 'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore' , 'hsetnx'
+ 'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore' , 'hsetnx'    ,
+ 'set'
  ]                            
                              
 export type redis_async_func     = (...args : string[]) => Promise<void>
@@ -59,6 +60,7 @@ export interface RedisCmds {
   del       : (...args : string[]) => Promise<number>
   expire    : redis_async_func // check
   get       : (key : string ) => Promise<string>
+  set       : (key : string, value: string, ...options: string[]) => Promise<string>
   incr      : redis_async_func // check
   mget      : (...args : string[]) => Promise<string []>
   mset      : redis_async_func
@@ -236,20 +238,12 @@ export class RedisWrapper {
     return this._hscan('hscan' , key , 0 , pattern , count)
   }
   
+  async rwScanCb(key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
+    return this._scanCb('scan' , key , params, cbFunc)
+  }
+  
   async rwHscanCb(key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
-    let cursor         = 0
-    const cmd          = 'hscan'
-    const args : any[] = [key , cursor]
-    if(params.pattern) args.push('MATCH' , params.pattern)
-    if(params.count) args.push('COUNT' , params.count)
-
-    do {
-      const res  : any[] = await this._execute(cmd , args)
-      cursor  = Number(res[0])
-      const resMapArr : string [] =  <string[]> res[1]
-      for(let i=0 ; i<resMapArr.length ; i = i+2) cbFunc (resMapArr[i] , JSON.parse(resMapArr[i+1]))
-      args[1] = cursor // Update cursor in the command...
-    } while (cursor)
+    return this._scanCb('hscan' , key , params, cbFunc)
   }
   
   async rwZscan(key : string, pattern ?: string, count ?: number) : Promise<Map<string , object>> {
@@ -281,6 +275,26 @@ export class RedisWrapper {
     return this._execute('zrevrangebyscore', redis_cmd) 
   }
 
+  async _scanCb(cmd : redis_command, key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
+    let cursor         = 0
+    const args : any[] = key === 'scan' ? [cursor] : [key , cursor]
+    if(params.pattern) args.push('MATCH' , params.pattern)
+    if(params.count) args.push('COUNT' , params.count)
+
+    do {
+      const res  : any[] = await this._execute(cmd , args)
+      cursor  = Number(res[0])
+      if (cmd === 'scan' || cmd === 'sscan') {
+        for (let idx in <string[]> res[1]) cbFunc (idx, JSON.parse(res[1][idx]))
+      }
+      else {
+        const resMapArr : string [] =  <string[]> res[1]
+        for(let i=0 ; i<resMapArr.length ; i = i+2) cbFunc (resMapArr[i] , JSON.parse(resMapArr[i+1]))
+      }
+      args[1] = cursor // Update cursor in the command...
+    } while (cursor)
+  }
+  
   async _scan(cmd : redis_command, key : string, cursor : number, pattern ?: string, count ?: number, out ?: Set<string>) : Promise<Set<string> > {
     const args : any[] = cmd === 'scan' ? [cursor] : [key , cursor]
     if(pattern) args.push('MATCH' , pattern)
