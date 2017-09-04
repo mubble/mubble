@@ -106,7 +106,7 @@ class ServerWebSocket {
   private sendConfig(rc: RunContextServer) {
 
     const config = {
-      msPingInterval: 29000 // 29 secs
+      msPingInterval: (15 * 60 * 1000) // 15 Mins // 29000 // 29 secs
     } as WebSocketConfig
 
     this.send(rc, new WireSysEvent(SYS_EVENT.WS_PROVIDER_CONFIG, config))

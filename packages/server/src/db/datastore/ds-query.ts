@@ -10,13 +10,21 @@
 import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
+import {BaseDatastore}    from './basedatastore'
 
 export class DSQuery {
 
-  private _query : any
+  private _query    : any
+  private model     : any
+  private namespace : any
+  private indexed   : string[]
 
-  constructor(rc : RunContextServer, private datastore: any, private namespace : any, private kindName: any ) {
-    this._query = this.datastore.createQuery(namespace, kindName)
+  constructor(rc : RunContextServer, private datastore : any, private kindName : any, model : any) {
+    this.model     = model
+    this.namespace = model.getNamespace()
+    this.kindName  = model._kindName
+    this.indexed   = model.getIndexedFields(rc).concat(BaseDatastore._indexedFields)
+    this._query    = this.datastore.createQuery(this.namespace, kindName)
   }
 
   async run(rc : RunContextServer) : Promise<any> {
@@ -33,14 +41,16 @@ export class DSQuery {
   }
 
   filter(key : string, value : any, symbol ?: string) : DSQuery {
+    if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + key)
     if(value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD + ' Filter key:' + key)
     if(!symbol) symbol = '='
     this._query = this._query.filter(key, symbol, value)
     return this
   }
 
-  multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: string}}>) : DSQuery {
-    for(let filter of keyPairs) {
+  multiFilter(keyPairs : Array<{key : string, value : any, symbol ?: string}>) : DSQuery {
+    for(const filter of keyPairs) {
+      if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + filter.key)
       if(filter.value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD+ ' Filter key:'+ filter.key)
       this._query = this._query.filter(filter.key, filter.symbol || '=', filter.value)
     }
@@ -48,13 +58,15 @@ export class DSQuery {
   }
 
   order(key : string, descending ?: boolean) : DSQuery {
+    if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + key)
     if (!descending) this._query = this._query.order(key)
     else this._query = this._query.order(key, { descending: true })
     return this
   }
 
-  multiOrder(keyPairs: Array<{[index : string] : {key : string, descending : boolean}}>) : DSQuery {
+  multiOrder(keyPairs: Array<{key : string, descending : boolean}>) : DSQuery {
     for(let filter of keyPairs) {
+      if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + filter.key)
       if (!filter.descending) this._query = this._query.order(filter.key)
       else this._query = this._query.order(filter.key, { descending: true })
     }
@@ -72,6 +84,7 @@ export class DSQuery {
   }
   
   groupBy(val : string) : DSQuery {
+    if(this.indexed.indexOf(val) == -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' GroupBy key:' + val)
     this._query = this._query.groupBy(val)
     return this
   }

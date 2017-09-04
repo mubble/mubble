@@ -19,6 +19,7 @@ import {
   RCLoggerBase
 }  from '@mubble/core'
 
+import  {GcloudEnv}         from './gcp/gcloud-env'
 // Import from external modules without types
 const colors:any = require('colors/safe') // https://github.com/marak/colors.js/
 
@@ -77,7 +78,7 @@ export abstract class RunContextServer extends RunContextBase {
   ------------------------------------------------------------------------------*/
 
   private static initDone: boolean
-
+  
   static init(minNodeVersion  : string): void {
     if (!semver.gte(process.version, minNodeVersion)) {
       throw(`Node version mismatch. Needed:${minNodeVersion} found:${process.version}`)

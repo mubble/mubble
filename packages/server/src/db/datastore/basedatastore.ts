@@ -388,7 +388,7 @@ protected async softDeleteChild(rc : RunContextServer, childModel : any, params 
     const model : BaseDatastore =  new (this as any)()  
     
     if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(), this._kindName)
-    return new DSQuery(rc, BaseDatastore._datastore, model.getNamespace(), this._kindName)
+    return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
   }
 
 /*------------------------------------------------------------------------------
@@ -483,7 +483,7 @@ getDatastoreKey(rc : RunContextServer, id ?: number | string | null , unique ?: 
 /*------------------------------------------------------------------------------
   - Deserialize: Assign the values of the object passed to the respective fields
 ------------------------------------------------------------------------------*/
-deserialize(rc : RunContextServer, value : any) : void {
+deserialize (rc : RunContextServer, value : any) {
   
   if(!this._id) this._id = BaseDatastore.getIdFromResult(rc, value)
 
@@ -499,6 +499,7 @@ deserialize(rc : RunContextServer, value : any) : void {
       (<any>this)[prop] = val
     }
   }
+  return this
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
