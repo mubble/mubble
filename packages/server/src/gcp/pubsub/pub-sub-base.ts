@@ -110,7 +110,7 @@ export class PubSubBase {
       
       rc.isDebug() && rc.debug(rc.getName(this), 'meta is ',meta)
 
-      const gcloud : GcloudEnv = (rc as any).gcloudEnv, 
+      const gcloud : GcloudEnv = rc.gcloudEnv, 
             projectBase = 'projects/'+ gcloud.projectId,
             topicFullName = topic.name ,
             subFullName   = projectBase + '/subscriptions/'+ subscriptionName 
