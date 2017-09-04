@@ -90,7 +90,7 @@ export abstract class BaseBigQuery {
     rc.isDebug() && rc.debug(rc.getName(this), 'creating the new BQ table', tableName)
     // create new table . First time or after dropping the old schema
     const res = await dataset.createTable(tableName , this.options.table_options)
-    rc.isDebug && rc.debug(rc.getName(this), 'bigquery table result', JSON.stringify( res[1].schema , res[1].timePartitioning))
+    rc.isDebug && rc.debug(rc.getName(this), 'bigQuery table result', JSON.stringify( res[1].schema , res[1].timePartitioning))
   }
 
   private static async takeTableBackup(rc : RunContextServer , tableName : string , tableSchema : any) {
