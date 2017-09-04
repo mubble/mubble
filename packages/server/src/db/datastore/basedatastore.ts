@@ -388,7 +388,7 @@ protected async softDeleteChild(rc : RunContextServer, childModel : any, params 
     const model : BaseDatastore =  new (this as any)()  
     
     if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(), this._kindName)
-    return new DSQuery(rc, BaseDatastore._datastore, model.getNamespace(), this._kindName)
+    return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
   }
 
 /*------------------------------------------------------------------------------

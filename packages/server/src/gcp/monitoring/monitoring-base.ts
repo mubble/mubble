@@ -36,7 +36,7 @@ export class MonitoringBase {
     this._projectId  = gcloudEnv.projectId
   }
 
-  async sendToMetrics(rc : RunContextServer, metricName : string, count : number) {
+  static async sendToMetrics(rc : RunContextServer, metricName : string, count : number) {
     const client = MonitoringBase._monitoring.metricServiceClient()
 
     let dataPoint = {

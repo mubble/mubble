@@ -50,7 +50,7 @@ export class CloudStorageBase {
           newName   = name ? name : await this.getFileName(rc, bucket, extension, path),
           filename  = newName + append,
           modPath   = (path) ? (path + '/') : '',
-          res       = await fs.writeFileSync(`/tmp/${filename}.${extension}`, data, 'binary'),
+          res       = await fs.writeFileSync(`/tmp/${filename}.${extension}`, data, {encoding :'binary'}),
           fileUrl   = await this.upload(rc, bucket, 
                                 `/tmp/${filename}.${extension}`,
                                 `${modPath}${filename}.${extension}`)
@@ -84,7 +84,28 @@ export class CloudStorageBase {
     return data[0].metadata.name.split('/')[1]
   }
 
-  static async bucketExists(rc : RunContextServer, bucketName: string) {
+  static async download(rc : RunContextServer, bucketName : string, filePath : string) : Promise<any> {
+    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
+          file   : any = bucket.file(filePath)
+
+    let data : any
+    return new Promise((resolve, reject) => {
+      const readStream = file.createReadStream()
+
+      readStream.on('error', (err : any) => {
+        reject(err)
+      })
+      readStream.on('data', (response : any) => {
+        data = data ? Buffer.concat([data, response]) : response
+      })
+      readStream.on('end', function() {
+        resolve(data)
+      })
+    })
+    
+  }
+
+  static async bucketExists(rc : RunContextServer, bucketName : string) {
     const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
           data   : any = await bucket.exists()
 
