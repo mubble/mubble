@@ -32,12 +32,12 @@ export type BigQueryTableOptions = {
 
 export function getTableName(rc : RunContextServer , bqTableOptions : BigQueryTableOptions , dayStamp ?: string){
   
-  const verStr = ('v'+bqTableOptions.version).replace(/\./gi,''),  //v01
-        tablename =  bqTableOptions.day_partition ?
+  const verStr    = ('v'+bqTableOptions.version).replace(/\./gi,''),  //v01
+        tableName =  bqTableOptions.day_partition ?
          `${bqTableOptions._tableName}_${verStr}_${dayStamp || format(new Date(), '%yyyy%%mm%%dd%')}`:
          `${bqTableOptions._tableName}_${verStr}`
 
-  return tablename.replace(/\./gi,'_')       
+  return tableName.replace(/\./gi,'_')       
 }
 
 export abstract class BaseBigQuery {
@@ -60,11 +60,11 @@ export abstract class BaseBigQuery {
     const dataset  : any = await rc.gcloudEnv.bigQuery.dataset(this.options.DATA_STORE_NAME),
           dsRes    : any = await dataset.get({autoCreate : true})
     
-    const tablename : string = getTableName(rc , this.options) ,
-          table    : any = dataset.table(tablename),
-          tableRes : any = await table.exists()
+    const tableName : string = getTableName(rc , this.options) ,
+          table     : any = dataset.table(tableName),
+          tableRes  : any = await table.exists()
     
-    this.today_table  = tablename
+    this.today_table  = tableName
     if(tableRes[0]){
       
       // Table metadata
@@ -79,7 +79,7 @@ export abstract class BaseBigQuery {
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. new schema ',JSON.stringify(this.options.table_options.schema))
       
-      await this.takeTableBackup(rc, tablename , metadata[0].schema)
+      await this.takeTableBackup(rc, tableName , metadata[0].schema)
       // Todo : fix this . Why this is necessary ?
       await new Promise((resolve , reject)=>{setTimeout(resolve() , 4000)}) // wait for some time
       await table.delete()
@@ -87,13 +87,13 @@ export abstract class BaseBigQuery {
       */
     } 
     
-    rc.isDebug() && rc.debug(rc.getName(this), 'creating the new BQ table', tablename)
+    rc.isDebug() && rc.debug(rc.getName(this), 'creating the new BQ table', tableName)
     // create new table . First time or after dropping the old schema
-    const res = await dataset.createTable(tablename , this.options.table_options)
+    const res = await dataset.createTable(tableName , this.options.table_options)
     rc.isDebug && rc.debug(rc.getName(this), 'bigquery table result', JSON.stringify( res[1].schema , res[1].timePartitioning))
   }
 
-  private static async takeTableBackup(rc : RunContextServer , tablename : string , tableSchema : any) {
+  private static async takeTableBackup(rc : RunContextServer , tableName : string , tableSchema : any) {
     
     const bigQuery : any = rc.gcloudEnv.bigQuery ,
           overwrite = false ,
@@ -115,8 +115,8 @@ export abstract class BaseBigQuery {
                                   },
                     sourceTable : {
                       projectId : bigQuery.projectId , 
-                      datasetId: this.options.DATA_STORE_NAME,
-                      tableId: tablename 
+                      datasetId : this.options.DATA_STORE_NAME,
+                      tableId   : tableName 
                     },
                     createDisposition: 'CREATE_IF_NEEDED',  
                     writeDisposition: overwrite ? 'WRITE_TRUNCATE' : 'WRITE_APPEND',
@@ -171,25 +171,25 @@ export abstract class BaseBigQuery {
 
   async insert(rc : RunContextServer , day_timestamp ?: string) {
     
-  const clazz : any = this.constructor as any ,
-        options : BigQueryTableOptions = clazz.options ,
-        dataset : any = rc.gcloudEnv.bigQuery.dataset(options.DATA_STORE_NAME),
+  const clazz         : any                  = this.constructor as any ,
+        options       : BigQueryTableOptions = clazz.options ,
+        dataset       : any                  = rc.gcloudEnv.bigQuery.dataset(options.DATA_STORE_NAME),
         table_options : table_create_options = options.table_options,
-        tablename : string = getTableName(rc , options , day_timestamp) ,
-        table  : any = dataset.table(tablename)
+        tableName     : string               = getTableName(rc , options , day_timestamp) ,
+        table         : any                  = dataset.table(tableName)
   
-  if(options.day_partition && clazz.today_table!== tablename){
+  if(options.day_partition && clazz.today_table!== tableName){
     // check day partition table exists
     const tableRes : any = await table.exists()
     if(!tableRes[0]){
-      // table doesnot exists. Create it
-      const res = await dataset.createTable(tablename , table_options)
+      // table does not exists. Create it
+      const res = await dataset.createTable(tableName , table_options)
     }
-    clazz.today_table = tablename
+    clazz.today_table = tableName
   }
 
   const bqNiData = this
-  rc.isDebug() && rc.debug(rc.getName(this), clazz.name , ' insert data', bqNiData , 'to table',tablename)
+  rc.isDebug() && rc.debug(rc.getName(this), clazz.name , ' insert data', bqNiData , 'to table',tableName)
   
   const res  = await table.insert(bqNiData)
 }
