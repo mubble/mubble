@@ -40,7 +40,7 @@ export class CloudStorageBase {
   static async uploadDataToCloudStorage(rc         : RunContextServer, 
                                         bucketName : string,
                                         path       : string,
-                                        data       : any,
+                                        data       : Buffer,
                                         mimeVal    : string,
                                         append    ?: string,
                                         name      ?: string) : Promise<{fileUrl : string, filename : string}> {
@@ -54,7 +54,7 @@ export class CloudStorageBase {
           bufferStream = new stream.PassThrough()
   
     await new Promise((resolve, reject) => {
-      bufferStream.end(new Buffer(data, 'base64'))
+      bufferStream.end(data)
       bufferStream.pipe(gcFile.createWriteStream({metadata : {'Cache-Control': 'public, max-age=31536000'}}))
       .on('error', (err : any) => {reject(err)})
       .on('finish', () => {resolve()})
