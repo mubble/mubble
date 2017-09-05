@@ -236,7 +236,7 @@ export class MasterInMemCache {
     
     let   data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
     
-    if(arrMinus.length){ // some segments have been removed
+    if(arrMinus.length && syncInfo.ts){ // some segments have been removed
       syncInfo.ts = 0
       purge = true
       rc.isWarn() && rc.warn(rc.getName(this), 'destination sync remove old data', segRef , {model : registry.mastername , minus : arrMinus })
