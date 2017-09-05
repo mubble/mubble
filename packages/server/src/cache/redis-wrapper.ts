@@ -47,7 +47,7 @@ export const redis_commands : string[] =
 ['del'   , 'expire'  , 'get'   , 'hdel'   , 'hget'   , 'hgetall'  , 'hmget'         , 'hmset',
  'hset'  , 'hincrby' , 'hscan' , 'zadd'   , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem' ,
  'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore' , 'hsetnx'    ,
- 'set'
+ 'set'   , 'mget'
  ]                            
                              
 export type redis_async_func     = (...args : string[]) => Promise<void>

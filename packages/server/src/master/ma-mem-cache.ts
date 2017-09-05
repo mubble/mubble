@@ -236,7 +236,7 @@ export class MasterInMemCache {
     
     let   data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
     
-    if(arrMinus.length){ // some segments have been removed
+    if(arrMinus.length && syncInfo.ts){ // some segments have been removed
       syncInfo.ts = 0
       purge = true
       rc.isWarn() && rc.warn(rc.getName(this), 'destination sync remove old data', segRef , {model : registry.mastername , minus : arrMinus })
@@ -258,7 +258,9 @@ export class MasterInMemCache {
       }
 
       if(rec[MasterBaseFields.Deleted] === true){
-        deletes.push(lo.pick(rec , registry.pkFields ))
+        // All the Pk's field might not be understood by client.
+        // send him only the pk fields , which he understands (dest sync)
+        deletes.push(lo.pick(rec , lo.intersection(registry.pkFields , registry.destSyncFields) ))
       }else{
         const destRec : any = lo.pick(rec , registry.destSyncFields )
         updates.push(destRec)
