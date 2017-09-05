@@ -11,7 +11,7 @@ import {
   Mubble
 } from '@mubble/core'
 
-const QUICK_ANIM_MS     = (1000/60) + 'ms'
+const QUICK_ANIM_MS     = 'none' // (1000/60) + 'ms'
 
 export class DomHelper {
 

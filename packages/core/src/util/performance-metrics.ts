@@ -77,41 +77,32 @@ export class PerformanceMetrics {
       output.cyclePerf = this.markEntry(cycle.endTs - cycle.startTs, index, output.cyclePerf)
 
       for (const stepName in cycle.stepMap) {
-        const step = cycle.stepMap[stepName]
+        const step = cycle.stepMap[stepName],
+              perf = output.stepPerf[stepName]
 
         if (!step.endTs) {
           console.error('You forgot to call endStep for ' + stepName + ' for cycle index:' + index)
           continue
         }
-        output.stepPerf[stepName] = this.markEntry(step.endTs - step.startTs, index, output.stepPerf[stepName])
+        output.stepPerf[stepName] = this.markEntry(step.endTs - step.startTs, index, perf)
       }
     }
-
+    
+    console.info('Result summary ', output)
+    
     let marks: Cycle[]  = []
     this.logEntry('all cycles', output.cyclePerf, marks)
 
     for (const stepName in output.stepPerf) {
       this.logEntry(stepName, output.stepPerf[stepName], marks)
     }
-
-    console.info('Result summary ', output)
     
     marks = lo.sortBy(marks, 'startTs')
-    console.info('Highlighted cycles, that have min or max time >>')
+    console.info('Highlighted cycles (having min/max cycle/step time) >>')
     for (const mark of marks) {
       console.info(mark.toString())
     }
     console.info('all cycles to deep dive >>', this.cycles)
-  }
-
-  private verifyStepsEnded() {
-    const steps = this.cycle.stepMap
-    for (const stepName of Object.keys(steps)) {
-      const step = steps[stepName]
-      if (!step.endTs) {
-        console.error('You forgot to end ', stepName, ' for task ', this.taskName, ' cycle #', this.cycles.length)
-      }
-    }
   }
 
   private markEntry(ts: number, index: number, entry: ResultEntry): ResultEntry {
