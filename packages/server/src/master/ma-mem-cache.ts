@@ -258,7 +258,9 @@ export class MasterInMemCache {
       }
 
       if(rec[MasterBaseFields.Deleted] === true){
-        deletes.push(lo.pick(rec , registry.pkFields ))
+        // All the Pk's field might not be understood by client.
+        // send him only the pk fields , which he understands (dest sync)
+        deletes.push(lo.pick(rec , lo.intersection(registry.pkFields , registry.destSyncFields) ))
       }else{
         const destRec : any = lo.pick(rec , registry.destSyncFields )
         updates.push(destRec)
