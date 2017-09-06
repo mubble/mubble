@@ -16,4 +16,9 @@ export namespace Mubble {
     Hindi   : 'hi'
   }
 
+  export class uError extends Error {
+    constructor(public code: string, msg: string) {
+        super(msg)
+    }
+}
 }
