@@ -33,57 +33,36 @@ function redisLog(rc : RunContextServer , ...args : any[] ) : void {
 
 const LOG_ID = 'RedisWrapper'
 
-export type redis_command = 'del'     | 'expire'      | 'get'              | 'incr'  | 'mget'    |
-                            'hdel'    | 'hget'        | 'hgetall'          | 'hmget' | 'hincrby' |
-                            'lpush'   | 'rpush'       | 'lrange'           | 'hmset' | 'psetex'  |
-                            'zadd'    | 'zrange'      | 'zrevrange'        | 'zrem'  | 'set'     | 
-                            'publish' | 'unsubscribe' | 'zrevrangebyscore' | 'hset'  | 'setex'   |
-                            'watch'   | 'unwatch'     | 'zrangebyscore'    | 'mset'  | 'ttl'     | 
-                            'scan'    | 'sscan'       | 'hscan'            | 'zscan' | 'quit'    |
-                            'exists'  |  'info'       | 'zremrangebyscore' | 'zcount'| 'flushall'|
-                            'hsetnx'
-
-export const redis_commands : string[] =  
-['del'   , 'expire'  , 'get'   , 'hdel'   , 'hget'   , 'hgetall'  , 'hmget'         , 'hmset',
- 'hset'  , 'hincrby' , 'hscan' , 'zadd'   , 'zrange' , 'zrevrange', 'zrangebyscore' , 'zrem' ,
- 'exists', 'zrevrangebyscore'  , 'zcount'  ,  'flushall'  , 'zremrangebyscore' , 'hsetnx'    ,
- 'set'   , 'mget'
- ]                            
-                             
-export type redis_async_func     = (...args : string[]) => Promise<void>
-export type redis_async_func_str = (...args : string[]) => Promise<string[]>
-export type redis_async_func_arr = (key: string , ...args : string[]) => Promise<string []>
-export type redis_async_func_map = (key : string) => Promise<{[key:string] : string}>  //Map<string , string>
-
-export interface RedisCmds {
+export class RedisCmds {
   
-  del       : (...args : string[]) => Promise<number>
-  expire    : redis_async_func // check
-  get       : (key : string ) => Promise<string>
-  set       : (key : string, value: string, ...options: string[]) => Promise<string>
-  incr      : redis_async_func // check
-  mget      : (...args : string[]) => Promise<string []>
-  mset      : redis_async_func
+  del       (...args : string[]) : Promise<number> {return true as any}
+  expire    (...args : string[]) : Promise<void> {return true as any}
+  get       (key : string ) : Promise<string> {return true as any}
+  set       (key : string, value: string, ...options: string[]) : Promise<string> {return true as any}
+  incr      (...args : string[]) : Promise<void> {return true as any}
 
-  hdel      : (key : string , ...args : string[]) => Promise<void>
-  hget      : (key : string , field : string) => Promise<string> 
-  hgetall   : (key : string) => Promise<{[key:string] : string}>
-  hscan     : (key : string , ...args : string[]) => Promise<[string, string []]> // TODO: Check the return value 
-  hmget     : (key : string , ...args : string[]) => Promise<string []>
-  hmset     : (key : string , ...args : string[] ) => Promise<void>
-  hset      : (key : string , field : string , value : string | number) => Promise<number>
-  hsetnx      : (key : string , field : string , value : string | number) => Promise<number>
-  hincrby   : (key : string , field : string, incr : number) => Promise<number> 
+  mget      (...args : string[]) : Promise<string []> {return true as any}
+  mset      (...args : string[]) : Promise<void> {return true as any}
+
+  hdel      (key : string , ...args : string[]) : Promise<void> { return true as any }
+  hget      (key : string , field : string) : Promise<string> { return true as any }
+  hgetall   (key : string) : Promise<{[key:string] : string}> { return true as any }
+  hscan     (key : string , ...args : string[]) : Promise<[string, string []]> { return true as any }
+  hmget     (key : string , ...args : string[]) : Promise<string []> { return true as any }
+  hmset     (key : string , ...args : string[] ) : Promise<void> { return true as any }
+  hset      (key : string , field : string , value : string | number) : Promise<number> { return true as any }
+  hsetnx    (key : string , field : string , value : string | number) : Promise<number> { return true as any }
+  hincrby   (key : string , field : string, incr : number) : Promise<number>  { return true as any }
   
   // z sorted set apis 
-  zadd      : (key : string , option : string , ...scoreValuePairs : any[]) => Promise<number>
-  zrange    : (key : string , start : number , end : number , withscore ?: string) => Promise<string[]>
-  zrem      : (key : string , ...keys : string[]) => Promise<void> // check
-  zremrangebyscore : (key : string , start : string , end : string) => Promise<void> // check
-  zcount    : (key : string , start : string , end : string) => Promise<number>
+  zadd      (key : string , option : string , ...scoreValuePairs : any[]) : Promise<number> { return true as any }
+  zrange    (key : string , start : number , end : number , withscore ?: string) : Promise<string[]> { return true as any }
+  zrem      (key : string , ...keys : string[]) : Promise<void> { return true as any }
+  zremrangebyscore (key : string , start : string , end : string) : Promise<void> { return true as any }
+  zcount    (key : string , start : string , end : string) : Promise<number> { return true as any }
 
-  exists    : (key : string , ...keys : string[]) => Promise<boolean>
-  
+  exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
+
 }
 
 export type RedisMulti = RedisCmds
@@ -95,7 +74,7 @@ function add(name : string)  {
   const rw : any = RedisWrapper.prototype
   rw[name] = function(...params: any[]) {
     const _ : RedisWrapper  = this
-    return _._execute(name as redis_command , params)
+    return _._execute(name , params)
   }
 
   const rdMulti : any = RedisMultiWrapper.prototype
@@ -116,12 +95,15 @@ export class RedisWrapper {
   public info        : Mubble.uObject<string> = {}
   static inited      : boolean = false
   constructor(private name : string, private rc : RunContextServer ){
-    
   }
   // Unfortunately there is no static initializer like java in ts/js
   static init(rc : RunContextServer) : void {
     if(RedisWrapper.inited) return
-    for(const cmd of redis_commands){
+    
+    const cmds : string [] = Object.getOwnPropertyNames(RedisCmds.prototype).filter((cmd : string)=>{
+      return (cmd !== 'constructor') && typeof((RedisCmds.prototype as any)[cmd]) === 'function' 
+    })
+    for(const cmd of cmds){
       // we can find all the function (name) of RedisClient from reflection . check signature type
       add(cmd)
     }
@@ -200,7 +182,7 @@ export class RedisWrapper {
     return this._execute('flushall',[]) 
   }
 
-  async _execute(cmd : redis_command , args ?: any[]) {
+  async _execute(cmd : string , args ?: any[]) {
     const redisw = this.redis as any
     if(!redisw[cmd] || typeof redisw[cmd]!== 'function' ) throw Error('redis command '+cmd + ' invalid')
     
@@ -275,7 +257,7 @@ export class RedisWrapper {
     return this._execute('zrevrangebyscore', redis_cmd) 
   }
 
-  async _scanCb(cmd : redis_command, key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
+  async _scanCb(cmd : string , key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
     let cursor         = 0
     const args : any[] = key === 'scan' ? [cursor] : [key , cursor]
     if(params.pattern) args.push('MATCH' , params.pattern)
@@ -295,7 +277,7 @@ export class RedisWrapper {
     } while (cursor)
   }
   
-  async _scan(cmd : redis_command, key : string, cursor : number, pattern ?: string, count ?: number, out ?: Set<string>) : Promise<Set<string> > {
+  async _scan(cmd : string , key : string, cursor : number, pattern ?: string, count ?: number, out ?: Set<string>) : Promise<Set<string> > {
     const args : any[] = cmd === 'scan' ? [cursor] : [key , cursor]
     if(pattern) args.push('MATCH' , pattern)
     if(count) args.push('COUNT' , count)
@@ -309,7 +291,7 @@ export class RedisWrapper {
     return this._scan(cmd , key , cursor , pattern , count , out)
   }
 
-  async _hscan(cmd : redis_command, key : string, cursor : number, pattern ?: string, count ?: number, out ?: Map<string, object >) : Promise<Map<string , object> > {
+  async _hscan(cmd : string, key : string, cursor : number, pattern ?: string, count ?: number, out ?: Map<string, object >) : Promise<Map<string , object> > {
     const args : any[] = [key , cursor]
     if(pattern) args.push('MATCH' , pattern)
     if(count) args.push('COUNT' , count)
