@@ -69,12 +69,21 @@ export abstract class BaseBigQuery {
     if(tableRes[0]){
       
       // Table metadata
-      const metadata : any = await table.getMetadata()
-      if(lo.isEqual( metadata[0].schema , this.options.table_options.schema ) ) {
+      const metadata : any = await table.getMetadata(),
+            oldSchema : any = lo.cloneDeep(metadata[0].schema) ,
+            oldFields : any[] = oldSchema.fields || []
+      // remove describe fields for the sake of comparison
+      for(const field of oldFields){
+        delete field.description
+      }      
+      if(lo.isEqual( oldSchema , this.options.table_options.schema ) ) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Table exists with correct schema')
         return
       }
-      throw new Error('Table schema changed . Change Version'+this.options)
+      rc.isError() && rc.error(rc.getName(this), 'Table schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
+      rc.isError() && rc.error(rc.getName(this), 'Table schema is changed. new schema ',JSON.stringify(this.options.table_options.schema))
+      
+      throw new Error(this.options._tableName +' Table schema changed . Change Version'+this.options + '' + oldSchema)
       /*
       // Table schema is changed. Delete the old table and create new
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
