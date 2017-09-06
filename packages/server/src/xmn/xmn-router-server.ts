@@ -24,7 +24,8 @@ import {
         WireSysEvent,
         SYS_EVENT,
         InvocationData,
-        Protocol
+        Protocol,
+        Mubble
        }                      from '@mubble/core'
 import {EncProviderServer}    from './enc-provider-server'
 import {RunContextServer}     from '../rc-server'
@@ -153,10 +154,13 @@ export abstract class XmnRouterServer {
       this.sendToProvider(rc, ci, wResp , wo)
 
     } catch (err) {
-      let errStr = (err instanceof Error) ? err.message : err
+      let errStr = (err instanceof Mubble.uError) ? err.code 
+                 : (
+                      (err instanceof Error) ? err.message : err
+                   )
       rc.isError() && rc.error(rc.getName(this), err)
       wResp = new WireReqResp(wo.name, wo.ts, 
-                       {error: err.name || err.message}, errStr , err)
+                       {error: err.message || err.name}, errStr , err)
       this.sendToProvider(rc, ci, wResp , wo)
     }finally{
       return wResp
@@ -188,10 +192,13 @@ export abstract class XmnRouterServer {
 
     } catch (err) {
       
-      let errStr = (err instanceof Error) ? err.message : err
+      let errStr = (err instanceof Mubble.uError) ? err.code 
+                 : (
+                      (err instanceof Error) ? err.message : err
+                   )
       rc.isError() && rc.error(rc.getName(this), err)
       wResp = new WireEventResp(wo.name, wo.ts, 
-                       {error: err.name || err.message}, errStr , err)
+                       {error: err.message || err.name}, errStr , err)
       this.sendEventResponse(rc, ci, wResp  ,wo)
     }finally{
       return wResp
