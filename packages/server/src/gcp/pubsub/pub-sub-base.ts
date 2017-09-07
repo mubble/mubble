@@ -79,6 +79,15 @@ export class PubSubBase {
     this._pubSub = gcloudEnv.pubsub
   }
 
+  public static async initPushTopicSubscription(rc : RunContextServer , gcloudEnv : GcloudEnv ,  topicName : string , subscriptionName : string , subscribeOptions : subscribeOptions) : Promise<NCPubSubTopic> {
+    // Get the topic or autocreate
+    const topic : NCPubSubTopic  = await PubSubBase.getOrCreateTopic(rc , topicName)
+    
+    // Create the subscription for the topic
+    const subscription :  NCPubSubSubscrption =  await PubSubBase.createSubscription(rc , gcloudEnv , topic , subscriptionName , subscribeOptions) 
+    return topic    
+  }
+
   /**
    * Get the existing created Topic or create a one if does not exists
    * @param rc 
@@ -99,7 +108,7 @@ export class PubSubBase {
    * @param pushEndPoint  push end point url . Must be https. Has to be registred with project
    * @param ackDeadLineSec The maximum time after receiving a message that you must ack/responde with 200 OK ,  a message before it is redelivered
    */
-  public static async createSubscription(rc : RunContextServer , gcloud : GcloudEnv , topic : NCPubSubTopic , subscriptionName : string , pushEndPoint : string , ackDeadLineSec ?: number) : Promise<NCPubSubSubscrption> {
+  public static async createSubscription(rc : RunContextServer , gcloud : GcloudEnv , topic : NCPubSubTopic , subscriptionName : string , option : subscribeOptions) : Promise<NCPubSubSubscrption> {
     let subscription : NCPubSubSubscrption = topic.subscription(subscriptionName)
 
     const res: any = await subscription.exists()
@@ -117,22 +126,22 @@ export class PubSubBase {
       if(meta.topic !== topicFullName || 
         meta.name !== subFullName  || 
         !meta.pushConfig || 
-        meta.pushConfig.pushEndpoint !== pushEndPoint || 
-        meta.ackDeadlineSeconds !== (ackDeadLineSec || 10)) 
+        meta.pushConfig.pushEndpoint !== option.pushEndpoint || 
+        meta.ackDeadlineSeconds !== (option.ackDeadlineSeconds || 10)) 
         {
           rc.isWarn() && rc.warn(rc.getName(this), 'subscription meta does not match deleting the old')
           await subscription.delete()
           rc.isWarn() && rc.warn(rc.getName(this), 'deleted subscription ')
         }else{
-          rc.isDebug() && rc.debug(rc.getName(this), 'subscription detail match', subscription , pushEndPoint)
+          rc.isDebug() && rc.debug(rc.getName(this), 'subscription detail match', subscription , option.pushEndpoint )
           return subscription
         }
     } 
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Creating subscription ', subscriptionName , res)
-    await topic.subscribe(subscriptionName , {pushEndpoint : pushEndPoint , ackDeadlineSeconds : ackDeadLineSec || 10 })
+    await topic.subscribe(subscriptionName , {pushEndpoint : option.pushEndpoint , ackDeadlineSeconds : option.ackDeadlineSeconds || 10 })
     subscription = topic.subscription(subscriptionName)  
-    rc.isDebug() && rc.debug(rc.getName(this), 'subscription property ',subscription , pushEndPoint)
+    rc.isDebug() && rc.debug(rc.getName(this), 'subscription property ',subscription , option.pushEndpoint)
     return subscription
   }
 
