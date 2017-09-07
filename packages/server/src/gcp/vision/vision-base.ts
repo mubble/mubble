@@ -100,25 +100,34 @@ export class VisionBase {
     return VisionBase.process(rc, image, processOptions, imagePath)
   }
 
+  static async getMime(rc : RunContextServer, image : string | Buffer) : Promise<string> {
+    const jimpImage : any = await jimp.read(image)
+    return jimpImage.getMIME()
+  }
+
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             INTERNAL FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
   private static async detectCrops(rc : RunContextServer, ratio : number, imagePath ?: string, data ?: Buffer) : Promise<string> {
-    const sourceVal : any = {source : {}},
-          options   : any = { 
-            verbose      : true, 
-            imageContext : {
-                cropHintsParams : {
-                  aspectRatios : [ratio]
-                }
+    const sourceVal : any = {},
+          features  : any = [{
+            type        : gVision.types.Feature.Type.CROP_HINTS
+            // maxResults  : 1,
+          }],
+          imageContext    = {
+            cropHintsParams : {
+              aspectRatios : [ratio]
             }
           }
 
-    if(data) sourceVal.source.content = data
-    else sourceVal.source.imageUri = imagePath
+    if(data) sourceVal.content = data
+    else sourceVal.source = {imageUri : imagePath}
 
     try {
-      return VisionBase._vision.detectCrops(sourceVal, options)
+      const res = await VisionBase._vision.annotateImage({image : sourceVal, features, imageContext})
+
+      if(res[0].error) throw(res[0].error)
+      return res[0].cropHintsAnnotation.cropHints[0].boundingPoly.vertices
     } catch(error) {
       throw(new VisionError(ERROR_CODES.CROP_DETECTION_FAILED, `Crop detection failed : ${error}`))
     } 
@@ -143,14 +152,14 @@ export class VisionBase {
     let height : number,
         width  : number
 
-    if(options.crops && options.crops.length && options.crops[0][0].bounds) {
-      const b = options.crops[0][0].bounds,
+    if(options.crops && options.crops.length) {
+      const b = options.crops,
             x = b[0].x,
             y = b[0].y
       
       width  = b[1].x - b[0].x
       height = b[3].y - b[0].y,
-      
+
       await jimpImage.crop(x, y, width, height)
     }
 
