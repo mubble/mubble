@@ -129,7 +129,7 @@ export class VisionBase {
       if(res[0].error) throw(res[0].error)
       return res[0].cropHintsAnnotation.cropHints[0].boundingPoly.vertices
     } catch(error) {
-      throw(new VisionError(ERROR_CODES.CROP_DETECTION_FAILED, `Crop detection failed : ${error}`))
+      throw(new VisionError(ERROR_CODES.CROP_DETECTION_FAILED, `Crop detection failed : ${JSON.stringify(error)}`))
     } 
   }
 
