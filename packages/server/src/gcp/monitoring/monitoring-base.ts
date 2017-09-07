@@ -11,6 +11,7 @@ const monitoring : any = require('@google-cloud/monitoring')
 
 import {RunContextServer}           from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
+import * as monitoringTypes         from './types'
 
 export class MonitoringBase {
 
@@ -68,6 +69,46 @@ export class MonitoringBase {
           ]
         }
       ]
+    }
+
+    await client.createTimeSeries(request)
+  }
+
+  static async sendToMetricsBulk(rc : RunContextServer, metricArr : monitoringTypes.metricFormat[]) {
+    const client  = MonitoringBase._monitoring.metricServiceClient(),
+          request = {
+            name       : `projects/${MonitoringBase._projectId}`,
+            timeSeries : [] as any[]
+          }
+    
+    for(const val of metricArr) {
+      let dataPoint = {
+        interval: {
+          endTime: {
+            seconds: Date.now() / 1000
+          }
+        },
+        value: {
+          int64Value: val.count
+        }
+      }
+
+      let timeSeriesVal = {// Ties the data point to a custom metric
+        metric: {
+          type: `custom.googleapis.com/${val.metricName}`,
+        },
+        resource: {
+          type: 'global',
+          labels: {
+            project_id: MonitoringBase._projectId
+          }
+        },
+        points: [
+          dataPoint
+        ]
+      }
+
+      request.timeSeries.push(timeSeriesVal)
     }
 
     await client.createTimeSeries(request)
