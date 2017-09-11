@@ -60,6 +60,7 @@ export class RedisCmds {
   zrem      (key : string , ...keys : string[]) : Promise<void> { return true as any }
   zremrangebyscore (key : string , start : string , end : string) : Promise<void> { return true as any }
   zcount    (key : string , start : string , end : string) : Promise<number> { return true as any }
+  zcard     (key: string) : Promise<number> { return true as any }
 
   exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
 
