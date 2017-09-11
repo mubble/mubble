@@ -256,7 +256,9 @@ export abstract class MasterDb extends Dexie {
 
     await this.transaction('rw', modelTable, async() => {
       for (const modelRec of arDel) {
-        await modelTable.delete(this.buildKeyRec(rc, modelName, modelRec))
+        const keyObj = this.buildKeyRec(rc, modelName, modelRec)
+        rc.isDebug() && rc.debug(rc.getName(this), 'bulkDelete', modelName, keyObj)
+        await modelTable.delete(Object.keys(keyObj).map(key => keyObj[key]))
       }
     })
   }
