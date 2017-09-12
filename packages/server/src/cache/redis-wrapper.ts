@@ -221,8 +221,8 @@ export class RedisWrapper {
     return this._hscan('hscan' , key , 0 , pattern , count)
   }
   
-  async rwScanCb(key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
-    return this._scanCb('scan' , key , params, cbFunc)
+  async rwScanCb(params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
+    return this._scanCb('scan' , '' , params, cbFunc)
   }
   
   async rwHscanCb(key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
@@ -260,21 +260,26 @@ export class RedisWrapper {
 
   async _scanCb(cmd : string , key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
     let cursor         = 0
-    const args : any[] = key === 'scan' ? [cursor] : [key , cursor]
+    const args : any[] = (cmd.toLowerCase() === 'scan') ? [cursor] : [key , cursor]
+    const cursorIdx    = (cmd.toLowerCase() === 'scan') ? 0        : 1
     if(params.pattern) args.push('MATCH' , params.pattern)
     if(params.count) args.push('COUNT' , params.count)
-
+    
     do {
       const res  : any[] = await this._execute(cmd , args)
       cursor  = Number(res[0])
-      if (cmd === 'scan' || cmd === 'sscan') {
+      if (cmd.toLowerCase() === 'scan') {
+        const scanres = await this.redisCommand().mget (...res[1])
+        for (let idx in <string[]> scanres) cbFunc (idx, JSON.parse(scanres[idx]))
+      }
+      else if (cmd.toLowerCase() === 'sscan') {
         for (let idx in <string[]> res[1]) cbFunc (idx, JSON.parse(res[1][idx]))
       }
       else {
         const resMapArr : string [] =  <string[]> res[1]
         for(let i=0 ; i<resMapArr.length ; i = i+2) cbFunc (resMapArr[i] , JSON.parse(resMapArr[i+1]))
       }
-      args[1] = cursor // Update cursor in the command...
+      args[cursorIdx] = cursor // Update cursor in the command...
     } while (cursor)
   }
   
