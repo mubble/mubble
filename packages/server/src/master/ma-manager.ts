@@ -124,7 +124,7 @@ export class MasterMgr {
     const memCache : MasterInMemCache = this.masterCache[mastername]
     assert(memCache!=null , 'master ',mastername , 'is not present')
     assert(memCache.cache , 'master ',mastername , 'is not not cached')
-    return memCache.records.slice()
+    return memCache.records.filter((rec :T)=>!rec.deleted)
   }
   
   public getMasterHashRecords<T extends MasterBase> (mastername : string) : Mubble.uObject<T> {
