@@ -12,7 +12,17 @@ import {
         RunContextServer,
         RUN_MODE,
        }                            from '../rc-server'
-import {getDatastoreNamespace}      from '../util/user-info'
+import {
+        BaseDatastore,
+        getDatastoreNamespace,
+        CloudStorageBase,
+        MonitoringBase,
+        VisionBase,
+        BigQueryBase,
+        PubSubBase,
+        GcpLanguageBase,
+        TraceBase
+       }                            from '../index'
 import * as url                     from 'url'
 import * as http                    from 'http'
 
@@ -49,16 +59,17 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
 
 export class GcloudEnv {
 
-  static async init(rc : RunContextServer): Promise<GcloudEnv> {
+  static async init(rc : RunContextServer, bqEnv ?: any, traceEnv ?: any): Promise<GcloudEnv> {
     
     const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
+    let gCloudEnv     = null
 
     if (rc.getRunMode() === RUN_MODE.PROD) {
       if (instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
       if (await this.getMetadata(rc, metadataProjectEnvCmd) !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
 
       const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
-      return new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
+      gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
 
     } else {
 
@@ -67,18 +78,32 @@ export class GcloudEnv {
         const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
 
         if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
-          return new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
+          gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
         } else {
           const hostname = await this.getMetadata(rc, metadataHostNameCmd)
-          return new GcloudEnv(projectName, hostname.split('.')[0])
+          gCloudEnv = new GcloudEnv(projectName, hostname.split('.')[0])
         }
 
       } else {
-        return new GcloudEnv(Credentials.PROJECT_ID, 
+        gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, 
                              getDatastoreNamespace().toUpperCase(),
                              Credentials.AUTH_KEY)
       }
     }
+    await this.initGcpComponents (rc, gCloudEnv, bqEnv)
+    return gCloudEnv
+  }
+
+  private static async initGcpComponents (rc: RunContextServer, gcloudEnv : any, trace ?: boolean, bqEnv ?: any) {
+    // TODO: Take a list of components to initialize...
+    await BaseDatastore.init (rc, gcloudEnv)
+    await CloudStorageBase.init(rc, gcloudEnv)
+    await MonitoringBase.init(rc, gcloudEnv)
+    await VisionBase.init(rc, gcloudEnv)
+    await BigQueryBase.init(rc , gcloudEnv, bqEnv)
+    await PubSubBase.init(rc , gcloudEnv)
+    await GcpLanguageBase.init(rc , gcloudEnv)
+    if(trace) await TraceBase.init(rc , gcloudEnv)
   }
   
   public datastore    : any
@@ -87,6 +112,7 @@ export class GcloudEnv {
   public bigQuery     : any
   public pubsub       : any
   public monitoring   : any
+  public language     : any
 
   constructor(public projectId  : string,
               public namespace  : string,
