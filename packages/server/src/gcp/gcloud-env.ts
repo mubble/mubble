@@ -59,7 +59,7 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
 
 export class GcloudEnv {
 
-  static async init(rc : RunContextServer, bqEnv ?: any, traceEnv ?: any): Promise<GcloudEnv> {
+  static async init(rc : RunContextServer, trace ?: boolean, bqEnv ?: any): Promise<GcloudEnv> {
     
     const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
     let gCloudEnv     = null
@@ -90,7 +90,7 @@ export class GcloudEnv {
                              Credentials.AUTH_KEY)
       }
     }
-    await this.initGcpComponents (rc, gCloudEnv, bqEnv)
+    await this.initGcpComponents (rc, gCloudEnv, trace, bqEnv)
     return gCloudEnv
   }
 
