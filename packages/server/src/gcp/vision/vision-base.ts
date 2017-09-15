@@ -134,6 +134,7 @@ export class VisionBase {
   }
 
   private static async process(rc : RunContextServer, jimpImage : any, options : visionTypes.ProcessOptions, imagePath ?: string) {
+    if(!jimpImage) throw(new VisionError(ERROR_CODES.JIMP_FAILED_TO_READ, `Jimp failed to read`))
     if(imagePath && jimpImage._originalMime === `image/gif`) {
       await new Promise((res, rej) => {
         request({
