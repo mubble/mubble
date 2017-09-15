@@ -19,7 +19,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
     return new Promise((resolve, reject) => {
 
       const urlObj : any = url.parse(urlStr),
-            httpObj: any = urlObj.protocol === 'http:' ? http : https
+            httpObj: any = urlObj.protocol === 'https:' ? https : http
       
       const req = httpObj.request(urlObj, (outputStream: any) => {
 
@@ -59,12 +59,12 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
   export function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
 
     return new Promise((resolve, reject) => {
-      const httpObj    : any    = urlObj.protocol === 'http:' ? http : https
+      const httpObj    : any    = (urlObj.protocol === 'https:') ? https : http
       let   statusCode : number = 200
       
-      if(inputData && !urlObj.headers['Content-Length']) 
+      if(inputData && !urlObj.headers['Content-Length'])
         urlObj.headers['Content-Length'] = Buffer.byteLength(inputData)
-      if(httpObj==https) urlObj.agent = new https.Agent(urlObj)
+      if(httpObj === https) urlObj.agent = new https.Agent({keepAlive: true})
       const req = httpObj.request(urlObj, (outputStream: any) => {
 
         switch (outputStream.headers['content-encoding']) {

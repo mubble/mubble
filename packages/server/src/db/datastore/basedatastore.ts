@@ -333,6 +333,14 @@ protected async softDeleteChild(rc : RunContextServer, childModel : any, params 
     throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
   }
 }
+
+/*------------------------------------------------------------------------------
+  - Get kind Name 
+------------------------------------------------------------------------------*/ 
+static getKindName(rc : RunContextServer) {
+  return this._kindName
+}
+
   
 /*------------------------------------------------------------------------------
   - Get ID from result
