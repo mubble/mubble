@@ -59,7 +59,7 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
   export function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
 
     return new Promise((resolve, reject) => {
-      const httpObj    : any    = (urlObj.protocol === 'https:') ? https : http
+      const httpObj    : any    = (urlObj.protocol === 'https:' || urlObj.port === '443') ? https : http
       let   statusCode : number = 200
       
       if(inputData && !urlObj.headers['Content-Length'])
