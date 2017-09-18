@@ -418,7 +418,6 @@ export class MasterMgr {
   }
 
   public async destinationSync (rc : RunContextServer , syncReq : SyncRequest) : Promise<SyncResponse> {
-    console.log('destinationSync',syncReq)
     const resp : SyncResponse = {}
     
     // check if there is any new data sync required

@@ -183,6 +183,29 @@ export abstract class BaseBigQuery {
     return null
   }
 
+  public static async getDataStoreTable(rc : RunContextServer , day_timestamp ?: string) {
+    
+    const clazz : any                    = this as any ,
+    options : BigQueryTableOptions       = clazz.options ,
+    dataset : any                        = BigQueryBase._bigQuery.dataset(options.DATA_STORE_NAME),
+    table_options : table_create_options = options.table_options,
+    tableName     : string               = getTableName(rc , options , day_timestamp) ,
+    table         : any                  = dataset.table(tableName)
+  
+    if(options.day_partition && clazz.today_table!== tableName){
+      // check day partition table exists
+      const tableRes : any = await table.exists()
+      if(!tableRes[0]){
+      // table does not exists. Create it
+      const res = await dataset.createTable(tableName , table_options)
+      }
+      clazz.today_table = tableName
+    }
+    
+    rc.isDebug() && rc.debug(rc.getName(this), clazz.name , ' insert data to table',tableName, '[ Version ' + options.version + ']')
+    return table
+  }
+
   async insert(rc : RunContextServer , day_timestamp ?: string) {
   let err = this.fieldsError(rc)  
   if(err) {
@@ -191,25 +214,33 @@ export abstract class BaseBigQuery {
   }  
     
   const clazz : any                          = this.constructor as any ,
-        options : BigQueryTableOptions       = clazz.options ,
-        dataset : any                        = BigQueryBase._bigQuery.dataset(options.DATA_STORE_NAME),
-        table_options : table_create_options = options.table_options,
-        tableName     : string               = getTableName(rc , options , day_timestamp) ,
-        table         : any                  = dataset.table(tableName)
+        table : any                          = await clazz.getDataStoreTable(rc , day_timestamp)
   
-  if(options.day_partition && clazz.today_table!== tableName){
-    // check day partition table exists
-    const tableRes : any = await table.exists()
-    if(!tableRes[0]){
-      // table does not exists. Create it
-      const res = await dataset.createTable(tableName , table_options)
+  const bqNiData = this
+  rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
+  const res  = await table.insert(bqNiData)
+}
+
+static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_timestamp ?: string) {
+  
+  for(const item of items){
+    // check if all items are instance of this class
+    if(!(item instanceof this)){
+      rc.isError() && rc.error(rc.getName(this), 'item ',item , 'is not an instance of model',this.name)
+      throw new Error('Bulk Insert Failure' + item + this.name)
     }
-    clazz.today_table = tableName
+    // check the fields sanity of all items
+    const str=item.fieldsError(rc)
+    if(str){
+      rc.isError() && rc.error(rc.getName(this), 'data sanity check failed for item',item , this.name)
+      throw new Error('Data Sanity Failure' + item + this.name)
+    }
   }
 
-  const bqNiData = this
-  rc.isDebug() && rc.debug(rc.getName(this), clazz.name , ' insert data', bqNiData , 'to table',tableName, '[ Version ' + options.version + ']')
-  const res  = await table.insert(bqNiData)
+  const  table  : any = await this.getDataStoreTable(rc , day_timestamp)
+  rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert ',this.name , items.length)
+  const res  = await table.insert(items)
+  rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert Successful')
 }
 
   
