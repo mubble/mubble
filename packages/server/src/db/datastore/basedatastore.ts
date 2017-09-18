@@ -427,12 +427,12 @@ async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolea
       await BaseDatastore._datastore.insert({key: uniqueEntityKey, data: ''})
     }
     catch (err) {
-      if(!ignoreDupRec) {
+      if(ignoreDupRec === false) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         if (err.toString().split(':')[1] !== ' entity already exists') {
           throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
         } else {
-           rc.isError() && rc.error(rc.getName(this), ERROR_CODES.UNIQUE_KEY_EXISTS)
+          throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, err.message))
         }
       } else {
         return false
