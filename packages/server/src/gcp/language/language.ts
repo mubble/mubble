@@ -93,7 +93,6 @@ export class GcpLanguageBase {
       return accum
     }, {})
     const dups = Object.keys (uniq).filter ((a: string) => uniq[a].count > 1)
-    console.log ('\t==>Duplicates:', JSON.stringify (dups))
-
+    if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
 }

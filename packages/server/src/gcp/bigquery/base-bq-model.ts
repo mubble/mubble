@@ -77,13 +77,13 @@ export abstract class BaseBigQuery {
         delete field.description
       }      
       if(lo.isEqual( oldSchema , this.options.table_options.schema ) ) {
-        rc.isDebug() && rc.debug(rc.getName(this), 'Table [ Version ' + this.options.version + '] exists with correct schema')
+        rc.isDebug() && rc.debug(rc.getName(this), 'Table [ Version ' + this.options.version + ' ] exists with correct schema')
         return
       }
-      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + this.options.version + '] schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
-      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + this.options.version + '] schema is changed. new schema ',JSON.stringify(this.options.table_options.schema))
+      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + this.options.version + ' ] schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
+      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + this.options.version + ' ] schema is changed. new schema ',JSON.stringify(this.options.table_options.schema))
       
-      throw new Error(this.options._tableName +' Table [ Version ' + this.options.version + '] schema changed . Change Version'+this.options + '' + oldSchema)
+      throw new Error(this.options._tableName +' Table [ Version ' + this.options.version + ' ] schema changed . Change Version'+this.options + '' + oldSchema)
       /*
       // Table schema is changed. Delete the old table and create new
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
@@ -242,6 +242,5 @@ static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_tim
   const res  = await table.insert(items)
   rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert Successful')
 }
-
   
 }
