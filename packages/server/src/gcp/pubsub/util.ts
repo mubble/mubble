@@ -27,7 +27,8 @@ export class PubSubMsgDecoder {
   constructor(public msg : PubSubCbMsg){}
 
   public getJsonData<T>() : T {
-    return JSON.parse(this.getStringData())
+    const res : any = JSON.parse(this.getStringData())
+    return typeof(res) === 'string' ? JSON.parse(res) : res
   }
 
   public getStringData() : string {
