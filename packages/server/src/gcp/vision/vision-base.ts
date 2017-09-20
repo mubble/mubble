@@ -64,11 +64,11 @@ export class VisionBase {
     return VisionBase.process(rc, image, processOptions)
   }
 
-  static async processToBase64(rc        : RunContextServer, 
-                               imagePath : string, //Image path can be a local path or a URL
-                               ratio     ?: number,
-                               quality   ?: number,
-                               shrink    ?: {h: number, w: number}) : Promise<visionTypes.ProcessedReturn> {
+  static async processUrlToBase64(rc        : RunContextServer, 
+                                  imagePath : string, //Image path can be a local path or a URL
+                                  ratio     ?: number,
+                                  quality   ?: number,
+                                  shrink    ?: {h: number, w: number}) : Promise<visionTypes.ProcessedReturn> {
     
     const crops          : any                        = ratio ? await VisionBase.detectCrops(rc, ratio, imagePath) : null,
           image          : any                        = await jimp.read(imagePath),

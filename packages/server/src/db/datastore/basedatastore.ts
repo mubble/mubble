@@ -422,21 +422,17 @@ async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolea
         kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
 
   for(const constraint of uniqueConstraints) {
-    let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], true)
+    const uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], true)
+
     try {
       await BaseDatastore._datastore.insert({key: uniqueEntityKey, data: ''})
-    }
-    catch (err) {
+    } catch(err) {
       if(ignoreDupRec === false) {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-        if (err.toString().split(':')[1] !== ' entity already exists') {
-          throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-        } else {
+        if (err.toString().split(':')[1] === ' entity already exists') 
           throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, err.message))
-        }
-      } else {
-        return false
-      }
+        else throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+      } else return false
     }
   }
   return true
@@ -450,7 +446,8 @@ async deleteUnique(rc : RunContextServer) : Promise<boolean> {
         kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
 
   for(const constraint of uniqueConstraints) {
-    let uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], true)
+    const uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], true)
+    
     try {
       BaseDatastore._datastore.delete(rc, uniqueEntityKey)
     } catch (err) {
