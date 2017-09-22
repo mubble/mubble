@@ -22,6 +22,7 @@ export class DSTransaction {
   private _namespace   : string
   private _datastore   : any
   private traceId      : string 
+  private ack          : any  
 
   constructor(rc : RunContextServer, datastore : any, namespace : string) {
     this._transaction = datastore.transaction()
@@ -55,7 +56,7 @@ export class DSTransaction {
   - Needed only if we use a transaction outside models.
 ------------------------------------------------------------------------------*/
   async start(rc : RunContextServer) {
-    rc.startTraceSpan(this.traceId)
+    this.ack = rc.startTraceSpan(this.traceId)
     try {
       await this._transaction.run()
     } catch(err) {
@@ -78,7 +79,7 @@ export class DSTransaction {
       else rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     }finally{
-      rc.endTraceSpan(this.traceId , undefined)
+      rc.endTraceSpan(this.traceId , this.ack)
     }
   }
 
