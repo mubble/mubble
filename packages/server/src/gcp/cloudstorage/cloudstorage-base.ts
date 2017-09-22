@@ -69,7 +69,7 @@ export class CloudStorageBase {
     return {fileUrl : `${newName}.${extension}`, filename : newName}
   }
 
-  private static async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
+  static async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
     let id = UUIDv4()
 
     while(true) {

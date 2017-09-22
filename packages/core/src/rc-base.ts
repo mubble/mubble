@@ -206,10 +206,13 @@ export abstract class RCLoggerBase {
   }
 
   public endTraceSpan(id : string , ackNumber : number | undefined ) : void {
-    const mId = ackNumber ? id + '-'+ ackNumber : id ,
-          startTime = this.traceSpans[mId].startTime
-    this.finishedTraceSpans.push({id : id , startTime : startTime , endTime : Date.now()})
-    delete this.traceSpans[mId]
+    const mId       = ackNumber ? id + '-'+ ackNumber : id ,
+          startTime = this.traceSpans[mId] ? this.traceSpans[mId].startTime : 0
+
+    if(startTime) {
+      this.finishedTraceSpans.push({id : id , startTime : startTime , endTime : Date.now()})
+      delete this.traceSpans[mId]
+    }
   }
 
   public getWorkerIdentifier() : string | null {
