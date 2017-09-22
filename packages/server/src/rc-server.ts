@@ -167,7 +167,7 @@ export abstract class RunContextServer extends RunContextBase {
 
   public startTraceSpan(id : string) : number | undefined {
     if(!this.isTraceEnabled()) return
-    this.logger.startTraceSpan(id)
+    return this.logger.startTraceSpan(id)
   }
 
   public endTraceSpan(id : string , ackNum : number | undefined) : void {

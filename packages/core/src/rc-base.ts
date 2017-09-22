@@ -212,6 +212,8 @@ export abstract class RCLoggerBase {
     if(startTime) {
       this.finishedTraceSpans.push({id : id , startTime : startTime , endTime : Date.now()})
       delete this.traceSpans[mId]
+    } else {
+      throw new Error('Start span not called, Id: ' + id)
     }
   }
 
