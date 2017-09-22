@@ -51,15 +51,21 @@ export class CloudStorageBase {
           modPath      = (path) ? (path + '/') : '',
           gcBucket     = CloudStorageBase._cloudStorage.bucket(bucketName),
           gcFile       = gcBucket.file(`${modPath}${filename}.${extension}`),
-          bufferStream = new stream.PassThrough()
-  
-    await new Promise((resolve, reject) => {
-      bufferStream.end(data)
-      bufferStream.pipe(gcFile.createWriteStream({metadata : {'Cache-Control': 'public, max-age=31536000'}}))
-      .on('error', (err : any) => {reject(err)})
-      .on('finish', () => {resolve()})
-    })
+          bufferStream = new stream.PassThrough(),
+          traceId : string = rc.getName(this)+':'+'uploadDataToCloudStorage',
+          ack = rc.startTraceSpan(traceId)
+          
+    try{
 
+      await new Promise((resolve, reject) => {
+        bufferStream.end(data)
+        bufferStream.pipe(gcFile.createWriteStream({metadata : {'Cache-Control': 'public, max-age=31536000'}}))
+        .on('error', (err : any) => {reject(err)})
+        .on('finish', () => {resolve()})
+      })
+    }finally{
+      rc.endTraceSpan(traceId,ack)
+    }
     return {fileUrl : `${newName}.${extension}`, filename : newName}
   }
 

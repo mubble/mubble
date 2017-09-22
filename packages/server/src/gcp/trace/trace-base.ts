@@ -69,6 +69,9 @@ export function createDummyTrace(rc : RunContextServer) {
     name = `six-feet-under${rand}`,
     apiDur = lo.random(0 , rand*1000),
     labels : any = getDummyLabels(),
+    startTime : number = new Date(Date.now()- apiDur).getTime() ,
+    endTime   : number = new Date().getTime() ,
+    diff = Math.round((endTime -startTime)/8),
     trace  = {
       projectId : TraceBase.projectId ,
       traceId   : getTraceId(name) ,
@@ -77,8 +80,24 @@ export function createDummyTrace(rc : RunContextServer) {
           spanId    : "1" ,
           kind      : 'RPC_SERVER',
           name      : name ,
-          startTime : format(new Date(Date.now()- apiDur) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
-          endTime   : format(new Date() , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+          startTime : format(startTime , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
+          endTime   : format(endTime , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+          //labels    : labels
+        },
+        {
+          spanId    : "2" ,
+          kind      : 'RPC_SERVER',
+          name      : name + '_ind1' ,
+          startTime : format(startTime + diff , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
+          endTime   : format(endTime - diff , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+          labels    : labels
+        },
+        {
+          spanId    : "3" ,
+          kind      : 'RPC_SERVER',
+          name      : name + '_ind2' ,
+          startTime : format(startTime + (2*diff) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
+          endTime   : format(endTime - (2*diff) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
           labels    : labels
         }
       ]
@@ -165,6 +184,26 @@ export class TraceBase {
         labels    : labels
       }
       ]
+    }
+    let spanIdCount : number = 1
+    if(!lo.isEmpty(logger.traceSpans)){
+      throw new Error('trace not finished for apis '+ apiName + ' ' +  Object.keys(logger.traceSpans) )
+    }
+    if(!lo.isEmpty(logger.finishedTraceSpans)){
+      
+      for(let spanInfo of logger.finishedTraceSpans ){
+        spanIdCount++
+        trace.spans.push( {
+          spanId    : ""+spanIdCount ,
+          kind      : 'RPC_SERVER',
+          name      : spanInfo.id ,
+          startTime : format(new Date(spanInfo.startTime) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
+          endTime   : format(new Date(spanInfo.endTime) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+          labels    : undefined
+        }
+       )
+      }
+
     }
     return trace
   }

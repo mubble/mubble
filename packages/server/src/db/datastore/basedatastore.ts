@@ -126,6 +126,8 @@ private getNamespace() : string {
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
   protected async get(rc : RunContextServer, id : number | string, ignoreRNF ?: boolean) : Promise<boolean> {
+    const traceId : string = rc.getName(this)+':'+'get',
+          ack = rc.startTraceSpan(traceId)
     try {
       const key      = this.getDatastoreKey(rc, id),
             kindName = (<any>this)._kindName || (this.constructor as any)._kindName
@@ -143,11 +145,15 @@ private getNamespace() : string {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(err)
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    }finally{
+      rc.endTraceSpan(traceId,ack)
     }
   }
 
   static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models : BaseDatastore[]) : Promise<boolean> {
     let result = true
+    const traceId : string = rc.getName(this)+':'+'mget',
+          ack = rc.startTraceSpan(traceId)
       
     try {
       const keys : any = []
@@ -182,6 +188,8 @@ private getNamespace() : string {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(err)
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    }finally{
+      rc.endTraceSpan(traceId , ack)
     }
 
     return result
@@ -196,6 +204,9 @@ private getNamespace() : string {
   - noChildren     = Default is true [No Children]
 ------------------------------------------------------------------------------*/ 
   protected async insert(rc : RunContextServer, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean> {
+    const traceId : string = rc.getName(this)+':'+'insert',
+          ack = rc.startTraceSpan(traceId)
+    
     try {
       const res          = await this.setUnique(rc, ignoreDupRec),
             datastoreKey = this.getDatastoreKey(rc)
@@ -212,6 +223,8 @@ private getNamespace() : string {
         if (ignoreDupRec) return true
         throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
       }
+    }finally{
+      rc.endTraceSpan(traceId,ack)
     }
   }
 
@@ -245,6 +258,9 @@ private getNamespace() : string {
   - Update
 ------------------------------------------------------------------------------*/ 
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<boolean> {
+    const traceId : string = rc.getName(this)+':'+'update',
+          ack = rc.startTraceSpan(traceId)
+    
     try {
       const datastoreKey = this.getDatastoreKey(rc, id)
 
@@ -258,6 +274,8 @@ private getNamespace() : string {
     } 
     catch (err) {
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    }finally{
+      rc.endTraceSpan(traceId,ack)
     }
   }
 

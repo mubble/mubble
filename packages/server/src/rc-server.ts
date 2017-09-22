@@ -165,6 +165,18 @@ export abstract class RunContextServer extends RunContextBase {
     this.isStatus() && this.hasLogged() && this.status(this.getName(this), '....Done....')
   }
 
+  public startTraceSpan(id : string) : number | undefined {
+    if(!this.isTraceEnabled()) return
+    this.logger.startTraceSpan(id)
+  }
+
+  public endTraceSpan(id : string , ackNum : number | undefined) : void {
+    if(!this.isTraceEnabled()) return
+    this.logger.endTraceSpan(id , ackNum)
+  }
+
+  abstract isTraceEnabled() : boolean
+
 }
 
 export class RCServerLogger extends RCLoggerBase {

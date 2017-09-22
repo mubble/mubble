@@ -162,6 +162,7 @@ export abstract class RunContextBase {
   hasLogged(): boolean {
     return this.logger.lastLogTS !== 0
   }
+   
 }
 
 export type LogCacheEntry = {
@@ -177,6 +178,10 @@ export abstract class RCLoggerBase {
   public  lastLogTS         : number = 0
   public  sessionContext    : boolean = false
   public  startTs           : number = Date.now()
+  // Trace related
+  private k                 : number = 0    
+  public traceSpans : {[traceId : string] :  {startTime : number , endTime : number} } = {}
+  public finishedTraceSpans : {id : string , startTime : number , endTime : number} [] = []
   
   protected constructor(public rc : RunContextBase) {
     
@@ -184,6 +189,27 @@ export abstract class RCLoggerBase {
 
   public  finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject) : void {
     // default Implementation .
+  }
+
+  public startTraceSpan(id : string) : number | undefined {
+    if(!this.traceSpans[id]){
+      this.traceSpans[id] = {startTime : Date.now() , endTime : 0 }
+    }else{
+      // already unfinished span exists
+      this.k++
+      const mId = id + '-'+this.k
+      // create new span with id + count
+      this.traceSpans[mId] = {startTime : Date.now() , endTime : 0 }
+      return this.k // return duplicate count
+    }
+    return 
+  }
+
+  public endTraceSpan(id : string , ackNumber : number | undefined ) : void {
+    const mId = ackNumber ? id + '-'+ ackNumber : id ,
+          startTime = this.traceSpans[mId].startTime
+    this.finishedTraceSpans.push({id : id , startTime : startTime , endTime : Date.now()})
+    delete this.traceSpans[mId]
   }
 
   public getWorkerIdentifier() : string | null {
@@ -225,7 +251,7 @@ export abstract class RCLoggerBase {
       return buf ? buf + ' ' + strVal : strVal
     }, '')
     
-    if (buffer.length > 500) buffer = buffer.substr(0, 500)
+    if (!this.rc.initConfig.consoleLogging && buffer.length > 500) buffer = buffer.substr(0, 500)
 
     let workerIdentifer = this.getWorkerIdentifier() || '' ,
         logStr = this.rc.contextId ?
