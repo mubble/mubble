@@ -22,15 +22,23 @@ export class DSQuery {
   constructor(rc : RunContextServer, private datastore : any, private kindName : any, model : any) {
     this.model     = model
     this.namespace = model.getNamespace()
-    this.kindName  = model._kindName
+    this.kindName  = kindName
     this.indexed   = model.getIndexedFields(rc).concat(BaseDatastore._indexedFields)
     this._query    = this.datastore.createQuery(this.namespace, kindName)
   }
 
   async run(rc : RunContextServer) : Promise<any> {
-    const res = await this.datastore.runQuery(this._query)
-    return res
-  }
+    const traceId : string = rc.getName(this)+':'+ this.kindName,
+          ack = rc.startTraceSpan(traceId)
+    let res : any
+      try{
+        res = await this.datastore.runQuery(this._query)
+      }finally{
+        rc.endTraceSpan(traceId,ack)
+        return res
+      }
+    }
+    
 
   async runCursor(rc : RunContextServer, pageCursor ?: string) : Promise<any> {
     if(pageCursor) {

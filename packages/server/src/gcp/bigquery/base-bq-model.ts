@@ -218,7 +218,10 @@ export abstract class BaseBigQuery {
   
   const bqNiData = this
   rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
+  const traceId : string = clazz.name + ':' + 'insert',
+        ack = rc.startTraceSpan(traceId)
   const res  = await table.insert(bqNiData)
+  rc.endTraceSpan(traceId,ack)
 }
 
 static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_timestamp ?: string) {

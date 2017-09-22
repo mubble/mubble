@@ -14,9 +14,11 @@ import * as url              from 'url'
 import * as request          from 'request'
 import {RunContextServer}    from '../rc-server'
 
-export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
-
-    return new Promise((resolve, reject) => {
+export async function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
+    const traceId : string = 'executeHttpsRequest',
+          ack = rc.startTraceSpan(traceId)
+    try{ 
+    return await new Promise<string>((resolve, reject) => {
 
       const urlObj : any = url.parse(urlStr),
             httpObj: any = urlObj.protocol === 'https:' ? https : http
@@ -54,11 +56,17 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       })
       req.end()
     })
+  }finally{
+    rc.endTraceSpan(traceId,ack)
+  }
   }
 
-  export function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
-
-    return new Promise((resolve, reject) => {
+  export async function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
+    const traceId : string = 'executeHttpsWithOptions',
+          ack = rc.startTraceSpan(traceId)
+    
+    try{
+    return await new Promise<string>((resolve, reject) => {
       const httpObj    : any    = (urlObj.protocol === 'https:' || urlObj.port === '443') ? https : http
       let   statusCode : number = 200
       
@@ -97,16 +105,26 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       if(inputData) req.write(inputData)
       req.end()
     })
+  }finally{
+    rc.endTraceSpan(traceId,ack)
+  }
   }
 
-  export function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string> {
-    return new Promise((resolve, reject) => {
+  export async function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string> {
+    const traceId : string = 'expandUrl',
+          ack = rc.startTraceSpan(traceId)
+    
+    try{
+    return await new Promise<string>((resolve, reject) => {
      request( { method: "HEAD", url: shortUrl, followAllRedirects: true },
       function (error : any, response : any) {
         if(error) reject(error)
         return resolve(response.request.href)
       })
     })
+  }finally{
+    rc.endTraceSpan(traceId,ack)
+  }
   }
 
   /**
@@ -118,14 +136,16 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
    * Execute http and return result data as well as response code.
    * Drupal SEO server data sync request fails with # 200 status code and error msg
    */ 
-  export function executeHttpResultResponse(rc: RunContextServer, options: http.RequestOptions, 
+  export async function executeHttpResultResponse(rc: RunContextServer, options: http.RequestOptions, 
       inputData ?: string , encoding ?: string ): Promise<{error : string | undefined, response: any, data : string}> {
 
     let response: any
     if(inputData && options.headers && !options.headers['Content-Length']) 
         options.headers['Content-Length'] = inputData.length
-      
-    return new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
+    const traceId : string = 'executeHttpResultResponse',
+          ack = rc.startTraceSpan(traceId)
+    try{  
+    return await new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
       const httpObj: any = options.protocol === 'http:' ? http : https
       const req = httpObj.request(options, (outputStream: any) => {
 
@@ -163,16 +183,24 @@ export function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promi
       if(inputData) req.write(inputData)
       req.end()
     })
+  }finally{
+    rc.endTraceSpan(traceId, ack)
+  }
   }
 
 export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
 
-export function httpRequest(rc : RunContextServer , options : NCRequestOptions ) : Promise<{error : string | undefined, response: any, data : string | any }>
+export async function httpRequest(rc : RunContextServer , options : NCRequestOptions ) : Promise<{error : string | undefined, response: any, data : string | any }>
   {
-    return new Promise<{error : string | undefined, response: any, data : string | any }>((resolve , reject)=>{
+    const traceId : string = 'httpRequest',
+          ack = rc.startTraceSpan(traceId)
+    try{
+    return await new Promise<{error : string | undefined, response: any, data : string | any }>((resolve , reject)=>{
       request(options , function(error , response , body){
         resolve({error : error, response: response , data : body })
       })
-  })
+  })}finally{
+    rc.endTraceSpan(traceId,ack)
+  }
 
 }
