@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Execute an https request
+   About      : Http & Https utils
    
    Created on : Tue May 23 2017
    Author     : Akash Dathan
@@ -14,117 +14,131 @@ import * as url              from 'url'
 import * as request          from 'request'
 import {RunContextServer}    from '../rc-server'
 
+export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
+
 export async function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
-    const traceId : string = 'executeHttpsRequest',
-          ack = rc.startTraceSpan(traceId)
-    try{ 
-    return await new Promise<string>((resolve, reject) => {
-
-      const urlObj : any = url.parse(urlStr),
-            httpObj: any = urlObj.protocol === 'https:' ? https : http
+    const traceId = 'executeHttpsRequest',
+          ack     = rc.startTraceSpan(traceId)
+    try { 
+      return await new Promise<string>((resolve, reject) => {
+        const urlObj : any = url.parse(urlStr),
+              httpObj: any = urlObj.protocol === 'https:' ? https : http
       
-      const req = httpObj.request(urlObj, (outputStream: any) => {
+        const req = httpObj.request(urlObj, (outputStream: any) => {
 
-        outputStream.setEncoding('binary')
+          outputStream.setEncoding('binary')
 
-        switch (outputStream.headers['content-encoding']) {
-        case 'gzip':
-          outputStream = outputStream.pipe(zlib.createGunzip())
-          break
-        case 'deflate':
-          outputStream = outputStream.pipe(zlib.createInflate())
-          break
-        }
+          switch (outputStream.headers['content-encoding']) {
+          case 'gzip':
+            outputStream = outputStream.pipe(zlib.createGunzip())
+            break
+          case 'deflate':
+            outputStream = outputStream.pipe(zlib.createInflate())
+            break
+          }
 
-        let response = ''
-        outputStream.on('data', (chunk: any) => {
-          response += chunk
+          let response = ''
+          outputStream.on('data', (chunk: any) => {
+            response += chunk
+          })
+          outputStream.on('end', () => {
+            return resolve(response)
+          })
+          outputStream.on('error', (err: any) => {
+            rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
+            return reject(response)
+          })
         })
-        outputStream.on('end', () => {
-          return resolve(response)
-        })
-      })
 
-      req.on('response', (res: any) => {
-        const hostname = url.parse(urlStr).host
-        rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + hostname + '], Status Code: ' + res.statusCode)
+        req.on('response', (res: any) => {
+          const hostname = url.parse(urlStr).host
+          rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + hostname + '], Status Code: ' + res.statusCode)
+        })
+
+        req.on('error', (err: any) => {
+          rc.isStatus() && rc.status (err)
+          if (err.errno && err.errno === 'ENOTFOUND') return resolve(undefined) 
+          return reject(err)
+        })
+
+        req.end()
       })
-      req.on('error', (err: any) => {
-        rc.isStatus() && rc.status (err)
-        if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
-        return reject(err)
-      })
-      req.end()
-    })
-  }finally{
-    rc.endTraceSpan(traceId,ack)
-  }
+    } finally {
+      rc.endTraceSpan(traceId,ack)
+    }
   }
 
   export async function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
-    const traceId : string = 'executeHttpsWithOptions',
-          ack = rc.startTraceSpan(traceId)
+    const traceId = 'executeHttpsWithOptions',
+          ack     = rc.startTraceSpan(traceId)
     
-    try{
-    return await new Promise<string>((resolve, reject) => {
-      const httpObj    : any    = (urlObj.protocol === 'https:' || urlObj.port === '443') ? https : http
-      let   statusCode : number = 200
-      
-      if(inputData && !urlObj.headers['Content-Length'])
-        urlObj.headers['Content-Length'] = Buffer.byteLength(inputData)
-      if(httpObj === https) urlObj.agent = new https.Agent({keepAlive: true})
-      const req = httpObj.request(urlObj, (outputStream: any) => {
+    try {
+      return await new Promise<string>((resolve, reject) => {
+        const httpObj    : any    = (urlObj.protocol === 'https:' || urlObj.port === '443') ? https : http
+        let   statusCode : number = 200
+        
+        if(inputData && !urlObj.headers['Content-Length'])
+          urlObj.headers['Content-Length'] = Buffer.byteLength(inputData)
+          
+        if(httpObj === https)
+          urlObj.agent = new https.Agent({keepAlive: true})
 
-        switch (outputStream.headers['content-encoding']) {
-        case 'gzip':
-          outputStream = outputStream.pipe(zlib.createGunzip())
-          break
-        case 'deflate':
-          outputStream = outputStream.pipe(zlib.createInflate())
-          break
-        }
+        const req = httpObj.request(urlObj, (outputStream: any) => {
 
-        let response = ''
-        outputStream.on('data', (chunk: any) => {
-          response += chunk
+          switch (outputStream.headers['content-encoding']) {
+          case 'gzip':
+            outputStream = outputStream.pipe(zlib.createGunzip())
+            break
+          case 'deflate':
+            outputStream = outputStream.pipe(zlib.createInflate())
+            break
+          }
+
+          let response = ''
+          outputStream.on('data', (chunk: any) => {
+            response += chunk
+          })
+          outputStream.on('end', () => {
+            return resolve(response)
+          })
+          outputStream.on('error', (err: any) => {
+            rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
+            return reject(response)
+          })
         })
-        outputStream.on('end', () => {
-          return resolve(response)
-        })
-      })
 
-      req.on('response', (res: any) => {
-        rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + urlObj.host + '], Status Code: ' + res.statusCode)
-        statusCode = res.statusCode
+        req.on('response', (res: any) => {
+          rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + urlObj.host + '], Status Code: ' + res.statusCode)
+          statusCode = res.statusCode
+        })
+        req.on('error', (err: any) => {
+          rc.isStatus() && rc.status (err)
+          if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
+          return reject(err)
+        })
+        if(inputData) req.write(inputData)
+        req.end()
       })
-      req.on('error', (err: any) => {
-        rc.isStatus() && rc.status (err)
-        if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
-        return reject(err)
-      })
-      if(inputData) req.write(inputData)
-      req.end()
-    })
-  }finally{
-    rc.endTraceSpan(traceId,ack)
-  }
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 
   export async function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string> {
-    const traceId : string = 'expandUrl',
-          ack = rc.startTraceSpan(traceId)
+    const traceId = 'expandUrl',
+          ack     = rc.startTraceSpan(traceId)
     
-    try{
-    return await new Promise<string>((resolve, reject) => {
-     request( { method: "HEAD", url: shortUrl, followAllRedirects: true },
-      function (error : any, response : any) {
-        if(error) reject(error)
-        return resolve(response.request.href)
+    try {
+      return await new Promise<string>((resolve, reject) => {
+      request({method : "HEAD", url : shortUrl, followAllRedirects : true},
+        function (error : any, response : any) {
+          if(error) reject(error)
+          return resolve(response.request.href)
+        })
       })
-    })
-  }finally{
-    rc.endTraceSpan(traceId,ack)
-  }
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 
   /**
@@ -142,34 +156,39 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
     let response: any
     if(inputData && options.headers && !options.headers['Content-Length']) 
         options.headers['Content-Length'] = inputData.length
-    const traceId : string = 'executeHttpResultResponse',
-          ack = rc.startTraceSpan(traceId)
-    try{  
-    return await new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
-      const httpObj: any = options.protocol === 'http:' ? http : https
-      const req = httpObj.request(options, (outputStream: any) => {
 
-        switch (outputStream.headers['content-encoding']) {
-        case 'gzip':
-          outputStream = outputStream.pipe(zlib.createGunzip())
-          break
-        case 'deflate':
-          outputStream = outputStream.pipe(zlib.createInflate())
-          break
-        }
-        
-              
+    const traceId = 'executeHttpResultResponse',
+          ack     = rc.startTraceSpan(traceId)
+          
+    try {  
+      return await new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
+        const httpObj : any = options.protocol === 'http:' ? http : https
 
-        let data = new Buffer('')
-        outputStream.on('data', (chunk: Buffer) => {
-          //data += chunk
-          data = Buffer.concat([data , chunk])
+        const req = httpObj.request(options, (outputStream: any) => {
+
+          switch (outputStream.headers['content-encoding']) {
+          case 'gzip':
+            outputStream = outputStream.pipe(zlib.createGunzip())
+            break
+          case 'deflate':
+            outputStream = outputStream.pipe(zlib.createInflate())
+            break
+          }
+          
+          let data = new Buffer('')
+          outputStream.on('data', (chunk: Buffer) => {
+            //data += chunk
+            data = Buffer.concat([data , chunk])
+          })
+          outputStream.on('end', () => {
+            // If encoding is not defined . default is utf8
+            return resolve({error: undefined, response: response, data: data.toString(encoding)})
+          })
+          outputStream.on('error', (err: any) => {
+            rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
+            return reject(response)
+          })
         })
-        outputStream.on('end', () => {
-          // If encoding is not defined . default is utf8
-          return resolve({error: undefined, response: response, data: data.toString(encoding)})
-        })
-      })
 
       req.on('response', (res: any) => {
         response = res
@@ -183,24 +202,22 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
       if(inputData) req.write(inputData)
       req.end()
     })
-  }finally{
+   } finally {
+    rc.endTraceSpan(traceId, ack)
+   }
+  }
+
+export async function httpRequest(rc : RunContextServer , options : NCRequestOptions) : Promise<{error : string | undefined, response: any, data : string | any }> {
+  const traceId = 'httpRequest',
+        ack     = rc.startTraceSpan(traceId)
+
+  try { 
+    return await new Promise<{error : string | undefined, response: any, data : string | any }>((resolve , reject)=>{
+      request(options, (error, response, body) => {
+        resolve({error : error, response : response, data : body })
+      })
+    })
+  } finally {
     rc.endTraceSpan(traceId, ack)
   }
-  }
-
-export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
-
-export async function httpRequest(rc : RunContextServer , options : NCRequestOptions ) : Promise<{error : string | undefined, response: any, data : string | any }>
-  {
-    const traceId : string = 'httpRequest',
-          ack = rc.startTraceSpan(traceId)
-    try{
-    return await new Promise<{error : string | undefined, response: any, data : string | any }>((resolve , reject)=>{
-      request(options , function(error , response , body){
-        resolve({error : error, response: response , data : body })
-      })
-  })}finally{
-    rc.endTraceSpan(traceId,ack)
-  }
-
 }
