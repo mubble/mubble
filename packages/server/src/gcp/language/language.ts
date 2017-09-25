@@ -24,30 +24,45 @@ export type GcpEntityInfo = {
 
 export class GcpLanguageBase {
 
-  static _language : any
+  static _language   : any
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
-      gcloudEnv.language = language ({
+      gcloudEnv.language = language.v1beta2 ({
         projectId   : gcloudEnv.projectId,
         credentials : gcloudEnv.authKey
       })
     } else {
-      gcloudEnv.language = language ({
+      gcloudEnv.language = language.v1beta2 ({
         projectId   : gcloudEnv.projectId
       })
     }
-
-    this._language = gcloudEnv.language
+    this._language = gcloudEnv.language 
   }
 
+  static async classifyText (rc: RunContextServer, text: string) {
+    const document = { 
+      content: text, 
+      type: 'PLAIN_TEXT' // language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT' 
+    }
+    return this.classifyInternal (rc, document)
+  }
+
+  static async classifyGcsFile (rc: RunContextServer, bucketName : string, fileName : string) {
+    const document = {
+      gcsContentUri: `gs://${bucketName}/${fileName}`,
+      type: 'PLAIN_TEXT' //   language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT'
+    }
+    return this.classifyInternal (rc, document)
+  }
+      
   static async analyzeEntitiesInText (rc : RunContextServer, text: string) {
     const document = { 
       content: text, 
-      type: 'PLAIN_TEXT' 
+      type: language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT' 
     }
     return this.analyzeEntitiesInternal (rc, document)
   }
@@ -55,7 +70,7 @@ export class GcpLanguageBase {
   static async analyzeEntitiesInGcs (rc : RunContextServer, bucketName : string, fileName : string) {
     const document = {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
-      type: 'PLAIN_TEXT'
+      type: language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT'
     }
     return this.analyzeEntitiesInternal (rc, document)
   }
@@ -95,4 +110,17 @@ export class GcpLanguageBase {
     const dups = Object.keys (uniq).filter ((a: string) => uniq[a].count > 1)
     if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
+
+  static async classifyInternal (rc : RunContextServer, document: any) : Promise<Array<any>> {
+    try {
+      const res   =  await this._language.classifyText ({document: document}) 
+      rc.isDebug() && rc.debug (rc.getName (this), 'Topics =', JSON.stringify (res[0].categories))
+      return res[0].categories
+    }
+    catch (e) {
+      rc.isWarn () && rc.warn (rc.getName (this), 'Error:', e)
+      return []
+    }
+  }
+
 }
