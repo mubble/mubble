@@ -45,6 +45,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
             return resolve(response)
           })
           outputStream.on('error', (err: any) => {
+            rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
             return reject(response)
           })
         })
@@ -101,6 +102,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
             return resolve(response)
           })
           outputStream.on('error', (err: any) => {
+            rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
             return reject(response)
           })
         })
@@ -183,6 +185,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
             return resolve({error: undefined, response: response, data: data.toString(encoding)})
           })
           outputStream.on('error', (err: any) => {
+            rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
             return reject(response)
           })
         })
