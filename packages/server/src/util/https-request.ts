@@ -16,7 +16,7 @@ import {RunContextServer}    from '../rc-server'
 
 export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
 
-export async function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
+export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, headers ?: any): Promise<string> {
     const traceId = 'executeHttpsRequest',
           ack     = rc.startTraceSpan(traceId)
     try { 
@@ -24,6 +24,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
         const urlObj : any = url.parse(urlStr),
               httpObj: any = urlObj.protocol === 'https:' ? https : http
       
+        if(headers) urlObj.headers = headers
         const req = httpObj.request(urlObj, (outputStream: any) => {
 
           outputStream.setEncoding('binary')
