@@ -17,7 +17,7 @@ import {RunContextServer}    from '../rc-server'
 export async function executeHttpsRequest(rc: RunContextServer, urlStr: string): Promise<string> {
     const traceId : string = 'executeHttpsRequest',
           ack = rc.startTraceSpan(traceId)
-    try{ 
+    try { 
     return await new Promise<string>((resolve, reject) => {
 
       const urlObj : any = url.parse(urlStr),
@@ -42,6 +42,9 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
         })
         outputStream.on('end', () => {
           return resolve(response)
+        })
+        outputStream.on('error', (err: any) => {
+          return reject(response)
         })
       })
 
@@ -90,6 +93,9 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
         })
         outputStream.on('end', () => {
           return resolve(response)
+        })
+        outputStream.on('error', (err: any) => {
+          return reject(response)
         })
       })
 
@@ -144,32 +150,33 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
         options.headers['Content-Length'] = inputData.length
     const traceId : string = 'executeHttpResultResponse',
           ack = rc.startTraceSpan(traceId)
-    try{  
-    return await new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
-      const httpObj: any = options.protocol === 'http:' ? http : https
-      const req = httpObj.request(options, (outputStream: any) => {
+    try {  
+      return await new Promise<{error: string | undefined, response: any, data : string}>((resolve, reject) => {
+        const httpObj: any = options.protocol === 'http:' ? http : https
+        const req = httpObj.request(options, (outputStream: any) => {
 
-        switch (outputStream.headers['content-encoding']) {
-        case 'gzip':
-          outputStream = outputStream.pipe(zlib.createGunzip())
-          break
-        case 'deflate':
-          outputStream = outputStream.pipe(zlib.createInflate())
-          break
-        }
-        
-              
-
-        let data = new Buffer('')
-        outputStream.on('data', (chunk: Buffer) => {
-          //data += chunk
-          data = Buffer.concat([data , chunk])
+          switch (outputStream.headers['content-encoding']) {
+          case 'gzip':
+            outputStream = outputStream.pipe(zlib.createGunzip())
+            break
+          case 'deflate':
+            outputStream = outputStream.pipe(zlib.createInflate())
+            break
+          }
+          
+          let data = new Buffer('')
+          outputStream.on('data', (chunk: Buffer) => {
+            //data += chunk
+            data = Buffer.concat([data , chunk])
+          })
+          outputStream.on('end', () => {
+            // If encoding is not defined . default is utf8
+            return resolve({error: undefined, response: response, data: data.toString(encoding)})
+          })
+          outputStream.on('error', (err: any) => {
+            return reject(response)
+          })
         })
-        outputStream.on('end', () => {
-          // If encoding is not defined . default is utf8
-          return resolve({error: undefined, response: response, data: data.toString(encoding)})
-        })
-      })
 
       req.on('response', (res: any) => {
         response = res
@@ -183,9 +190,9 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string):
       if(inputData) req.write(inputData)
       req.end()
     })
-  }finally{
+   } finally{
     rc.endTraceSpan(traceId, ack)
-  }
+   }
   }
 
 export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
