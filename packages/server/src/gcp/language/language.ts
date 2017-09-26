@@ -46,7 +46,7 @@ export class GcpLanguageBase {
   static async classifyText (rc: RunContextServer, text: string) {
     const document = { 
       content: text, 
-      type: 'PLAIN_TEXT' // language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT' 
+      type: 'PLAIN_TEXT'
     }
     return this.classifyInternal (rc, document)
   }
@@ -54,7 +54,7 @@ export class GcpLanguageBase {
   static async classifyGcsFile (rc: RunContextServer, bucketName : string, fileName : string) {
     const document = {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
-      type: 'PLAIN_TEXT' //   language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT'
+      type: 'PLAIN_TEXT' 
     }
     return this.classifyInternal (rc, document)
   }
@@ -62,7 +62,7 @@ export class GcpLanguageBase {
   static async analyzeEntitiesInText (rc : RunContextServer, text: string) {
     const document = { 
       content: text, 
-      type: language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT' 
+      type: 'PLAIN_TEXT' 
     }
     return this.analyzeEntitiesInternal (rc, document)
   }
@@ -70,7 +70,7 @@ export class GcpLanguageBase {
   static async analyzeEntitiesInGcs (rc : RunContextServer, bucketName : string, fileName : string) {
     const document = {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
-      type: language.v1.types.Document.Type.PLAIN_TEXT // 'PLAIN_TEXT'
+      type: 'PLAIN_TEXT'
     }
     return this.analyzeEntitiesInternal (rc, document)
   }
