@@ -77,7 +77,6 @@ export class GcpLanguageBase {
 
   // TODO: Can support threshold as an argument.
   static async analyzeEntitiesInternal (rc : RunContextServer, document: any) : Promise<Array<GcpEntityInfo>> {
-    console.log ('Doc:', document)
     const res      = await this._language.analyzeEntities ({document: document}) 
     rc.isDebug() && rc.debug (rc.getName (this), 'Entity Analysis [Text] => Language:', res[0].language, '/', res[0].entities.length, 'entries.')
     const entities = res[0].entities.map ((entityInfo: any) => {
