@@ -48,7 +48,7 @@ export class GcpLanguageBase {
       content: text, 
       type: 'PLAIN_TEXT'
     }
-    return this.classifyInternal (rc, document)
+    return this.classifyInternal (rc, 'Text:' + text.length, document)
   }
 
   static async classifyGcsFile (rc: RunContextServer, bucketName : string, fileName : string) {
@@ -56,7 +56,7 @@ export class GcpLanguageBase {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
       type: 'PLAIN_TEXT' 
     }
-    return this.classifyInternal (rc, document)
+    return this.classifyInternal (rc, 'GCS:' + fileName, document)
   }
       
   static async analyzeEntitiesInText (rc : RunContextServer, text: string) {
@@ -64,7 +64,7 @@ export class GcpLanguageBase {
       content: text, 
       type: 'PLAIN_TEXT' 
     }
-    return this.analyzeEntitiesInternal (rc, document)
+    return this.analyzeEntitiesInternal (rc, 'Text' + text.length, document)
   }
 
   static async analyzeEntitiesInGcs (rc : RunContextServer, bucketName : string, fileName : string) {
@@ -72,14 +72,12 @@ export class GcpLanguageBase {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
       type: 'PLAIN_TEXT'
     }
-    return this.analyzeEntitiesInternal (rc, document)
+    return this.analyzeEntitiesInternal (rc, 'GCS:' + fileName, document)
   }
 
   // TODO: Can support threshold as an argument.
-  static async analyzeEntitiesInternal (rc : RunContextServer, document: any) : Promise<Array<GcpEntityInfo>> {
-    console.log ('Doc:', document)
+  static async analyzeEntitiesInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<GcpEntityInfo>> {
     const res      = await this._language.analyzeEntities ({document: document}) 
-    rc.isDebug() && rc.debug (rc.getName (this), 'Entity Analysis [Text] => Language:', res[0].language, '/', res[0].entities.length, 'entries.')
     const entities = res[0].entities.map ((entityInfo: any) => {
       return { 
         name: entityInfo.name, type: entityInfo.type, language: res[0].language,
@@ -93,7 +91,8 @@ export class GcpLanguageBase {
     rc.isDebug() && this.findDuplicates (rc, entities)
     // NOTE: There are duplicates in name with different salience value.. We take the first..
     const uniqueEntities = lo.uniqBy (entities, 'name') as Array<GcpEntityInfo>
-    rc.isStatus() && rc.status (rc.getName (this), 'Unique Entries:', uniqueEntities.length, '/', entities.length)
+    rc.isDebug() && rc.debug (rc.getName (this), 'Entity Analysis [' + tag + '] => Language:', res[0].language, 
+          '/', res[0].entities.length, 'entries, Unique Entries:', uniqueEntities.length)
     return uniqueEntities
   }
 
@@ -112,14 +111,14 @@ export class GcpLanguageBase {
     if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
 
-  static async classifyInternal (rc : RunContextServer, document: any) : Promise<Array<any>> {
+  static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<any>> {
     try {
       const res   =  await this._language.classifyText ({document: document}) 
-      rc.isDebug() && rc.debug (rc.getName (this), 'Topics =', JSON.stringify (res[0].categories))
+      rc.isDebug() && rc.debug (rc.getName (this), 'Topics ['+ tag + ']=', JSON.stringify (res[0].categories))
       return res[0].categories
     }
     catch (e) {
-      rc.isWarn () && rc.warn (rc.getName (this), 'Error:', e)
+      rc.isWarn () && rc.warn (rc.getName (this), 'Error ['+ tag + ']:', e)
       return []
     }
   }
