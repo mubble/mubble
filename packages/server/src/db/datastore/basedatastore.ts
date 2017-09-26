@@ -210,7 +210,6 @@ private getNamespace() : string {
     try {
       const res          = await this.setUnique(rc, ignoreDupRec),
             datastoreKey = this.getDatastoreKey(rc)
-
       if(!res) return false
       await BaseDatastore._datastore.save({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
       this.setIdFromKey(rc, datastoreKey)
@@ -257,7 +256,7 @@ private getNamespace() : string {
 /*------------------------------------------------------------------------------
   - Update
 ------------------------------------------------------------------------------*/ 
-  protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<boolean> {
+  protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore> {
     const traceId : string = rc.getName(this)+':'+'update',
           ack = rc.startTraceSpan(traceId)
     
@@ -270,7 +269,7 @@ private getNamespace() : string {
       this.deserialize(rc, res[0])
       Object.assign(this, updRec)
       await BaseDatastore._datastore.save({key: datastoreKey, data: this.getUpdateRec(rc)})
-      return true
+      return this
     } 
     catch (err) {
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
