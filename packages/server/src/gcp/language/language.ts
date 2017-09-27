@@ -22,6 +22,11 @@ export type GcpEntityInfo = {
   occurences    : number
 }
 
+export type GcpTopicsInfo = {
+  name       : string,
+  confidence : number
+}
+
 export class GcpLanguageBase {
 
   static _language   : any

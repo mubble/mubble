@@ -69,7 +69,7 @@ export abstract class BaseBigQuery {
     if(tableRes[0]){
       
       // Table metadata
-      const metadata : any = await table.getMetadata(),
+      const metadata  : any = await table.getMetadata(),
             oldSchema : any = lo.cloneDeep(metadata[0].schema) ,
             oldFields : any[] = oldSchema.fields || []
       // remove describe fields for the sake of comparison
