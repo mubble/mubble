@@ -76,7 +76,7 @@ export class GcpLanguageBase {
   }
 
   // TODO: Can support threshold as an argument.
-  static async analyzeEntitiesInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<GcpEntityInfo>> {
+  private static async analyzeEntitiesInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<GcpEntityInfo>> {
     const res      = await this._language.analyzeEntities ({document: document}) 
     const entities = res[0].entities.map ((entityInfo: any) => {
       return { 
@@ -111,7 +111,7 @@ export class GcpLanguageBase {
     if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
 
-  static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<any>> {
+  private static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<any>> {
     try {
       const res   =  await this._language.classifyText ({document: document}) 
       rc.isDebug() && rc.debug (rc.getName (this), 'Topics ['+ tag + ']=', JSON.stringify (res[0].categories))
