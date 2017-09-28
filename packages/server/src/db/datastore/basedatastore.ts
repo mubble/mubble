@@ -203,12 +203,12 @@ private getNamespace() : string {
   - ignoreDupRec   = Default is true [Ignore Duplicates... Ignore the Duplicate Error]
   - noChildren     = Default is true [No Children]
 ------------------------------------------------------------------------------*/ 
-  protected async insert(rc : RunContextServer, insertTime ?: number, ignoreDupRec ?: boolean) : Promise<boolean> {
+  protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
     const traceId : string = rc.getName(this)+':'+'insert',
           ack = rc.startTraceSpan(traceId)
     
     try {
-      const res          = await this.setUnique(rc, ignoreDupRec),
+      const res          = await this.setUnique(rc, allowDupRec),
             datastoreKey = this.getDatastoreKey(rc)
       if(!res) return false
       await BaseDatastore._datastore.save({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
@@ -219,7 +219,7 @@ private getNamespace() : string {
       if (err.toString().split(':')[1] !== ' entity already exists') {
         throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
       } else {
-        if (ignoreDupRec) return true
+        if (allowDupRec) return true
         throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
       }
     }finally{
@@ -434,25 +434,28 @@ static getKindName(rc : RunContextServer) {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-async setUnique(rc : RunContextServer, ignoreDupRec ?: boolean) : Promise<boolean> {
+async setUnique(rc : RunContextServer, allowDupRec ?: boolean) : Promise<boolean> {
   const uniqueConstraints : any    = this.getUniqueConstraints(rc),
-        kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName
+        kindName          : string = (<any>this)._kindName || (this.constructor as any)._kindName,
+        entities : {key : any , data : any} [] = (uniqueConstraints as string[]).filter( (prop : string)=>(this as any)[prop] !== undefined)
+                                                .map((constraint : string)=>{
+          const uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint] , true)
+          return {key: uniqueEntityKey, data: ''}
+        })
 
-  for(const constraint of uniqueConstraints) {
-    const uniqueEntityKey = this.getDatastoreKey(rc, (<any>this)[constraint], true)
+  try {
+      const res = await BaseDatastore._datastore.insert(entities)
 
-    try {
-      await BaseDatastore._datastore.insert({key: uniqueEntityKey, data: ''})
     } catch(err) {
-      if(ignoreDupRec === false) {
+      if(allowDupRec) return false
+      else {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         if (err.toString().split(':')[1] === ' entity already exists') 
           throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, err.message))
         else throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-      } else return false
+      } 
     }
-  }
-  return true
+    return true
 }
 
 /*------------------------------------------------------------------------------
