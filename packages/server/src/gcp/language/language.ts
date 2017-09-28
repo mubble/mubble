@@ -22,7 +22,7 @@ export type GcpEntityInfo = {
   occurences    : number
 }
 
-export type GcpTopicsInfo = {
+export type GcpTopicInfo = {
   name       : string,
   confidence : number
 }
@@ -116,15 +116,16 @@ export class GcpLanguageBase {
     if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
 
-  private static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<any>> {
+  private static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<GcpTopicInfo>> {
     try {
       const res   =  await this._language.classifyText ({document: document}) 
       rc.isDebug() && rc.debug (rc.getName (this), 'Topics ['+ tag + ']=', JSON.stringify (res[0].categories))
+      if (res[0].categories.length === 0) return [{name: '/Other', confidence: 0.95}]
       return res[0].categories
     }
     catch (e) {
       rc.isWarn () && rc.warn (rc.getName (this), 'Error ['+ tag + ']:', e)
-      return []
+      return [{name: '/Other', confidence: 0.95}]
     }
   }
 

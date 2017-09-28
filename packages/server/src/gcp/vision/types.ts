@@ -7,6 +7,12 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+export type VisionParameters = {
+  ratio     ?: number,
+  quality   ?: number,
+  shrink    ?: {h: number, w: number}
+}
+
 export type ProcessedReturn = {
   data   : string,
   mime   : string,

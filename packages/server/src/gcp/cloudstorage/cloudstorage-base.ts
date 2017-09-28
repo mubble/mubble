@@ -15,6 +15,12 @@ import {v4 as UUIDv4}        from 'uuid'
 import * as mime             from 'mime-types'
 import * as stream           from 'stream'
 
+export type GcsOptions = {
+  bucket : string
+  folder : string
+  file  ?: string         // This is Mandatory for File Writing Operations.
+}
+
 export class CloudStorageBase {
 
   static _cloudStorage : any
