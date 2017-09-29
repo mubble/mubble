@@ -15,10 +15,13 @@ import {v4 as UUIDv4}        from 'uuid'
 import * as mime             from 'mime-types'
 import * as stream           from 'stream'
 
-export type GcsOptions = {
-  bucket : string
-  folder : string
-  file  ?: string         // This is Mandatory for File Writing Operations.
+export type GcsUUIDFileInfo = { // Pattern => ${Prefix}${UUID}${Suffix}.${Extension}
+  bucket     : string
+  folder     : string
+  namePrefix : string
+  fileId    ?: string   // Optional. Will be generated (if missing)
+  nameSuffix : string
+  mimeVal    : string   // Used to determine the File Extension
 }
 
 export class CloudStorageBase {
@@ -43,20 +46,11 @@ export class CloudStorageBase {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-  static async uploadDataToCloudStorage(rc         : RunContextServer, 
-                                        bucketName : string,
-                                        path       : string,
-                                        data       : Buffer,
-                                        mimeVal    : string,
-                                        append    ?: string,
-                                        name      ?: string) : Promise<{fileUrl : string, filename : string}> {
+static async uploadDataToCloudStorage(rc : RunContextServer, data : Buffer, fileInfo : GcsUUIDFileInfo) : Promise<string> {
 
-    const extension    = mime.extension(mimeVal),
-          newName      = name ? name : await this.getFileName(rc, bucketName, extension, path),
-          filename     = newName + append,
-          modPath      = (path) ? (path + '/') : '',
-          gcBucket     = CloudStorageBase._cloudStorage.bucket(bucketName),
-          gcFile       = gcBucket.file(`${modPath}${filename}.${extension}`),
+    const filename     = await this.getUUIDFileName (rc, fileInfo),
+          gcBucket     = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket),
+          gcFile       = gcBucket.file(filename),
           bufferStream = new stream.PassThrough(),
           traceId : string = rc.getName(this)+':'+'uploadDataToCloudStorage',
           ack = rc.startTraceSpan(traceId)
@@ -64,18 +58,56 @@ export class CloudStorageBase {
     try{
 
       await new Promise((resolve, reject) => {
+        bufferStream.on('error', (err : any) => { reject(err) }) 
         bufferStream.end(data)
-        bufferStream.pipe(gcFile.createWriteStream({metadata : {'Cache-Control': 'public, max-age=31536000'}}))
-        .on('error', (err : any) => {reject(err)})
-        .on('finish', () => {resolve()})
+        bufferStream.pipe(gcFile.createWriteStream({
+          metadata : {'Cache-Control': 'public, max-age=31536000'}
+        }))
+        .on('error', (err : any) => { reject(err) })
+        .on('finish', () => { resolve() })
       })
-    }finally{
+    }finally{ 
+      if (rc.isDebug()) {
+        const exists = await CloudStorageBase.fileExists (rc, fileInfo.bucket, filename)
+        rc.isDebug () && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Exists:', exists)
+      }
       rc.endTraceSpan(traceId,ack)
     }
-    return {fileUrl : `${newName}.${extension}`, filename : newName}
+    return this.getFileNameFromInfo (rc, fileInfo)
   }
 
-  static async getFileName(rc : RunContextServer, bucketName : string, extension : string | false, path : string) {
+  static async getUUIDFileId(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
+    if (fileInfo.fileId) return fileInfo
+    while (true) {
+      fileInfo.fileId = UUIDv4()
+      const filePath  = this.getFilePathFromInfo (rc, fileInfo)
+      const exists    = await this.fileExists (rc, fileInfo.bucket, filePath)
+      if (!exists) return fileInfo
+    }
+  }
+
+  private static async getUUIDFileName(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
+    if (fileInfo.fileId) return this.getFilePathFromInfo (rc, fileInfo)
+    while (true) {
+      fileInfo.fileId = UUIDv4()
+      const filePath  = this.getFilePathFromInfo (rc, fileInfo)
+      const exists    = await this.fileExists (rc, fileInfo.bucket, filePath)
+      if (!exists) return filePath
+    }
+  }
+
+  private static getFilePathFromInfo (rc: RunContextServer, fileInfo: GcsUUIDFileInfo) {
+    return fileInfo.folder + '/' + this.getFileNameFromInfo (rc, fileInfo)
+  }
+    
+  private static getFileNameFromInfo (rc: RunContextServer, fileInfo: GcsUUIDFileInfo) {
+    const extension    = mime.extension(fileInfo.mimeVal)
+    const basename     = `${fileInfo.namePrefix}${fileInfo.fileId}${fileInfo.nameSuffix}`
+    return (extension ? (basename + '.' + extension) : basename)
+  }
+    
+  static async getFileName(rc : RunContextServer, bucketName : string, path : string, extension : string | false) {
+    // TODO: THis filePath check is buggy for file names with append (_16x9...)
     let id = UUIDv4()
 
     while(true) {

@@ -16,7 +16,7 @@ import {
        }                            from './error-codes'
 import {RunContextServer}           from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
-import {CloudStorageBase, GcsOptions}
+import {CloudStorageBase, GcsUUIDFileInfo}
                                     from '../cloudstorage/cloudstorage-base'
 import * as request                 from 'request' 
 import * as fs                      from 'fs' 
@@ -53,7 +53,7 @@ export class VisionBase {
                                    imageData  : Buffer,
                                    imageOptions : VisionParameters) : Promise<ProcessedReturn> {
 
-    const crops          : any = (imageOptions.ratio && imageOptions.ratio !== 1)
+    const crops          : any = (imageOptions.ratio)
                   ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
                   : null,
           image          : any = await jimp.read(imageData),
@@ -66,28 +66,6 @@ export class VisionBase {
 
     return VisionBase.process(rc, image, processOptions)
   }
-
-  static async processDataToGcs(rc           : RunContextServer, 
-                                imageData    : Buffer,
-                                imageOptions : VisionParameters,
-                                gcsOptions   : GcsOptions) : Promise<boolean> {
-
-    const crops          : any = (imageOptions.ratio && imageOptions.ratio !== 1)
-                  ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
-                  : null,
-          image          : any = await jimp.read(imageData),
-          processOptions       = {
-            quality      : imageOptions.quality,
-            shrink       : imageOptions.shrink,
-            crops        : crops,
-            returnBase64 : false
-          } as ProcessOptions
-
-    const vres = await VisionBase.process(rc, image, processOptions) as ProcessedReturn,
-          gres = await CloudStorageBase.uploadDataToCloudStorage(rc, gcsOptions.bucket, gcsOptions.folder, 
-      new Buffer(vres.data, 'binary'), vres.mime, `_16x9_high`)  // TODO: Fix file name... 
-    return true
-}
 
 static async processUrlToBase64(rc         : RunContextServer, 
                                   imagePath  : string, //Image path can be a local path or a URL
@@ -124,6 +102,30 @@ static async processUrlToBase64(rc         : RunContextServer,
 
     return VisionBase.process(rc, image, processOptions, imagePath)
   }
+
+  static async processDataToGcs(rc           : RunContextServer, 
+                                imageData    : Buffer,
+                                imageOptions : VisionParameters,
+                                fileInfo     : GcsUUIDFileInfo) : Promise<boolean> {
+
+    const crops          : any = (imageOptions.ratio && imageOptions.ratio !== 1)
+                  ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
+                  : null,
+          image          : any = await jimp.read(imageData),
+          processOptions       = {
+            quality      : imageOptions.quality,
+            shrink       : imageOptions.shrink,
+            crops        : crops,
+            returnBase64 : false
+          } as ProcessOptions
+
+      
+    const vres = await VisionBase.process(rc, image, processOptions) as ProcessedReturn
+    fileInfo.mimeVal = vres.mime
+    // TODO: Need to check if vres.data works?
+    const gres = await CloudStorageBase.uploadDataToCloudStorage(rc, new Buffer(vres.data, 'binary'), fileInfo)
+    return true
+}
 
   static async getMime(rc : RunContextServer, image : string | Buffer) : Promise<string> {
     const jimpImage : any = await jimp.read(image)
