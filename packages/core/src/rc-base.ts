@@ -213,7 +213,7 @@ export abstract class RCLoggerBase {
       this.finishedTraceSpans.push({id : id , startTime : startTime , endTime : Date.now()})
       delete this.traceSpans[mId]
     } else {
-      // throw new Error('Start span not called, Id: ' + id)
+      throw new Error('Start span not called, Id: ' + id + ' '+ackNumber)
     }
   }
 
