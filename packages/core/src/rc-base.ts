@@ -179,7 +179,7 @@ export abstract class RCLoggerBase {
   public  sessionContext    : boolean = false
   public  startTs           : number = Date.now()
   // Trace related
-  private k                 : number = 0    
+  private   k                 : number = 0    
   public traceSpans : {[traceId : string] :  {startTime : number , endTime : number} } = {}
   public finishedTraceSpans : {id : string , startTime : number , endTime : number} [] = []
   
@@ -213,7 +213,7 @@ export abstract class RCLoggerBase {
       this.finishedTraceSpans.push({id : id , startTime : startTime , endTime : Date.now()})
       delete this.traceSpans[mId]
     } else {
-      throw new Error('Start span not called, Id: ' + id + ' '+ackNumber)
+      //throw new Error('Start span not called, Id: ' + id + ' '+ackNumber)
     }
   }
 
