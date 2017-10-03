@@ -28,10 +28,9 @@ export class DSTransaction {
     this._transaction = datastore.transaction()
     this._namespace   = namespace
     this._datastore   = datastore
-    if(rc.isTraceEnabled()){
-      this.traceId = 'transaction_'+Date.now()
-    }
-  }
+    this.traceId = 'transaction_'+ Date.now()
+    this.ack = rc.startTraceSpan(this.traceId)
+}
 
 /*------------------------------------------------------------------------------
   - Get the datastore transaction Instance. Used in DSTQuery
@@ -56,7 +55,6 @@ export class DSTransaction {
   - Needed only if we use a transaction outside models.
 ------------------------------------------------------------------------------*/
   async start(rc : RunContextServer) {
-    this.ack = rc.startTraceSpan(this.traceId)
     try {
       await this._transaction.run()
     } catch(err) {
