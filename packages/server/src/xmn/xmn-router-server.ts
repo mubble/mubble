@@ -254,12 +254,13 @@ export abstract class XmnRouterServer {
 
   // Preferred way is to use @xmnApi
   registerApi(rc: RunContextServer, name: string, parent: any, xmnInfo: any): void {
-    if (this.apiMap[name]) {
-      throw(Error(rc.error(rc.getName(this), 'Duplicate api:' + name)))
+    const apiName = xmnInfo.name
+    if (this.apiMap[apiName]) {
+      throw(Error(rc.error(rc.getName(this), 'Duplicate api:' + apiName)))
     }
     if (parent[name] || (parent.prototype && parent.prototype[name])) {
-      if (rc.isDebug()) this.logRegistration(rc, name, parent, true)
-      this.apiMap[name] = new InvokeStruct(name, parent, xmnInfo)
+      if (rc.isDebug()) this.logRegistration(rc, apiName , name, parent, true)
+      this.apiMap[apiName] = new InvokeStruct(name, parent, xmnInfo)
     } else {
       throw(Error(rc.error(rc.getName(this), 'api', name, 'does not exit in', rc.getName(parent))))
     }
@@ -267,26 +268,27 @@ export abstract class XmnRouterServer {
 
   // Preferred way is to use @xmnEvent
   registerEvent(rc: RunContextServer, name: string, parent: any, xmnInfo: any): void {
-    if (this.eventMap[name]) {
-      throw(Error(rc.error(rc.getName(this), 'Duplicate event:' + name)))
+    const apiName = xmnInfo.name
+    if (this.eventMap[apiName]) {
+      throw(Error(rc.error(rc.getName(this), 'Duplicate event:' + apiName)))
     }
     if (parent[name] || (parent.prototype && parent.prototype[name])) {
-      if (rc.isDebug()) this.logRegistration(rc, name, parent, false)
-      this.eventMap[name] = new InvokeStruct(name, parent, xmnInfo)
+      if (rc.isDebug()) this.logRegistration(rc, apiName , name, parent, false)
+      this.eventMap[apiName] = new InvokeStruct(name, parent, xmnInfo)
     } else {
       throw(Error(rc.error(rc.getName(this), 'event', name, 'does not exit in', rc.getName(parent))))
     }
   }
 
-  private logRegistration(rc: RunContextServer, name: string, parent: any, isApi: boolean) {
+  private logRegistration(rc: RunContextServer, apiName: string , fnName: string, parent: any, isApi: boolean) {
 
     const pName  = rc.getName(parent),
           lpName = lo.lowerFirst(pName)
 
-    rc.debug(rc.getName(this), 'Registered', isApi ? 'api' : 'event',  'like',
-      parent[name] ? 
-        (parent.prototype ? `'static ${pName}.${name}()'` : `'singleton ${lpName}.${name}()'`) : 
-        `'new ${pName}().${name}()'`
+    rc.debug(rc.getName(this), 'Registered', isApi ? 'api' : 'event', apiName ,  'like',
+      parent[fnName] ? 
+        (parent.prototype ? `'static ${pName}.${fnName}()'` : `'singleton ${lpName}.${fnName}()'`) : 
+        `'new ${pName}().${fnName}()'`
     )
   }
 }

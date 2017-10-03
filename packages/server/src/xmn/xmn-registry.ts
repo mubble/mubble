@@ -21,27 +21,29 @@ export class XmnRegistry {
   private static register: {[index: string]: EnrollmentInfo} = {}
 
   static enrollApi(name: string, parent: any, xmnInfo: any) {
-
-    if (this.register[name]) {
-      const msg = `Duplicate definition for xmn api/event found: ${name}`
+    const apiName = xmnInfo.name
+    //console.log(name , apiName)
+    if (this.register[apiName]) {
+      const msg = `Duplicate definition for xmn api/event found: ${name} ${JSON.stringify(this.register[name])}`
       console.error(msg)
       throw(Error(msg))
     }
 
     // console.log('enrolled api', api)
-    this.register[name] = {name, isApi: true, parent, xmnInfo}
+    this.register[apiName] = {name, isApi: true, parent, xmnInfo}
   }
 
   static enrollEvent(name: string, parent: any, xmnInfo: any) {
-
-    if (this.register[name]) {
-      const msg = `Duplicate definition for xmn api/event found: ${name}`
+    const apiName = xmnInfo.name
+    //console.log(name , apiName)
+    if (this.register[apiName]) {
+      const msg = `Duplicate definition for xmn api/event found: ${name} ${JSON.stringify(this.register[name])}`
       console.error(msg)
       throw(Error(msg))
     }
 
     // console.log('enrolled event', name)
-    this.register[name] = {name, isApi: false, parent, xmnInfo}
+    this.register[apiName] = {name, isApi: false, parent, xmnInfo}
   }
 
   static commitRegister(rc: RunContextServer, router: XmnRouterServer, providers: any[]) {
@@ -73,25 +75,27 @@ export class XmnRegistry {
 
       if (!this.register.hasOwnProperty(key)) continue
 
-      const eInfo = this.register[key]
+      const eInfo = this.register[key],
+            fnName = eInfo.name
       let match = false
 
       if (eInfo.parent.prototype) { // api is static function of a class
-        if (provider.hasOwnProperty(key) && eInfo.parent === provider) match = true // direct
+        if (provider.hasOwnProperty(fnName) && eInfo.parent === provider) match = true // direct
       } else { // api is member function, provider could be a class or instance of class
         if (provider.prototype) { // provider is a class
-          if (provider.prototype.hasOwnProperty(key) && eInfo.parent === provider.prototype) match = true // class
+          if (provider.prototype.hasOwnProperty(fnName) && eInfo.parent === provider.prototype) match = true // class
         } else { // provider is an instance of some class
-          if (provider[key] && eInfo.parent.constructor === provider.constructor) match = true // direct
+          if (provider[fnName] && eInfo.parent.constructor === provider.constructor) match = true // direct
         }
       }
 
       if (match) {
         if (eInfo.isApi) {
-          router.registerApi(rc, key, provider, eInfo.xmnInfo)
+          router.registerApi(rc, fnName, provider, eInfo.xmnInfo)
         } else {
-          router.registerEvent(rc, key, provider, eInfo.xmnInfo)
+          router.registerEvent(rc, fnName, provider, eInfo.xmnInfo)
         }
+        //console.log(key , this.register[key])
         delete this.register[key]
         providerUsed = true
       }
