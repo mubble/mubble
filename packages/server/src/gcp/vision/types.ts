@@ -14,7 +14,7 @@ export type VisionParameters = {
 }
 
 export type ProcessedReturn = {
-  data   : string,
+  data   : string | Buffer,
   mime   : string,
   height : number,
   width  : number
