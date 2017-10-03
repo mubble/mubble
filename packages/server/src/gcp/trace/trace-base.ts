@@ -186,7 +186,9 @@ export class TraceBase {
       ]
     }
     let spanIdCount : number = 1
-    if(!lo.isEmpty(logger.traceSpans)){
+    // We expect trace spans to be non-empty when error occurred. Label != null => error
+    if(!lo.isEmpty(logger.traceSpans) && !labels){
+      // when no error this should not happen
       throw new Error('trace not finished for apis '+ apiName + ' ' +  Object.keys(logger.traceSpans) )
     }
     if(!lo.isEmpty(logger.finishedTraceSpans)){
