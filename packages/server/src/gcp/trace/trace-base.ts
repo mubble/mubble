@@ -6,17 +6,101 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as lo                      from 'lodash'  
+ 
 import {
         format,
         Mubble
        }                            from '@mubble/core'
-
+import {
+        RunContextServer,
+        RCServerLogger
+       }                            from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
-import {RunContextServer,
-        RCServerLogger}             from '../../rc-server'
+import * as lo                      from 'lodash'
 
-const hashMap : Mubble.uObject<number> = {}
+const hashMap    : Mubble.uObject<number> = {},
+      googleApis                          = require('googleapis')
+
+export class TraceBase {
+
+  public static authClient : any 
+  public static cloudTrace : any
+  public static projectId  : string  
+  
+  public static async init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
+    this.cloudTrace = googleApis.cloudtrace('v1')
+    this.projectId  = gcloudEnv.projectId
+    this.authClient = await new Promise((resolve, reject) => {
+      googleApis.auth.getApplicationDefault((err: any, authClient: any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), 'trace authentication failed: ', err)
+          reject(err)
+        }
+        if(authClient.createScopedRequired && authClient.createScopedRequired()) {
+          const scopes = ['https://www.googleapis.com/auth/cloud-platform']
+          authClient = authClient.createScoped(scopes)
+        }
+        resolve(authClient)
+      })
+    })
+  } 
+
+  public static sendTrace(rc : RunContextServer, apiName : string , labels ?: Mubble.uObject<string>) {
+    const trace   = this.createTrace(rc, apiName, labels),
+          request = {
+            projectId : TraceBase.projectId,
+            resource  : {"traces": [trace]},
+            auth      : TraceBase.authClient
+          }
+
+    TraceBase.cloudTrace.projects.patchTraces(request, (err : any) => {
+      if (err) {
+        rc.isError() && rc.error(rc.getName(this), 'trace sending error', err)
+        return
+      }
+    }) 
+  }
+
+  public static createTrace(rc : RunContextServer, apiName : string, labels ?: Mubble.uObject<string>) {
+    const logger = rc.logger,
+          trace  = {
+            projectId : TraceBase.projectId,
+            traceId   : getTraceId(apiName),
+            spans     : [
+              {
+                spanId    : "1",
+                kind      : 'RPC_SERVER',
+                name      : apiName,
+                startTime : format(new Date(logger.startTs), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+                endTime   : format(new Date(), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+                labels    : labels
+              }
+            ]
+          }
+
+    let spanIdCount : number = 1
+    // We expect trace spans to be non-empty when error occurred. Label != null => error
+    if(!lo.isEmpty(logger.traceSpans) && !labels){
+      // when no error this should not happen
+      throw new Error('trace not finished for apis '+ apiName + ' ' +  Object.keys(logger.traceSpans) )
+    }
+
+    if(!lo.isEmpty(logger.finishedTraceSpans)){
+      for(let spanInfo of logger.finishedTraceSpans ){
+        spanIdCount += 1
+        trace.spans.push({
+          spanId    : spanIdCount.toString(),
+          kind      : 'RPC_SERVER',
+          name      : spanInfo.id ,
+          startTime : format(new Date(spanInfo.startTime), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+          endTime   : format(new Date(spanInfo.endTime), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
+          labels    : undefined
+        })
+      }
+    }
+    return trace
+  }
+}
 
 function hash(str : string) : number {
   var hash = 0, i, chr;
@@ -107,108 +191,21 @@ export function createDummyTrace(rc : RunContextServer) {
 }
 
 
-export function dummyTrace(rc : RunContextServer){
-  
-  for(let i=0 ; i<2 ; i++){
-    const trace = createDummyTrace(rc)
+export function dummyTrace(rc : RunContextServer) {
+  for(let i = 0; i < 2; i++) {
+    const trace   = createDummyTrace(rc),
+          request = {
+            projectId : TraceBase.projectId,
+            resource  : {"traces": [trace]},
+            auth      : TraceBase.authClient
+          }
+
     rc.isDebug() && rc.debug(rc.getName(this), trace)
-    TraceBase.sendTraceInternal(rc , trace)
-  }
-}
-
-
-export class TraceBase {
-  
-  private static authClient : any 
-  private static cloudTrace : any
-  public  static projectId  : string  
-  
-  public static async init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
-    
-    this.projectId = gcloudEnv.projectId
-
-    var google = require('googleapis')
-    this.authClient =  await new Promise((resolve , reject)=>{
-      
-      google.auth.getApplicationDefault(function(err : any, authClient : any) {
-      if (err) {
-        console.error('trace authentication failed: ', err);
-        reject(err)
-      }
-      if (authClient.createScopedRequired && authClient.createScopedRequired()) {
-        var scopes = ['https://www.googleapis.com/auth/cloud-platform'];
-        authClient = authClient.createScoped(scopes);
-      }
-      resolve(authClient)
-    })
-
-    })
-    
-    var google = require('googleapis')
-    this.cloudTrace = google.cloudtrace('v1')
-  } 
-
-  public static sendTrace(rc : RunContextServer , logger : RCServerLogger, apiName : string , labels ?: Mubble.uObject<string> ){
-    this.sendTraceInternal(rc , this.createTrace(rc , logger , apiName , labels))
-  }
-
-  public static sendTraceInternal(rc : RunContextServer , trace : any) {
-    var request = {
-      projectId: TraceBase.projectId ,
-      resource: {
-        "traces": [trace]
-      },
-      auth: TraceBase.authClient
-    }
-
-    TraceBase.cloudTrace.projects.patchTraces(request, function(err : any) {
-      if (err) {
+    TraceBase.cloudTrace.projects.patchTraces(request, (err : any) => {
+      if(err) {
         rc.isError() && rc.error(rc.getName(this), 'trace sending error',err)
         return
       }
     })
   }
-
-  public static createTrace(rc : RunContextServer , logger : RCServerLogger , apiName : string , labels ?: Mubble.uObject<string>) {
-    const name = apiName
-    const trace  = {
-    projectId : TraceBase.projectId ,
-    traceId   : getTraceId(name) ,
-    spans     : [
-      {
-        spanId    : "1" ,
-        kind      : 'RPC_SERVER',
-        name      : name ,
-        startTime : format(new Date(logger.startTs) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
-        endTime   : format(new Date() , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
-        labels    : labels
-      }
-      ]
-    }
-    let spanIdCount : number = 1
-    // We expect trace spans to be non-empty when error occurred. Label != null => error
-    if(!lo.isEmpty(logger.traceSpans) && !labels){
-      // when no error this should not happen
-      throw new Error('trace not finished for apis '+ apiName + ' ' +  Object.keys(logger.traceSpans) )
-    }
-    if(!lo.isEmpty(logger.finishedTraceSpans)){
-      
-      for(let spanInfo of logger.finishedTraceSpans ){
-        spanIdCount++
-        trace.spans.push( {
-          spanId    : ""+spanIdCount ,
-          kind      : 'RPC_SERVER',
-          name      : spanInfo.id ,
-          startTime : format(new Date(spanInfo.startTime) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z' , 0) ,
-          endTime   : format(new Date(spanInfo.endTime) , '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
-          labels    : undefined
-        }
-       )
-      }
-
-    }
-    return trace
-  }
-
-
 }

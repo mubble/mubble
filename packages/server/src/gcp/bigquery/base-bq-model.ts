@@ -207,22 +207,24 @@ export abstract class BaseBigQuery {
   }
 
   async insert(rc : RunContextServer , day_timestamp ?: string) {
-  let err = this.fieldsError(rc)  
-  if(err) {
-    rc.isWarn() && rc.warn(rc.getName(this), 'Data Sanity Failed. Not inserting the model.',err)
-    return
-  }  
-    
-  const clazz : any                          = this.constructor as any ,
-        table : any                          = await clazz.getDataStoreTable(rc , day_timestamp)
-  
-  const bqNiData = this
-  rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
-  const traceId : string = clazz.name + ':' + 'insert',
-        ack = rc.startTraceSpan(traceId)
-  const res  = await table.insert(bqNiData)
-  rc.endTraceSpan(traceId,ack)
-}
+    let err = this.fieldsError(rc)  
+    if(err) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Data Sanity Failed. Not inserting the model.',err)
+      return
+    }  
+      
+    const clazz    = this.constructor as any,
+          table    = await clazz.getDataStoreTable(rc , day_timestamp),
+          bqNiData = this
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
+
+    const traceId = clazz.name + ':' + 'BqInsert',
+          ack     = rc.startTraceSpan(traceId),
+          res     = await table.insert(bqNiData)
+
+    rc.endTraceSpan(traceId,ack)
+  }
 
 static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_timestamp ?: string) {
   

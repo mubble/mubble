@@ -114,8 +114,8 @@ static async processUrlToBase64(rc         : RunContextServer,
                                 fileInfo     : GcsUUIDFileInfo) : Promise<string> {
 
     const crops          : any = (imageOptions.ratio && imageOptions.ratio !== 1)
-                  ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
-                  : null,
+                                  ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
+                                  : null,
           image          : any = await jimp.read(imageData),
           processOptions       = {
             quality      : imageOptions.quality,

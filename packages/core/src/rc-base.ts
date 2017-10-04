@@ -187,19 +187,19 @@ export abstract class RCLoggerBase {
     
   }
 
-  public  finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject) : void {
+  public finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject) : void {
     // default Implementation .
   }
 
   public startTraceSpan(id : string) : number | undefined {
-    if(!this.traceSpans[id]){
-      this.traceSpans[id] = {startTime : Date.now() , endTime : 0 }
-    }else{
+    if(!this.traceSpans[id]) {
+      this.traceSpans[id] = {startTime : Date.now(), endTime : 0}
+    } else {
       // already unfinished span exists
-      this.k++
-      const mId = id + '-'+this.k
+      this.k += 1
+      const mId = id + '-' + this.k
       // create new span with id + count
-      this.traceSpans[mId] = {startTime : Date.now() , endTime : 0 }
+      this.traceSpans[mId] = {startTime : Date.now() , endTime : 0}
       return this.k // return duplicate count
     }
     return 

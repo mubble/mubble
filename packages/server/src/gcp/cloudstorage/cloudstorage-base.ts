@@ -46,17 +46,15 @@ export class CloudStorageBase {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-static async uploadDataToCloudStorage(rc : RunContextServer, data : Buffer, fileInfo : GcsUUIDFileInfo) : Promise<string> {
-
+  static async uploadDataToCloudStorage(rc : RunContextServer, data : Buffer, fileInfo : GcsUUIDFileInfo) : Promise<string> {
     const filename     = await this.getUUIDFileName (rc, fileInfo),
           gcBucket     = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket),
           gcFile       = gcBucket.file(filename),
           bufferStream = new stream.PassThrough(),
-          traceId : string = rc.getName(this)+':'+'uploadDataToCloudStorage',
-          ack = rc.startTraceSpan(traceId)
+          traceId      = 'UploadDataToCloudStorage',
+          ack          = rc.startTraceSpan(traceId)
           
-    try{
-
+    try {
       await new Promise((resolve, reject) => {
         bufferStream.on('error', (err : any) => { reject(err) }) 
         bufferStream.end(data)
@@ -66,14 +64,14 @@ static async uploadDataToCloudStorage(rc : RunContextServer, data : Buffer, file
         .on('error', (err : any) => { reject(err) })
         .on('finish', () => { resolve() })
       })
-    }finally{ 
+    } finally { 
       if (rc.isDebug()) {
-        const exists = await CloudStorageBase.fileExists (rc, fileInfo.bucket, filename)
-        rc.isDebug () && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Exists:', exists)
+        const exists = await CloudStorageBase.fileExists(rc, fileInfo.bucket, filename)
+        rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Exists:', exists)
       }
       rc.endTraceSpan(traceId,ack)
     }
-    return this.getFileNameFromInfo (rc, fileInfo)
+    return this.getFileNameFromInfo(rc, fileInfo)
   }
 
   static async getUUIDFileId(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
