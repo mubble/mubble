@@ -204,8 +204,8 @@ private getNamespace() : string {
   - noChildren     = Default is true [No Children]
 ------------------------------------------------------------------------------*/ 
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
-    const traceId : string = rc.getName(this)+':'+'insert',
-          ack = rc.startTraceSpan(traceId)
+    const traceId = rc.getName(this) + ':' + 'insert',
+          ack     = rc.startTraceSpan(traceId)
     
     try {
       const res          = await this.setUnique(rc, allowDupRec),
@@ -219,7 +219,7 @@ private getNamespace() : string {
       if (err.toString().split(':')[1] !== ' entity already exists') {
         throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
       } else {
-        if (allowDupRec) return true
+        if(allowDupRec) return true
         throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
       }
     }finally{
