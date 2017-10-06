@@ -409,6 +409,15 @@ export class MasterMgr {
          if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as Mubble.uObject<object>
        })
      }
+     
+     if(lo.hasIn(this.revDepMap , master)){
+      
+      const depMasters : string [] = this.revDepMap[master]
+      depMasters.forEach((depMas : string)=>{
+        if(!lo.hasIn(masterCache ,depMas)) masterCache[depMas] = null as any as Mubble.uObject<object>
+      })
+    }
+    
     
   }
 
