@@ -251,7 +251,7 @@ export class MasterRegistry {
         // self field must exist
         assert(this.ownFields.indexOf(selfField)!==-1 , 'FK field ',selfField , 'is not present in master ',this.mastername)
         // parent master field must exists
-        assert(parentRegistry.ownFields.indexOf(parentField)!==-1 , 'Parent FK field ',parentField , 'is not present in parent ',parent)
+        assert(lo.keysIn(parentRegistry.fieldsMap).indexOf(parentField)!==-1 , 'Parent FK field ',parentField , 'is not present in parent ',parent ,parentRegistry.ownFields )
 
         const selfInfo : FieldInfo = this.fieldsMap[selfField]
 
