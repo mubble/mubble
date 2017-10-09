@@ -145,11 +145,23 @@ export class WireSysEvent extends WireObject {
 }
 
 export interface WebSocketConfig {
-  msPingInterval: number
+  msPingInterval  : number
+  syncKey         : string
 }
 
 export interface InvocationData {
   name    : string
   ts      : number
   params  : object
+}
+
+export const Leader = {
+  BIN         : 'B',
+  CONFIG      : 'C',
+  DEF_JSON    : 'D',
+  JSON        : 'J'
+}
+
+export const Encoder = {
+  MIN_SIZE_TO_COMPRESS  : 40
 }

@@ -12,6 +12,7 @@ import * as http          from 'http'
 import * as ws            from 'ws'
 import * as url           from 'url'
 import * as lo            from 'lodash'
+
 import {  
         ConnectionInfo,
         Protocol,
@@ -20,6 +21,7 @@ import {
         WireSysEvent,
         SYS_EVENT,
         WIRE_TYPE,
+        Leader,
         WEB_SOCKET_URL
        }                              from '@mubble/core'
 import {
@@ -41,49 +43,56 @@ export class WsServer {
     this.wsServer.on('connection', this.onConnection.bind(this))
   }
 
-  onConnection(socket : any) {
+  async onConnection(socket : any) {
 
-    const rc = this.refRc.copyConstruct('', 'ws-connection')
+    try {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'got a new connection')
+      const rc = this.refRc.copyConstruct('', 'ws-connection')
 
-    const req       = socket.upgradeReq,
-          urlObj    = url.parse(req.url || ''),
-          pathName  = urlObj.pathname || '' // it is like /engine.io/header/body
+      rc.isDebug() && rc.debug(rc.getName(this), 'got a new connection')
 
-    let   [, mainUrl, header, body] = pathName.split('/')
+      const req       = socket.upgradeReq,
+            urlObj    = url.parse(req.url || ''),
+            pathName  = urlObj.pathname || '' // it is like /engine.io/header/body
 
-    if (!(mainUrl === WEB_SOCKET_URL.PUBLIC || mainUrl === WEB_SOCKET_URL.PRIVATE) || !header || !body) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'Ignoring websocket request with url', req.url)
+      let   [, mainUrl, header, body] = pathName.split('/')
+
+      if (!(mainUrl === WEB_SOCKET_URL.PUBLIC || mainUrl === WEB_SOCKET_URL.PRIVATE) || !header || !body) {
+        rc.isWarn() && rc.warn(rc.getName(this), 'Ignoring websocket request with url', req.url)
+        return socket.close()
+      }
+
+      header = decodeURIComponent(header)
+      body   = decodeURIComponent(body)
+
+      const ci           = {} as ConnectionInfo,
+            [host, port] = (req.headers.host || '').split(':')
+
+      ci.protocol       = Protocol.WEBSOCKET
+      ci.host           = host
+      ci.port           = port || (urlObj.protocol === 'wss' ? 443 : 80)
+      ci.url            = mainUrl
+      ci.headers        = req.headers
+      ci.ip             = this.router.getIp(req)
+      //ci.lastEventTs    = 0
+
+      ci.publicRequest  = mainUrl === WEB_SOCKET_URL.PUBLIC
+      
+      const encProvider    = new EncProviderServer(rc, ci),
+            headerBuffer   = new Buffer(header, 'base64')
+
+      encProvider.extractHeader(rc, headerBuffer)
+
+      const pk = this.router.getPrivateKeyPem(rc, ci)
+      encProvider.decodeHeader(rc, headerBuffer, pk)
+
+      ci.provider = new ServerWebSocket(rc, ci, encProvider, this.router, socket)
+      ci.provider.processMessage(rc, new Buffer(body, 'base64'))
+
+    } catch (e) {
+      console.log(e)
       return socket.close()
     }
-
-    header = decodeURIComponent(header)
-    body   = decodeURIComponent(body)
-
-    const ci           = {} as ConnectionInfo,
-          [host, port] = (req.headers.host || '').split(':')
-
-    ci.protocol       = Protocol.WEBSOCKET
-    ci.host           = host
-    ci.port           = port || (urlObj.protocol === 'wss' ? 443 : 80)
-    ci.url            = mainUrl
-    ci.headers        = req.headers
-    ci.ip             = this.router.getIp(req)
-    //ci.lastEventTs    = 0
-
-    ci.publicRequest  = mainUrl === WEB_SOCKET_URL.PUBLIC
-    
-    const encProvider    = new EncProviderServer(rc, ci)
-    encProvider.decodeHeader(rc, new Buffer(header, 'base64').toString())
-
-    if (!this.router.verifyConnection(rc, ci)) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'Ignoring websocket request with url', req.url)
-      return socket.close()
-    }
-
-    ci.provider = new ServerWebSocket(rc, ci, encProvider, this.router, socket)
-    ci.provider.processMessage(rc, new Buffer(body, 'base64').toString())
   }
 }
 
@@ -103,16 +112,21 @@ class ServerWebSocket {
     this.ws.onerror    = this.onError.bind(this)
   }
 
-  private sendConfig(rc: RunContextServer) {
+  private async sendConfig(rc: RunContextServer) {
 
+    this.configSent = true
+
+    const {key, encKey} = this.encProvider.getNewKey()
+    
     const config = {
-      msPingInterval: (15 * 60 * 1000) // 15 Mins // 29000 // 29 secs
+      msPingInterval : (5 * 60 * 1000), // 15 Mins // 29000 // 29 secs
+      syncKey        : encKey.toString('base64')
     } as WebSocketConfig
 
-    this.send(rc, new WireSysEvent(SYS_EVENT.WS_PROVIDER_CONFIG, config))
+    await this.sendInternal(rc, new WireSysEvent(SYS_EVENT.WS_PROVIDER_CONFIG, config), Leader.CONFIG)
 
-    this.encProvider.sendConfig(rc)
-    this.configSent = true
+    // Update the key to new key
+    this.ci.syncKey = key
   }
 
   onOpen() {
@@ -124,28 +138,33 @@ class ServerWebSocket {
 
     const rc = this.refRc.copyConstruct('', 'ws-request')
     const data = msgEvent.data
-    
+
     this.processMessage(rc, data)
   }
 
-  processMessage(rc: RunContextServer, data: string) {
+  async processMessage(rc: RunContextServer, data: Buffer) {
+
     rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage() length:', data.length,
+            'type:', data.constructor ? data.constructor.name : undefined,
             'key:', (<any>this.ci.headers)['sec-websocket-key'] )
 
-    const decodedData : WireObject[] = this.encProvider.decodeBody(rc, data)
+    const decodedData : WireObject[] = await this.encProvider.decodeBody(rc, data)
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
-  send(rc: RunContextServer, data: WireObject): void {
+  async send(rc: RunContextServer, data: WireObject) {
+    if (!this.configSent) await this.sendConfig(rc)
+    this.sendInternal(rc, data)
+  }
+
+  private async sendInternal(rc: RunContextServer, data: WireObject, msgType ?: string) {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', data)
+    const msg = await this.encProvider.encodeBody(rc, data, msgType)
 
-    if (!this.configSent && data.type !== WIRE_TYPE.SYS_EVENT) {
-      this.sendConfig(rc)
-    }
-    const msg = this.encProvider.encodeBody(rc, data)
     this.ws.send(msg)
   }
+  
 
   onError(err: any) {
     const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')

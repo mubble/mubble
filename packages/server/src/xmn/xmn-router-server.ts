@@ -56,9 +56,9 @@ export abstract class XmnRouterServer {
     XmnRegistry.commitRegister(rc, this, providers)   
   }
 
-  abstract verifyConnection(rc: RunContextServer, ci: ConnectionInfo): boolean 
+  abstract getPrivateKeyPem(rc: RunContextServer, ci: ConnectionInfo): string
 
-  public sendEvent(rc: RunContextServer, ci: ConnectionInfo, eventName: string, data: object) {
+  public async sendEvent(rc: RunContextServer, ci: ConnectionInfo, eventName: string, data: object) {
 
     if (!ci.provider) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Could not send event as connection closed', eventName)
@@ -66,7 +66,7 @@ export abstract class XmnRouterServer {
     }
 
     const we = new WireEvent(eventName, data)
-    ci.provider.send(rc, we)
+    await ci.provider.send(rc, we)
     rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
   }
   
@@ -151,7 +151,7 @@ export abstract class XmnRouterServer {
       } as InvocationData
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       wResp = new WireReqResp(ir.name, wo.ts, resp)
-      this.sendToProvider(rc, ci, wResp , wo)
+      await this.sendToProvider(rc, ci, wResp , wo)
 
     } catch (err) {
       let errStr = (err instanceof Mubble.uError) ? err.code 
@@ -161,8 +161,8 @@ export abstract class XmnRouterServer {
       rc.isError() && rc.error(rc.getName(this), err)
       wResp = new WireReqResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, errStr , err)
-      this.sendToProvider(rc, ci, wResp , wo)
-    }finally{
+      await this.sendToProvider(rc, ci, wResp , wo)
+    } finally {
       return wResp
     }
  }
@@ -216,13 +216,13 @@ export abstract class XmnRouterServer {
     await this.sendToProvider(rc, ci, resp , req)
   }
 
-  private sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null ): void {
+  private async sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null) {
     if (ci.provider) {
-      if((response.type === WIRE_TYPE.REQ_RESP) && (response as WireReqResp).error){
-        ci.provider.send(rc, response , 500)
-      }else{
-        ci.provider.send(rc, response)
-      }
+      // if ((response.type === WIRE_TYPE.REQ_RESP) && (response as WireReqResp).error) {
+      //   ci.provider.send(rc, response, 500)
+      // } else {
+      await ci.provider.send(rc, response)
+      // }
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
     }

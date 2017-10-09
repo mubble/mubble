@@ -54,13 +54,14 @@ export abstract class XmnRouterBrowser {
 
   private lastEventTs      = 0
   private lastEventSendTs  = 0
+  private syncKey: Uint8Array
 
-  constructor(private rc: RunContextBrowser, serverUrl: string) {
+  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, syncKey: string) {
 
-    const urlParser = document.createElement('a')
-    urlParser.href  = serverUrl
+    const urlParser     = document.createElement('a')
+    urlParser.href      = serverUrl
 
-    this.ci             = {} as ConnectionInfo
+    this.ci             = ci
     this.ci.protocol    = Protocol.WEBSOCKET
     this.ci.host        = urlParser.hostname
     this.ci.port        = Number(urlParser.port) || 80
@@ -68,6 +69,9 @@ export abstract class XmnRouterBrowser {
     this.timerReqResend    = rc.timer.register('router-resend', this.cbTimerReqResend.bind(this))
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
     this.timerEventTimeout = rc.timer.register('router-event-timeout', this.cbTimerEventTimeout.bind(this))
+
+    const cls:any = Uint8Array
+    this.syncKey  = cls.from(atob(syncKey), c => c.charCodeAt(0))      
 
     // rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
@@ -81,11 +85,12 @@ export abstract class XmnRouterBrowser {
     }
   }
 
+  getSyncKey() { return this.syncKey }
   abstract upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: ClientIdentity): void
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
   abstract getClientIdentity(rc: RunContextBrowser): ClientIdentity
-
+    
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
     return new Promise((resolve, reject) => {
@@ -252,7 +257,7 @@ export abstract class XmnRouterBrowser {
           break
 
         case WIRE_TYPE.SYS_EVENT:
-          this.processSysEvent(this.rc, wo) || this.ci.provider.processSysEvent(this.rc, wo)
+          this.processSysEvent(this.rc, wo)
           break
 
         default:
@@ -265,9 +270,8 @@ export abstract class XmnRouterBrowser {
     if (se.name === SYS_EVENT.UPGRADE_CLIENT_IDENTITY) {
       this.upgradeClientIdentity(rc, se.data as ClientIdentity)
       this.prepareConnection(rc)
-      return true
     } else {
-      return false
+      this.ci.provider.processSysEvent(this.rc, se)
     }
   }
 

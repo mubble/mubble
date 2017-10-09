@@ -13,6 +13,10 @@ import {Protocol}           from './xmn-core'
 
 export interface ConnectionInfo {
 
+  // Client Public identifier
+  shortName       : string    // max four character name (only alpha-numeric)
+  uniqueId        : string    // Typically a version in 'a.b.c' format 
+
   // Connection attributes
   protocol        : Protocol
   host            : string    // host name of the server
@@ -33,9 +37,8 @@ export interface ConnectionInfo {
   networkType     : string
   clientIdentity  : ClientIdentity
 
-  // The Adrishya Promise that is shared across all API calls of this connection.  
-  adrishyaPromise : any
-
   // provider for this connection (WebSocket, Http etc.)
   provider        : any       // The protocol provider keeps it's custom data here
+
+  syncKey         : any
 }
