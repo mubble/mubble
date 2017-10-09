@@ -17,7 +17,6 @@ import {
 import * as pako from 'pako'
 
 import {  RunContextBrowser} from '../rc-browser'
-import { TextEncoder, TextDecoder } from 'text-encoding-shim'
 
 const IV                    = new Uint8Array(16),
       SYM_ALGO              = {name: "AES-CBC", iv: IV, length: 256},
