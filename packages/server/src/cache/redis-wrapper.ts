@@ -63,6 +63,7 @@ export class RedisCmds {
   zcard     (key: string) : Promise<number> { return true as any }
 
   exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
+  zrangebyscore (key : string , start : number , end : number) : Promise<string[]> {return true as any}
 
 }
 
