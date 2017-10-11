@@ -24,7 +24,7 @@ export class XmnRegistry {
     const apiName = xmnInfo.name
     //console.log(name , apiName)
     if (this.register[apiName]) {
-      const msg = `Duplicate definition for xmn api/event found: ${name} ${JSON.stringify(this.register[name])}`
+      const msg = `Duplicate definition for xmn api/event found: ${apiName} ${name} ${JSON.stringify(this.register[name])}`
       console.error(msg)
       throw(Error(msg))
     }
@@ -37,7 +37,7 @@ export class XmnRegistry {
     const apiName = xmnInfo.name
     //console.log(name , apiName)
     if (this.register[apiName]) {
-      const msg = `Duplicate definition for xmn api/event found: ${name} ${JSON.stringify(this.register[name])}`
+      const msg = `Duplicate definition for xmn api/event found: ${apiName} ${name} ${JSON.stringify(this.register[name])}`
       console.error(msg)
       throw(Error(msg))
     }
