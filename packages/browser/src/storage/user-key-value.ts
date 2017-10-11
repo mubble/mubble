@@ -42,6 +42,12 @@ export abstract class UserKeyValue {
     this.save(rc)
   }
 
+  switchUserOnCurrRun(clientId: number) {
+    this.lastClientId = clientId
+    localStorage.setItem(LAST_USER, String(this.lastClientId))
+    this.deserialize(this.users[this.lastClientId])
+  }
+
   switchUserOnNextRun(clientId: number) {
     this.lastClientId = clientId
     localStorage.setItem(LAST_USER, String(this.lastClientId))
