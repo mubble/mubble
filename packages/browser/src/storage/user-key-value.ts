@@ -33,7 +33,7 @@ export abstract class UserKeyValue {
     this.deserialize(this.users[this.lastClientId])
   }
 
-  switchNewUser(rc: RunContextBrowser, clientId: number, 
+  registerNewUser(rc: RunContextBrowser, clientId: number, 
     userLinkId: string, userName: string) {
 
     this._clientId    = clientId
@@ -48,12 +48,7 @@ export abstract class UserKeyValue {
     this.deserialize(this.users[this.lastClientId])
   }
 
-  switchUserOnNextRun(clientId: number) {
-    this.lastClientId = clientId
-    localStorage.setItem(LAST_USER, String(this.lastClientId))
-  }
-
-  save(rc : RunContextBrowser): void {
+  save(rc: RunContextBrowser): void {
 
     this.users[this._clientId] = this.serialize()
     localStorage.setItem(USERS, JSON.stringify(this.users))
