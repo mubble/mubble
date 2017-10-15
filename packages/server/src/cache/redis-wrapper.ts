@@ -64,6 +64,7 @@ export class RedisCmds {
 
   exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
   zrangebyscore (key : string , start : number , end : number) : Promise<string[]> {return true as any}
+  zrevrangebyscore (key : string , start : string , end : string, withscore : boolean, offset ?: number, limit ?: number) : Promise<string[]> {return true as any}
 
 }
 
