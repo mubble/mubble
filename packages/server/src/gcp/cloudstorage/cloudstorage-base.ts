@@ -67,7 +67,7 @@ export class CloudStorageBase {
     } finally { 
       if (rc.isDebug()) {
         const exists = await CloudStorageBase.fileExists(rc, fileInfo.bucket, filename)
-        rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Exists:', exists)
+        rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Created:', exists)
       }
       rc.endTraceSpan(traceId,ack)
     }
