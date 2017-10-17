@@ -1,16 +1,19 @@
 /*------------------------------------------------------------------------------
    About      : <Write about the file here>
    
-   Created on : Thu Jul 13 2017
+   Created on : Tue Oct 17 2017
    Author     : Raghvendra Varma
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-export * from './co'
-export * from './core'
-export * from './date'
-export * from './promise'
-export * from './regex'
-export * from './timer'
-export * from './performance-metrics'
+export namespace Core {
+
+  // This function protects an object / array from modifications
+  export function protect(inp) {
+    Object.freeze(inp)
+  }
+
+
+
+}
