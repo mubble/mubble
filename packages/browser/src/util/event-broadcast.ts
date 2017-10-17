@@ -49,8 +49,16 @@ export namespace EventSystem {
       fullName, 'to', nodeList.length, 'dom element(s)')
   }
 
+  // Allows subscription of event for an element (when Angular syntax cannot be used)
+  // UnSubscribe is automatic on element destroy
+  export function elementSubscribe(element: HTMLElement, eventName: string, cb: any) {
+    if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
+    element.addEventListener(eventName, cb)
+  }
+
   // Any class whose object is globally alive in the app should use this 
   // since it does not unsubscribe for the events
+  // UnSubscribe is ********* NEVER *********
   export function subscribe(eventName: string, cb: any) {
     if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
     window.addEventListener(eventName, cb)
