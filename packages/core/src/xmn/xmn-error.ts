@@ -9,9 +9,10 @@
 
 export const XmnError = {
 
-  ConnectionFailed  : 'ConnectionFailed',  // server connect problem: server not running, no network, connection break
-  RequestTimedOut   : 'RequestTimedOut',   // ideally means api bug
-  SendTimedOut      : 'SendTimedOut',      // ideally means terribly slow connection
+  ConnectionFailed    : 'ConnectionFailed',   // server connect problem: server not running, no network, connection break
+  RequestTimedOut     : 'RequestTimedOut',    // ideally means api bug
+  SendTimedOut        : 'SendTimedOut',       // ideally means terribly slow connection
+  UnsupportedVersion  : 'UnsupportedVersion', // client app version is not supported by the server, update from playstore
 
   _NotReady         : '_NotReady'
 }
