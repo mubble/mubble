@@ -7,9 +7,9 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {  format,
-          Mubble 
-} from '..'  
+import { format } from './date'
+import { Mubble } from '../mubble'  
+
 import * as lo from 'lodash'
 
 const CYCLE_STEP = '_cycle_'

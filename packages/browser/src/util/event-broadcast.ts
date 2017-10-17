@@ -30,7 +30,23 @@ export namespace EventSystem {
     window.dispatchEvent(event)
 
     rc.isStatus() && rc.status('EventSystem.broadcast', 'Completed broadcast of', 
-      fullName, 'to', nodeList.length, 'ui element(s) and to global components via window')
+      fullName, 'to', nodeList.length, 'dom element(s) and to global components via window')
+  }
+
+  export function eventToElements(rc: RunContextBrowser, eventName: string, 
+                    elementClassName: string, data : object) {
+
+    const fullName = `${EVENT_PREFIX}-${eventName}`,
+          nodeList = document.querySelectorAll('.' + elementClassName),
+          event    = new CustomEvent(fullName, {detail: {data, rc}})
+
+    for (let index = 0; index < nodeList.length; index++) {
+      const element = nodeList[index]
+      element.dispatchEvent(event)
+    }
+
+    rc.isStatus() && rc.status('EventSystem.eventToElement', 'Completed event dispatch of', 
+      fullName, 'to', nodeList.length, 'dom element(s)')
   }
 
   // Any class whose object is globally alive in the app should use this 

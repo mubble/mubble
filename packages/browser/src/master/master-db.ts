@@ -9,9 +9,8 @@
 
 import Dexie                  from 'dexie'
 
-import {  RunContextBrowser,
-          EventSystem 
-       }                      from '@mubble/browser'
+import {  RunContextBrowser } from '../rc-browser'
+import {  EventSystem       } from '../util'
 
 
 import {  SyncHashModel, 
@@ -38,6 +37,12 @@ class ModelField {
   toString() {
     return `${this.name}(${this.type})${this.optional ? ': optional' : ''}`
   }            
+}
+
+export type VersionSchema = {
+  version      : number,
+  tableSchema  : Mubble.uObject<string>
+  upgrade     ?: () => void
 }
 
 export abstract class MasterDb extends Dexie {
@@ -72,7 +77,7 @@ export abstract class MasterDb extends Dexie {
     // console.log(`${modelName}: added ${isPrimaryKey ? 'key' : 'field'} + ${field}`)
   }
 
-  constructor (rc: RunContextBrowser, version: string) {
+  constructor (rc: RunContextBrowser, version: string, versionSchema : VersionSchema[]) {
 
     super('MasterDb')
 
@@ -82,12 +87,12 @@ export abstract class MasterDb extends Dexie {
     rc.isAssert() && rc.assert(rc.getName(this), modelsWithKeys && modelsWithFields 
       && modelsWithKeys >= modelsWithFields, {modelsWithKeys, modelsWithFields})
 
-
-    const schema = {[SYNC_HASH]: 'model'}
-    this.buildSchema(schema)
-    // console.log(schema)
-    this.version(1).stores(schema)
-
+    rc.isAssert() && rc.assert(rc.getName(this), versionSchema[0].version === 1)
+    /*
+      TODO ???? validate accumulated versionSchema with this.buildSchema(schema)
+    */
+    versionSchema[0].tableSchema[SYNC_HASH] = 'model'
+    
     EventSystem.subscribe(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
     this.verifySegmentVersion(rc, version)
   }
@@ -165,21 +170,21 @@ export abstract class MasterDb extends Dexie {
       await this.clear(rc, modelName)
       rc.isDebug() && rc.debug(rc.getName(this), modelName, 'purged')
     } else if (modelData.del && modelData.del.length) {
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'going to delete', modelData.del.length)
       await this.bulkDelete(rc, modelName, modelData.del)
-      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'deleted', modelData.del.length)
     }
 
     if (modelData.mod && modelData.mod.length) {
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'going to upsert', modelData.mod.length)
       await this.bulkPut(rc, modelName, modelData.mod)
-      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'upsert', modelData.mod.length)
     }
 
     this.syncHashModels[modelName] = modelData.hash
     const syncHashTable = this[SYNC_HASH]
 
     await this.transaction('rw', syncHashTable, async() => {
+      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'going to save hash', modelData.hash)
       await syncHashTable.put({model: modelName, hash: modelData.hash})
-      rc.isDebug() && rc.debug(rc.getName(this), modelName, 'saved hash', modelData.hash)
     })
   }
   
@@ -199,7 +204,9 @@ export abstract class MasterDb extends Dexie {
 
     await this.transaction('rw', modelTable, async() => {
       for (const modelRec of arMod) {
-        await modelTable.put(this.buildFullRec(rc, modelName, modelRec))
+        const rec = this.buildFullRec(rc, modelName, modelRec)
+        rc.isDebug() && rc.debug(rc.getName(this), 'going to put', rec)
+        await modelTable.put(rec)
       }
     })
   }

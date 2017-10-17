@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { MasterDb } from '.'
+import { MasterDb } from './master-db'
 
 export class Master {
 
