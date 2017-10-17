@@ -64,7 +64,7 @@ export class RedisCmds {
 
   exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
   zrangebyscore (key : string , start : number , end : number) : Promise<string[]> {return true as any}
-  zrevrangebyscore (key : string , start : string , end : string, withscore : boolean, offset ?: number, limit ?: number) : Promise<string[]> {return true as any}
+  zrevrangebyscore (key : string , start : string , end : string, withscore ?: string) : Promise<string[]> {return true as any}
 
 }
 
@@ -235,7 +235,13 @@ export class RedisWrapper {
     return this._hscan('zscan' , key , 0 , pattern , count)
   }
 
-  async rwZrevrange(key: string, start : string|number, end : string|number, withscore : boolean) : Promise<Array<any>> {
+  async rwZrange(key: string, start : string|number, end : string|number, withscore : boolean ) : Promise<Array<any>> {
+    let redis_cmd = [key, start, end] as Array<any>
+    if (withscore) redis_cmd.push ('WITHSCORES')
+    return this._execute('zrange', redis_cmd) 
+  }
+
+  async rwZrevrange(key: string, start : string|number, end : string|number, withscore : boolean ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
     if (withscore) redis_cmd.push ('WITHSCORES')
     return this._execute('zrevrange', redis_cmd) 
