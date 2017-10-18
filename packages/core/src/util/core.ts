@@ -10,7 +10,7 @@
 export namespace Core {
 
   // This function protects an object / array from modifications
-  export function protect(inp) {
+  export function protect(inp : any) {
     Object.freeze(inp)
   }
 
