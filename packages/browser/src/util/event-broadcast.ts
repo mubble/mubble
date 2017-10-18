@@ -53,6 +53,14 @@ export namespace EventSystem {
   // UnSubscribe is automatic on element destroy
   export function elementSubscribe(element: HTMLElement, eventName: string, cb: any) {
     if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
+
+    const classes = element.className.split(' ')
+    if (classes.indexOf(eventName) === -1) {
+      classes.push(eventName)
+      element.className = classes.join(' ')
+    } else {
+      element.removeEventListener(eventName, cb)
+    }
     element.addEventListener(eventName, cb)
   }
 
