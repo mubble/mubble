@@ -18,7 +18,7 @@ export namespace EventSystem {
 
     data = data || {}
 
-    const fullName = `${EVENT_PREFIX}-${eventName}`,
+    const fullName = eventName.startsWith(EVENT_PREFIX) ? `${eventName}` : `${EVENT_PREFIX}-${eventName}`,
           nodeList = document.querySelectorAll('.' + fullName),
           event    = new CustomEvent(fullName, {detail: {data, rc}})
 
@@ -36,7 +36,7 @@ export namespace EventSystem {
   export function eventToElements(rc: RunContextBrowser, eventName: string, 
                     elementClassName: string, data : object) {
 
-    const fullName = `${EVENT_PREFIX}-${eventName}`,
+    const fullName = eventName.startsWith(EVENT_PREFIX) ? `${eventName}` : `${EVENT_PREFIX}-${eventName}`,
           nodeList = document.querySelectorAll('.' + elementClassName),
           event    = new CustomEvent(fullName, {detail: {data, rc}})
 
