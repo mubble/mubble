@@ -260,6 +260,7 @@ export class MasterMgr {
     
     await this.subRedis.subscribe([CONST.REDIS_CHANNEL] , async (channel : string , msg : string)=>{
       MaMgrLog(rc , 'Sredis','on', channel, 'channel received message', msg)
+      if(channel!==CONST.REDIS_CHANNEL) return
       const masters : string[] = JSON.parse(msg) as string[]
       assert(Array.isArray(masters) , 'invalid masters array received ',msg)
 
