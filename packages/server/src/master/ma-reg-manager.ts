@@ -285,6 +285,46 @@ export class MasterRegistryMgr {
     return ssd
   }
 
+  public static verifyRedisDataWithJson(rc : RunContextServer , registry : MasterRegistry , jsonSourceIds : Mubble.uObject<object> , redisDataMap : Mubble.uObject<object> ) : SourceSyncData {
+
+    function getJsonRecFromRedisData(redisRec : any) : any {
+      const redisRecClone = lo.cloneDeep(redisRec)
+      
+      delete redisRecClone[MasterBaseFields.Deleted]
+      delete redisRecClone[MasterBaseFields.CreateTs]
+      delete redisRecClone[masTsField]
+      return redisRecClone
+    }
+
+    const ssd : SourceSyncData = new SourceSyncData(registry.mastername , jsonSourceIds , redisDataMap , Date.now()) ,
+          config : ModelConfig = registry.config , 
+          masTsField : string  = config.getMasterTsField()
+    
+    
+    lo.forEach(redisDataMap , (redisRec : any , pk : string )=>{
+
+      const jRef : any = jsonSourceIds[pk]
+      if(!jRef) {
+        // record not present in json
+        if(redisRec[MasterBaseFields.Deleted]) return // record is deleted
+        ssd.inserts[pk] = getJsonRecFromRedisData(redisRec)
+      }else{
+        if(redisRec[MasterBaseFields.Deleted]){
+          if(!jRef[MasterBaseFields.Deleted]) ssd.deletes[pk] = jRef
+        }else{
+          if(this.isModified(rc , registry , masTsField , redisRec , jRef)) ssd.updates[pk] = getJsonRecFromRedisData(redisRec)
+        }
+      }
+
+    })
+
+    lo.forEach(jsonSourceIds , (jRef : any , pk)=>{
+      const redisRec : any = redisDataMap[pk]
+      if(!redisRec) ssd.deletes[pk] = jRef
+    })
+    return ssd
+  }
+
   private static isModified(rc : RunContextServer , registry : MasterRegistry , masterTs : string , ref : any , src : any ) : boolean {
     
     //debug('isModified', 'all:',allFields , 'own:',ownFields , 'masterTs:',masterTs)
