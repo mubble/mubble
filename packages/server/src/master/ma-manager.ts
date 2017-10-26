@@ -10,6 +10,7 @@
 import * as lo                from 'lodash'
 import * as crypto            from 'crypto'
 import * as fs                from 'fs'
+import * as path                        from 'path' 
 
 import {RedisWrapper,
         RedisMulti}           from '../cache/redis-wrapper'
@@ -322,6 +323,31 @@ export class MasterMgr {
     const res : any = memcache.update(this.rc , newData , dinfo)
     MaMgrLog(null , 'refreshAModel result ',res)
  }
+
+  public async syncMasterDataWithJson(rc : RunContextServer , master : string) {
+    
+    master = master.toLowerCase()
+    const registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
+    assert(registry!=null , 'Unknow master ', master , 'for sync')
+    
+    const jsonFile : string  = path.join(process.cwd() ,'master-data', master + '.json' )
+    assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exist')
+    const buff : Buffer = await fs.readFileSync(jsonFile) , 
+          jsonData : object [] = JSON.parse(buff.toString('utf8')) , 
+          redisData : Mubble.uObject<object> = await this.listAllMasterData(rc , master) 
+                
+    const sourceIdsMap : Mubble.uObject<object> = FuncUtil.maArrayMap<any>(jsonData , (rec : any)=>{
+      return {key : registry.getIdStr(rec) , value : rec}
+    })
+
+    const ssd : SourceSyncData =  MasterRegistryMgr.verifyRedisDataWithJson(rc , registry , sourceIdsMap , redisData)      
+
+    if(lo.isEmpty(ssd.deletes) && lo.isEmpty(ssd.inserts) && lo.isEmpty(ssd.updates) ) {
+      rc.isDebug() && rc.debug(rc.getName(this), master , 'is in sync')
+    }else{
+      rc.isDebug() && rc.debug(rc.getName(this), master , 'needs sync' , ssd.inserts , ssd.updates , ssd.deletes)
+    }
+  }
   
   public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
     
