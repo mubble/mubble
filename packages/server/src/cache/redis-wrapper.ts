@@ -263,7 +263,7 @@ export class RedisWrapper {
 
   async rwZremrangebyscore(key: string, start : string|number, end : string|number ) : Promise<Array<any>> {
     let redis_cmd = [key, start, end] as Array<any>
-    return this._execute('zrevrangebyscore', redis_cmd) 
+    return this._execute('zremrangebyscore', redis_cmd) 
   }
 
   async _scanCb(cmd : string , key : string, params: any, cbFunc: (key: string, value: any) => void) : Promise<void> {
