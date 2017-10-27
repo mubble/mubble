@@ -247,5 +247,16 @@ static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_tim
   const res  = await table.insert(items)
   rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert Successful')
 }
-  
+
+// Job to Import data from the given path of the datastore backup
+  async importJob(rc : RunContextServer, path : string) {
+    const clazz    = this.constructor as any,
+          table    = await clazz.getDataStoreTable(rc , Date.now()),
+          metadata = {
+            sourceFormat     : 'DATASTORE_BACKUP',
+            writeDisposition : 'WRITE_TRUNCATE'
+          }
+
+    return table.import(path, metadata)
+  }
 }
