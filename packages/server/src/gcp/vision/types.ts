@@ -27,7 +27,7 @@ export type ProcessOptions = {
   quality      ?: number 
 }
 
-export type ProcessToGcsReturn = {
+export type ProcessGcsReturn = {
   url    : string,
   mime   : string,
   width  : number,

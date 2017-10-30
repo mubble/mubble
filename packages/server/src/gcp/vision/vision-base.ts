@@ -22,7 +22,7 @@ import {
         VisionParameters,
         ProcessedReturn,
         ProcessOptions,
-        ProcessToGcsReturn
+        ProcessGcsReturn
        }                            from './types'
 import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
@@ -96,9 +96,9 @@ static async processUrl(rc           : RunContextServer,
   static async processDataToGcs(rc           : RunContextServer, 
                                 imageData    : Buffer,
                                 imageOptions : VisionParameters,
-                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessToGcsReturn> {
+                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
 
-    const retVal      = {} as ProcessToGcsReturn,
+    const retVal      = {} as ProcessGcsReturn,
           crops : any = (imageOptions.ratio && imageOptions.ratio !== 1)
                         ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
                         : null
@@ -112,7 +112,7 @@ static async processUrl(rc           : RunContextServer,
  
     const vRes = await VisionBase.process(rc, imageData, processOptions) as ProcessedReturn
 
-    fileInfo.mimeVal = retVal.mime = vRes.mime
+    fileInfo.mimeVal = retVal.mime = vRes.mime    
     retVal.width     = vRes.width
     retVal.height    = vRes.width
     retVal.url       = await CloudStorageBase.uploadDataToCloudStorage(rc, vRes.data as Buffer, fileInfo)
