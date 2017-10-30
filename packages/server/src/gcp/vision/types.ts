@@ -26,3 +26,10 @@ export type ProcessOptions = {
   shrink       ?: {h : number, w : number}
   quality      ?: number 
 }
+
+export type ProcessToGcsReturn = {
+  url    : string,
+  mime   : string,
+  width  : number,
+  height : number,
+}

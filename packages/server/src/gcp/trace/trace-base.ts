@@ -31,6 +31,7 @@ export class TraceBase {
     this.cloudTrace = googleApis.cloudtrace('v1')
     this.projectId  = gcloudEnv.projectId
     this.authClient = await new Promise((resolve, reject) => {
+      // This method looks for the GCLOUD_PROJECT and GOOGLE_APPLICATION_CREDENTIALS in environment variables.
       googleApis.auth.getApplicationDefault((err: any, authClient: any) => {
         if(err) {
           rc.isError() && rc.error(rc.getName(this), 'trace authentication failed: ', err)
@@ -46,13 +47,14 @@ export class TraceBase {
   } 
 
   public static sendTrace(rc : RunContextServer, apiName : string , labels ?: Mubble.uObject<string>) {
+    if(!rc.isTraceEnabled()) return
     const trace   = this.createTrace(rc, apiName, labels),
           request = {
             projectId : TraceBase.projectId,
             resource  : {"traces": [trace]},
             auth      : TraceBase.authClient
           }
-
+          
     TraceBase.cloudTrace.projects.patchTraces(request, (err : any) => {
       if (err) {
         rc.isError() && rc.error(rc.getName(this), 'trace sending error', err)

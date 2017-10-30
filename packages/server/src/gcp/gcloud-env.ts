@@ -59,7 +59,7 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
 
 export class GcloudEnv {
 
-  static async init(rc : RunContextServer, trace ?: boolean, bqEnv ?: any): Promise<GcloudEnv> {
+  static async init(rc : RunContextServer, bqEnv ?: any): Promise<GcloudEnv> {
     
     const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
     let gCloudEnv     = null
@@ -90,20 +90,20 @@ export class GcloudEnv {
                              Credentials.AUTH_KEY)
       }
     }
-    await this.initGcpComponents (rc, gCloudEnv, trace, bqEnv)
+    await this.initGcpComponents(rc, gCloudEnv, bqEnv)
     return gCloudEnv
   }
 
-  private static async initGcpComponents (rc: RunContextServer, gcloudEnv : any, trace ?: boolean, bqEnv ?: any) {
+  private static async initGcpComponents(rc: RunContextServer, gcloudEnv : any, bqEnv ?: any) {
     // TODO: Take a list of components to initialize...
     await BaseDatastore.init (rc, gcloudEnv)
     await CloudStorageBase.init(rc, gcloudEnv)
     await MonitoringBase.init(rc, gcloudEnv)
     await VisionBase.init(rc, gcloudEnv)
-    await BigQueryBase.init(rc , gcloudEnv, bqEnv)
-    await PubSubBase.init(rc , gcloudEnv)
-    await GcpLanguageBase.init(rc , gcloudEnv)
-    if(trace) await TraceBase.init(rc , gcloudEnv)
+    await BigQueryBase.init(rc, gcloudEnv, bqEnv)
+    await PubSubBase.init(rc, gcloudEnv)
+    await GcpLanguageBase.init(rc, gcloudEnv)
+    await TraceBase.init(rc, gcloudEnv)
   }
   
   public datastore    : any

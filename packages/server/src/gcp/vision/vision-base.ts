@@ -21,13 +21,16 @@ import {
 import {
         VisionParameters,
         ProcessedReturn,
-        ProcessOptions
+        ProcessOptions,
+        ProcessToGcsReturn
        }                            from './types'
 import {RunContextServer}           from '../../rc-server'
+import {executeHttpsRequest}        from '../../util/https-request'
 import {GcloudEnv}                  from '../gcloud-env'
 import * as request                 from 'request' 
 import * as fs                      from 'fs' 
 import * as images                  from 'images'
+import * as uuid                    from 'uuid/v4'
 
 export class VisionBase {
 
@@ -54,81 +57,67 @@ export class VisionBase {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                 FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
-  static async processDataToBase64(rc         : RunContextServer, 
-                                   imageData  : Buffer,
-                                   imageOptions : VisionParameters) : Promise<ProcessedReturn> {
+  static async processData(rc           : RunContextServer, 
+                           imageData    : Buffer,
+                           imageOptions : VisionParameters,
+                           resBase64    : boolean) : Promise<ProcessedReturn> {
 
-    const crops          : any = (imageOptions.ratio)
-                  ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
-                  : null,
-          image          : any = await jimp.read(imageData),
-          processOptions       = {
+    const crops : any = (imageOptions.ratio)
+                        ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
+                        : null
+
+    const processOptions = {
             quality      : imageOptions.quality,
             shrink       : imageOptions.shrink,
             crops        : crops,
-            returnBase64 : true
+            returnBase64 : resBase64
           } as ProcessOptions
-
-    return VisionBase.process(rc, image, processOptions)
+          
+    return VisionBase.process(rc, imageData, processOptions)
   }
 
-static async processUrlToBase64(rc         : RunContextServer, 
-                                imagePath  : string, //Image path can be a local path or a URL
-                                ratio     ?: number,
-                                quality   ?: number,
-                                shrink    ?: {h: number, w: number}) : Promise<ProcessedReturn> {
+static async processUrl(rc           : RunContextServer, 
+                        imageUrl     : string,
+                        imageOptions : VisionParameters,
+                        resBase64    : boolean) : Promise<ProcessedReturn> {
     
-    const crops          : any  = ratio ? await VisionBase.detectCrops(rc, ratio, imagePath) : null,
-          image          : any  = await jimp.read(imagePath),
-          processOptions        = {
-            quality,
-            shrink,
-            crops,
-            returnBase64 : true
+    const imageData      : Buffer = new Buffer(await executeHttpsRequest(rc, imageUrl, {'User-Agent': 'Newschat/1.0'}), 'binary'),
+          crops          : any    = imageOptions.ratio ? await VisionBase.detectCrops(rc, imageOptions.ratio, imageUrl) : null,
+          processOptions          = {
+            quality      : imageOptions.quality,
+            shrink       : imageOptions.shrink,
+            crops        : crops,
+            returnBase64 : resBase64
           } as ProcessOptions 
 
-    return VisionBase.process(rc, image, processOptions, imagePath)
-  }
-
-  static async processUrlToBinary(rc         : RunContextServer,
-                                  imagePath  : string, //Image path can be a local path or a URL
-                                  ratio     ?: number,
-                                  quality   ?: number,
-                                  shrink    ?: {h: number, w: number}) : Promise<ProcessedReturn>{
-    
-    let crops          : any = await VisionBase.detectCrops(rc, ratio || 1.78, imagePath),
-        image          : any = await jimp.read(imagePath),
-        processOptions       = {
-          quality,
-          shrink,
-          crops,
-          returnBase64 : false
-        }  as ProcessOptions 
-
-    return VisionBase.process(rc, image, processOptions, imagePath)
+    return VisionBase.process(rc, imageData, processOptions)
   }
 
   static async processDataToGcs(rc           : RunContextServer, 
                                 imageData    : Buffer,
                                 imageOptions : VisionParameters,
-                                fileInfo     : GcsUUIDFileInfo) : Promise<string> {
+                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessToGcsReturn> {
 
-    const crops          : any = (imageOptions.ratio && imageOptions.ratio !== 1)
-                                  ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
-                                  : null,
-          image          : any = await jimp.read(imageData),
-          processOptions       = {
+    const retVal      = {} as ProcessToGcsReturn,
+          crops : any = (imageOptions.ratio && imageOptions.ratio !== 1)
+                        ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
+                        : null
+
+    const  processOptions = {
             quality      : imageOptions.quality,
             shrink       : imageOptions.shrink,
             crops        : crops,
             returnBase64 : false
           } as ProcessOptions
+ 
+    const vRes = await VisionBase.process(rc, imageData, processOptions) as ProcessedReturn
 
-      
-    const vRes = await VisionBase.process(rc, image, processOptions) as ProcessedReturn
-    fileInfo.mimeVal = vRes.mime
-    // TODO: Need to check if vRes.data works?
-    return CloudStorageBase.uploadDataToCloudStorage(rc, vRes.data as Buffer, fileInfo)
+    fileInfo.mimeVal = retVal.mime = vRes.mime
+    retVal.width     = vRes.width
+    retVal.height    = vRes.width
+    retVal.url       = await CloudStorageBase.uploadDataToCloudStorage(rc, vRes.data as Buffer, fileInfo)
+
+    return retVal
 }
 
   static async getMime(rc : RunContextServer, image : string | Buffer) : Promise<string> {
@@ -164,21 +153,14 @@ static async processUrlToBase64(rc         : RunContextServer,
     } 
   }
 
-  private static async process(rc : RunContextServer, jimpImage : any, options : ProcessOptions, imagePath ?: string) {
-    if(!jimpImage) throw(new VisionError(ERROR_CODES.JIMP_FAILED_TO_READ, `Jimp failed to read`))
-    if(imagePath && jimpImage._originalMime === `image/gif`) {
-      await new Promise((res, rej) => {
-        request({
-                  url      : imagePath,
-                  method   : 'GET',
-                  encoding : null
-                }, (err, response, val) => {
-          images(val).save('/tmp/opImage.jpg')
-          res('')
-        })
-      })
-      jimpImage = await jimp.read(`/tmp/opImage.jpg`)
-      await fs.unlinkSync(`/tmp/opImage.jpg`)
+  private static async process(rc : RunContextServer, imageData : Buffer, options : ProcessOptions) {
+    let jimpImage : any = await jimp.read(imageData)
+
+    if(jimpImage._originalMime === `image/gif`) {
+      const rand = uuid()
+      images(imageData).save(`/tmp/opImage_${rand}.jpg`)
+      jimpImage = await jimp.read(`/tmp/opImage_${rand}.jpg`)
+      await fs.unlinkSync(`/tmp/opImage_${rand}.jpg`)
     } 
 
     let height : number,
