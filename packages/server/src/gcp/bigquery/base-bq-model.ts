@@ -35,13 +35,15 @@ export function getTableName(rc : RunContextServer , bqTableOptions : BigQueryTa
   
   const verStr    = ('v'+bqTableOptions.version).replace(/\./gi,''),  //v01
         tableName =  bqTableOptions.day_partition ?
-         `${bqTableOptions._tableName}_${verStr}_${dayStamp || format(new Date(), '%yyyy%%mm%%dd%')}`:
+         `${bqTableOptions._tableName}_${verStr}_${dayStamp || format(new Date(), BaseBigQuery.DATE_FORMAT)}`:
          `${bqTableOptions._tableName}_${verStr}`
 
   return tableName.replace(/\./gi,'_')       
 }
 
 export abstract class BaseBigQuery {
+  
+  public static DATE_FORMAT = '%yyyy%%mm%%dd%'
   
   public static NC_DATA_STORE : string = 'newschat'
   protected static today_table : string
