@@ -56,16 +56,18 @@ export class RedisCmds {
   
   // z sorted set apis 
   zadd      (key : string , option : string , ...scoreValuePairs : any[]) : Promise<number> { return true as any }
-  zrange    (key : string , start : number , end : number , withscore ?: string) : Promise<string[]> { return true as any }
   zrem      (key : string , ...keys : string[]) : Promise<void> { return true as any }
-  zremrangebyscore (key : string , start : string , end : string) : Promise<void> { return true as any }
   zcount    (key : string , start : string , end : string) : Promise<number> { return true as any }
   zcard     (key: string) : Promise<number> { return true as any }
-
-  exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
+  zrange    (key : string , start : number , end : number , withscore ?: string) : Promise<string[]> { return true as any }
   zrangebyscore (key : string , start : number , end : number, ...args: string[]) : Promise<string[]> {return true as any}
   zrevrangebyscore (key : string , start : string , end : string, ...args: string[]) : Promise<string[]> {return true as any}
-
+  zremrangebyscore (key : string , start : string , end : string) : Promise<void> { return true as any }
+  zrangebylex (key : string , start : string , end : string, ...args: string[]) : Promise<string[]> {return true as any}
+  zrevrangebylex (key : string , start : string , end : string, ...args: string[]) : Promise<string[]> {return true as any}
+  zremrangebylex (key : string , start : string , end : string) : Promise<void> { return true as any }
+  
+  exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
 }
 
 export type RedisMulti = RedisCmds
@@ -259,6 +261,18 @@ export class RedisWrapper {
     if (withscore) redis_cmd.push ('WITHSCORES')
     if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
     return this._execute('zrevrangebyscore', redis_cmd) 
+  }
+
+  async rwZrangebylex(key: string, start : string, end : string, offset ?: number, limit ?: number ) : Promise<Array<any>> {
+    let redis_cmd = [key, start, end] as Array<any>
+    if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
+    return this._execute('zrangebylex', redis_cmd) 
+  }
+
+  async rwZrevrangebylex(key: string, start : string, end : string, offset ?: number, limit ?: number ) : Promise<Array<any>> {
+    let redis_cmd = [key, start, end] as Array<any>
+    if (limit) redis_cmd = redis_cmd.concat (['LIMIT', offset, limit])
+    return this._execute('zrevrangebylex', redis_cmd) 
   }
 
   async rwZremrangebyscore(key: string, start : string|number, end : string|number ) : Promise<Array<any>> {
