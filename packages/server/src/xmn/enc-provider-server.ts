@@ -28,11 +28,13 @@ export class EncProviderServer {
   }
 
   extractHeader(rc: RunContextServer, data: Buffer) {
+
+    rc.isAssert() && rc.assert(rc.getName(this), data.length >= 7, 'Incorrect header')
     this.setShortName(rc, data.slice(0, 4))
     this.setUniqueId(rc, data.slice(4, 7))
 
-    console.log('shortName', this.ci.shortName)
-    console.log('uniqueId', this.ci.uniqueId)
+    // console.log('shortName', this.ci.shortName)
+    // console.log('uniqueId', this.ci.uniqueId)
   }
 
   decodeHeader(rc: RunContextServer, data: Buffer, pk: string): void {
@@ -41,6 +43,7 @@ export class EncProviderServer {
           endPtr    = 7 + 256,
           encKey    = data.slice(startPtr, endPtr)
 
+    rc.isAssert() && rc.assert(rc.getName(this), data.length >= endPtr, 'Incorrect header')    
     this.ci.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
           
     const headers   = JSON.parse(this.decrypt(data.slice(endPtr)).toString())
@@ -56,18 +59,15 @@ export class EncProviderServer {
     delete headers.now
 
     this.ci.clientIdentity  = headers
-    console.log('this.ci.syncKey', this.ci.syncKey)
   }
 
   async decodeBody(rc: RunContextServer, data: Buffer): Promise<[WireObject]> {
-
-    console.log('inside decodeBody', data)
 
     const leader    = String.fromCharCode(data[0]),
           outBuff   = this.decrypt(data.slice(1)),
           jsonStr   = leader !== Leader.DEF_JSON ? outBuff.toString() :
                       (await execFn(zlib.inflate, zlib, outBuff)).toString(),
-                      a = console.log(jsonStr),
+                      // a = console.log(jsonStr),
           inJson    = JSON.parse(jsonStr),
           arData    = Array.isArray(inJson) ? inJson : [inJson]
   

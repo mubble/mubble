@@ -31,7 +31,6 @@ export class EncryptionBrowser {
 
     if (!arShortCode) this.extractShortCode(rc, ci.shortName)
     if (!arUniqueId) this.extractUniqueId(rc, ci.uniqueId)
-    window['epb'] = this
   }
 
   // Should return binary buffer
@@ -71,9 +70,9 @@ export class EncryptionBrowser {
     return arOut
   }
 
-  async encodeBody(rc: RunContextBrowser, data: WireObject): Promise<Uint8Array> {
+  async encodeBody(rc: RunContextBrowser, data: WireObject | WireObject[]): Promise<Uint8Array> {
 
-    const str = data.stringify()
+    const str = Array.isArray(data) ? this.stringifyWireObjects(data) : data.stringify()
     let   firstPassArray,
           leader
 
@@ -98,6 +97,12 @@ export class EncryptionBrowser {
     arOut.set(secondPassArray, 1)
 
     return arOut
+  }
+
+  private stringifyWireObjects(objects: WireObject[]) {
+
+    const strArray = objects.map(wm => wm.stringify())
+    return `[${strArray.join(', ')}]`
   }
 
   async decodeBody(rc: RunContextBrowser, data: ArrayBuffer): Promise<[WireObject]> {

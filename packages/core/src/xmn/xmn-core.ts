@@ -30,9 +30,10 @@ let lastEventId : number = 0
 export const WIRE_TYPE = {
   REQUEST     : 'REQUEST',
   EVENT       : 'EVENT',
+  SYS_EVENT   : 'SYS_EVENT',
+  EPH_EVENT   : 'EPH_EVENT',
   EVENT_RESP  : 'EVENT_RESP',
-  REQ_RESP    : 'REQ_RESP',
-  SYS_EVENT   : 'SYS_EVENT'
+  REQ_RESP    : 'REQ_RESP'
 }
 
 export class WireObject {
@@ -40,20 +41,23 @@ export class WireObject {
   static getWireObject(json: any) {
     switch (json.type) {
       
+      case WIRE_TYPE.REQUEST:
+      return new WireRequest(json.name, json.data, json.ts)
+
       case WIRE_TYPE.EVENT:
       return new WireEvent(json.name, json.data, json.ts)
+
+      case WIRE_TYPE.EPH_EVENT:
+      return new WireEphEvent(json.name, json.data, json.ts)
+
+      case WIRE_TYPE.SYS_EVENT:
+      return new WireSysEvent(json.name, json.data)
 
       case WIRE_TYPE.EVENT_RESP:
       return new WireEventResp(json.name, json.ts, json.data, json.error)
 
       case WIRE_TYPE.REQ_RESP:
       return new WireReqResp(json.name, json.ts, json.data, json.error)
-
-      case WIRE_TYPE.REQUEST:
-      return new WireRequest(json.name, json.data, json.ts)
-
-      case WIRE_TYPE.SYS_EVENT:
-      return new WireSysEvent(json.name, json.data)
 
       default:
       console.info('Error: Invalid wire object ' + JSON.stringify(json))
@@ -102,11 +106,20 @@ export class WireRequest extends WireObject {
 export class WireEvent extends WireObject {
 
   constructor(eventName: string, data: object, ts ?: number) {
+
     super(WIRE_TYPE.EVENT, eventName, data, ts)
+
     if (!ts) {
       if (this.ts === lastEventId) this.ts++
       lastEventId = this.ts
     }
+  }
+}
+
+export class WireEphEvent extends WireObject {
+
+  constructor(eventName: string, data: object, ts ?: number) {
+    super(WIRE_TYPE.EPH_EVENT, eventName, data, ts)
   }
 }
 
@@ -163,5 +176,5 @@ export const Leader = {
 }
 
 export const Encoder = {
-  MIN_SIZE_TO_COMPRESS  : 40
+  MIN_SIZE_TO_COMPRESS  : 200
 }

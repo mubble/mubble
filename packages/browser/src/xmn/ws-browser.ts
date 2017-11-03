@@ -11,6 +11,8 @@ import { ConnectionInfo,
          XmnError,
          WEB_SOCKET_URL,
          SYS_EVENT,
+         WireEvent,
+         WireEphEvent,
          WireSysEvent,
          WebSocketConfig,
          TimerInstance,
@@ -34,10 +36,12 @@ export class WsBrowser {
   
   private socketCreateTs    : number = 0
   private lastMessageTs     : number = 0
-  private msPingInterval    : number
+  private msPingInterval    : number = 29000 // Must be a valid number
   private sending           : boolean = false
   private configured        : boolean = false
   private preConfigQueue    : MessageEvent[] = []
+
+  private ephemeralEvents   : WireEvent[] = []
   
   constructor(private rc : RunContextBrowser, 
               private ci : ConnectionInfo, 
@@ -52,7 +56,18 @@ export class WsBrowser {
     return btoa(String.fromCharCode(...ar))
   }
 
-  send(rc: RunContextBrowser, data: WireObject): string | null {
+  public sendEphemeralEvent(event: WireEphEvent) {
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.ci.provider)
+
+    if (this.ephemeralEvents.length >= 20) {
+      this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'Too many ephemeralEvents. Sizing to 20')
+      while (this.ephemeralEvents.length >= 20) this.ephemeralEvents.shift()
+    }
+    this.ephemeralEvents.push(event)
+  }
+
+  public send(rc: RunContextBrowser, data: WireObject | WireObject[]): string | null {
 
     const ws = this.ws
 
@@ -69,12 +84,19 @@ export class WsBrowser {
       return XmnError._NotReady
     }
 
-    this.sendInternal(rc, data)
+    const objects: WireObject[] = Array.isArray(data) ? data : [data]
+
+    if (this.ephemeralEvents.length) {
+      objects.push(...this.ephemeralEvents)
+      this.ephemeralEvents.length = 0
+    }
+    this.sendInternal(rc, objects)
     return null
   }
 
-  private async sendInternal(rc: RunContextBrowser, data: WireObject) {
+  private async sendInternal(rc: RunContextBrowser, data: WireObject[]) {
 
+    let messageBody
     this.sending = true
 
     if (!this.ws) {
@@ -82,15 +104,16 @@ export class WsBrowser {
       if (!this.encProvider) this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getSyncKey())
         
       const url     = `ws://${this.ci.host}:${this.ci.port}/${
-                       this.ci.publicRequest ? WEB_SOCKET_URL.PUBLIC : WEB_SOCKET_URL.PRIVATE}`,
+                       this.ci.publicRequest ? WEB_SOCKET_URL.PUBLIC : WEB_SOCKET_URL.PRIVATE}/`,
             header  = await this.encProvider.encodeHeader(rc),
             body    = await this.encProvider.encodeBody(rc, data)
-        
-      this.ws  = new WebSocket(url + `/${
-        encodeURIComponent(this.uiArToB64(header))}/${
-        encodeURIComponent(this.uiArToB64(body))
-      }`)
 
+      messageBody = encodeURIComponent(this.uiArToB64(header)) + '/' + 
+                    encodeURIComponent(this.uiArToB64(body))
+        
+      this.ws  = new WebSocket(url + messageBody)
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url)
+  
       this.ws.binaryType = 'arraybuffer'
       
       this.ws.onopen     = this.onOpen.bind(this)
@@ -101,10 +124,13 @@ export class WsBrowser {
       this.socketCreateTs = Date.now()
         
     } else {
-      const body = await this.encProvider.encodeBody(rc, data)
-      this.ws.send(body)
+      messageBody = await this.encProvider.encodeBody(rc, data)
+      this.ws.send(messageBody)
     }
     
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sent message', {msgLen: messageBody.length, 
+      messages: data.length, firstMsg: data[0].name})
+
     this.setupTimer(rc)
     this.sending = false
   }
@@ -170,6 +196,8 @@ export class WsBrowser {
 
   setupTimer(rc: RunContextBrowser) {
     // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'setupTimer')
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.msPingInterval)
     this.lastMessageTs = Date.now()
     this.timerPing.tickAfter(this.msPingInterval)
   }
@@ -193,6 +221,7 @@ export class WsBrowser {
   }
 
   private cleanup() {
+
     if (this.ci.provider) {
 
       this.timerPing.remove()

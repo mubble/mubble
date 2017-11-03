@@ -318,7 +318,7 @@ export class MasterRegistryMgr {
 
     })
 
-    lo.forEach(jsonSourceIds , (jRef : any , pk)=>{
+    lo.forEach(jsonSourceIds , (jRef : any , pk: string)=>{
       const redisRec : any = redisDataMap[pk]
       if(!redisRec) ssd.deletes[pk] = jRef
     })

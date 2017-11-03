@@ -17,6 +17,7 @@ import {
         ClientIdentity,
         WIRE_TYPE,
         WireEvent,
+        WireEphEvent,
         WireEventResp,
         WireObject,
         WireReqResp,
@@ -57,7 +58,8 @@ export abstract class XmnRouterServer {
   }
 
   abstract getPrivateKeyPem(rc: RunContextServer, ci: ConnectionInfo): string
-
+  abstract verifyConnection(rc: RunContextServer, ci: ConnectionInfo): void
+  
   public async sendEvent(rc: RunContextServer, ci: ConnectionInfo, eventName: string, data: object) {
 
     if (!ci.provider) {
@@ -65,7 +67,7 @@ export abstract class XmnRouterServer {
       return
     }
 
-    const we = new WireEvent(eventName, data)
+    const we = new WireEphEvent(eventName, data)
     await ci.provider.send(rc, we)
     rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
   }
@@ -81,46 +83,47 @@ export abstract class XmnRouterServer {
   providerMessage(refRc: RunContextServer, ci: ConnectionInfo, arData: WireObject[]) {
     
     for (const wo of arData) {
-      
-      const rc : RunContextServer = refRc.copyConstruct('', refRc.contextName)
-      if(wo.type === WIRE_TYPE.REQUEST || wo.type === WIRE_TYPE.EVENT ){
+
+      if ([WIRE_TYPE.REQUEST, WIRE_TYPE.EVENT, WIRE_TYPE.EPH_EVENT].indexOf(wo.type) !== -1) {
+
+        const rc : RunContextServer = refRc.copyConstruct('', refRc.contextName)
         rc.isDebug() && rc.debug(rc.getName(this), 'providerMessage', wo)
-      }
-      
-      let wPrResp : Promise<WireObject> | undefined 
-      switch (wo.type) {
 
-        case WIRE_TYPE.REQUEST:
-        wPrResp = this.routeRequest(rc, ci, wo)
-        break
-
-        case WIRE_TYPE.EVENT:
-        wPrResp = this.routeEvent(rc, ci, wo)
-        break
-
-        case WIRE_TYPE.EVENT_RESP:
-        case WIRE_TYPE.REQ_RESP:
-        case WIRE_TYPE.SYS_EVENT:
-        rc.isDebug() && rc.debug(rc.getName(this), 'Received', wo)
-        break
-      }
-
-      if(wPrResp){
-        wPrResp.then ( (resp : WireObject)=>{
-          if(wo && resp && (resp.type === WIRE_TYPE.EVENT_RESP || resp.type === WIRE_TYPE.REQ_RESP)){
-            rc.finish(ci ,  resp as any , wo)
-          }
+        const wPrResp: Promise<any> = 
+          wo.type === WIRE_TYPE.REQUEST ? this.routeRequest(rc, ci, wo) : 
+          (wo.type === WIRE_TYPE.EVENT  ? this.routeEvent(rc, ci, wo)   : 
+                                          this.routeEphemeralEvent(rc, ci, wo))
+        
+        wPrResp.then((resp) => {
+          rc.finish(ci , typeof resp === 'boolean' ? null : resp, wo)
         })
-      }else{
-        if(
-          (wo.type === WIRE_TYPE.EVENT_RESP) || 
-          (wo.type === WIRE_TYPE.REQ_RESP) || 
-          (wo.type === WIRE_TYPE.SYS_EVENT) 
-        ){
-          rc.finish(ci , null as any , wo)
-        }
       }
     }
+      
+        
+    //     case WIRE_TYPE.EVENT_RESP:
+    //     case WIRE_TYPE.REQ_RESP:
+    //     case WIRE_TYPE.SYS_EVENT:
+    //     rc.isDebug() && rc.debug(rc.getName(this), 'Received', wo)
+    //     break
+    //   }
+
+    //   if (wPrResp) {
+    //     wPrResp.then ( (resp : WireObject)=>{
+    //       if(wo && resp && (resp.type === WIRE_TYPE.EVENT_RESP || resp.type === WIRE_TYPE.REQ_RESP)){
+    //         rc.finish(ci ,  resp as any , wo)
+    //       }
+    //     })
+    //   } else {
+    //     if(
+    //       (wo.type === WIRE_TYPE.EVENT_RESP) || 
+    //       (wo.type === WIRE_TYPE.REQ_RESP) || 
+    //       (wo.type === WIRE_TYPE.SYS_EVENT) 
+    //     ){
+    //       rc.finish(ci , null as any , wo)
+    //     }
+    //   }
+    // }
   }
 
   async providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
@@ -171,11 +174,6 @@ export abstract class XmnRouterServer {
     
     let wResp : WireEventResp  = null as any
     try {
-      if (!ci.lastEventTs && ci.lastEventTs !== 0) { // TODO: Need this to be removed once fixed..
-        rc.isWarn && rc.warn (rc.getName (this), '======ERROR====== Routing Event,', wo.name, '@', wo.ts, 
-            'ci.LastEventTs is', ci.lastEventTs)
-        ci.lastEventTs = 0
-      }
       if (wo.ts > ci.lastEventTs) {
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
@@ -187,8 +185,39 @@ export abstract class XmnRouterServer {
 
         await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
+
       wResp = new WireEventResp(wo.name, wo.ts)
       this.sendEventResponse(rc, ci, wResp , wo)
+
+    } catch (err) {
+      
+      let errStr =  (err instanceof Mubble.uError) ? err.code :
+                   ((err instanceof Error) ? err.message : err)
+
+      rc.isError() && rc.error(rc.getName(this), err)
+
+      wResp = new WireEventResp(wo.name, wo.ts, 
+                       {error: err.message || err.name}, errStr , err)
+      this.sendEventResponse(rc, ci, wResp  ,wo)
+
+    }
+
+    return wResp
+  }
+
+  async routeEphemeralEvent(rc: RunContextServer, ci: ConnectionInfo, wo: WireObject) {
+    
+    try {
+
+      const eventStruct = this.eventMap[wo.name]
+      if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
+      const ie = {
+        name    : wo.name,
+        ts      : wo.ts + ci.msOffset,
+        params  : wo.data
+      } as InvocationData
+
+      await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
 
     } catch (err) {
       
@@ -197,12 +226,9 @@ export abstract class XmnRouterServer {
                       (err instanceof Error) ? err.message : err
                    )
       rc.isError() && rc.error(rc.getName(this), err)
-      wResp = new WireEventResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr , err)
-      this.sendEventResponse(rc, ci, wResp  ,wo)
-    }finally{
-      return wResp
     }
+
+    return true
   }
 
   async invokeXmnFunction(rc: RunContextServer, ci: ConnectionInfo, 
@@ -212,7 +238,7 @@ export abstract class XmnRouterServer {
   }
 
   private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, resp: WireEventResp , req : WireObject ) {
-    if (ci.lastEventTs < resp.ts) ci.lastEventTs = resp.ts
+    if (ci.lastEventTs < resp.ts) ci.lastEventTs = resp.ts // this is same as req.ts
     await this.sendToProvider(rc, ci, resp , req)
   }
 

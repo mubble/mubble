@@ -74,7 +74,7 @@ export class WsServer {
       ci.url            = mainUrl
       ci.headers        = req.headers
       ci.ip             = this.router.getIp(req)
-      //ci.lastEventTs    = 0
+      ci.lastEventTs    = 0
 
       ci.publicRequest  = mainUrl === WEB_SOCKET_URL.PUBLIC
       
@@ -87,6 +87,7 @@ export class WsServer {
       encProvider.decodeHeader(rc, headerBuffer, pk)
 
       ci.provider = new ServerWebSocket(rc, ci, encProvider, this.router, socket)
+      
       ci.provider.processMessage(rc, new Buffer(body, 'base64'))
 
     } catch (e) {
@@ -98,7 +99,8 @@ export class WsServer {
 
 class ServerWebSocket {
 
-  private configSent = false
+  private configSent          = false
+  private connectionVerified  = false
   
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
@@ -119,7 +121,7 @@ class ServerWebSocket {
     const {key, encKey} = this.encProvider.getNewKey()
     
     const config = {
-      msPingInterval : (5 * 60 * 1000), // 15 Mins // 29000 // 29 secs
+      msPingInterval : (29 * 1000), // 15 Mins // 29000 // 29 secs
       syncKey        : encKey.toString('base64')
     } as WebSocketConfig
 
@@ -144,11 +146,21 @@ class ServerWebSocket {
 
   async processMessage(rc: RunContextServer, data: Buffer) {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Websocket processMessage() length:', data.length,
-            'type:', data.constructor ? data.constructor.name : undefined,
-            'key:', (<any>this.ci.headers)['sec-websocket-key'] )
-
     const decodedData : WireObject[] = await this.encProvider.decodeBody(rc, data)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'processMessage', {
+      incomingLength  : data.length,
+      type            : data.constructor ? data.constructor.name : undefined,
+      key             : (<any>this.ci.headers)['sec-websocket-key'],
+      messages        : decodedData.length,
+      firstMsg        : decodedData[0].name
+    })
+
+    if (!this.connectionVerified) {
+      this.connectionVerified = true
+      await this.router.verifyConnection(rc, this.ci)
+    }
+
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 

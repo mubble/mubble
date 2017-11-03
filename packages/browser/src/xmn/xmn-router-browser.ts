@@ -16,6 +16,7 @@ import {  ConnectionInfo,
           XmnError,
           WIRE_TYPE,
           WireEvent,
+          WireEphEvent,
           WireEventResp,
           WireObject,
           WireReqResp,
@@ -111,12 +112,12 @@ export abstract class XmnRouterBrowser {
     })
   }
 
-  async sendEvent(rc: RunContextBrowser, eventName: string, data: object) {
+  async sendPersistentEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
     if (!this.ci.provider) this.prepareConnection(rc)
       const clientIdentity = this.ci.clientIdentity
 
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendEvent', eventName, 
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendPersistentEvent', eventName, 
       'clientIdentity', clientIdentity && clientIdentity.clientId)
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
@@ -130,7 +131,21 @@ export abstract class XmnRouterBrowser {
       await eventTable.save(this.db)
       await this.trySendingEvents(rc)
     }
+  }
 
+  async sendEphemeralEvent(rc: RunContextBrowser, eventName: string, data: object) {
+    
+    if (!this.ci.provider) this.prepareConnection(rc)
+      const clientIdentity = this.ci.clientIdentity
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendEphemeralEvent', eventName, 
+      'clientIdentity', clientIdentity && clientIdentity.clientId)
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
+      'You cannot send events without clientId')
+
+    const event      = new WireEphEvent(eventName, data)
+    this.ci.provider.sendEphemeralEvent(event)
   }
 
   private prepareConnection(rc: RunContextBrowser) {
@@ -225,7 +240,7 @@ export abstract class XmnRouterBrowser {
           this.rc.isError() && this.rc.error(this.rc.getName(this), 'Not implemented', wo)
           break
 
-        case WIRE_TYPE.EVENT:
+        case WIRE_TYPE.EPH_EVENT:
           EventSystem.broadcast(rc, wo.name, wo.data)
           break
 
