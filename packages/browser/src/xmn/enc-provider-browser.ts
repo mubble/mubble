@@ -8,13 +8,12 @@
 ------------------------------------------------------------------------------*/
 
 import { 
+  Mubble,
   ConnectionInfo,
   WireObject,
   Leader,
   Encoder
 } from '@mubble/core'
-
-import * as pako from 'pako'
 
 import {  RunContextBrowser} from '../rc-browser'
 
@@ -24,13 +23,18 @@ const IV                    = new Uint8Array(16),
 
 let arShortCode
 let arUniqueId
+let pwc: PakoWorkerClient
 
 export class EncryptionBrowser {
 
   constructor(rc: RunContextBrowser, private ci: ConnectionInfo, private syncKey: Uint8Array) {
 
+    rc.setupLogger(this, 'EncryptionBrowser')
+    
+
     if (!arShortCode) this.extractShortCode(rc, ci.shortName)
-    if (!arUniqueId) this.extractUniqueId(rc, ci.uniqueId)
+    if (!arUniqueId)  this.extractUniqueId(rc, ci.uniqueId)
+    if (!pwc)         pwc = new PakoWorkerClient(rc)
   }
 
   // Should return binary buffer
@@ -70,14 +74,14 @@ export class EncryptionBrowser {
     return arOut
   }
 
-  async encodeBody(rc: RunContextBrowser, data: WireObject | WireObject[]): Promise<Uint8Array> {
+  async encodeBody(rc: RunContextBrowser, data: WireObject[]): Promise<Uint8Array> {
 
-    const str = Array.isArray(data) ? this.stringifyWireObjects(data) : data.stringify()
+    const str = this.stringifyWireObjects(data)
     let   firstPassArray,
           leader
 
     if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
-      const ar = pako.deflate(str)
+      const ar = await pwc.deflate(str)
       if (ar.length < str.length) {
         firstPassArray = ar
         leader         = Leader.DEF_JSON
@@ -96,6 +100,13 @@ export class EncryptionBrowser {
     arOut.set([leader.charCodeAt(0)])
     arOut.set(secondPassArray, 1)
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'encodeBody', {
+      first       : data[0].name,
+      messages    : data.length, 
+      json        : str.length, 
+      wire        : arOut.byteLength,
+      compressed  : leader === Leader.DEF_JSON,
+    })
     return arOut
   }
 
@@ -116,7 +127,7 @@ export class EncryptionBrowser {
 
     let inJsonStr
     if (leader === Leader.DEF_JSON) {
-      inJsonStr = pako.inflate(temp, {to: 'string'})
+      inJsonStr = await pwc.inflate(temp)
     } else {
       inJsonStr = String.fromCharCode(...temp as any)
     }
@@ -125,15 +136,15 @@ export class EncryptionBrowser {
           arData = Array.isArray(inJson) ? inJson : [inJson]
   
     for (let index = 0; index < arData.length; index++) {
-      rc.isDebug() && rc.debug(rc.getName(this), 'Decoded Xmn Message Body', {
-        name        : arData[index].name, 
-        wire        : data.byteLength, 
-        json        : inJsonStr.length + leader.length,
-        compressed  : leader === Leader.DEF_JSON
-      })
-      
       arData[index] = WireObject.getWireObject(arData[index])
     }
+    rc.isDebug() && rc.debug(rc.getName(this), 'decodeBody', {
+      first       : arData[0].name, 
+      messages    : arData.length, 
+      wire        : data.byteLength, 
+      json        : inJsonStr.length + leader.length,
+      compressed  : leader === Leader.DEF_JSON
+    })
 
     return arData as [WireObject]
   }
@@ -291,9 +302,60 @@ export class EncryptionBrowser {
     }
     arUniqueId = Uint8Array.from(ar)
   }
-    
+}
 
+class AsyncRequest {
 
+  static nextRequestId: number = 1
+
+  requestId       : number
+  promise         : Promise<any>
+  resolve         : () => void
+  reject          : () => void
+
+  constructor(public apiName: string) {
+
+    this.requestId  = AsyncRequest.nextRequestId++
+
+    this.promise    = new Promise((resolve, reject) => {
+      this.resolve  = resolve
+      this.reject   = reject
+    })
+  }
+}
+
+class PakoWorkerClient {
+
+  private worker: Worker
+  private reqMap: Mubble.uObject<AsyncRequest> = {}
+
+  constructor(private rc: RunContextBrowser) {
+    const worker = this.worker = new Worker('assets/js/pwc.js')
+    worker.onmessage = this.onMessage.bind(this)
+  }
+
+  async inflate(inU8Array: Uint8Array): Promise<string> {
+    return await this.sendMessage('inflate', inU8Array, {to: 'string'}) as string
+  }
+
+  async deflate(str: string): Promise<Uint8Array> {
+    return await this.sendMessage('deflate', str) as Uint8Array
+  }
+
+  private sendMessage(apiName, ...params) {
+    const asyncRequest = new AsyncRequest(apiName)
+    this.reqMap[asyncRequest.requestId] = asyncRequest
+    this.worker.postMessage([asyncRequest.requestId, apiName, ...params])
+    return asyncRequest.promise
+  }
+
+  onMessage(event) {
+    const [reqId, ...resp] = event.data
+    const asyncRequest = this.reqMap[reqId]
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), asyncRequest)
+    delete this.reqMap[reqId]
+    asyncRequest.resolve(...resp)
+  }
 
 }
 

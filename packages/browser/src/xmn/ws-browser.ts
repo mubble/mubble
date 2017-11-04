@@ -47,7 +47,7 @@ export class WsBrowser {
               private ci : ConnectionInfo, 
               private router : XmnRouterBrowser) {
 
-    rc.setupLogger(this, 'WsBrowser', LOG_LEVEL.DEBUG)
+    rc.setupLogger(this, 'WsBrowser')
     this.timerPing       = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
