@@ -598,7 +598,8 @@ export class MasterMgr {
     return lo.mapValues(genMap , (val : any , masterKey : string)=>{
         
         return DigestInfo.getDigest(val , masterKey)
-    })
+    }) as any 
+
   }
 
   public async listAllMasterData(rc : RunContextServer , master : string) : Promise<Mubble.uObject<object>> {

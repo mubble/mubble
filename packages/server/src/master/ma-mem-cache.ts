@@ -158,7 +158,7 @@ export class MasterInMemCache {
     
     this.hash =  lo.mapValues(data , (val : any , key : string)=>{
       return lo.pick(val , allCachedFields)
-    })
+    }) as any
     
     // sort them by modTs field descending order
     this.records = lo.sortBy(lo.valuesIn(this.hash) , [this.modTSField]).reverse()
@@ -186,7 +186,7 @@ export class MasterInMemCache {
     const cacheNewData : Mubble.uObject<object> = lo.mapValues(newData , (val : any , key : string)=>{
 
       return lo.pick(val , allCachedFields)
-    })
+    }) as any
     
     // Ensure that all the data available is modified
     lo.forEach(cacheNewData , (newData : any , newPk : string) => {
@@ -327,7 +327,7 @@ export class MasterInMemCache {
     
     let data    : {mod : any [] , del : any []}    = {mod : updates , del : deletes}
     
-    lo.forEach(masterData , (pk : string , rec : any) => {
+    lo.forEach(masterData , (rec : any , pk : string) => {
       
       // should this be just < . let = comparison be there to be on safe side
       if(rec[this.modTSField] <= syncInfo.ts) return

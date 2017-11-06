@@ -162,7 +162,7 @@ export namespace FuncUtil {
   
   return lo.mapValues(srcObj , (val : any)=>{
     return JSON.stringify(val)
-  })
+  }) as any
   
  }
 
