@@ -125,25 +125,42 @@ export class EncryptionBrowser {
           leader  = String.fromCharCode(ar[0]),
           temp    = new Uint8Array(await crypto.subtle.decrypt(SYM_ALGO, this.ci.syncKey, inAr))
 
-    let inJsonStr
-    if (leader === Leader.DEF_JSON) {
-      inJsonStr = await pwc.inflate(temp)
-    } else {
-      inJsonStr = String.fromCharCode(...temp as any)
-    }
+    let arData, index, decLen
 
-    const inJson = JSON.parse(inJsonStr),
-          arData = Array.isArray(inJson) ? inJson : [inJson]
-  
-    for (let index = 0; index < arData.length; index++) {
-      arData[index] = WireObject.getWireObject(arData[index])
+    if (leader === Leader.BIN) {
+
+      const newLineCode = '\n'.charCodeAt(0)
+      for (index = 0; index < temp.length; index++) if (temp[index] === newLineCode) break
+
+      const jsonStr = String.fromCharCode(...temp.slice(0, index) as any),
+            wo      = WireObject.getWireObject(JSON.parse(jsonStr)),
+            outAr   = temp.slice(index)
+            
+      wo.data = outAr
+      arData  = [wo]
+      decLen  = outAr.byteLength
+
+    } else {
+
+      const inJsonStr = leader === Leader.DEF_JSON ? await pwc.inflate(temp)
+                                                   : String.fromCharCode(...temp as any),
+            inJson    = JSON.parse(inJsonStr)
+
+      arData = Array.isArray(inJson) ? inJson : [inJson]
+      decLen = inJsonStr.length
+      
+      for (index = 0; index < arData.length; index++) {
+        arData[index] = WireObject.getWireObject(arData[index])
+      }
+
     }
+  
     rc.isDebug() && rc.debug(rc.getName(this), 'decodeBody', {
       first       : arData[0].name, 
       messages    : arData.length, 
       wire        : data.byteLength, 
-      json        : inJsonStr.length + leader.length,
-      compressed  : leader === Leader.DEF_JSON
+      message     : decLen,
+      compressed  : leader === Leader.BIN ? 'binary' : leader === Leader.DEF_JSON
     })
 
     return arData as [WireObject]

@@ -78,7 +78,9 @@ export class WireObject {
   }
 
   stringify(): string {
-    return JSON.stringify(this, (key, value) => key.startsWith('_') ? undefined : value)
+    return JSON.stringify(this, (key, value) => 
+      key.startsWith('_') || 
+      (value && value.constructor.hasOwnProperty('byteLength')) ? undefined : value)
   }
 
   toString() {

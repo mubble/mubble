@@ -85,11 +85,13 @@ export class EncProviderServer {
   // Should return binary buffer
   async encodeBody(rc: RunContextServer, data: WireObject, msgType ?: string) {
 
+    if (data.data instanceof Buffer) return this.encodeBinaryBody(rc, data)
+
     const str = data.stringify()
     let   firstPassBuffer,
           leader = msgType || Leader.JSON
 
-    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && !msgType) {
+    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && msgType !== Leader.CONFIG) {
       const buf = await execFn(zlib.deflate, zlib, str)
       if (buf.length < str.length) {
         firstPassBuffer = buf
@@ -115,6 +117,11 @@ export class EncProviderServer {
           outBuf2 = cipher.final()
 
     return outBuf2.length ? Buffer.concat([outBuf1, outBuf2]) : outBuf1
+  }
+
+  private encodeBinaryBody(rc: RunContextServer, data: WireObject) {
+    const encData = this.encrypt(Buffer.concat([new Buffer(data.stringify() + '\n'), data.data as Buffer])) 
+    return Buffer.concat([new Buffer(Leader.BIN), encData])
   }
 
   private decrypt(buffer: Buffer) {
