@@ -63,7 +63,6 @@ export class RCBrowserLogger extends RCLoggerBase {
 
 export abstract class RunContextBrowser extends RunContextBase {
 
-  public timer  : Timer
   public lang   : string
   globalKeyVal  : GlobalKeyValue
   userKeyVal    : UserKeyValue
@@ -77,13 +76,11 @@ export abstract class RunContextBrowser extends RunContextBase {
 
   // Called only once in the lifetime of app during app load
   init() {
-    this.timer  = new Timer()
     this.lang   = Mubble.Lang.English
     this.logger = new RCBrowserLogger(this)
   }
 
   clone(newRc : RunContextBrowser) {
     super.clone(newRc)
-    newRc.timer = this.timer
   }
 }

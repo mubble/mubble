@@ -16,6 +16,8 @@ import {
   WireObject
 } from './xmn'
 
+import { Timer } from './util/timer'
+
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
@@ -52,7 +54,8 @@ export class RunState {
 
 export abstract class RunContextBase {
 
-  public  logger           : RCLoggerBase
+  public  logger  : RCLoggerBase
+  public timer    : Timer
   
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
@@ -61,12 +64,18 @@ export abstract class RunContextBase {
   }
 
   // Called only once in the lifetime of execution during initialization
-  abstract init(): void
+  init(): void {
+    this.timer  = new Timer()
+  }
+
   abstract copyConstruct(contextId ?: string, contextName ?: string): any
 
   clone(newRcb: RunContextBase) {
+
     newRcb.initConfig   = this.initConfig
     newRcb.runState     = this.runState
+    newRcb.timer        = this.timer
+    
     /*
     if (newRcb.contextId === this.contextId && newRcb.contextName === this.contextName) {
       newRcb.logger.lastLogTS = this.logger.lastLogTS

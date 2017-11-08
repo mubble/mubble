@@ -13,6 +13,7 @@ import * as ws            from 'ws'
 import * as url           from 'url'
 import * as lo            from 'lodash'
 
+
 import {  
         ConnectionInfo,
         Protocol,
@@ -31,16 +32,23 @@ import {
 import {XmnRouterServer}              from './xmn-router-server'
 import {EncProviderServer}            from './enc-provider-server'
 
+const PING_FREQUENCY_MS = 29 * 1000 // Don't change this as ephemeral events travel with ping
+
 export class WsServer {
 
-  private wsServer : ws.Server
-
+  private wsServer  : ws.Server
+  private socketMap : Map<ServerWebSocket, number> 
+  private timerPing : number
+  
   constructor(private refRc: RunContextServer, httpServer: http.Server, private router: XmnRouterServer) {
 
     this.wsServer = new ws.Server({
       server: httpServer
     })
     this.wsServer.on('connection', this.onConnection.bind(this))
+
+    this.socketMap = new Map()
+    this.timerPing = setInterval(this.cbTimerPing.bind(this), PING_FREQUENCY_MS)
   }
 
   async onConnection(socket : any) {
@@ -86,18 +94,43 @@ export class WsServer {
       const pk = this.router.getPrivateKeyPem(rc, ci)
       encProvider.decodeHeader(rc, headerBuffer, pk)
 
-      ci.provider = new ServerWebSocket(rc, ci, encProvider, this.router, socket)
+      const webSocket = ci.provider = new ServerWebSocket(rc, ci, encProvider, 
+                                        this.router, socket, this)
       
-      ci.provider.processMessage(rc, new Buffer(body, 'base64'))
+      webSocket.onMessage({data: new Buffer(body, 'base64')})
 
     } catch (e) {
       console.log(e)
       return socket.close()
     }
   }
+
+  markActive(webSocket: ServerWebSocket) {
+    this.socketMap.set(webSocket, Date.now())
+  }
+
+  markClosed(webSocket: ServerWebSocket) {
+    this.socketMap.delete(webSocket)
+  }
+
+  cbTimerPing() {
+
+    const notBefore    = Date.now() - PING_FREQUENCY_MS - 5000 /* extra time for network delays */
+
+    for (const [webSocket, lastTs] of this.socketMap) {
+      if (lastTs < notBefore) {
+        const rc = this.refRc
+        rc.isDebug() && rc.debug(rc.getName(this), 'Cleaning up a connection as no ping or close')
+        webSocket.onClose()
+      }
+    }
+  }
 }
 
-class ServerWebSocket {
+/*------------------------------------------------------------------------------
+   ServerWebSocket
+------------------------------------------------------------------------------*/
+export class ServerWebSocket {
 
   private configSent          = false
   private connectionVerified  = false
@@ -106,7 +139,8 @@ class ServerWebSocket {
               private ci          : ConnectionInfo, 
               private encProvider : EncProviderServer,
               private router      : XmnRouterServer,
-              private ws          : WebSocket) {
+              private ws          : WebSocket,
+              private wss         : WsServer) {
 
     this.ws.onopen     = this.onOpen.bind(this)
     this.ws.onmessage  = this.onMessage.bind(this)
@@ -121,7 +155,7 @@ class ServerWebSocket {
     const {key, encKey} = this.encProvider.getNewKey()
     
     const config = {
-      msPingInterval : (29 * 1000), // 15 Mins // 29000 // 29 secs
+      msPingInterval : PING_FREQUENCY_MS, 
       syncKey        : encKey.toString('base64')
     } as WebSocketConfig
 
@@ -136,15 +170,19 @@ class ServerWebSocket {
     rc.isDebug() && rc.debug(rc.getName(this), 'Websocket onOpen()')
   }
 
-  onMessage(msgEvent: any) {
+  public onMessage(msgEvent: any) {
 
+    if (!this.ci.provider) return
+    
     const rc = this.refRc.copyConstruct('', 'ws-request')
     const data = msgEvent.data
 
     this.processMessage(rc, data)
   }
 
-  async processMessage(rc: RunContextServer, data: Buffer) {
+  private async processMessage(rc: RunContextServer, data: Buffer) {
+
+    this.wss.markActive(this)
 
     const decodedData : WireObject[] = await this.encProvider.decodeBody(rc, data)
 
@@ -164,7 +202,10 @@ class ServerWebSocket {
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
-  async send(rc: RunContextServer, data: WireObject) {
+  public async send(rc: RunContextServer, data: WireObject) {
+
+    if (!this.ci.provider) return
+    
     if (!this.configSent) await this.sendConfig(rc)
     this.sendInternal(rc, data)
   }
@@ -178,22 +219,32 @@ class ServerWebSocket {
   }
   
 
-  onError(err: any) {
+  public onError(err: any) {
+
+    if (!this.ci.provider) return
+    
     const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')
     rc.isError() && rc.error(rc.getName(this), 'Websocket onError()', err)
     this.cleanup()
     this.router.providerFailed(rc, this.ci)
   }
 
-  onClose() {
+  public onClose() {
+
+    if (!this.ci.provider) return
+
+    this.wss.markClosed(this)
+
     const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')
     rc.isDebug() && rc.debug(rc.getName(this), 'Websocket onClose()')
     this.cleanup()
     this.router.providerClosed(rc, this.ci)
   }
 
-  processSysEvent(rc: RunContextServer, se: WireSysEvent) {
+  public processSysEvent(rc: RunContextServer, se: WireSysEvent) {
 
+    if (!this.ci.provider) return
+    
     if (se.name === SYS_EVENT.PING) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Received ping')
       return true
