@@ -134,7 +134,7 @@ export class EncryptionBrowser {
 
       const jsonStr = String.fromCharCode(...temp.slice(0, index) as any),
             wo      = WireObject.getWireObject(JSON.parse(jsonStr)),
-            outAr   = temp.slice(index)
+            outAr   = temp.slice(index + 1)
             
       wo.data = outAr
       arData  = [wo]
