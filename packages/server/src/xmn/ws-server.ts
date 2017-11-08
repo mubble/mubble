@@ -115,13 +115,16 @@ export class WsServer {
 
   cbTimerPing() {
 
-    const notBefore    = Date.now() - PING_FREQUENCY_MS - 5000 /* extra time for network delays */
+    const notBefore = Date.now() - PING_FREQUENCY_MS - 5000, /* extra time for network delays */
+          rc        = this.refRc,
+          len       = this.socketMap.size
 
     for (const [webSocket, lastTs] of this.socketMap) {
       if (lastTs < notBefore) {
-        const rc = this.refRc
         rc.isDebug() && rc.debug(rc.getName(this), 'Cleaning up a connection as no ping or close')
         webSocket.onClose()
+      } else if (rc.isDebug() && len === 1) {
+        rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active')
       }
     }
   }
