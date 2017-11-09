@@ -145,7 +145,17 @@ export abstract class XmnRouterServer {
       const reqStruct = this.apiMap[wo.name] 
       rc.isDebug() && rc.debug(rc.getName(this), wo, reqStruct)
       
-      if (!reqStruct) throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
+      if (!reqStruct) {
+        if(ci && (ci.protocol===Protocol.HTTP || ci.protocol===Protocol.HTTPS)){
+          rc.isDebug() && rc.debug(rc.getName(this), 'Unknown api called', wo.name)
+          // Want to avoid flooding error logs for google/crawler/hacker requests
+          const dummy = new WireReqResp(wo.name, wo.ts, {error : 'Unknown Api called '+wo.name})
+          await this.sendToProvider(rc, ci, dummy , wo)
+          return dummy
+        }else{
+          throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
+        }
+      }
       
       const ir = {
         name    : wo.name,
