@@ -76,6 +76,7 @@ export abstract class RunContextBrowser extends RunContextBase {
 
   // Called only once in the lifetime of app during app load
   init() {
+    super.init()
     this.lang   = Mubble.Lang.English
     this.logger = new RCBrowserLogger(this)
   }
