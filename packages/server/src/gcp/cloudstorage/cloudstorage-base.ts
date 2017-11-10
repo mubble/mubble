@@ -53,6 +53,7 @@ export class CloudStorageBase {
           bufferStream = new stream.PassThrough(),
           traceId      = 'UploadDataToCloudStorage',
           ack          = rc.startTraceSpan(traceId)
+    let   exists       = false
           
     try {
       await new Promise((resolve, reject) => {
@@ -61,12 +62,18 @@ export class CloudStorageBase {
         bufferStream.pipe(gcFile.createWriteStream({
           metadata : {'Cache-Control': 'public, max-age=31536000'}
         }))
-        .on('error', (err : any) => { reject(err) })
-        .on('finish', () => { resolve() })
+        .on('error', (err : any) => { 
+          rc.isWarn() && rc.warn (rc.getName(this), 'uploadDataToCloudStorage:', JSON.stringify(fileInfo), 'URL Info:', err.host, err.path)
+          reject(err) 
+        })
+        .on('finish', () => { 
+          exists = true
+          resolve()
+         })
       })
     } finally { 
       if (rc.isDebug()) {
-        const exists = await CloudStorageBase.fileExists(rc, fileInfo.bucket, filename)
+        // const exists = await CloudStorageBase.fileExists(rc, fileInfo.bucket, filename)
         rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Created:', exists)
       }
       rc.endTraceSpan(traceId,ack)
@@ -137,17 +144,17 @@ export class CloudStorageBase {
   }
 
   static async upload(rc : RunContextServer, bucketName: string, filePath : string, destination : string) : Promise<string> {
-    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
-          traceId : string = rc.getName(this)+':'+'upload',
-          ack = rc.startTraceSpan(traceId)
-    try{
-      const data   : any = await bucket.upload(filePath, {  
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          traceId : string = rc.getName(this) + ':' + 'upload',
+          ack              = rc.startTraceSpan(traceId)
+    try {
+      const data : any = await bucket.upload(filePath, {  
         destination : destination, 
         metadata    : {'Cache-Control': 'public, max-age=31536000'}
       })
 
       return data[0].metadata.name.split('/')[1]
-    }finally{
+    } finally {
       rc.endTraceSpan(traceId,ack)
     }      
   }

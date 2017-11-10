@@ -127,11 +127,12 @@ export class GcloudEnv {
   static async checkGcpEnv(rc : RunContextServer): Promise<RUN_MODE> {
     const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd),
           projectEnv  = await this.getMetadata(rc, metadataProjectEnvCmd)
+
     if (instanceEnv && instanceEnv == 'PROD' && instanceEnv == projectEnv) {
       return RUN_MODE.PROD
     }
     else if ((instanceEnv || projectEnv) && instanceEnv !== projectEnv) {
-      throw Error ('RUN MODE Mismatch - Project Run Mode != Instance Run Mode')
+      throw Error('RUN MODE Mismatch - Project Run Mode != Instance Run Mode')
     }
     return RUN_MODE.DEV
   }
@@ -148,16 +149,16 @@ export class GcloudEnv {
         })
         outputStream.on('end', () => {
           return resolve(response)
-        })     
+        })       
       })
       req.on('response', (res: any) => {
-        if (res.statusCode != 200) {
+        if(res.statusCode != 200) {
           return resolve(undefined)
         }
       })
       req.on('error', (err: any) => {
+        if (err.errno && err.errno === 'ENOTFOUND') return resolve(undefined)
         rc.isStatus() && rc.status (err)
-        if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
         return reject(err)
       })
       req.end()
