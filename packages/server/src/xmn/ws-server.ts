@@ -113,6 +113,12 @@ export class WsServer {
     this.socketMap.delete(webSocket)
   }
 
+  sendEventToAll(rc : RunContextServer , wo : WireObject) {
+    for (const [webSocket, lastTs] of this.socketMap) {
+      webSocket.send(rc , wo)
+    }
+  }
+
   cbTimerPing() {
 
     const notBefore = Date.now() - PING_FREQUENCY_MS - 5000, /* extra time for network delays */
