@@ -114,6 +114,8 @@ export abstract class MasterDb extends Dexie {
     return {hash: this.syncHashModels, segments: (rc.globalKeyVal.syncSegments as Segments)}
   }
 
+  abstract afterMasterUpdate(rc: RunContextBrowser): void
+
   getTableForClass(rc: RunContextBrowser, classFn: Function) {
 
     const modelName = MasterDb.getModelName(classFn)
@@ -155,16 +157,20 @@ export abstract class MasterDb extends Dexie {
           rc:RunContextBrowser      = event.detail.rc
 
     rc.isDebug() && rc.debug(rc.getName(this), 'onMasterUpdate', JSON.stringify(syncResponse))
+    let updated = false
+
     for (const modelName of Object.keys(syncResponse)) {
 
       if (!(syncResponse as object).hasOwnProperty(modelName)) continue
       const modelData: SyncModelResponse = syncResponse[modelName]
 
-      await this.applyMasterData(rc, modelName, modelData) 
+      if (await this.applyMasterData(rc, modelName, modelData)) updated = true
     }
+
+    if (updated) this.afterMasterUpdate(rc)
   }
 
-  private async applyMasterData(rc: RunContextBrowser, modelName: string, modelData: SyncModelResponse) {
+  private async applyMasterData(rc: RunContextBrowser, modelName: string, modelData: SyncModelResponse): Promise<boolean> {
 
     if (modelData.purge) {
       await this.clear(rc, modelName)
@@ -186,6 +192,8 @@ export abstract class MasterDb extends Dexie {
       rc.isDebug() && rc.debug(rc.getName(this), modelName, 'going to save hash', modelData.hash)
       await syncHashTable.put({model: modelName, hash: modelData.hash})
     })
+
+    return true
   }
   
   private async clear(rc: RunContextBrowser, modelName: string) {
