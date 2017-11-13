@@ -20,13 +20,20 @@ export class BigQueryBase {
                       INITIALIZATION FUNCTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv, bqEnv ?: any) {
-    if (gcloudEnv.authKey) {
-      gcloudEnv.bigQuery = BigQuery ({
-        projectId   : gcloudEnv.projectId,
-        credentials : gcloudEnv.authKey
-      })
+    if(gcloudEnv.authKey) {
+      if(bqEnv && bqEnv.STRICT) {
+        gcloudEnv.bigQuery = BigQuery ({
+          projectId   : bqEnv.PROJECT_ID,
+          credentials : bqEnv.CREDENTIALS
+        })
+      } else {
+        gcloudEnv.bigQuery = BigQuery ({
+          projectId   : gcloudEnv.projectId,
+          credentials : gcloudEnv.authKey
+        })
+      }
     } else {
-      if (bqEnv) {
+      if(bqEnv) {
         gcloudEnv.bigQuery = BigQuery ({
           projectId   : bqEnv.PROJECT_ID,
           credentials : bqEnv.CREDENTIALS
