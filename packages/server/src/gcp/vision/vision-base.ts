@@ -11,7 +11,7 @@ const gVision : any = require('@google-cloud/vision')
 import jimp         = require('jimp')
 
 import {
-        ERROR_CODES,
+        VISION_ERROR_CODES,
         VisionError
        }                            from './error-codes'
 import {
@@ -103,7 +103,7 @@ static async processUrl(rc           : RunContextServer,
                         ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
                         : null
 
-    const  processOptions = {
+    const processOptions = {
             quality      : imageOptions.quality,
             shrink       : imageOptions.shrink,
             crops        : crops,
@@ -149,7 +149,7 @@ static async processUrl(rc           : RunContextServer,
       if(res[0].error) throw(res[0].error)
       return res[0].cropHintsAnnotation.cropHints[0].boundingPoly.vertices
     } catch(error) {
-      throw(new VisionError(ERROR_CODES.CROP_DETECTION_FAILED, `Crop detection failed : ${JSON.stringify(error)}`))
+      throw(new VisionError(VISION_ERROR_CODES.CROP_DETECTION_FAILED, `Crop detection failed : ${JSON.stringify(error)}`))
     } 
   }
 
