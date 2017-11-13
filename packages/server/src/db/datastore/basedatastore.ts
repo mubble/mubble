@@ -410,7 +410,7 @@ static getKindName(rc : RunContextServer) {
   static createQuery(rc : RunContextServer, transaction ?: DSTransaction) : DSQuery | DSTQuery  {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
 
-    const model : BaseDatastore =  new (this as any)()  
+    const model : BaseDatastore = new (this as any)()  
     
     if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(), this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
