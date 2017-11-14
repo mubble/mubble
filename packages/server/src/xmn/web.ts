@@ -47,6 +47,8 @@ export class Web {
 
   private router          : XmnRouterServer
 
+  wsReqManager            : WsServer
+
   constructor() {
     if (web) throw('Router is singleton. It cannot be instantiated again')
   }
@@ -74,7 +76,7 @@ export class Web {
       } else {
         wsServer = this.wsHttpServer = http.createServer()
       }
-      const wsReqManager = new WsServer(rc, wsServer, router)
+      this.wsReqManager = new WsServer(rc, wsServer, router)
     }
 
     if (this.httpsConfig) {
