@@ -7,8 +7,10 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision : any = require('@google-cloud/vision')
-import jimp         = require('jimp')
+const gVision    : any = require('@google-cloud/vision'),
+      colorThief : any = require('color-thief-jimp')
+
+import jimp = require('jimp')
 
 import {
         VISION_ERROR_CODES,
@@ -109,13 +111,15 @@ static async processUrl(rc           : RunContextServer,
             crops        : crops,
             returnBase64 : false
           } as ProcessOptions
- 
+    
     const vRes = await VisionBase.process(rc, imageData, processOptions) as ProcessedReturn
-
-    fileInfo.mimeVal = retVal.mime = vRes.mime    
-    retVal.width     = vRes.width
-    retVal.height    = vRes.width
-    retVal.url       = await CloudStorageBase.uploadDataToCloudStorage(rc, vRes.data as Buffer, fileInfo)
+          
+    fileInfo.mimeVal     = retVal.mime = vRes.mime    
+    retVal.width         = vRes.width
+    retVal.height        = vRes.width
+    retVal.dominantColor = vRes.dominantColor
+    retVal.palette       = vRes.palette
+    retVal.url           = await CloudStorageBase.uploadDataToCloudStorage(rc, vRes.data as Buffer, fileInfo)
 
     return retVal
 }
@@ -123,6 +127,16 @@ static async processUrl(rc           : RunContextServer,
   static async getMime(rc : RunContextServer, image : string | Buffer) : Promise<string> {
     const jimpImage : any = await jimp.read(image)
     return jimpImage.getMIME()
+  }
+
+  static async getDominantColor(rc : RunContextServer, image : string | Buffer) : Promise<string> {
+    const jimpImage : any = await jimp.read(image)
+    return colorThief.getColor(jimpImage)
+  }
+
+  static async getPalette(rc : RunContextServer, image : string | Buffer) : Promise<string> {
+    const jimpImage : any = await jimp.read(image)
+    return colorThief.getPalette(jimpImage, 3)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -154,7 +168,9 @@ static async processUrl(rc           : RunContextServer,
   }
 
   private static async process(rc : RunContextServer, imageData : Buffer, options : ProcessOptions) {
-    let jimpImage : any = await jimp.read(imageData)
+    let jimpImage     : any      = await jimp.read(imageData),
+        dominantColor : number[] = colorThief.getColor(jimpImage),
+        palette       : number[] = colorThief.getPalette(jimpImage, 3)
 
     if(jimpImage._originalMime === `image/gif`) {
       const rand = uuid()
@@ -187,7 +203,9 @@ static async processUrl(rc           : RunContextServer,
           return resolve({data   : options.returnBase64 ? res.toString('base64') : res, 
                           mime   : jimpImage.getMIME(),
                           height : (options.shrink) ? options.shrink.h : height,
-                          width  : (options.shrink) ? options.shrink.w : width
+                          width  : (options.shrink) ? options.shrink.w : width,
+                          dominantColor,
+                          palette
                         })
         })
       })

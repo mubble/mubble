@@ -14,10 +14,12 @@ export type VisionParameters = {
 }
 
 export type ProcessedReturn = {
-  data   : string | Buffer,
-  mime   : string,
-  height : number,
-  width  : number
+  data          : string | Buffer,
+  mime          : string,
+  height        : number,
+  width         : number,
+  dominantColor : number[],
+  palette       : number[]
 }
 
 export type ProcessOptions = {
@@ -28,8 +30,10 @@ export type ProcessOptions = {
 }
 
 export type ProcessGcsReturn = {
-  url    : string,
-  mime   : string,
-  width  : number,
-  height : number,
+  url           : string,
+  mime          : string,
+  width         : number,
+  height        : number,
+  dominantColor : number[],
+  palette       : number[]
 }
