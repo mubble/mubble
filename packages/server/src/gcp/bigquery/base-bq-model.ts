@@ -228,6 +228,15 @@ export abstract class BaseBigQuery {
     rc.endTraceSpan(traceId,ack)
   }
 
+static async getTableData (rc : RunContextServer, query: any, useLegacySql:boolean) {
+  const options = {
+    query : query,
+    useLegacySql: useLegacySql // Use standard SQL syntax for queries.
+  }
+  const result = await BigQueryBase._bigQuery.query(options) 
+  return result
+} 
+
 static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_timestamp ?: string) {
   
   for(const item of items){
