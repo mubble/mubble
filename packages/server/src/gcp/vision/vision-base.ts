@@ -174,7 +174,7 @@ static async processUrl(rc           : RunContextServer,
         paletteObj    : {[index : string] : number} = {}
 
     for(let i = 0; i < palette.length; i++)
-      paletteObj[i] = palette[i]
+      paletteObj['_' + i] = palette[i]
 
     if(jimpImage._originalMime === `image/gif`) {
       const rand = uuid()
