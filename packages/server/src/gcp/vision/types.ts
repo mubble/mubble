@@ -18,8 +18,8 @@ export type ProcessedReturn = {
   mime          : string,
   height        : number,
   width         : number,
-  dominantColor : number[],
-  palette       : {[index : string] : number}
+  dominantColor : rgb,
+  palette       : rgb[]
 }
 
 export type ProcessOptions = {
@@ -34,6 +34,12 @@ export type ProcessGcsReturn = {
   mime          : string,
   width         : number,
   height        : number,
-  dominantColor : number[],
-  palette       : {[index : string] : number}
+  dominantColor : rgb,
+  palette       : rgb[]
+}
+
+export type rgb = {
+  r : number
+  g : number
+  b : number
 }
