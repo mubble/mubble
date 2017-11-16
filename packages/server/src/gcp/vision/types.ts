@@ -19,7 +19,7 @@ export type ProcessedReturn = {
   height        : number,
   width         : number,
   dominantColor : number[],
-  palette       : number[]
+  palette       : {[index : string] : number}
 }
 
 export type ProcessOptions = {
@@ -35,5 +35,5 @@ export type ProcessGcsReturn = {
   width         : number,
   height        : number,
   dominantColor : number[],
-  palette       : number[]
+  palette       : {[index : string] : number}
 }

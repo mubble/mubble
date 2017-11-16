@@ -170,7 +170,11 @@ static async processUrl(rc           : RunContextServer,
   private static async process(rc : RunContextServer, imageData : Buffer, options : ProcessOptions) {
     let jimpImage     : any      = await jimp.read(imageData),
         dominantColor : number[] = colorThief.getColor(jimpImage),
-        palette       : number[] = colorThief.getPalette(jimpImage, 3)
+        palette       : number[] = colorThief.getPalette(jimpImage, 3),
+        paletteObj    : {[index : string] : number} = {}
+
+    for(let i = 0; i < palette.length; i++)
+      paletteObj[i] = palette[i]
 
     if(jimpImage._originalMime === `image/gif`) {
       const rand = uuid()
@@ -200,12 +204,12 @@ static async processUrl(rc           : RunContextServer,
       jimpImage.getBuffer(jimpImage.getMIME(), (err : any, res : any) => {
           if(err) return reject(err)
 
-          return resolve({data   : options.returnBase64 ? res.toString('base64') : res, 
-                          mime   : jimpImage.getMIME(),
-                          height : (options.shrink) ? options.shrink.h : height,
-                          width  : (options.shrink) ? options.shrink.w : width,
-                          dominantColor,
-                          palette
+          return resolve({data    : options.returnBase64 ? res.toString('base64') : res, 
+                          mime    : jimpImage.getMIME(),
+                          height  : (options.shrink) ? options.shrink.h : height,
+                          width   : (options.shrink) ? options.shrink.w : width,
+                          palette : paletteObj,
+                          dominantColor
                         })
         })
       })
