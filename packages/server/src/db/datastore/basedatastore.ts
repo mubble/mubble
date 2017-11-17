@@ -150,7 +150,7 @@ private getNamespace() : string {
     }
   }
 
-  static async mget(rc : RunContextServer , ignoreRNF : boolean , ...models : BaseDatastore[]) : Promise<boolean> {
+  static async mGet(rc : RunContextServer , ignoreRNF : boolean , ...models : BaseDatastore[]) : Promise<boolean> {
     let   result  : boolean = true
     const traceId : string  = rc.getName(this) + ':' + 'mget',
           ack               = rc.startTraceSpan(traceId)
@@ -193,7 +193,7 @@ private getNamespace() : string {
     return result
   }
 
-  async mInsert(rc : RunContextServer, insertTime : number|undefined, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
+  static async mInsert(rc : RunContextServer, insertTime : number|undefined, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mInsert models invalid')
 
     const traceId : string = rc.getName(this) + ':' + 'mInsert',
@@ -470,7 +470,7 @@ static getKindName(rc : RunContextServer) {
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
 
-async mSetUnique(rc : RunContextServer, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
+private static async mSetUnique(rc : RunContextServer, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
   var entities : {key : any, data : any}[] = []
   
   for(const model of models) {

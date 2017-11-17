@@ -200,6 +200,8 @@ export abstract class BaseBigQuery {
       if(!tableRes[0]){
       // table does not exists. Create it
       const res = await dataset.createTable(tableName , table_options)
+      rc.isDebug() && rc.debug(rc.getName(this), 'created table ',tableName , '[ Version ' + options.version + ']')
+      
       }
       clazz.today_table = tableName
     }
@@ -215,17 +217,23 @@ export abstract class BaseBigQuery {
       return
     }  
       
-    const clazz    = this.constructor as any,
-          table    = await clazz.getDataStoreTable(rc , day_timestamp),
-          bqNiData = this
+    const clazz    = this.constructor as any ,
+          traceId = clazz.name + ':' + 'BqInsert' + Date.now(),
+          ack     = rc.startTraceSpan(traceId)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
-
-    const traceId = clazz.name + ':' + 'BqInsert',
-          ack     = rc.startTraceSpan(traceId),
-          res     = await table.insert(bqNiData)
-
-    rc.endTraceSpan(traceId,ack)
+    try{
+      
+      const table    = await clazz.getDataStoreTable(rc , day_timestamp),
+      bqNiData = this
+      rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
+      const res = await table.insert(bqNiData)
+      
+    }catch(err){
+      rc.isError() && rc.error(rc.getName(this), err)
+      throw err
+    }finally{
+      rc.endTraceSpan(traceId,ack)
+    }
   }
 
 static async getTableData (rc : RunContextServer, query: any, useLegacySql:boolean) {
