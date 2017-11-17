@@ -227,6 +227,7 @@ export abstract class BaseBigQuery {
       bqNiData = this
       rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
       const res = await table.insert(bqNiData)
+      rc.isDebug() && rc.debug(rc.getName(this), 'data insertion success')
       
     }catch(err){
       rc.isError() && rc.error(rc.getName(this), err)
