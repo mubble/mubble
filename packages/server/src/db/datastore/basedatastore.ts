@@ -230,6 +230,32 @@ private getNamespace() : string {
     }
   }
 
+
+  public static async mUpdate(rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
+    
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mUpdate models invalid')
+    
+    const traceId : string = rc.getName(this)+':'+'mUpdate',
+          ack = rc.startTraceSpan(traceId)
+    
+    try {
+      const updateObjects : {key : any, data : any}[] = models.map((mod) => {
+        return {
+          key  : mod.getDatastoreKey(rc), 
+          data : mod.getUpdateRec(rc)
+        }
+      })
+      await BaseDatastore._datastore.save(updateObjects)
+      return true
+    } 
+    catch (err) {
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    }finally{
+      rc.endTraceSpan(traceId,ack)
+    }
+  }
+
+
 /*------------------------------------------------------------------------------
   - Insert to datastore 
 
