@@ -129,14 +129,31 @@ static async processUrl(rc           : RunContextServer,
     return jimpImage.getMIME()
   }
 
-  static async getDominantColor(rc : RunContextServer, image : string | Buffer) : Promise<string> {
-    const jimpImage : any = await jimp.read(image)
-    return colorThief.getColor(jimpImage)
+  static async getDominantColor(rc : RunContextServer, image : string | Buffer) {
+    const jimpImage : any      = await jimp.read(image),
+          res       : number[] = colorThief.getColor(jimpImage)
+
+    return {
+      r : res[0],
+      g : res[1],
+      b : res[2]
+    }
   }
 
-  static async getPalette(rc : RunContextServer, image : string | Buffer) : Promise<string> {
-    const jimpImage : any = await jimp.read(image)
-    return colorThief.getPalette(jimpImage, 3)
+  static async getPalette(rc : RunContextServer, image : string | Buffer) {
+    const jimpImage : any   = await jimp.read(image),
+          res       : any[] = colorThief.getPalette(jimpImage, 3),
+          retVal    : any[] = []
+
+    for(const val of res) {
+      retVal.push({
+        r : val[0],
+        g : val[1],
+        b : val[2]
+      })
+    }
+
+    return retVal
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
