@@ -51,19 +51,22 @@ export class CloudStorageBase {
           gcBucket     = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket),
           gcFile       = gcBucket.file(filename),
           bufferStream = new stream.PassThrough(),
-          traceId      = 'UploadDataToCloudStorage',
+          traceId      = 'UploadDataToCloudStorage: ' + filename,
           ack          = rc.startTraceSpan(traceId)
     let   exists       = false
           
     try {
       await new Promise((resolve, reject) => {
-        bufferStream.on('error', (err : any) => { reject(err) }) 
+        bufferStream.on('error', (err : any) => {
+          rc.isError() && rc.error (rc.getName(this), 'uploadDataToCloudStorage: [Buffer Stream, length=' + data.length + ']', JSON.stringify(fileInfo), 'URL Info:', err)
+          reject(err)
+        }) 
         bufferStream.end(data)
         bufferStream.pipe(gcFile.createWriteStream({
           metadata : {'Cache-Control': 'public, max-age=31536000'}
         }))
         .on('error', (err : any) => { 
-          rc.isWarn() && rc.warn (rc.getName(this), 'uploadDataToCloudStorage:', JSON.stringify(fileInfo), 'URL Info:', err.host, err.path)
+          rc.isError() && rc.error (rc.getName(this), 'uploadDataToCloudStorage: [GCS Write Stream, length=' + data.length + ']', JSON.stringify(fileInfo), 'URL Info:', err)
           reject(err) 
         })
         .on('finish', () => { 
@@ -74,7 +77,7 @@ export class CloudStorageBase {
     } finally { 
       if (rc.isDebug()) {
         // const exists = await CloudStorageBase.fileExists(rc, fileInfo.bucket, filename)
-        rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, File Created:', exists)
+        rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, [Size:', data.length, '], File Created:', exists)
       }
       rc.endTraceSpan(traceId,ack)
     }
