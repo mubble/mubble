@@ -204,8 +204,8 @@ export class ServerWebSocket {
     })
 
     if (!this.connectionVerified) {
-      this.connectionVerified = true
       await this.router.verifyConnection(rc, this.ci)
+      this.connectionVerified = true
     }
 
     this.router.providerMessage(rc, this.ci, decodedData)
@@ -231,7 +231,8 @@ export class ServerWebSocket {
   public onError(err: any) {
 
     if (!this.ci.provider) return
-    
+    this.wss.markClosed(this)
+
     const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')
     rc.isError() && rc.error(rc.getName(this), 'Websocket onError()', err)
     this.cleanup()
