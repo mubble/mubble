@@ -217,22 +217,22 @@ export abstract class BaseBigQuery {
       return
     }  
       
-    const clazz    = this.constructor as any ,
-          traceId = clazz.name + ':' + 'BqInsert' + Date.now(),
+    const clazz   = this.constructor as any,
+          traceId = clazz.name + ':' + 'BqInsert:' + Date.now(),
           ack     = rc.startTraceSpan(traceId)
 
-    try{
-      
+    try {
       const table    = await clazz.getDataStoreTable(rc , day_timestamp),
-      bqNiData = this
+            bqNiData = this
+
       rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
       const res = await table.insert(bqNiData)
       rc.isDebug() && rc.debug(rc.getName(this), 'data insertion success')
       
-    }catch(err){
+    } catch(err) {
       rc.isError() && rc.error(rc.getName(this), err)
       throw err
-    }finally{
+    } finally {
       rc.endTraceSpan(traceId,ack)
     }
   }
