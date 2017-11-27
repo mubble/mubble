@@ -28,17 +28,17 @@ export type BigQueryTableOptions = {
   _tableName      : string ,
   table_options   : table_create_options ,
   day_partition   : boolean
-  version         : number 
+  version        ?: number 
 }
 
 export function getTableName(rc : RunContextServer , bqTableOptions : BigQueryTableOptions , dayStamp ?: string){
   
-  const verStr    = ('v'+bqTableOptions.version).replace(/\./gi,''),  //v01
+  const verStr    = ('v'+ bqTableOptions.version).replace(/\./gi,''),  //v01
         tableName =  bqTableOptions.day_partition ?
-         `${bqTableOptions._tableName}_${verStr}_${dayStamp || format(new Date(), BaseBigQuery.DATE_FORMAT)}`:
-         `${bqTableOptions._tableName}_${verStr}`
+         `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BaseBigQuery.DATE_FORMAT)}`:
+         `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}`
 
-  return tableName.replace(/\./gi,'_')       
+  return tableName.replace(/\./gi, '_')       
 }
 
 export abstract class BaseBigQuery {
