@@ -57,7 +57,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
         })
 
         req.on('error', (err: any) => {
-          rc.isStatus() && rc.status (err)
+          rc.isStatus() && rc.status(rc.getName(this), err)
           if (err.errno && err.errno === 'ENOTFOUND') return resolve(undefined) 
           return reject(err)
         })
@@ -109,11 +109,11 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
         })
 
         req.on('response', (res: any) => {
-          rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + urlObj.host + '], Status Code: ' + res.statusCode)
+          rc.isStatus () && rc.status(rc.getName (this), 'HTTP Response [' + urlObj.host + '], Status Code: ' + res.statusCode)
           statusCode = res.statusCode
         })
         req.on('error', (err: any) => {
-          rc.isStatus() && rc.status (err)
+          rc.isStatus() && rc.status(rc.getName(this), err)
           if (err.errno && err.errno === 'ENOTFOUND') return resolve (undefined) 
           return reject(err)
         })
@@ -125,18 +125,27 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
     }
   }
 
-  export async function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string> {
+  export async function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string | undefined> {
     const traceId = 'expandUrl',
           ack     = rc.startTraceSpan(traceId)
     
     try {
       return await new Promise<string>((resolve, reject) => {
       request({method : "HEAD", url : shortUrl, followAllRedirects : true},
-        function (error : any, response : any) {
+        (error : any, response : any) => {
           if(error) reject(error)
-          return resolve(response.request.href)
+          if(response && response.request) {
+            rc.isDebug() && rc.debug(rc.getName(this), `Expanded URL: ${response.request.href}`)
+            resolve(response.request.href) 
+          } else { 
+            if (!response) reject('No Response, No Error')
+            reject(response)
+          }   
         })
       })
+    } catch(err) {
+      rc.isWarn() && rc.warn(rc.getName(this), `Expanding URL Failed. Url: ${shortUrl}, Error: ${err}`)
+      return
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -196,7 +205,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
       })
 
       req.on('error', (err: any) => {
-        rc.isStatus() && rc.status (err)
+        rc.isStatus() && rc.status(rc.getName(this), err)
         return resolve({error: err, response: response, data: ''})
       })
 
