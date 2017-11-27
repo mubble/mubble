@@ -1,12 +1,8 @@
-package android.ui
+package `in`.mubble.android.ui
 
-import android.app.Fragment
-import android.content.Context
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.support.v7.app.AppCompatActivity
-import android.util.AttributeSet
-import android.view.View
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -38,22 +34,6 @@ abstract class MubbleBaseActivity: AppCompatActivity() {
   final override fun onPostCreate(savedInstanceState: Bundle?) {
     super.onPostCreate(savedInstanceState)
     onMubblePostCreate(savedInstanceState, null)
-  }
-
-  override fun onCreateView(name: String?, context: Context?, attrs: AttributeSet?): View {
-    return super.onCreateView(name, context, attrs)
-  }
-
-  override fun onCreateView(parent: View?, name: String?, context: Context?, attrs: AttributeSet?): View {
-    return super.onCreateView(parent, name, context, attrs)
-  }
-
-  override fun onAttachFragment(fragment: Fragment?) {
-    super.onAttachFragment(fragment)
-  }
-
-  override fun onAttachFragment(fragment: android.support.v4.app.Fragment?) {
-    super.onAttachFragment(fragment)
   }
 
   final override fun onRestart() {

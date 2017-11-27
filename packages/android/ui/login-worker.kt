@@ -1,6 +1,5 @@
-package android.ui
+package `in`.mubble.android.ui
 
-import android.ui.MubbleBaseActivity
 import android.content.Intent
 
 /**
