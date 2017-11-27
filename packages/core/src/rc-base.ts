@@ -191,6 +191,7 @@ export abstract class RCLoggerBase {
   private   k                 : number = 0    
   public traceSpans : {[traceId : string] :  {startTime : number , endTime : number} } = {}
   public finishedTraceSpans : {id : string , startTime : number , endTime : number} [] = []
+  public ignoreTrace : boolean = false
   
   protected constructor(public rc : RunContextBase) {
     
@@ -215,6 +216,11 @@ export abstract class RCLoggerBase {
   }
 
   public endTraceSpan(id : string , ackNumber : number | undefined ) : void {
+    if(this.ignoreTrace) {
+      this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'IgnoreTrace set. Ignoring trace ',id , ackNumber)
+      return
+    }
+
     const mId       = ackNumber ? id + '-'+ ackNumber : id ,
           startTime = this.traceSpans[mId] ? this.traceSpans[mId].startTime : 0
 
