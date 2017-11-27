@@ -60,7 +60,9 @@ export class CloudStorageBase {
         bufferStream.on('error', (err : any) => { reject(err) }) 
         bufferStream.end(data)
         bufferStream.pipe(gcFile.createWriteStream({
-          metadata : {'Cache-Control': 'public, max-age=31536000'}
+          resumable  : false,
+          validation : false,
+          metadata   : {'Cache-Control': 'public, max-age=31536000'}
         }))
         .on('error', (err : any) => { 
           rc.isWarn() && rc.warn (rc.getName(this), 'uploadDataToCloudStorage:', JSON.stringify(fileInfo), 'URL Info:', err.host, err.path)
