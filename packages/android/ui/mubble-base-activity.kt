@@ -1,8 +1,12 @@
-package `in`.mubble.android.ui
+package android.ui
 
+import android.app.Fragment
+import android.content.Context
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.support.v7.app.AppCompatActivity
+import android.util.AttributeSet
+import android.view.View
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -26,9 +30,110 @@ abstract class MubbleBaseActivity: AppCompatActivity() {
     onMubbleCreate(savedInstanceState, persistentState)
   }
 
+  final override fun onPostCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
+    super.onPostCreate(savedInstanceState, persistentState)
+    onMubblePostCreate(savedInstanceState, persistentState)
+  }
+
+  final override fun onPostCreate(savedInstanceState: Bundle?) {
+    super.onPostCreate(savedInstanceState)
+    onMubblePostCreate(savedInstanceState, null)
+  }
+
+  override fun onCreateView(name: String?, context: Context?, attrs: AttributeSet?): View {
+    return super.onCreateView(name, context, attrs)
+  }
+
+  override fun onCreateView(parent: View?, name: String?, context: Context?, attrs: AttributeSet?): View {
+    return super.onCreateView(parent, name, context, attrs)
+  }
+
+  override fun onAttachFragment(fragment: Fragment?) {
+    super.onAttachFragment(fragment)
+  }
+
+  override fun onAttachFragment(fragment: android.support.v4.app.Fragment?) {
+    super.onAttachFragment(fragment)
+  }
+
+  final override fun onRestart() {
+    super.onRestart()
+    onMubbleRestart()
+  }
+
+  final override fun onStart() {
+    super.onStart()
+    onMubbleStart()
+  }
+
+  final override fun onResume() {
+    super.onResume()
+    onMubbleResume()
+  }
+
+  final override fun onResumeFragments() {
+    super.onResumeFragments()
+    onMubbleResumeFragments()
+  }
+
+  final override fun onPostResume() {
+    super.onPostResume()
+    onMubblePostResume()
+  }
+
+  final override fun onPause() {
+    super.onPause()
+    onMubblePause()
+  }
+
+  final override fun onStop() {
+    super.onStop()
+    onMubbleStop()
+  }
+
+  final override fun onDestroy() {
+    super.onDestroy()
+    onMubbleDestroy()
+  }
+
   open fun onMubbleCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
 
   }
 
+  open fun onMubblePostCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
+
+  }
+
+  open fun onMubbleRestart() {
+
+  }
+
+  open fun onMubbleStart() {
+
+  }
+
+  open fun onMubbleResume() {
+
+  }
+
+  open fun onMubbleResumeFragments() {
+
+  }
+
+  open fun onMubblePostResume() {
+
+  }
+
+  open fun onMubblePause() {
+
+  }
+
+  open fun onMubbleStop() {
+
+  }
+
+  open fun onMubbleDestroy() {
+
+  }
 
 }
