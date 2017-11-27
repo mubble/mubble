@@ -27,7 +27,7 @@ export type BigQueryTableOptions = {
   DATA_STORE_NAME : string ,
   _tableName      : string ,
   table_options   : table_create_options ,
-  day_partition   : boolean
+  day_partition   : boolean,
   version        ?: number 
 }
 
