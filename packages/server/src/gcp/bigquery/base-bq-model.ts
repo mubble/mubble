@@ -33,8 +33,8 @@ export type BigQueryTableOptions = {
 
 export function getTableName(rc : RunContextServer , bqTableOptions : BigQueryTableOptions , dayStamp ?: string){
   
-  const verStr    = ('v'+ bqTableOptions.version).replace(/\./gi,''),  //v01
-        tableName =  bqTableOptions.day_partition ?
+  const verStr    = bqTableOptions.version ? ('v'+ bqTableOptions.version).replace(/\./gi,'') : '',  //v01
+        tableName = bqTableOptions.day_partition ?
          `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BaseBigQuery.DATE_FORMAT)}`:
          `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}`
 
