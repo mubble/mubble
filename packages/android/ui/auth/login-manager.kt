@@ -1,5 +1,6 @@
-package `in`.mubble.android.ui
+package `in`.mubble.android.ui.auth
 
+import `in`.mubble.android.ui.MubbleBaseActivity
 import android.content.Intent
 
 /**
@@ -48,14 +49,6 @@ open class LoginManager(private val activity: MubbleBaseActivity, private val li
   interface LoginResultListener {
 
     fun onLoginResult(responseCode: String, clientId: String?, idToken: String?)
-  }
-
-  abstract class LoginWorker(private val loginManager: LoginManager) {
-
-    abstract fun signIn(): Int
-    abstract fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent)
-
-    fun onSignInComplete(responseCode: String, clientId: String?, idToken: String?) = loginManager.onSignInComplete(responseCode, clientId, idToken)
   }
 
   enum class PARTNER {

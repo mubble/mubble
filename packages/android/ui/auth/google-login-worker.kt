@@ -1,5 +1,6 @@
-package `in`.mubble.android.ui
+package `in`.mubble.android.ui.auth
 
+import `in`.mubble.android.ui.MubbleBaseActivity
 import `in`.mubble.newschat.R
 import android.app.ProgressDialog
 import android.content.Intent
@@ -19,11 +20,11 @@ import com.google.firebase.auth.GoogleAuthProvider
  * siddharthgarg on 16/06/17.
  */
 
-internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, loginMgr: LoginManager) : LoginManager.LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
+internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, loginMgr: LoginManager) : LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
 
-  private var mGoogleApiClient: GoogleApiClient? = null
-  private var progressDialog: ProgressDialog? = null
-  private var sessionSignOut: Boolean = false
+  private val mGoogleApiClient  : GoogleApiClient
+  private var progressDialog    : ProgressDialog? = null
+  private var sessionSignOut    : Boolean         = false
 
   init {
 
@@ -42,26 +43,26 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     .build()
   }
 
-  fun attemptSilentSignIn(emailId: String) {
-
-    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-    .requestServerAuthCode(activity.getString(R.string.default_web_client_id))
-    .requestIdToken(activity.getString(R.string.default_web_client_id))
-    .requestEmail()
-    .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE),
-    Scope(PeopleScopes.USER_BIRTHDAY_READ))
-    .setAccountName(emailId)   // This should work..not tested
-    .build()
-
-    mGoogleApiClient = GoogleApiClient.Builder(activity)
-    .addOnConnectionFailedListener(this)
-    .enableAutoManage(activity, this)
-    .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
-    .build()
-
-    val signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient)
-    activity.startActivityForResult(signInIntent, RC_SIGN_IN)
-  }
+//  fun attemptSilentSignIn(emailId: String) {
+//
+//    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+//    .requestServerAuthCode(activity.getString(R.string.default_web_client_id))
+//    .requestIdToken(activity.getString(R.string.default_web_client_id))
+//    .requestEmail()
+//    .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE),
+//                   Scope(PeopleScopes.USER_BIRTHDAY_READ))
+//    .setAccountName(emailId)   // This should work..not tested
+//    .build()
+//
+//    mGoogleApiClient = GoogleApiClient.Builder(activity)
+//    .addOnConnectionFailedListener(this)
+//    .enableAutoManage(activity, this)
+//    .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+//    .build()
+//
+//    val signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient)
+//    activity.startActivityForResult(signInIntent, RC_SIGN_IN)
+//  }
 
   override fun signIn(): Int {
 
@@ -94,15 +95,15 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
     FirebaseAuth.getInstance().currentUser ?: return
 
-    if (!mGoogleApiClient!!.isConnected) {
-      mGoogleApiClient!!.connect()
+    if (!mGoogleApiClient.isConnected) {
+      mGoogleApiClient.connect()
     }
 
-    mGoogleApiClient!!.registerConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
+    mGoogleApiClient.registerConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
       override fun onConnected(bundle: Bundle?) {
 
         Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback { _ -> FirebaseAuth.getInstance().signOut() }
-        mGoogleApiClient!!.unregisterConnectionCallbacks(this)
+        mGoogleApiClient.unregisterConnectionCallbacks(this)
       }
 
       override fun onConnectionSuspended(i: Int) {
@@ -157,8 +158,8 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   private fun cleanUp() {
 
-    mGoogleApiClient!!.disconnect()
-    mGoogleApiClient!!.stopAutoManage(activity)
+    mGoogleApiClient.disconnect()
+    mGoogleApiClient.stopAutoManage(activity)
   }
 
   companion object {

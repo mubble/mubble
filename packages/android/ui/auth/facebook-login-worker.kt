@@ -1,5 +1,6 @@
-package `in`.mubble.android.ui
+package `in`.mubble.android.ui.auth
 
+import `in`.mubble.android.ui.MubbleBaseActivity
 import `in`.mubble.newschat.R
 import android.content.Intent
 import android.os.Bundle
@@ -15,7 +16,7 @@ import java.util.*
  * siddharthgarg on 16/06/17.
  */
 
-internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: LoginManager): LoginManager.LoginWorker(loginMgr) {
+internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: LoginManager): LoginWorker(loginMgr) {
 
   private val loginButton     : LoginButton
   private val callbackManager : CallbackManager
