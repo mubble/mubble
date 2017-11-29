@@ -27,18 +27,18 @@ export type BigQueryTableOptions = {
   DATA_STORE_NAME : string ,
   _tableName      : string ,
   table_options   : table_create_options ,
-  day_partition   : boolean
-  version         : number 
+  day_partition   : boolean,
+  version        ?: number 
 }
 
 export function getTableName(rc : RunContextServer , bqTableOptions : BigQueryTableOptions , dayStamp ?: string){
   
-  const verStr    = ('v'+bqTableOptions.version).replace(/\./gi,''),  //v01
-        tableName =  bqTableOptions.day_partition ?
-         `${bqTableOptions._tableName}_${verStr}_${dayStamp || format(new Date(), BaseBigQuery.DATE_FORMAT)}`:
-         `${bqTableOptions._tableName}_${verStr}`
+  const verStr    = bqTableOptions.version ? ('v'+ bqTableOptions.version).replace(/\./gi,'') : '',  //v01
+        tableName = bqTableOptions.day_partition ?
+         `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BaseBigQuery.DATE_FORMAT)}`:
+         `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}`
 
-  return tableName.replace(/\./gi,'_')       
+  return tableName.replace(/\./gi, '_')       
 }
 
 export abstract class BaseBigQuery {
@@ -217,22 +217,22 @@ export abstract class BaseBigQuery {
       return
     }  
       
-    const clazz    = this.constructor as any ,
-          traceId = clazz.name + ':' + 'BqInsert' + Date.now(),
+    const clazz   = this.constructor as any,
+          traceId = clazz.name + ':' + 'BqInsert:' + Date.now(),
           ack     = rc.startTraceSpan(traceId)
 
-    try{
-      
+    try {
       const table    = await clazz.getDataStoreTable(rc , day_timestamp),
-      bqNiData = this
+            bqNiData = this
+
       rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
       const res = await table.insert(bqNiData)
       rc.isDebug() && rc.debug(rc.getName(this), 'data insertion success')
       
-    }catch(err){
+    } catch(err) {
       rc.isError() && rc.error(rc.getName(this), err)
       throw err
-    }finally{
+    } finally {
       rc.endTraceSpan(traceId,ack)
     }
   }

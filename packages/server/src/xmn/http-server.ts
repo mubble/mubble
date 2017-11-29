@@ -32,7 +32,6 @@ export class HttpServer {
   requestHandler(req: http.IncomingMessage, res: http.ServerResponse) : void {
 
     const rc = this.refRc.copyConstruct('', 'http-request')
-    rc.isDebug() && rc.debug(rc.getName(this), 'got a new request')
 
     const urlObj    = url.parse(req.url || '')
 

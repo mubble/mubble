@@ -128,7 +128,7 @@ export class WsServer {
     for (const [webSocket, lastTs] of this.socketMap) {
       if (lastTs < notBefore) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Cleaning up a connection as no ping or close')
-        webSocket.onClose()
+        webSocket.close()
       } else if (rc.isDebug() && len === 1) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active')
       }
@@ -237,6 +237,11 @@ export class ServerWebSocket {
     rc.isError() && rc.error(rc.getName(this), 'Websocket onError()', err)
     this.cleanup()
     this.router.providerFailed(rc, this.ci)
+  }
+
+  public close() {
+    if (!this.ci.provider) return
+    this.ws.close()
   }
 
   public onClose() {
