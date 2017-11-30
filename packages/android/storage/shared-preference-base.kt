@@ -49,23 +49,23 @@ import kotlin.reflect.KProperty
 abstract class SharedPreferenceBase(spName: String): AnkoLogger {
 
   companion object {
-    private val prefNames : HashSet<String> = HashSet()
-    private val lock      = java.lang.Object()
+    private val prefNames = mutableSetOf<String>()
+    private val lock = java.lang.Object()
   }
 
-  public fun <T> bindPreference(): PreferenceLoader<T>  = PreferenceLoader()
+  protected fun <T> bindPreference(): PreferenceLoader<T> = PreferenceLoader()
 
-  internal val spInstance : SharedPreferences    = App.instance.getSharedPreferences(spName,
-                                                  Context.MODE_PRIVATE)
+  private val spInstance: SharedPreferences = App.instance.getSharedPreferences(spName,
+  Context.MODE_PRIVATE)
 
   // Remember the creating thread. Only creating thread is allowed to access the preferences
-  internal val creatorThread = Looper.myLooper()
+  private val creatorThread = Looper.myLooper()
 
   // Initial map is used to identify the properties that are deleted on initial load
-  internal var initMap  : HashMap<String, Any>? = HashMap()
+  private var initMap: MutableMap<String, Any>? = mutableMapOf<String, Any>()
 
   // Map of name-value pairs saved in the preferences
-  internal val valueMap : HashMap<String, Any>  = HashMap()
+  private val valueMap = mutableMapOf<String, Any>()
 
   init {
 
@@ -80,14 +80,14 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
     val all: MutableMap<String, *> = spInstance.all
 
     for (kv in all) {
-      val key   = kv.key
+      val key = kv.key
       val value = kv.value
-      info {"Init:=> Loaded key: $key, value: $value"}
+      info { "Init:=> Loaded key: $key, value: $value" }
       if (value != null) initMap!![key] = value
     }
   }
 
-  fun commitDefaults() {
+  protected fun commitDefaults() {
 
     assert(creatorThread === Looper.myLooper())
     assert(initMap !== null)
@@ -106,27 +106,26 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
     initMap = null
   }
 
-}
 
-class PreferenceDelegate<T> : ReadWriteProperty<SharedPreferenceBase, T>, AnkoLogger {
+  private class PreferenceDelegate<T> : ReadWriteProperty<SharedPreferenceBase, T>, AnkoLogger {
 
-  override fun getValue(thisRef: SharedPreferenceBase, property: KProperty<*>): T {
+    override fun getValue(thisRef: SharedPreferenceBase, property: KProperty<*>): T {
 
-    val key   = property.name
-    val value = thisRef.valueMap[key]
+      val key = property.name
+      val value = thisRef.valueMap[key]
 
-    assert(thisRef.creatorThread === Looper.myLooper(), {
-      "Shared preferences can only be accessed from the thread that created it"
-    })
-    assert(thisRef.initMap       === null, {
-      "You must call commitDefaults before accessing values from the sharedPreference"
-    })
-    assert(value                 !== null, {
-      "You forgot to provide the default value for ${property.name} before commitDefaults"
-    })
+      assert(thisRef.creatorThread === Looper.myLooper(), {
+        "Shared preferences can only be accessed from the thread that created it"
+      })
+      assert(thisRef.initMap === null, {
+        "You must call commitDefaults before accessing values from the sharedPreference"
+      })
+      assert(value !== null, {
+        "You forgot to provide the default value for ${property.name} before commitDefaults"
+      })
 
-    info {"getValue:=> $key is $value"}
-    @Suppress("UNCHECKED_CAST") return value as T
+      info { "getValue:=> $key is $value" }
+      @Suppress("UNCHECKED_CAST") return value as T
 
 //  private inline fun <reified T> getDefaultValue(): T =
 //
@@ -137,68 +136,70 @@ class PreferenceDelegate<T> : ReadWriteProperty<SharedPreferenceBase, T>, AnkoLo
 //      String::class   -> "" as T
 //      else            -> wtf("${T::class}") as T
 //    }
-  }
-
-  override fun setValue(thisRef: SharedPreferenceBase, property: KProperty<*>, value: T) {
-
-    assert(thisRef.creatorThread === Looper.myLooper())
-    assert(value !== null)
-
-    val key = property.name
-
-    if (thisRef.initMap === null /* commitDefaults done */) {
-
-      // TODO: This will not work for MutableSet
-      if (value == thisRef.valueMap[key]) {
-        info { "setValue:=> Skipping as value has not changed $key=$value" }
-        return
-      }
-
-      val editor = thisRef.spInstance.edit()
-      when (value) {
-        is String         -> editor.putString     (key, value)
-        is Int            -> editor.putInt        (key, value)
-        is Float          -> editor.putFloat      (key, value)
-        is Boolean        -> editor.putBoolean    (key, value)
-        // is MutableSet<*>  -> editor.putStringSet  (key, value as MutableSet<String>)
-        else              -> assert(false, {
-            "setValue:=> Invalid value for $key as $value"
-        })
-      }
-      editor.commit()
-
-      thisRef.valueMap[key] = value as Any
-      info {"setValue:=> updated $key=$value"}
-
-    } else {
-
-      val oldValue  = thisRef.initMap!!.remove(key)
-      val initValue: T = if (oldValue !== null) {
-        if (oldValue::class !== (value as Any)::class) {
-          warn { "setValue:=> type of $key has changed from ${oldValue::class} to ${(value as Any)::class}. Will be set to default value" }
-          value
-        } else {
-          oldValue as T
-        }
-      } else {
-        value
-      }
-
-      thisRef.valueMap[key] = initValue as Any
-      info {"setValue:=> initialized $key=$initValue"}
     }
 
+    override fun setValue(thisRef: SharedPreferenceBase, property: KProperty<*>, value: T) {
+
+      assert(thisRef.creatorThread === Looper.myLooper())
+      assert(value !== null)
+
+      val key = property.name
+
+      if (thisRef.initMap === null /* commitDefaults done */) {
+
+        // TODO: This will not work for MutableSet
+        if (value == thisRef.valueMap[key]) {
+          info { "setValue:=> Skipping as value has not changed $key=$value" }
+          return
+        }
+
+        val editor = thisRef.spInstance.edit()
+        when (value) {
+          is String -> editor.putString(key, value)
+          is Int -> editor.putInt(key, value)
+          is Float -> editor.putFloat(key, value)
+          is Boolean -> editor.putBoolean(key, value)
+        // is MutableSet<*>  -> editor.putStringSet  (key, value as MutableSet<String>)
+          else -> assert(false, {
+            "setValue:=> Invalid value for $key as $value"
+          })
+        }
+        editor.commit()
+
+        thisRef.valueMap[key] = value as Any
+        info { "setValue:=> updated $key=$value" }
+
+      } else {
+
+        val oldValue = thisRef.initMap!!.remove(key)
+        val initValue: T = if (oldValue !== null) {
+          if (oldValue::class !== (value as Any)::class) {
+            warn { "setValue:=> type of $key has changed from ${oldValue::class} to ${(value as Any)::class}. Will be set to default value" }
+            value
+          } else {
+            oldValue as T
+          }
+        } else {
+          value
+        }
+
+        thisRef.valueMap[key] = initValue as Any
+        info { "setValue:=> initialized $key=$initValue" }
+      }
+
+    }
   }
-}
 
-class PreferenceLoader<T>() {
+  protected class PreferenceLoader<T>() {
 
-  operator fun provideDelegate(
+    operator fun provideDelegate(
     thisRef: SharedPreferenceBase,
     prop: KProperty<*>
-  ): ReadWriteProperty<SharedPreferenceBase, T> {
+    ): ReadWriteProperty<SharedPreferenceBase, T> {
 
-    return PreferenceDelegate()
+      return PreferenceDelegate()
+    }
+
   }
 
 }
