@@ -53,7 +53,8 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
 
         req.on('response', (res: any) => {
           const hostname = url.parse(urlStr).host
-          rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + hostname + '], Status Code: ' + res.statusCode)
+          rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + hostname + '], Status Code: ' + res.statusCode, 
+            'Content Length:', res.headers['content-length'], '/', res.headers['transfer-encoding'])
         })
 
         req.on('error', (err: any) => {

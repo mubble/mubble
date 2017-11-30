@@ -100,7 +100,7 @@ static async processUrl(rc           : RunContextServer,
                                 imageOptions : VisionParameters,
                                 fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
     
-    rc.isDebug() && rc.debug(rc.getName(this), `Processing Data to GCS`)
+    rc.isDebug() && rc.debug(rc.getName(this), `Processing Data to GCS: Image Data: ${imageData.length} bytes`)
     const retVal      = {} as ProcessGcsReturn,
           crops : any = (imageOptions.ratio && imageOptions.ratio !== 1)
                         ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
@@ -114,8 +114,10 @@ static async processUrl(rc           : RunContextServer,
             returnBase64 : false
           } as ProcessOptions
     
+    rc.isDebug() && rc.debug(rc.getName(this), `Processing Crops to GCS: Image Data: ${imageData.length} bytes`)
     const vRes = await VisionBase.process(rc, imageData, processOptions) as ProcessedReturn
-        
+    rc.isDebug() && rc.debug(rc.getName(this), `Processed Crops to GCS: Image Data: ${imageData.length} bytes`)
+    
     fileInfo.mimeVal     = retVal.mime = vRes.mime    
     retVal.width         = vRes.width
     retVal.height        = vRes.width
