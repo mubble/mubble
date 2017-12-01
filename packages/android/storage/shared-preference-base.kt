@@ -59,7 +59,7 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
   Context.MODE_PRIVATE)
 
   // Remember the creating thread. Only creating thread is allowed to access the preferences
-  private val creatorThread = Looper.myLooper()
+  private val creatorsLooper = Looper.myLooper()
 
   // Initial map is used to identify the properties that are deleted on initial load
   private var initMap: MutableMap<String, Any>? = mutableMapOf<String, Any>()
@@ -70,10 +70,10 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
   init {
 
     // Ensure there is only one object for each shared preference file
-    assert(spName != "")
+    check(spName != "")
 
     synchronized(lock) {
-      assert(prefNames.contains(spName) === false)
+      check(prefNames.contains(spName) === false)
       prefNames.add(spName)
     }
 
@@ -89,8 +89,8 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
 
   protected fun commitDefaults() {
 
-    assert(creatorThread === Looper.myLooper())
-    assert(initMap !== null)
+    check(creatorsLooper === Looper.myLooper())
+    check(initMap !== null)
 
     if (initMap!!.size !== 0) {
 
@@ -114,13 +114,13 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
       val key = property.name
       val value = thisRef.valueMap[key]
 
-      assert(thisRef.creatorThread === Looper.myLooper(), {
+      check(thisRef.creatorsLooper === Looper.myLooper(), {
         "Shared preferences can only be accessed from the thread that created it"
       })
-      assert(thisRef.initMap === null, {
+      check(thisRef.initMap === null, {
         "You must call commitDefaults before accessing values from the sharedPreference"
       })
-      assert(value !== null, {
+      check(value !== null, {
         "You forgot to provide the default value for ${property.name} before commitDefaults"
       })
 
@@ -140,8 +140,8 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
 
     override fun setValue(thisRef: SharedPreferenceBase, property: KProperty<*>, value: T) {
 
-      assert(thisRef.creatorThread === Looper.myLooper())
-      assert(value !== null)
+      check(thisRef.creatorsLooper === Looper.myLooper())
+      check(value !== null)
 
       val key = property.name
 
@@ -160,7 +160,7 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
           is Float -> editor.putFloat(key, value)
           is Boolean -> editor.putBoolean(key, value)
         // is MutableSet<*>  -> editor.putStringSet  (key, value as MutableSet<String>)
-          else -> assert(false, {
+          else -> check(false, {
             "setValue:=> Invalid value for $key as $value"
           })
         }

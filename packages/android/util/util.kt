@@ -9,8 +9,17 @@
 
 package `in`.mubble.android.util
 
+import `in`.mubble.android.core.App
+import android.os.Looper
+import org.jetbrains.anko.runOnUiThread
 import org.json.JSONObject
 
+
+/*------------------------------------------------------------------------------
+
+  J S O N    U T I L I T I E S
+
+------------------------------------------------------------------------------*/
 fun <T> JSONObject.toImmutableMap(cb: (key: String, jsonObject: JSONObject)->T): Map<String, T> {
 
   val map     = mutableMapOf<String, T>()
@@ -35,4 +44,29 @@ fun <T> JSONObject.toImmutableList(cb: (key: String, jsonObject: JSONObject)->T)
   }
 
   return list
+}
+
+/*------------------------------------------------------------------------------
+
+  M U L T I    T H R E A D I N G I N G
+
+------------------------------------------------------------------------------*/
+fun <T> executeInMainThread( closure: ()->T ): T {
+
+  if (Looper.myLooper() === Looper.getMainLooper()) return closure()
+
+  var resp: T? = null
+  val lock = java.lang.Object()
+
+  App.instance.runOnUiThread {
+    synchronized(lock) {
+      resp = closure()
+      lock.notify()
+    }
+  }
+
+  synchronized(lock) {
+    lock.wait()
+    return resp!!
+  }
 }
