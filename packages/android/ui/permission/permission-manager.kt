@@ -43,19 +43,28 @@ open class PermissionManager(private val activity: MubbleBaseActivity,
 
     var canShowRationaleDialog = false
 
+    val grantedGroups  = mutableSetOf<PermissionGroup>()
+    val rejectedGroups = mutableSetOf<PermissionGroup>()
+
     for (i in grantResults.indices) {
       val grantResult = grantResults[i]
+      val group       = PermissionGroup.getGroup(permissions[i])
 
       if (grantResult == PackageManager.PERMISSION_GRANTED) {
-        val group = PermissionGroup.getGroup(permissions[i])
-        listener.onPermissionRequestResult(group!!, true)
+        grantedGroups.add(group!!)
 
       } else {
+        rejectedGroups.add(group!!)
         canShowRationaleDialog = true
       }
     }
 
     if (canShowRationaleDialog) showRationaleDialog(this.askedPermGroup)
+
+    else
+      grantedGroups.forEach { group ->
+        listener.onPermissionRequestResult(group, true)
+      }
   }
 
   private fun showRationaleDialog(group: PermissionGroup?) {
