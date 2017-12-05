@@ -9,19 +9,19 @@
 
 const cloudStorage : any = require('@google-cloud/storage')
 
-import {RunContextServer}    from '../../rc-server'
-import {GcloudEnv}           from '../../gcp/gcloud-env'
-import {v4 as UUIDv4}        from 'uuid'
-import * as mime             from 'mime-types'
-import * as stream           from 'stream'
+import {RunContextServer}                        from '../../rc-server'
+import {GcloudEnv}                               from '../../gcp/gcloud-env'
+import {v4 as UUIDv4}                            from 'uuid'
+import * as mime                                 from 'mime-types'
+import * as stream                               from 'stream'
 
 export type GcsUUIDFileInfo = { // Pattern => ${Prefix}${UUID}${Suffix}.${Extension}
-  bucket     : string
-  folder     : string
-  namePrefix : string
-  fileId    ?: string   // Optional. Will be generated (if missing)
-  nameSuffix : string
-  mimeVal    : string   // Used to determine the File Extension
+  bucket      : string
+  folder      : string
+  namePrefix  : string
+  fileId     ?: string   // Optional. Will be generated (if missing)
+  nameSuffix  : string
+  mimeVal     : string   // Used to determine the File Extension
 }
 
 export class CloudStorageBase {
@@ -46,75 +46,76 @@ export class CloudStorageBase {
     this._cloudStorage = gcloudEnv.cloudStorage
   }
 
-  static async uploadDataToCloudStorage(rc : RunContextServer, data : Buffer, fileInfo : GcsUUIDFileInfo) : Promise<string> {
-    const filename     = await this.getUUIDFileName (rc, fileInfo),
-          gcBucket     = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket),
-          gcFile       = gcBucket.file(filename),
-          bufferStream = new stream.PassThrough(),
-          traceId      = 'UploadDataToCloudStorage: ' + filename,
-          ack          = rc.startTraceSpan(traceId)
-    let   exists       = false
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                                FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
+
+  static async uploadDataToCloudStorage(rc : RunContextServer, dataStream : stream.PassThrough, fileInfo : GcsUUIDFileInfo) : Promise<string> {
+    const filename = await this.getUUIDFileName(rc, fileInfo),
+          gcFile   = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket).file(filename),
+          traceId  = `UploadDataToCloudStorage : ${filename}`,
+          ack      = rc.startTraceSpan(traceId)
           
     try {
       await new Promise((resolve, reject) => {
-        bufferStream.on('error', (err : any) => {
-          rc.isError() && rc.error (rc.getName(this), 'uploadDataToCloudStorage: [Buffer Stream, length=' + data.length + ']', JSON.stringify(fileInfo), 'URL Info:', err)
-          reject(err)
-        }) 
-        bufferStream.end(data)
-        bufferStream.pipe(gcFile.createWriteStream({
+        dataStream.pipe(gcFile.createWriteStream({
           resumable  : false,
           validation : false,
           metadata   : {'Cache-Control': 'public, max-age=31536000'}
         }))
-        .on('error', (err : any) => { 
-          rc.isError() && rc.error (rc.getName(this), 'uploadDataToCloudStorage: [GCS Write Stream, length=' + data.length + ']', JSON.stringify(fileInfo), 'URL Info:', err)
-          reject(err) 
+        .on('error', (error : Error) => { 
+          rc.isError() && rc.error (rc.getName(this), 'GCS Write Stream :', JSON.stringify(fileInfo), 'Error :', error)
+          reject(error) 
         })
         .on('finish', () => { 
-          exists = true
-          resolve()
+          rc.isDebug() && rc.debug (rc.getName (this), `Uploaded ${filename} to Datastore.`)
+          resolve(true)
          })
       })
     } finally { 
-      if (rc.isDebug()) {
-        // const exists = await CloudStorageBase.fileExists(rc, fileInfo.bucket, filename)
-        rc.isDebug() && rc.debug (rc.getName (this), 'Uploaded', filename, 'to Datastore, [Size:', data.length, '], File Created:', exists)
-      }
-      rc.endTraceSpan(traceId,ack)
+      rc.endTraceSpan(traceId, ack)
     }
+
     return this.getFileNameFromInfo(rc, fileInfo)
   }
 
   static async getUUIDFileId(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
-    if (fileInfo.fileId) return fileInfo
-    const traceId : string = rc.getName(this)+':'+'getUUIDFileId',
-          ack = rc.startTraceSpan(traceId)
-    try{
+    if(fileInfo.fileId) return fileInfo
+
+    const traceId = rc.getName(this) + ':' + 'getUUIDFileId',
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
       while (true) {
         fileInfo.fileId = UUIDv4()
-        const filePath  = this.getFilePathFromInfo (rc, fileInfo)
-        const exists    = await this.fileExists (rc, fileInfo.bucket, filePath)
-        if (!exists) return fileInfo
+
+        const filePath = this.getFilePathFromInfo (rc, fileInfo),
+              exists   = await this.fileExists (rc, fileInfo.bucket, filePath)
+
+        if(!exists) return fileInfo
       }
-    }finally{
+    } finally {
       rc.endTraceSpan(traceId , ack)
     }      
   }
 
   private static async getUUIDFileName(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
-    if (fileInfo.fileId) return this.getFilePathFromInfo (rc, fileInfo)
-    const traceId : string = rc.getName(this)+':'+'getUUIDFileName',
-    ack = rc.startTraceSpan(traceId)
-    try{
-      while (true) {
+    if(fileInfo.fileId) return this.getFilePathFromInfo (rc, fileInfo)
+
+    const traceId = rc.getName(this) + ':' + 'getUUIDFileName',
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
+      while(true) {
         fileInfo.fileId = UUIDv4()
-        const filePath  = this.getFilePathFromInfo (rc, fileInfo)
-        const exists    = await this.fileExists (rc, fileInfo.bucket, filePath)
-        if (!exists) return filePath
+
+        const filePath = this.getFilePathFromInfo (rc, fileInfo),
+              exists   = await this.fileExists (rc, fileInfo.bucket, filePath)
+
+        if(!exists) return filePath
       }
-    }finally{
-      rc.endTraceSpan(traceId,ack)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
@@ -123,8 +124,9 @@ export class CloudStorageBase {
   }
     
   private static getFileNameFromInfo (rc: RunContextServer, fileInfo: GcsUUIDFileInfo) {
-    const extension    = mime.extension(fileInfo.mimeVal)
-    const basename     = `${fileInfo.namePrefix}${fileInfo.fileId}${fileInfo.nameSuffix}`
+    const extension = mime.extension(fileInfo.mimeVal),
+          basename  = `${fileInfo.namePrefix}${fileInfo.fileId}${fileInfo.nameSuffix}`
+
     return (extension ? (basename + '.' + extension) : basename)
   }
     
@@ -148,7 +150,7 @@ export class CloudStorageBase {
     }
   }
 
-  static async upload(rc : RunContextServer, bucketName: string, filePath : string, destination : string) : Promise<string> {
+  static async upload(rc : RunContextServer, bucketName : string, filePath : string, destination : string) : Promise<string> {
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           traceId : string = rc.getName(this) + ':' + 'upload',
           ack              = rc.startTraceSpan(traceId)
@@ -165,11 +167,12 @@ export class CloudStorageBase {
   }
 
   static async download(rc : RunContextServer, bucketName : string, filePath : string) : Promise<any> {
-    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
-          file   : any = bucket.file(filePath),
-          traceId : string = rc.getName(this)+':'+'download',
-          ack = rc.startTraceSpan(traceId)
-    try{
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          file    : any    = bucket.file(filePath),
+          traceId : string = rc.getName(this) + ':' + 'download',
+          ack              = rc.startTraceSpan(traceId)
+
+    try {
       let data : any
       return new Promise((resolve, reject) => {
         const readStream = file.createReadStream()
@@ -184,34 +187,36 @@ export class CloudStorageBase {
           resolve(data)
         })
       })
-    }finally{
-      rc.endTraceSpan(traceId,ack)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
     
   }
 
   static async bucketExists(rc : RunContextServer, bucketName : string) {
-    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
-          traceId : string = rc.getName(this)+':'+'bucketExists',
-          ack = rc.startTraceSpan(traceId)
-    try{
-      const data   : any = await bucket.exists()
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          traceId : string = rc.getName(this) + ':' + 'bucketExists',
+          ack              = rc.startTraceSpan(traceId)
+
+    try {
+      const data : any = await bucket.exists()
       return data[0]
-    }finally{
-      rc.endTraceSpan(traceId,ack)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
   static async fileExists(rc : RunContextServer, bucketName: string, filePath : string) {
-    const bucket : any = CloudStorageBase._cloudStorage.bucket(bucketName),
-          file   : any = bucket.file(filePath),
-          traceId : string = rc.getName(this)+':'+'fileExists',
-          ack = rc.startTraceSpan(traceId)
-    try{
-      const data   : any = await file.exists()
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          file    : any    = bucket.file(filePath),
+          traceId : string = rc.getName(this) + ':' + 'fileExists',
+          ack              = rc.startTraceSpan(traceId)
+
+    try {
+      const data : any = await file.exists()
       return data[0]
-    }finally{
-      rc.endTraceSpan(traceId,ack)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }          
   }
 }

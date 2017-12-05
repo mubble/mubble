@@ -147,6 +147,7 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
 
         val editor = thisRef.spInstance.edit()
         when (value) {
+          is Long -> editor.putLong(key, value)
           is String -> editor.putString(key, value)
           is Int -> editor.putInt(key, value)
           is Float -> editor.putFloat(key, value)

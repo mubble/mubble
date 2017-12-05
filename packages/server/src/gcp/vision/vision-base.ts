@@ -8,9 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 const gVision    : any = require('@google-cloud/vision'),
-      colorThief : any = require('color-thief-jimp')
-
-import jimp = require('jimp')
+      ColorThief : any = require('color-thief')
 
 import {
         VISION_ERROR_CODES,
@@ -30,9 +28,10 @@ import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
 import {GcloudEnv}                  from '../gcloud-env'
 import * as request                 from 'request' 
-import * as fs                      from 'fs' 
-import * as images                  from 'images'
+import * as fs                      from 'fs'
 import * as uuid                    from 'uuid/v4'
+import * as gm                      from 'gm'
+import * as mime                    from 'mime-types'
 
 export class VisionBase {
 
@@ -64,7 +63,7 @@ export class VisionBase {
                            imageOptions : VisionParameters,
                            resBase64    : boolean) : Promise<ProcessedReturn> {
 
-    const crops : any = (imageOptions.ratio)
+    const crops : any = imageOptions.ratio
                         ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
                         : null
 
@@ -100,13 +99,12 @@ static async processUrl(rc           : RunContextServer,
                                 imageOptions : VisionParameters,
                                 fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
     
-    rc.isDebug() && rc.debug(rc.getName(this), `Processing Data to GCS: Image Data: ${imageData.length} bytes`)
-    const retVal      = {} as ProcessGcsReturn,
-          crops : any = (imageOptions.ratio && imageOptions.ratio !== 1)
+    rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
+    const crops : any = imageOptions.ratio
                         ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
                         : null
 
-    rc.isDebug() && rc.debug(rc.getName(this), `Crops Detected`)
+    rc.isDebug() && rc.debug(rc.getName(this), `Crops Detected, Crop Size: ${JSON.stringify(imageOptions)}`)
     const processOptions = {
             quality      : imageOptions.quality,
             shrink       : imageOptions.shrink,
@@ -114,51 +112,8 @@ static async processUrl(rc           : RunContextServer,
             returnBase64 : false
           } as ProcessOptions
     
-    rc.isDebug() && rc.debug(rc.getName(this), `Processing Crops to GCS: Image Data: ${imageData.length} bytes`)
-    const vRes = await VisionBase.process(rc, imageData, processOptions) as ProcessedReturn
-    rc.isDebug() && rc.debug(rc.getName(this), `Processed Crops to GCS: Image Data: ${imageData.length} bytes`)
-    
-    fileInfo.mimeVal     = retVal.mime = vRes.mime    
-    retVal.width         = vRes.width
-    retVal.height        = vRes.width
-    retVal.dominantColor = vRes.dominantColor
-    retVal.palette       = vRes.palette
-    retVal.url           = await CloudStorageBase.uploadDataToCloudStorage(rc, vRes.data as Buffer, fileInfo)
-
-    return retVal
+    return VisionBase.processAndUpload(rc, imageData, processOptions, fileInfo)
 }
-
-  static async getMime(rc : RunContextServer, image : string | Buffer) : Promise<string> {
-    const jimpImage : any = await jimp.read(image)
-    return jimpImage.getMIME()
-  }
-
-  static async getDominantColor(rc : RunContextServer, image : string | Buffer) {
-    const jimpImage : any      = await jimp.read(image),
-          res       : number[] = colorThief.getColor(jimpImage)
-
-    return {
-      r : res[0],
-      g : res[1],
-      b : res[2]
-    }
-  }
-
-  static async getPalette(rc : RunContextServer, image : string | Buffer) {
-    const jimpImage : any   = await jimp.read(image),
-          res       : any[] = colorThief.getPalette(jimpImage, 3),
-          retVal    : any[] = []
-
-    for(const val of res) {
-      retVal.push({
-        r : val[0],
-        g : val[1],
-        b : val[2]
-      })
-    }
-
-    return retVal
-  }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             INTERNAL FUNCTIONS
@@ -189,59 +144,102 @@ static async processUrl(rc           : RunContextServer,
   }
 
   private static async process(rc : RunContextServer, imageData : Buffer, options : ProcessOptions) {
-    let jimpImage     : any      = await jimp.read(imageData),
-        dominantColor : number[] = colorThief.getColor(jimpImage),
-        palette       : any[]    = colorThief.getPalette(jimpImage, 3),
-        paletteObj    : any[]    = [],
-        dominantColorObj         = {
-          r : dominantColor[0],
-          g : dominantColor[1],
-          b : dominantColor[2]
-        }
+    let height : number  = 0,
+        width  : number  = 0
 
-    for(const val of palette) 
-      paletteObj.push({
-        r : val[0],
-        g : val[1],
-        b : val[2]
-      })
-
-    if(jimpImage._originalMime === `image/gif`) {
-      const rand = uuid()
-      images(imageData).save(`/tmp/opImage_${rand}.jpg`)
-      jimpImage = await jimp.read(`/tmp/opImage_${rand}.jpg`)
-      await fs.unlinkSync(`/tmp/opImage_${rand}.jpg`)
-    } 
-
-    let height : number,
-        width  : number
-
+    const gmImage = await gm(imageData)
+    
     if(options.crops && options.crops.length) {
-      const b = options.crops,
-            x = b[0].x,
-            y = b[0].y
-      
-      width  = b[1].x - b[0].x
-      height = b[3].y - b[0].y,
+      const crops  = options.crops,
+            x      = crops[0].x,
+            y      = crops[0].y
 
-      await jimpImage.crop(x, y, width, height)
+      width  = crops[1].x - crops[0].x
+      height = crops[3].y - crops[0].y
+
+      gmImage.crop(width, height, x, y)
     }
 
-    if(options.shrink)  jimpImage.resize(options.shrink.w, options.shrink.h)
-    if(options.quality) jimpImage.quality(options.quality)
+    if(options.shrink)  gmImage.resize(options.shrink.w, options.shrink.h)
+    if(options.quality) gmImage.quality(options.quality)
 
-    return new Promise<ProcessedReturn>((resolve, reject) => {
-      jimpImage.getBuffer(jimpImage.getMIME(), (err : any, res : any) => {
-          if(err) return reject(err)
+    return {
+      data          : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
+      mime          : await this.getGmMime(gmImage),
+      height        : (options.shrink) ? options.shrink.h : height,
+      width         : (options.shrink) ? options.shrink.w : width,
+      palette       : this.getPalette(imageData),
+      dominantColor : this.getDominantColor(imageData)
+    }
+  }
 
-          return resolve({data          : options.returnBase64 ? res.toString('base64') : res, 
-                          mime          : jimpImage.getMIME(),
-                          height        : (options.shrink) ? options.shrink.h : height,
-                          width         : (options.shrink) ? options.shrink.w : width,
-                          palette       : paletteObj,
-                          dominantColor : dominantColorObj
-                        })
-        })
+  private static async processAndUpload(rc : RunContextServer, imageData : Buffer, options : ProcessOptions, fileInfo : GcsUUIDFileInfo) {
+    const gmImage = await gm(imageData),
+          retVal  = {} as ProcessGcsReturn,
+          mime    = await this.getGmMime(gmImage)
+    
+    fileInfo.mimeVal     = mime
+    retVal.mime          = mime
+    retVal.palette       = this.getPalette(imageData)
+    retVal.dominantColor = this.getDominantColor(imageData)
+
+    if(options.crops && options.crops.length) {
+      const crops  = options.crops,
+            x      = crops[0].x,
+            y      = crops[0].y,
+            width  = crops[1].x - crops[0].x,
+            height = crops[3].y - crops[0].y
+
+      gmImage.crop(width, height, x, y)
+      retVal.height = (options.shrink) ? options.shrink.h : height
+      retVal.width  = (options.shrink) ? options.shrink.w : width
+    }
+
+    if(options.shrink)  gmImage.resize(options.shrink.w, options.shrink.h)
+    if(options.quality) gmImage.quality(options.quality)
+
+    retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, gmImage.stream(), fileInfo)
+
+    return retVal
+  }
+
+  private static getGmBuffer(gmImage : any) : Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      gmImage.toBuffer((error : Error, buffer : any) => {
+        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed : ${JSON.stringify(error)}`))
+        resolve(buffer)
       })
+    })
+  }
+
+  private static getGmMime(gmImage : any) : Promise<string> {
+    return new Promise((resolve, reject) => {
+      gmImage.format((error : Error, data : any) => {
+        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed : ${JSON.stringify(error)}`))
+        resolve(mime.lookup(data) || '')
+      })
+    })
+  }
+
+  private static getPalette(image : Buffer) {
+    const colorThief = new ColorThief(),
+          palette    = colorThief.getPalette(image, 3),
+          retval     = []
+
+    for(const val of palette) 
+      retval.push({r : val[0], g : val[1], b : val[2]})
+
+    return retval
+  }
+
+  private static getDominantColor(image : Buffer) {
+    const colorThief    = new ColorThief(),
+          dominantColor = colorThief.getColor(image)
+
+    return {
+      r : dominantColor[0],
+      g : dominantColor[1],
+      b : dominantColor[2]
+    }
   }
 }
