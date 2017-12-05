@@ -1,9 +1,9 @@
 package `in`.mubble.android.ui
 
+import `in`.mubble.android.core.MubbleLogger
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.support.v7.app.AppCompatActivity
-import org.jetbrains.anko.AnkoLogger
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -15,7 +15,7 @@ import org.jetbrains.anko.AnkoLogger
 ------------------------------------------------------------------------------*/
 
 
-abstract class MubbleBaseActivity: AppCompatActivity(), AnkoLogger {
+abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
 
   final override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)

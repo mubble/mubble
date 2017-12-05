@@ -10,10 +10,10 @@
 package `in`.mubble.android.storage
 
 import `in`.mubble.android.core.App
+import `in`.mubble.android.core.MubbleLogger
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Looper
-import org.jetbrains.anko.AnkoLogger
 import org.jetbrains.anko.info
 import org.jetbrains.anko.warn
 import kotlin.properties.ReadWriteProperty
@@ -46,7 +46,7 @@ import kotlin.reflect.KProperty
 
 ------------------------------------------------------------------------------*/
 
-abstract class SharedPreferenceBase(spName: String): AnkoLogger {
+abstract class SharedPreferenceBase(spName: String): MubbleLogger {
 
   companion object {
     private val prefNames = mutableSetOf<String>()
@@ -82,7 +82,7 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
     for (kv in all) {
       val key = kv.key
       val value = kv.value
-      info { "Init:=> Loaded key: $key, value: $value" }
+      // info { "Init:=> Loaded key: $key, value: $value" }
       if (value != null) initMap!![key] = value
     }
   }
@@ -107,7 +107,9 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
   }
 
 
-  private class PreferenceDelegate<T> : ReadWriteProperty<SharedPreferenceBase, T>, AnkoLogger {
+  private class PreferenceDelegate<T> : ReadWriteProperty<SharedPreferenceBase, T>, MubbleLogger {
+
+    override val customTag: String = "SharedPreferenceBase"
 
     override fun getValue(thisRef: SharedPreferenceBase, property: KProperty<*>): T {
 
@@ -126,16 +128,6 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
 
       info { "getValue:=> $key is $value" }
       @Suppress("UNCHECKED_CAST") return value as T
-
-//  private inline fun <reified T> getDefaultValue(): T =
-//
-//    when (T::class) {
-//      Boolean::class  -> false as T
-//      Float::class    -> 0.0f as T
-//      Int::class      -> 0 as T
-//      String::class   -> "" as T
-//      else            -> wtf("${T::class}") as T
-//    }
     }
 
     override fun setValue(thisRef: SharedPreferenceBase, property: KProperty<*>, value: T) {
@@ -171,22 +163,23 @@ abstract class SharedPreferenceBase(spName: String): AnkoLogger {
 
       } else {
 
-        val oldValue = thisRef.initMap!!.remove(key)
-        val initValue: T = if (oldValue !== null) {
-          if (oldValue::class !== (value as Any)::class) {
-            warn { "setValue:=> type of $key has changed from ${oldValue::class} to ${(value as Any)::class}. Will be set to default value" }
+        val savedValue = thisRef.initMap!!.remove(key)
+        val initValue: T = if (savedValue !== null) {
+          if (savedValue::class !== (value as Any)::class) {
+            warn { "setValue:=> type of $key has changed from ${savedValue::class} to ${
+                   (value as Any)::class}. Will be set to default value" }
             value
           } else {
-            oldValue as T
+            savedValue as T
           }
         } else {
           value
         }
 
         thisRef.valueMap[key] = initValue as Any
-        info { "setValue:=> initialized $key=$initValue" }
+        info { "setValue:=> initialized $key=$initValue (${if (initValue === value)
+               "default" else "preferences" })" }
       }
-
     }
   }
 
