@@ -7,7 +7,7 @@ import android.content.Intent
  * siddharthgarg on 24/11/17.
  */
 
-abstract class LoginWorker(private val loginManager: LoginManager) {
+internal abstract class LoginWorker(private val loginManager: LoginManager) {
 
   abstract fun signIn(): Int
   abstract fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent)
