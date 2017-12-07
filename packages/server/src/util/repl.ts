@@ -91,6 +91,11 @@ export abstract class Repl {
     this.print(pr)
   }
 
+  createNewConnectionInfo(clientIdentity: ClientIdentity) {
+    this.ci = this.getConnectionInfo ()
+    this.ci.clientIdentity = clientIdentity
+  }
+
   getConnectionInfo() {
     const ci = {
       protocol        : Protocol.WEBSOCKET,
