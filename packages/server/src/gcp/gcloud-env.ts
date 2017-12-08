@@ -113,6 +113,7 @@ export class GcloudEnv {
   public pubsub       : any
   public monitoring   : any
   public language     : any
+  public translate    : any
 
   constructor(public projectId  : string,
               public namespace  : string,

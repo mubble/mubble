@@ -8,10 +8,13 @@
 ------------------------------------------------------------------------------*/
 
 const language : any = require('@google-cloud/language')
+const translate : any = require('@google-cloud/translate')
+const cld : any = require('cld')
 
 import * as lo                                    from 'lodash'
 import {RunContextServer}                         from '../../rc-server'
 import {GcloudEnv}                                from '../../gcp/gcloud-env'
+import { RunContextNcServer } from 'framework';
 
 export type GcpEntityInfo = {
   name          : string, 
@@ -27,9 +30,31 @@ export type GcpTopicInfo = {
   confidence : number
 }
 
+export type GcpTranslationInfo = {
+  translatedText         : string,
+  detectedSourceLanguage : string
+}
+
+type CldLanguageInfo = {
+  textBytes: number,
+  languages: [{
+    name   : string,
+    code   : string,
+    percent: number,
+    score  : number
+  }],
+  chunks: [{
+    name   : string,
+    code   : string,
+    offset : number,
+    bytes  : number
+  }]
+}
+
 export class GcpLanguageBase {
 
   static _language   : any
+  static _translate  : any
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -40,12 +65,21 @@ export class GcpLanguageBase {
         projectId   : gcloudEnv.projectId,
         credentials : gcloudEnv.authKey
       })
+      gcloudEnv.translate = new translate({
+        projectId   : gcloudEnv.projectId,
+        credentials : gcloudEnv.authKey
+      });    
     } else {
       gcloudEnv.language = language.v1beta2 ({
         projectId   : gcloudEnv.projectId
       })
+      gcloudEnv.translate = new translate({
+        projectId   : gcloudEnv.projectId
+      });    
     }
     this._language = gcloudEnv.language 
+    this._translate = gcloudEnv.translate
+
   }
 
   static async classifyText (rc: RunContextServer, text: string) {
@@ -126,6 +160,44 @@ export class GcpLanguageBase {
     catch (e) {
       rc.isWarn () && rc.warn (rc.getName (this), 'Error ['+ tag + ']:', e)
       return [{name: '/Other', confidence: 0.95}]
+    }
+  }
+
+  static async detectLanguage(rc: RunContextServer, text: string) : Promise<any> {
+    const cldOptions = {
+      isHTML       : false,
+      // languageHint : 'BULGARIAN',
+      // encodingHint : 'ISO_8859_5',
+      // tldHint      : 'bg',
+      // httpHint     : 'bg'
+    }
+    const cldres = await new Promise((resolve, reject) => {
+      cld.detect(text, cldOptions, (error : any, response : CldLanguageInfo) => {
+        if (error) {
+          rc.isWarn () && rc.warn (rc.getName (this), 'Error Detecting Language:', error)
+          return resolve ('en')
+        }
+        if (response.languages.length == 0) {
+          rc.isWarn () && rc.warn (rc.getName (this), 'No Language Detected, Assuming English')
+          return resolve ('en')
+        }
+        if (response.languages[0].percent < 80) {
+          rc.isWarn () && rc.warn (rc.getName (this), 'Detected Language has a lower threshold', response.languages[0].code)
+        }
+        resolve (response.languages[0].code)
+      })
+    })
+    return cldres
+  }
+
+  static async translateToEnglish (rc: RunContextServer, text: string) : Promise<GcpTranslationInfo | null> {
+    try {
+      const res   =  await this._translate.translate (text, 'en') 
+      return res[1].data.translations[0]
+    }
+    catch (e) {
+      rc.isWarn () && rc.warn (rc.getName (this), 'Error:', e)
+      return null
     }
   }
 
