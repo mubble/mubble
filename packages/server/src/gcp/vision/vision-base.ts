@@ -7,8 +7,8 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision    : any = require('@google-cloud/vision'),
-      ColorThief : any = require('color-thief')
+const gVision = require('@google-cloud/vision'),
+      ce      = require('colour-extractor')
 
 import {
         VISION_ERROR_CODES,
@@ -163,25 +163,28 @@ static async processUrl(rc           : RunContextServer,
     if(options.shrink)  gmImage.resize(options.shrink.w, options.shrink.h)
     if(options.quality) gmImage.quality(options.quality)
 
+    const colorMeta = await this.getColorMeta(imageData)
+
     return {
       data          : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
       mime          : await this.getGmMime(gmImage),
       height        : (options.shrink) ? options.shrink.h : height,
       width         : (options.shrink) ? options.shrink.w : width,
-      palette       : this.getPalette(imageData),
-      dominantColor : this.getDominantColor(imageData)
+      palette       : colorMeta.palette,
+      dominantColor : colorMeta.dominantColor
     }
   }
 
   private static async processAndUpload(rc : RunContextServer, imageData : Buffer, options : ProcessOptions, fileInfo : GcsUUIDFileInfo) {
-    const gmImage = await gm(imageData),
-          retVal  = {} as ProcessGcsReturn,
-          mime    = await this.getGmMime(gmImage)
-    
+    const gmImage   = await gm(imageData),
+          retVal    = {} as ProcessGcsReturn,
+          mime      = await this.getGmMime(gmImage),
+          colorMeta = await this.getColorMeta(imageData)
+
     fileInfo.mimeVal     = mime
     retVal.mime          = mime
-    retVal.palette       = this.getPalette(imageData)
-    retVal.dominantColor = this.getDominantColor(imageData)
+    retVal.palette       = colorMeta.palette,
+    retVal.dominantColor = colorMeta.dominantColor
 
     if(options.crops && options.crops.length) {
       const crops  = options.crops,
@@ -221,25 +224,164 @@ static async processUrl(rc           : RunContextServer,
     })
   }
 
-  private static getPalette(image : Buffer) {
-    const colorThief = new ColorThief(),
-          palette    = colorThief.getPalette(image, 3),
-          retval     = []
+  // private static getPalette(image : Buffer) {
+  //   const colorThief = new DominantColor(),
+  //         palette    = colorThief.getPalette(image, 3),
+  //         retval     = []
 
-    for(const val of palette) 
-      retval.push({r : val[0], g : val[1], b : val[2]})
+  //   for(const val of palette) 
+  //     retval.push({r : val[0], g : val[1], b : val[2]})
 
-    return retval
+  //   return retval
+  // }
+
+  private static getColorMeta(image : Buffer) : Promise<{palette : any, dominantColor : any}> {
+    const retVal : any    = {palette : []}
+    let   count  : number = 0
+
+    return new Promise((resolve, reject) => {
+      ce.topColours(image, true, (data : any) => {
+        for(const val of data) {
+          count = count + 1
+          if(count > 10) break
+          const tempObj = {
+            r : val[1][0],
+            g : val[1][1],
+            b : val[1][2]
+          }
+          if(!retVal.dominantColor) retVal.dominantColor = tempObj
+          retVal.palette.push(tempObj)
+          resolve(retVal)
+        }
+      })
+    })
   }
 
-  private static getDominantColor(image : Buffer) {
-    const colorThief    = new ColorThief(),
-          dominantColor = colorThief.getColor(image)
+  private static async getTopColors(img : any, tmpFilename : string) {
+    const MAX_W      = 14,
+          MIFF_START = 'comment={',
+          MIFF_END   = '\x0A}\x0A\x0C\x0A'
 
-    return {
-      r : dominantColor[0],
-      g : dominantColor[1],
-      b : dominantColor[2]
+    return new Promise((resolve, reject) => {
+      img.size((error : any, wh : any) => {
+
+      const ratio = wh.width/MAX_W,
+            w2    = wh.width/2,
+            h2    = wh.height/2
+
+      img.noProfile()                               
+        .bitdepth(8)                               
+        .crop(w2, h2, w2/2, w2/2)                  
+        .scale(Math.ceil(wh.height/ratio), MAX_W)  
+        .write('histogram:' + tmpFilename, (error : any) => {
+          let histogram = '',
+              miffRS    = fs.createReadStream(tmpFilename, {encoding: 'utf8'})
+
+          miffRS.addListener('data', (chunk : any) => {
+            const endDelimiterPos = chunk.indexOf(MIFF_END)
+
+            if(endDelimiterPos !== -1) {
+              histogram += chunk.slice(0, endDelimiterPos + MIFF_END.length)
+              miffRS.destroy()
+            } else {
+              histogram += chunk
+            }
+          })
+
+          miffRS.addListener('close', () => {
+            fs.unlink(tmpFilename)
+
+            const histogram_start = histogram.indexOf(MIFF_START) + MIFF_START.length,
+                  colours         = this.reduceSimilar(this.clean(histogram.slice(histogram_start)
+                                      .split('\n')
+                                      .slice(1, -3)
+                                      .map(this.parseHistogramLine)
+                                    ))
+
+            const sortedColors = colours.sort(this.sortByFrequency)
+            console.log('sortedColors', sortedColors)
+          })
+        })
+      })
+    })
+  }
+
+
+  private static sortByFrequency(arg1 : any, arg2 : any) {
+    const a = arg1[0],
+          b = arg2[0]
+
+    if(a > b) return -1
+    if(a < b) return 1
+    return 0
+  }
+
+  private static reduceSimilar(xs : any) {
+    let minD = Infinity,
+        maxD = 0,
+        maxF = 0,
+        n    = 0,
+        N    = xs.length - 1
+
+    let tds = (() => {
+      const results = []
+
+      for(const x of xs) {
+        if(n === N) break
+        n = n + 1
+        const distance = this.distance(x[1], xs[n][1])
+        if(distance < minD) minD = distance
+        if(distance > maxD) maxD = distance
+        results.push(distance)
+      }
+      return results
+    })()
+
+    const avgD     = Math.sqrt(minD * maxD),
+          rs : any = []
+
+    for(const d of tds) {
+      if(d > avgD) {
+        this.include(xs[n], rs)
+        if(xs[n][0] > maxF)
+          maxF = xs[n][0]
+      }
+      n = n + 1
     }
+    return rs.map((arg : any) => {
+      const f = arg[0],
+            c = arg[1]
+
+      return [f / maxF, c]
+    })
+  }
+
+  private static clean(xs : any) {
+    const rs = []
+
+    for (const x of xs)
+      if(x) rs.push(x)
+
+    return rs
+  }
+
+  private static parseHistogramLine(xs : any) {
+    xs = xs.trim().split(':')
+    if(xs.length !== 2) return null
+  
+    return [
+      +xs[0], xs[1].split('(')[1].split(')')[0].split(',').map((x : any) => {
+        return +x.trim()
+      })
+    ]
+  }
+
+  private static distance(arg1 : any, arg2 : any) {
+    return Math.sqrt(Math.pow(arg1[0] - arg2[0], 2) + Math.pow(arg1[1] - arg2[1], 2) + Math.pow(arg1[2] - arg2[2], 2))
+  }
+
+  private static include(x : any, xs : any) {
+    if(xs.indexOf(x) === -1) xs.push(x)
+    return xs
   }
 }
