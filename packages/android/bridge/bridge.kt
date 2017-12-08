@@ -1,5 +1,6 @@
 package `in`.mubble.android.bridge
 
+import `in`.mubble.android.bridge.Bridge.State.*
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.asyncExecuteInMainThread
 import `in`.mubble.android.util.toTimeString
@@ -47,31 +48,59 @@ import java.util.*
 private const val JS_INTERFACE        = "fromCordova"
 private const val REQUEST_TIMEOUT_MS  = 15000
 
-abstract class Bridge(private val webView: WebView) : MubbleLogger {
+abstract class Bridge(protected val webView: WebView) : MubbleLogger {
+
+  private   var nextRequestId       = 0
+  private   val pendingRequestsMap  = mutableMapOf<String, AsyncCallbackStruct>()
+  protected var state:State         = LOADING
 
   init {
     val timer = Timer()
     timer.scheduleAtFixedRate(TimeoutTimer(), REQUEST_TIMEOUT_MS.toLong(),
-                              REQUEST_TIMEOUT_MS.toLong())
+    REQUEST_TIMEOUT_MS.toLong())
   }
-
-  private var nextRequestId = 0
-  private val pendingRequestsMap = mutableMapOf<String, AsyncCallbackStruct>()
 
   fun asyncRequestToJs(requestName: String, vararg args: Any,
                        cb: (JSONObject) -> Unit): Unit {
+
+    check(state > LOADING)
 
     asyncExecuteInMainThread {
 
       val requestTag   = "$requestName-${++nextRequestId}"
 
       pendingRequestsMap.put(requestTag, AsyncCallbackStruct(requestTag, cb))
-      executeJsFunction(requestName, requestTag, args) {}
+      executeJsFunction("asyncRequestFromNative", requestName, requestTag, *args) {}
     }
   }
 
-  internal fun executeJsFunction(fnName: String, vararg args: Any,
-                                cb: ((result: String) -> Unit)?) {
+  /*
+    Events are special concept. Events can be sent to the JS env
+    after it is State.Initialized. Events are queued till then.
+
+    For every event generated from Native, there must be a onEventName function
+    in JS, that receives the parameters sent by native. There is no acknowledgement
+    of event
+   */
+
+  fun sendEventToJs(eventName: String, vararg args: Any?): Unit {
+
+    asyncExecuteInMainThread {
+      if (state !== LOADING) executeJsFunction("eventFromNative", eventName, *args) {}
+    }
+  }
+
+  fun sendAsyncResponseToJs(requestId: Int, json: JSONObject) {
+
+    asyncExecuteInMainThread {
+
+      executeJsFunction("asyncResponseFromNative", requestId, json) {}
+    }
+
+  }
+
+  private fun executeJsFunction(fnName: String, vararg args: Any?,
+                                cb: (result: String) -> Unit) {
 
     val query = "$JS_INTERFACE.$fnName(${args.map {stringifyArg(it)}})"
     webView.evaluateJavascript(query, cb)
@@ -104,7 +133,9 @@ abstract class Bridge(private val webView: WebView) : MubbleLogger {
   }
 
   @JavascriptInterface
-  fun asyncRequestResponseFromJs(requestTag: String, respJsonStr: String) {
+  protected fun asyncRequestResponseFromJs(requestTag: String, respJsonStr: String) {
+
+    check(state > LOADING)
 
     asyncExecuteInMainThread {
 
@@ -119,8 +150,39 @@ abstract class Bridge(private val webView: WebView) : MubbleLogger {
     }
   }
 
+  @JavascriptInterface
+  fun setStateFromJs(strState: String) {
+
+    val state: State = State.valueOf(strState)
+    when(state) {
+      INITIALIZED -> initializedFromJs()
+      LOADING -> check(false, {"Automatically set"})
+      SHOWN -> shownFromJs()
+    }
+  }
+
+  protected fun initializedFromJs() {
+
+    check(state === LOADING)
+
+    asyncExecuteInMainThread {
+
+      state = INITIALIZED
+
+    }
+  }
+
+  protected open fun shownFromJs() {
+
+    check(state === INITIALIZED)
+
+    asyncExecuteInMainThread {
+      state = SHOWN
+    }
+  }
+
   // TimeoutTimer to timeout requests that are not responded in time
-  internal inner class TimeoutTimer : TimerTask() {
+  private inner class TimeoutTimer : TimerTask() {
 
     override fun run() {
 
@@ -131,11 +193,14 @@ abstract class Bridge(private val webView: WebView) : MubbleLogger {
 
       asyncExecuteInMainThread {
 
-        for ((key, cbStruct) in pendingRequestsMap) {
+        val iterator = pendingRequestsMap.iterator()
 
+        while (iterator.hasNext()) {
+          val (key, cbStruct) = iterator.next()
           if (cbStruct.ts < then) {
-            warn { "TimeoutTimer: $key timed-out, was constructed at ${toTimeString(cbStruct.ts)}" }
-            pendingRequestsMap.remove(key)
+            warn { "TimeoutTimer: $key timed-out, was constructed at ${
+              toTimeString(cbStruct.ts)}" }
+            iterator.remove()
           }
         }
       }
@@ -143,9 +208,15 @@ abstract class Bridge(private val webView: WebView) : MubbleLogger {
   }
 
   // Data class to hold async callback lambdas
-  internal data class AsyncCallbackStruct(val requestTag : String,
-                                          val cb         : (JSONObject) -> Unit) {
+  private data class AsyncCallbackStruct(val requestTag : String,
+                                         val cb         : (JSONObject) -> Unit) {
     val ts = System.currentTimeMillis()
+  }
+
+  protected enum class State {
+    LOADING,      // The js files are getting parsed and loaded in memory
+    INITIALIZED,  // Code initialized and the bridge is up
+    SHOWN         // UI being displayed, albeit busy in server requests
   }
 }
 

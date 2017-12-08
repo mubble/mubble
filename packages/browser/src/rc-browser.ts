@@ -68,7 +68,7 @@ export abstract class RunContextBrowser extends RunContextBase {
   userKeyVal    : UserKeyValue
 
   // Stores the old error handler
-  private oldOnError    : any
+  // private oldOnError    : any
 
   protected constructor(public initConfig   : InitConfigBrowser,
                         public runState     : RunStateBrowser,
@@ -82,8 +82,8 @@ export abstract class RunContextBrowser extends RunContextBase {
     super.init()
     this.lang       = Mubble.Lang.English
     this.logger     = new RCBrowserLogger(this)
-    this.oldOnError = window.onerror
-    window.onerror  = this.onError.bind(this)
+    // this.oldOnError = window.onerror
+    // window.onerror  = this.onError.bind(this)
   }
 
   clone(newRc : RunContextBrowser) {
@@ -91,17 +91,17 @@ export abstract class RunContextBrowser extends RunContextBase {
   }
 
   // This is not getting called as errors are caught by Angular or by core.js
-  onError(msg: string, src: string, line: number, col: number, obj) {
+  // onError(msg: string, src: string, line: number, col: number, obj) {
 
-    try {
-      const errorObj = { msg, 
-        source   : src + '[' + line + ':' + col + ']',
-        stack    : obj ? obj.stack : ''
-      }
-      this.isError() && this.error(this.getName(this), 'unhandled exception', errorObj)
-      if (this.oldOnError) this.oldOnError.apply(null, arguments)
-    } catch (e) {}
+  //   try {
+  //     const errorObj = { msg, 
+  //       source   : src + '[' + line + ':' + col + ']',
+  //       stack    : obj ? obj.stack : ''
+  //     }
+  //     this.isError() && this.error(this.getName(this), 'unhandled exception', errorObj)
+  //     if (this.oldOnError) this.oldOnError.apply(null, arguments)
+  //   } catch (e) {}
 
-    return false
-  }
+  //   return false
+  // }
 }

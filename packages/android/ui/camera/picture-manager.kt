@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.content.FileProvider
 import android.util.Base64
+import org.json.JSONObject
 import java.io.*
 
 /**
@@ -17,7 +18,8 @@ import java.io.*
  * siddharthgarg on 31/08/17.
  */
 
-class PictureManager(private val activity: MubbleBaseActivity, private val listener: PictureResultListener) {
+class PictureManager(private val activity: MubbleBaseActivity,
+                     private val listener: (JSONObject) -> Unit) {
 
   private var fileUri           : Uri?    = null
   private var galleryImgBase64  : String? = null
@@ -37,7 +39,7 @@ class PictureManager(private val activity: MubbleBaseActivity, private val liste
       return bundle
     }
 
-  fun isPictureRequestCode(requestCode: Int) : Boolean = requestCode == this.currentReqCode
+  fun isPictureRequestCode(requestCode: Int) : Boolean = requestCode == currentReqCode
 
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
 
@@ -185,14 +187,25 @@ class PictureManager(private val activity: MubbleBaseActivity, private val liste
 
   private fun respondWithFailure(failureCode: String) {
 
-    cleanUp()
-    listener.onPictureResult(false, null, null, null, failureCode)
+    onPictureResult(false, null, null, null, failureCode)
   }
 
   private fun respondWithSuccess(base64: String?, cropped: Boolean) {
 
+    onPictureResult(false, base64, MIME_TYPE, cropped, null)
+  }
+
+  private fun onPictureResult(success: Boolean, base64: String?, mimeType: String?,
+                               cropped: Boolean?, failureCode: String?) {
+
+    val jsonObject = JSONObject()
+    jsonObject.put("success", true)
+    jsonObject.put("base64", base64)
+    jsonObject.put("mimeType", mimeType)
+    jsonObject.put("cropped", cropped)
+
+    listener(jsonObject)
     cleanUp()
-    listener.onPictureResult(false, base64, MIME_TYPE, cropped, null)
   }
 
   @Throws(FileNotFoundException::class)
@@ -215,12 +228,6 @@ class PictureManager(private val activity: MubbleBaseActivity, private val liste
 
     if (output != null && output!!.exists()) output!!.delete()
     galleryImgBase64 = null
-  }
-
-  interface PictureResultListener {
-
-    fun onPictureResult(success: Boolean, base64: String?, mimeType: String?,
-                        cropped: Boolean?, failureCode: String?)
   }
 
   companion object {

@@ -74,7 +74,7 @@ fun <T> syncExecuteInMainThread(closure: ()->T ): T {
   }
 }
 
-fun asyncExecuteInMainThread(closure: ()->Any?) {
+fun asyncExecuteInMainThread(closure: ()->Unit) {
 
   Handler(Looper.getMainLooper()).post {
     closure()
