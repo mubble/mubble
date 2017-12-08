@@ -85,6 +85,8 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
       // info { "Init:=> Loaded key: $key, value: $value" }
       if (value != null) initMap!![key] = value
     }
+
+    // Check if version upgrade
   }
 
   protected fun commitDefaults() {
