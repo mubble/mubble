@@ -224,17 +224,6 @@ static async processUrl(rc           : RunContextServer,
     })
   }
 
-  // private static getPalette(image : Buffer) {
-  //   const colorThief = new DominantColor(),
-  //         palette    = colorThief.getPalette(image, 3),
-  //         retval     = []
-
-  //   for(const val of palette) 
-  //     retval.push({r : val[0], g : val[1], b : val[2]})
-
-  //   return retval
-  // }
-
   private static getColorMeta(image : Buffer) : Promise<{palette : any, dominantColor : any}> {
     const retVal : any    = {palette : []}
     let   count  : number = 0
