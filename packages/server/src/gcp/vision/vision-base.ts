@@ -205,8 +205,8 @@ static async processUrl(rc           : RunContextServer,
 
   private static getGmBuffer(gmImage : any) : Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      gmImage.toBuffer((error : Error, buffer : any) => {
-        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed : ${JSON.stringify(error)}`))
+      gmImage.toBuffer((error : any, buffer : any) => {
+        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed[getGmBuffer] : ${JSON.stringify(error)}`))
         resolve(buffer)
       })
     })
@@ -214,8 +214,8 @@ static async processUrl(rc           : RunContextServer,
 
   private static getGmMime(gmImage : any) : Promise<string> {
     return new Promise((resolve, reject) => {
-      gmImage.format((error : Error, data : any) => {
-        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed : ${JSON.stringify(error)}`))
+      gmImage.format((error : any, data : any) => {
+        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed[getGmMime] : ${JSON.stringify(error)}`))
         resolve(mime.lookup(data) || '')
       })
     })
