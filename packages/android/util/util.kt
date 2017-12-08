@@ -10,9 +10,12 @@
 package `in`.mubble.android.util
 
 import `in`.mubble.android.core.App
+import android.os.Handler
 import android.os.Looper
 import org.jetbrains.anko.runOnUiThread
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 /*------------------------------------------------------------------------------
@@ -51,7 +54,7 @@ fun <T> JSONObject.toImmutableList(cb: (key: String, jsonObject: JSONObject)->T)
   M U L T I    T H R E A D I N G I N G
 
 ------------------------------------------------------------------------------*/
-fun <T> executeInMainThread( closure: ()->T ): T {
+fun <T> syncExecuteInMainThread(closure: ()->T ): T {
 
   if (Looper.myLooper() === Looper.getMainLooper()) return closure()
 
@@ -70,3 +73,26 @@ fun <T> executeInMainThread( closure: ()->T ): T {
     return resp!!
   }
 }
+
+fun asyncExecuteInMainThread(closure: ()->Unit) {
+
+  Handler(Looper.getMainLooper()).post {
+    closure()
+  }
+
+}
+
+
+/*------------------------------------------------------------------------------
+
+  D A T E
+
+------------------------------------------------------------------------------*/
+fun toTimeString(ms: Long): String {
+
+  val date = Date(ms)
+  val sdf = SimpleDateFormat("HH:mm:ss.SSS", Locale.UK)
+  return sdf.format(date)
+}
+
+

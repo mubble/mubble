@@ -23,7 +23,6 @@ class MyApp : Application() {
     internal var instance: Application? = null
   }
 
-
   override fun onCreate() {
     super.onCreate()
     instance = this

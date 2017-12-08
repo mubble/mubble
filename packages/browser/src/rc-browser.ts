@@ -67,6 +67,9 @@ export abstract class RunContextBrowser extends RunContextBase {
   globalKeyVal  : GlobalKeyValue
   userKeyVal    : UserKeyValue
 
+  // Stores the old error handler
+  // private oldOnError    : any
+
   protected constructor(public initConfig   : InitConfigBrowser,
                         public runState     : RunStateBrowser,
                         contextId          ?: string, 
@@ -77,11 +80,28 @@ export abstract class RunContextBrowser extends RunContextBase {
   // Called only once in the lifetime of app during app load
   init() {
     super.init()
-    this.lang   = Mubble.Lang.English
-    this.logger = new RCBrowserLogger(this)
+    this.lang       = Mubble.Lang.English
+    this.logger     = new RCBrowserLogger(this)
+    // this.oldOnError = window.onerror
+    // window.onerror  = this.onError.bind(this)
   }
 
   clone(newRc : RunContextBrowser) {
     super.clone(newRc)
   }
+
+  // This is not getting called as errors are caught by Angular or by core.js
+  // onError(msg: string, src: string, line: number, col: number, obj) {
+
+  //   try {
+  //     const errorObj = { msg, 
+  //       source   : src + '[' + line + ':' + col + ']',
+  //       stack    : obj ? obj.stack : ''
+  //     }
+  //     this.isError() && this.error(this.getName(this), 'unhandled exception', errorObj)
+  //     if (this.oldOnError) this.oldOnError.apply(null, arguments)
+  //   } catch (e) {}
+
+  //   return false
+  // }
 }

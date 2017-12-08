@@ -18,27 +18,23 @@ import org.jetbrains.anko.toast
  * siddharthgarg on 30/11/17.
  */
 
-open class PermissionManager(private val activity: MubbleBaseActivity,
-                             private val listener: PermissionResultListener) {
+class PermissionManager(private val activity        : MubbleBaseActivity,
+                        private val askedPermGroup  : PermissionGroup,
+                        private val rationaleText   : String,
+                        private val cb : (PermissionGroup, Boolean) -> Unit) {
 
-  private var askedPermGroup  : PermissionGroup?  = null
-  private var rationaleText   : String?           = null
+  init {
 
-  fun askForPermission(permGroup: PermissionGroup, rationaleText: String) {
-
-    this.askedPermGroup = permGroup
-    this.rationaleText  = rationaleText
-
-    if (this.askedPermGroup!!.shouldShowRationale(activity)) {
-      showRationaleDialog(this.askedPermGroup)
+    if (askedPermGroup.shouldShowRationale(activity)) {
+      showRationaleDialog(askedPermGroup)
 
     } else {
-      ActivityCompat.requestPermissions(activity, this.askedPermGroup!!.groupPermissions,
-          this.askedPermGroup!!.reqCode)
+      ActivityCompat.requestPermissions(activity, askedPermGroup.groupPermissions,
+          askedPermGroup.reqCode)
     }
   }
 
-  fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>,
+  fun onRequestPermissionsResult(permissions: Array<String>,
                                  grantResults: IntArray) {
 
     var canShowRationaleDialog = false
@@ -48,22 +44,22 @@ open class PermissionManager(private val activity: MubbleBaseActivity,
 
     for (i in grantResults.indices) {
       val grantResult = grantResults[i]
-      val group       = PermissionGroup.getGroup(permissions[i])
+      val group       = PermissionGroup.getGroup(permissions[i])!!
 
       if (grantResult == PackageManager.PERMISSION_GRANTED) {
-        grantedGroups.add(group!!)
+        grantedGroups.add(group)
 
       } else {
-        rejectedGroups.add(group!!)
+        rejectedGroups.add(group)
         canShowRationaleDialog = true
       }
     }
 
     if (canShowRationaleDialog) showRationaleDialog(this.askedPermGroup)
 
-    else
+    else // TODO we are handling only one here
       grantedGroups.forEach { group ->
-        listener.onPermissionRequestResult(group, true)
+        cb(group, true)
       }
   }
 
@@ -89,7 +85,7 @@ open class PermissionManager(private val activity: MubbleBaseActivity,
 
     negBtn.setOnClickListener {
       activity.toast(R.string.prm_rationale_toast)
-      listener.onPermissionRequestResult(this.askedPermGroup!!, false)
+      cb(this.askedPermGroup!!, false)
       dialog.dismiss()
     }
 
@@ -98,11 +94,6 @@ open class PermissionManager(private val activity: MubbleBaseActivity,
     val params    = dialog.window!!.attributes
     params.width  = width
     dialog.window!!.attributes = params
-  }
-
-  interface PermissionResultListener {
-
-    fun onPermissionRequestResult(permGroup: PermissionGroup, granted: Boolean)
   }
 }
 

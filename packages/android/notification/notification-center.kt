@@ -1,9 +1,9 @@
 package `in`.mubble.android.notification
 
 import `in`.mubble.android.core.App
+import `in`.mubble.android.core.MubbleLogger
 import android.app.NotificationManager
 import android.content.Context
-import org.jetbrains.anko.AnkoLogger
 
 /*------------------------------------------------------------------------------
    About      : Notification Center
@@ -14,7 +14,7 @@ import org.jetbrains.anko.AnkoLogger
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-class NotificationCenter: AnkoLogger {
+class NotificationCenter: MubbleLogger {
 
   fun onNotification(title: String, msg: String,
                      iconName: String, iconBase64: String,
