@@ -17,7 +17,7 @@ object App {
   }
 }
 
-class MyApp : Application() {
+open class MyApp : Application() {
 
   companion object {
     internal var instance: Application? = null

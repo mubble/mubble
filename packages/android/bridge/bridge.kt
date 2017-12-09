@@ -6,6 +6,7 @@ import `in`.mubble.android.util.asyncExecuteInMainThread
 import `in`.mubble.android.util.toTimeString
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
+import org.jetbrains.anko.info
 import org.jetbrains.anko.warn
 import org.json.JSONArray
 import org.json.JSONObject
@@ -102,7 +103,9 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   private fun executeJsFunction(fnName: String, vararg args: Any?,
                                 cb: (result: String) -> Unit) {
 
-    val query = "$JS_INTERFACE.$fnName(${args.map {stringifyArg(it)}})"
+    val query = "$JS_INTERFACE.$fnName(${(args.map {stringifyArg(it)}).joinToString()})"
+
+    info {"executeJsFunction: $query"}
     webView.evaluateJavascript(query, cb)
   }
 
@@ -112,9 +115,8 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
 
       null            -> "null"
 
-      is JSONArray,
-      is JSONObject, // using single quote to avoid most of the escaping needs
-      is String       -> """'${escapeSingleQuote(arg.toString())}'"""
+      // using single quote to avoid most of the escaping needs
+      is String       -> "'${escapeSingleQuote(arg.toString())}'"
 
       is Int,
       is Long         -> String.format("%d", arg)
@@ -122,6 +124,8 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
       is Float,
       is Double       -> String.format("%f", arg)
 
+      is JSONArray,
+      is JSONObject,
       is Boolean      -> arg.toString()
 
       else            -> {check(false, {"$arg has invalid type"}); ""}
