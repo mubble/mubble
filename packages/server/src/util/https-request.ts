@@ -16,7 +16,7 @@ import {RunContextServer}    from '../rc-server'
 
 export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
 
-export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, headers ?: any): Promise<string> {
+export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, headers ?: any, encoding ?: string): Promise<string> {
     const traceId = 'executeHttpsRequest',
           ack     = rc.startTraceSpan(traceId)
     try { 
@@ -27,7 +27,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
         if(headers) urlObj.headers = headers
         const req = httpObj.request(urlObj, (outputStream: any) => {
 
-          outputStream.setEncoding('binary')
+          outputStream.setEncoding(encoding || 'binary')
 
           switch (outputStream.headers['content-encoding']) {
           case 'gzip':
