@@ -7,14 +7,13 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const language : any = require('@google-cloud/language')
-const translate : any = require('@google-cloud/translate')
-const cld : any = require('cld')
+const language  : any = require('@google-cloud/language'),
+      translate : any = require('@google-cloud/translate'),
+      cld       : any = require('cld')
 
 import * as lo                                    from 'lodash'
 import {RunContextServer}                         from '../../rc-server'
 import {GcloudEnv}                                from '../../gcp/gcloud-env'
-import { RunContextNcServer } from 'framework';
 
 export type GcpEntityInfo = {
   name          : string, 
