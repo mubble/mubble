@@ -61,25 +61,22 @@ export class GcpLanguageBase {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
-      gcloudEnv.language = language.v1beta2 ({
+      this._language = new language.LanguageServiceClient ({
         projectId   : gcloudEnv.projectId,
         credentials : gcloudEnv.authKey
       })
-      gcloudEnv.translate = new translate({
+      this._translate = new translate({
         projectId   : gcloudEnv.projectId,
         credentials : gcloudEnv.authKey
       });    
     } else {
-      gcloudEnv.language = language.v1beta2 ({
+      this._language = new language.LanguageServiceClient ({
         projectId   : gcloudEnv.projectId
       })
-      gcloudEnv.translate = new translate({
+      this._translate = new translate({
         projectId   : gcloudEnv.projectId
       });    
     }
-    this._language = gcloudEnv.language 
-    this._translate = gcloudEnv.translate
-
   }
 
   static async classifyText (rc: RunContextServer, text: string) {
@@ -180,6 +177,10 @@ export class GcpLanguageBase {
         if (response.languages.length == 0) {
           rc.isWarn () && rc.warn (rc.getName (this), 'No Language Detected, Assuming English')
           return resolve ('en')
+        }
+        if (response.languages.length > 1) {
+          const langCodes = lo.map (response.languages, (lang) => lang.name)
+          rc.isStatus () && rc.status (rc.getName (this), 'Multiple Language Detected:', JSON.stringify (langCodes))
         }
         if (response.languages[0].percent < 80) {
           rc.isWarn () && rc.warn (rc.getName (this), 'Detected Language has a lower threshold', response.languages[0].code)
