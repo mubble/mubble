@@ -112,7 +112,6 @@ export class GcloudEnv {
   public bigQuery     : any
   public pubsub       : any
   public monitoring   : any
-  public language     : any
 
   constructor(public projectId  : string,
               public namespace  : string,
