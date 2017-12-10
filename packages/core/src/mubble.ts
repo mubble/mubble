@@ -13,7 +13,8 @@ export namespace Mubble {
 
   export const Lang = {
     English : 'en',
-    Hindi   : 'hi'
+    Hindi   : 'hi',
+    Kannada : 'kn'
   }
 
   export class uError extends Error {
