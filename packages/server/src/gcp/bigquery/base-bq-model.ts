@@ -45,7 +45,7 @@ export abstract class BaseBigQuery {
   
   public static DATE_FORMAT = '%yyyy%%mm%%dd%'
   
-  public static NC_DATA_STORE : string = 'newschat'
+  public static NC_DATA_STORE : string = 'newschat_kn'
   protected static today_table : string
   
   protected static options : BigQueryTableOptions
