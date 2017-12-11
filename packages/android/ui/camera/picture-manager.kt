@@ -1,5 +1,6 @@
 package `in`.mubble.android.ui.camera
 
+import `in`.mubble.android.core.App
 import `in`.mubble.android.ui.MubbleBaseActivity
 import android.app.Activity.RESULT_OK
 import android.content.Intent
@@ -18,7 +19,7 @@ import java.io.*
  * siddharthgarg on 31/08/17.
  */
 
-class PictureManager(private val activity: MubbleBaseActivity,
+class PictureManager(private val parentActivity: MubbleBaseActivity,
                      private val listener: (JSONObject) -> Unit) {
 
   private var fileUri           : Uri?    = null
@@ -77,14 +78,14 @@ class PictureManager(private val activity: MubbleBaseActivity,
           bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
           val b = baos.toByteArray()
 
-          val storageDir = File(activity.filesDir, USERS)
+          val storageDir = File(App.instance.filesDir, USERS)
           if (!storageDir.exists()) storageDir.mkdirs()
 
           output = File(storageDir, OUTPUT_FILENAME)
           val stream = FileOutputStream(output!!)
           stream.write(b)
 
-          fileUri = FileProvider.getUriForFile(activity, AUTHORITY, output!!)
+          fileUri = FileProvider.getUriForFile(App.instance, AUTHORITY, output!!)
           cropCapturedImage(fileUri)
         }
 
@@ -103,21 +104,21 @@ class PictureManager(private val activity: MubbleBaseActivity,
 
     val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
 
-    if (takePictureIntent.resolveActivity(activity.packageManager) != null) {
+    if (takePictureIntent.resolveActivity(App.instance.packageManager) != null) {
 
-      output = File(File(activity.filesDir, USERS), OUTPUT_FILENAME)
+      output = File(File(App.instance.filesDir, USERS), OUTPUT_FILENAME)
       if (output!!.exists())
         output!!.delete()
       else
         output!!.parentFile.mkdirs()
-      fileUri = FileProvider.getUriForFile(activity, AUTHORITY, output!!)
+      fileUri = FileProvider.getUriForFile(App.instance, AUTHORITY, output!!)
 
       takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri)
       takePictureIntent.putExtra("return-data", true)
       takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
 
       this.currentReqCode = REQUEST_TAKE_PHOTO
-      activity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
+      parentActivity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
 
     } else {
       respondWithFailure(ERROR_ACT_NOT_FOUND)
@@ -128,23 +129,23 @@ class PictureManager(private val activity: MubbleBaseActivity,
 
     val galleryIntent = Intent(Intent.ACTION_GET_CONTENT)
 
-    if (galleryIntent.resolveActivity(activity.packageManager) != null) {
+    if (galleryIntent.resolveActivity(App.instance.packageManager) != null) {
       galleryIntent.type = "image/*"
       galleryIntent.putExtra("return-data", true)
 
       this.currentReqCode = REQUEST_SELECT_PHOTO
-      activity.startActivityForResult(galleryIntent, REQUEST_SELECT_PHOTO)
+      parentActivity.startActivityForResult(galleryIntent, REQUEST_SELECT_PHOTO)
 
     } else {
       val galleryPickIntent = Intent(Intent.ACTION_PICK,
       android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
 
-      if (galleryPickIntent.resolveActivity(activity.packageManager) != null) {
+      if (galleryPickIntent.resolveActivity(App.instance.packageManager) != null) {
         galleryPickIntent.type = "image/*"
         galleryPickIntent.putExtra("return-data", true)
 
         this.currentReqCode = REQUEST_SELECT_PHOTO
-        activity.startActivityForResult(galleryPickIntent, REQUEST_SELECT_PHOTO)
+        parentActivity.startActivityForResult(galleryPickIntent, REQUEST_SELECT_PHOTO)
 
       } else {
         respondWithFailure(ERROR_ACT_NOT_FOUND)
@@ -157,7 +158,7 @@ class PictureManager(private val activity: MubbleBaseActivity,
     val cropIntent = Intent("com.android.camera.action.CROP")
     cropIntent.setDataAndType(picUri, MIME_TYPE)
 
-    val list = activity.packageManager.queryIntentActivities(cropIntent, 0)
+    val list = App.instance.packageManager.queryIntentActivities(cropIntent, 0)
     val size = list.size
 
     if (size == 0) { // Cropping not supported on device
@@ -172,13 +173,13 @@ class PictureManager(private val activity: MubbleBaseActivity,
     cropIntent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString())
 
     this.currentReqCode = REQUEST_CROP_PHOTO
-    activity.startActivityForResult(cropIntent, REQUEST_CROP_PHOTO)
+    parentActivity.startActivityForResult(cropIntent, REQUEST_CROP_PHOTO)
   }
 
   @Throws(IOException::class)
   private fun getBitmapFromUri(uri: Uri?): Bitmap {
 
-    val parcelFileDescriptor = activity.contentResolver.openFileDescriptor(uri!!, "r")
+    val parcelFileDescriptor = App.instance.contentResolver.openFileDescriptor(uri!!, "r")
     val fileDescriptor = parcelFileDescriptor!!.fileDescriptor
     val image = BitmapFactory.decodeFileDescriptor(fileDescriptor)
     parcelFileDescriptor.close()
@@ -211,7 +212,7 @@ class PictureManager(private val activity: MubbleBaseActivity,
   @Throws(FileNotFoundException::class)
   private fun getBase64Data(uri: Uri?): String {
 
-    val im = activity.contentResolver.openInputStream(uri!!)
+    val im = App.instance.contentResolver.openInputStream(uri!!)
     val bm = BitmapFactory.decodeStream(im)
     return getBase64Data(bm)
   }
