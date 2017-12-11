@@ -178,14 +178,14 @@ export class GcpLanguageBase {
           return resolve ('en')
         }
         if (response.languages.length > 1) {
-          const langCodes = lo.map (response.languages, (lang) => lang.name)
+          const langCodes = lo.map (response.languages, (lang) => lang.name + ':' + lang.percent)
           rc.isStatus () && rc.status (rc.getName (this), 'Multiple Language Detected:', JSON.stringify (langCodes))
         }
         if (response.languages[0].percent < 80) {
           rc.isWarn () && rc.warn (rc.getName (this), 'Detected Language has a lower threshold', response.languages[0].code)
         }
         resolve (response.languages[0].code)
-      })
+      })  
     })
     return cldres
   }
