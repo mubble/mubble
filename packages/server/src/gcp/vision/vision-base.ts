@@ -233,13 +233,13 @@ static async processUrl(rc           : RunContextServer,
       img.noProfile()
       .colors(8)
       .stream('histogram', (error : any, stdout : any, stderr : any) => {
-        if(error || !stdout) throw(new Error(`${VISION_ERROR_CODES.TOP_COLOR_DETECTION_FAILED} : ${error || stderr}`))
+        if(error || !stdout) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error || stderr}`))
         const writeStream = new stream.PassThrough()
         let   strData     = ''
         
         writeStream.on('data', (data) => {strData = strData + data.toString()})
         writeStream.on('end', () => {resolve (strData)})
-        writeStream.on('error', (error) => {throw(new Error(`${VISION_ERROR_CODES.TOP_COLOR_DETECTION_FAILED} : ${error}`))})
+        writeStream.on('error', (error) => {throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`))})
         stdout.pipe(writeStream)
       }) 
     }) as string
@@ -249,7 +249,7 @@ static async processUrl(rc           : RunContextServer,
           endIndex   = strData.indexOf(HIST_END),
           cData      = strData.slice(beginIndex, endIndex).split('\n')
   
-    if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.TOP_COLOR_DETECTION_FAILED} : HIST_START or HIST_END not found`))
+    if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
 
     let   topColors     = lo.map(cData, this.parseHistogramLine)
     const dominantColor = topColors.shift() as any,
