@@ -210,12 +210,10 @@ export class WsBrowser {
           diff  = this.lastMessageTs + this.msPingInterval - now
 
     if (diff <= 0) {
-      // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sending ping')
+      // name: "मेरा"
       this.send(this.rc, new WireSysEvent(SYS_EVENT.PING, {}))
       return this.msPingInterval
     } else {
-      // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'diff case', {diff, now, 
-      //   lastMessageTs: this.lastMessageTs, msPingInterval: this.msPingInterval})
       return diff
     }
   }

@@ -143,7 +143,7 @@ export class EncryptionBrowser {
     } else {
 
       const inJsonStr = leader === Leader.DEF_JSON ? await pwc.inflate(temp)
-                                                   : String.fromCharCode(...temp as any),
+                                                   : this.uint8ArToStr(temp),
             inJson    = JSON.parse(inJsonStr)
 
       arData = Array.isArray(inJson) ? inJson : [inJson]
@@ -167,7 +167,7 @@ export class EncryptionBrowser {
   }
 
   public async setNewKey(syncKey: string) {
-    const arEncNewKey = this.strToUnit8Ar(atob(syncKey)),
+    const arEncNewKey = this.binToUnit8Ar(atob(syncKey)),
           arNewKey    = new Uint8Array(await crypto.subtle.decrypt(SYM_ALGO, this.ci.syncKey, arEncNewKey))
 
     this.ci.syncKey = await crypto.subtle.importKey('raw', arNewKey, SYM_ALGO, true, ['encrypt', 'decrypt'])
@@ -182,105 +182,19 @@ export class EncryptionBrowser {
     }
   }
 
-  async test() {
-    const rawKey    = await crypto.subtle.exportKey('raw', this.ci.syncKey),
-          encRawKey = new Uint8Array(await crypto.subtle.encrypt(SYM_ALGO, this.ci.syncKey, rawKey))
-    
-    console.log(encRawKey)
-    const decRawKey = new Uint8Array(await crypto.subtle.decrypt(SYM_ALGO, this.ci.syncKey, encRawKey))
-    console.log(decRawKey)
-  }
-
-
-
-  // async genKeyPair() {
-
-  //   this.keyPair = await crypto.subtle.generateKey({
-  //     name            : 'RSA-OAEP', 
-  //     modulusLength   : 2048, 
-  //     publicExponent  : new Uint8Array([0x01, 0x00, 0x01]), 
-  //     hash            : {name: "SHA-1"}
-  //   }, true, ['encrypt', 'decrypt'])
-    
-  //   this.PUB_KEY = this.logKey('publicKey', await crypto.subtle.exportKey('spki',  this.keyPair.publicKey))
-  //   this.PRI_KEY = this.logKey('privateKey', await crypto.subtle.exportKey('pkcs8', this.keyPair.privateKey))
-  // }
-
-  // logKey(type: string, ab: ArrayBuffer) {
-  //   console.log(type, ab.constructor.name, ab.byteLength)
-  //   const s = String.fromCharCode(...(new Uint8Array(ab) as any)),
-  //         bs = btoa(s)
-  //   console.log(s.length, 'base64', bs.length, bs)
-  //   return bs
-  // }
-
-  // async encrypt(str: string, pubKey ?: any) {
-
-  //   const algo    = {name: 'RSA-OAEP', hash: {name: 'SHA-1'}},
-  //         key     = pubKey || await crypto.subtle.importKey('spki', this.strToUnit8Ar(atob(this.PUB_KEY)), 
-  //                   algo , true, ['encrypt']),
-  //         encBuff = await crypto.subtle.encrypt(algo, key, this.strToUnit8Ar(str))
-
-  //   return encBuff
-  // }
-
-  // async decrypt(encBuff, privKey ?: any) {
-
-  //   const algo  = {name: 'RSA-OAEP', hash: {name: 'SHA-1'}},
-  //         key   = privKey || await crypto.subtle.importKey('pkcs8', this.strToUnit8Ar(atob(this.PRI_KEY)), 
-  //             algo , true, ['decrypt']),
-  //         arOut = await crypto.subtle.decrypt(algo, key, encBuff)
-
-  //   return String.fromCharCode(...(new Uint8Array(arOut)) as any)
-  // }
-
-  // async testWithNewKeys(s) {
-
-  //   await this.genKeyPair()
-  //   const str = s || 'this is a test',
-  //         ab  = await this.encrypt(str, this.keyPair.publicKey),
-  //         ret = await this.decrypt(ab, this.keyPair.privateKey)
-    
-  //   console.log('with new keys', ret === str, ret)
-  //   console.log(this.arrayBufferToB64(ab))
-  //   // await this.testStaticKeys(s)
-  // }
-
-  // async testStaticKeys(s) {
-    
-  //   const str = s || 'this is a test',
-  //         ab  = await this.encrypt(str),
-  //         ret = await this.decrypt(ab)
-    
-  //   return console.log('with static keys', ret === str, ret)
-  // }
-
-  // privateKeyToPem() {
-
-  //   const MAGIC = 26,
-  //         s = atob(this.PRI_KEY),
-  //         ar = new Uint8Array(s.length - MAGIC)
-
-  //   for (let i = MAGIC; i < s.length; i++) {
-  //     ar[i - MAGIC] = s.charCodeAt(i)
-  //   }
-
-  //   let i = 0, str = '', b64 = btoa(String.fromCharCode(...ar as any))
-  //   while (i < b64.length) {
-  //     str += (b64.substr(i, 64) + '\n')
-  //     i   += 64
-  //   }
-
-  //   return `-----BEGIN RSA PRIVATE KEY-----\n${str}-----END RSA PRIVATE KEY-----`
-  // }
-
-  strToUnit8Ar(binStr): Uint8Array {
+  binToUnit8Ar(binStr): Uint8Array {
     const cls:any     = Uint8Array
     return cls.from(binStr, c => c.charCodeAt(0))
   }
 
-  arrayBufferToB64(ab: ArrayBuffer) {
-    return btoa(String.fromCharCode(...new Uint8Array(ab) as any))
+  strToUnit8Ar(str): Uint8Array {
+    const TextEncoder = window['TextEncoder']
+    return new TextEncoder('utf-8').encode(str)
+  }
+
+  uint8ArToStr(uar): string {
+    const TextDecoder = window['TextDecoder']
+    return new TextDecoder('utf-8').decode(uar)
   }
 
   private extractShortCode(rc: RunContextBrowser, code: string) {
