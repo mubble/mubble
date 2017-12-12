@@ -7,8 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision = require('@google-cloud/vision'),
-      ce      = require('colour-extractor')
+const gVision = require('@google-cloud/vision')
 
 import {
         VISION_ERROR_CODES,
@@ -32,6 +31,8 @@ import * as fs                      from 'fs'
 import * as uuid                    from 'uuid/v4'
 import * as gm                      from 'gm'
 import * as mime                    from 'mime-types'
+import * as stream                  from 'stream'
+import * as lo                      from 'lodash'
 
 export class VisionBase {
 
@@ -163,7 +164,7 @@ static async processUrl(rc           : RunContextServer,
     if(options.shrink)  gmImage.resize(options.shrink.w, options.shrink.h)
     if(options.quality) gmImage.quality(options.quality)
 
-    const colorMeta = await this.getColorMeta(imageData)
+    const colorMeta = await this.getTopColors(gmImage)
 
     return {
       data          : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
@@ -179,7 +180,7 @@ static async processUrl(rc           : RunContextServer,
     const gmImage   = await gm(imageData),
           retVal    = {} as ProcessGcsReturn,
           mime      = await this.getGmMime(gmImage),
-          colorMeta = await this.getColorMeta(imageData)
+          colorMeta = await this.getTopColors(gmImage)
 
     fileInfo.mimeVal     = mime
     retVal.mime          = mime
@@ -224,153 +225,49 @@ static async processUrl(rc           : RunContextServer,
     })
   }
 
-  private static getColorMeta(image : Buffer) : Promise<{palette : any, dominantColor : any}> {
-    const retVal : any    = {palette : []}
-    let   count  : number = 0
+  private static async getTopColors(img : any) {
+    const HIST_START = 'comment={',
+          HIST_END   = '\x0A}\x0A\x0C\x0A'
 
-    return new Promise((resolve, reject) => {
-      ce.topColours(image, true, (data : any) => {
-        for(const val of data) {
-          count = count + 1
-          if(count > 10) break
-          const tempObj = {
-            r : val[1][0],
-            g : val[1][1],
-            b : val[1][2]
-          }
-          if(!retVal.dominantColor) retVal.dominantColor = tempObj
-          retVal.palette.push(tempObj)
-          resolve(retVal)
-        }
-      })
-    })
-  }
+    const strData = await new Promise((resolve, reject) => {
+      img.noProfile()
+      .colors(8)
+      .stream('histogram', (error : any, stdout : any, stderr : any) => {
+        if(error || !stdout) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error || stderr}`))
+        const writeStream = new stream.PassThrough()
+        let   strData     = ''
+        
+        writeStream.on('data', (data) => {strData = strData + data.toString()})
+        writeStream.on('end', () => {resolve (strData)})
+        writeStream.on('error', (error) => {throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`))})
+        stdout.pipe(writeStream)
+      }) 
+    }) as string
+    
+    
+    const beginIndex = strData.indexOf(HIST_START) + HIST_START.length + 1,
+          endIndex   = strData.indexOf(HIST_END),
+          cData      = strData.slice(beginIndex, endIndex).split('\n')
+  
+    if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
 
-  private static async getTopColors(img : any, tmpFilename : string) {
-    const MAX_W      = 14,
-          MIFF_START = 'comment={',
-          MIFF_END   = '\x0A}\x0A\x0C\x0A'
+    let   topColors     = lo.map(cData, this.parseHistogramLine)
+    const dominantColor = topColors.shift() as any,
+          palette       = topColors as any
 
-    return new Promise((resolve, reject) => {
-      img.size((error : any, wh : any) => {
-
-      const ratio = wh.width/MAX_W,
-            w2    = wh.width/2,
-            h2    = wh.height/2
-
-      img.noProfile()                               
-        .bitdepth(8)                               
-        .crop(w2, h2, w2/2, w2/2)                  
-        .scale(Math.ceil(wh.height/ratio), MAX_W)  
-        .write('histogram:' + tmpFilename, (error : any) => {
-          let histogram = '',
-              miffRS    = fs.createReadStream(tmpFilename, {encoding: 'utf8'})
-
-          miffRS.addListener('data', (chunk : any) => {
-            const endDelimiterPos = chunk.indexOf(MIFF_END)
-
-            if(endDelimiterPos !== -1) {
-              histogram += chunk.slice(0, endDelimiterPos + MIFF_END.length)
-              miffRS.destroy()
-            } else {
-              histogram += chunk
-            }
-          })
-
-          miffRS.addListener('close', () => {
-            fs.unlink(tmpFilename)
-
-            const histogram_start = histogram.indexOf(MIFF_START) + MIFF_START.length,
-                  colours         = this.reduceSimilar(this.clean(histogram.slice(histogram_start)
-                                      .split('\n')
-                                      .slice(1, -3)
-                                      .map(this.parseHistogramLine)
-                                    ))
-
-            const sortedColors = colours.sort(this.sortByFrequency)
-            console.log('sortedColors', sortedColors)
-          })
-        })
-      })
-    })
-  }
-
-
-  private static sortByFrequency(arg1 : any, arg2 : any) {
-    const a = arg1[0],
-          b = arg2[0]
-
-    if(a > b) return -1
-    if(a < b) return 1
-    return 0
-  }
-
-  private static reduceSimilar(xs : any) {
-    let minD = Infinity,
-        maxD = 0,
-        maxF = 0,
-        n    = 0,
-        N    = xs.length - 1
-
-    let tds = (() => {
-      const results = []
-
-      for(const x of xs) {
-        if(n === N) break
-        n = n + 1
-        const distance = this.distance(x[1], xs[n][1])
-        if(distance < minD) minD = distance
-        if(distance > maxD) maxD = distance
-        results.push(distance)
-      }
-      return results
-    })()
-
-    const avgD     = Math.sqrt(minD * maxD),
-          rs : any = []
-
-    for(const d of tds) {
-      if(d > avgD) {
-        this.include(xs[n], rs)
-        if(xs[n][0] > maxF)
-          maxF = xs[n][0]
-      }
-      n = n + 1
-    }
-    return rs.map((arg : any) => {
-      const f = arg[0],
-            c = arg[1]
-
-      return [f / maxF, c]
-    })
-  }
-
-  private static clean(xs : any) {
-    const rs = []
-
-    for (const x of xs)
-      if(x) rs.push(x)
-
-    return rs
+    return {dominantColor, palette}
   }
 
   private static parseHistogramLine(xs : any) {
     xs = xs.trim().split(':')
     if(xs.length !== 2) return null
   
-    return [
-      +xs[0], xs[1].split('(')[1].split(')')[0].split(',').map((x : any) => {
-        return +x.trim()
-      })
-    ]
-  }
+    const res = xs[1].split('(')[1].split(')')[0].split(',')
 
-  private static distance(arg1 : any, arg2 : any) {
-    return Math.sqrt(Math.pow(arg1[0] - arg2[0], 2) + Math.pow(arg1[1] - arg2[1], 2) + Math.pow(arg1[2] - arg2[2], 2))
-  }
-
-  private static include(x : any, xs : any) {
-    if(xs.indexOf(x) === -1) xs.push(x)
-    return xs
+    return {
+      r : Number(res[0]),
+      g : Number(res[1]),
+      b : Number(res[2])
+    }
   }
 }
