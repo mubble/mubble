@@ -73,7 +73,7 @@ class PermissionManager(private val activity        : MubbleBaseActivity,
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
 
     val rationaleDesc : TextView = dialogView.find(R.id.prm_rtnl_desc)
-    rationaleDesc.text = AndroidBase.fromHtml(this.rationaleText!!)
+    rationaleDesc.text = AndroidBase.fromHtml(this.rationaleText)
 
     val posBtn : Button = dialogView.find(R.id.prm_rtnl_pos_btn)
     val negBtn : Button = dialogView.find(R.id.prm_rtnl_neg_btn)
@@ -85,7 +85,7 @@ class PermissionManager(private val activity        : MubbleBaseActivity,
 
     negBtn.setOnClickListener {
       activity.toast(R.string.prm_rationale_toast)
-      cb(this.askedPermGroup!!, false)
+      cb(this.askedPermGroup, false)
       dialog.dismiss()
     }
 
