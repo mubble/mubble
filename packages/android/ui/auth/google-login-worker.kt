@@ -133,9 +133,9 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   override fun onConnectionFailed(connectionResult: ConnectionResult) {
 
-    hideProgressDialog()
-    onSignInComplete(ERROR_CONNECTION_FAIL, null, null)
-    cleanUp()
+//    hideProgressDialog()
+//    onSignInComplete(ERROR_CONNECTION_FAIL, null, null)
+//    cleanUp()
   }
 
   private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount?) {

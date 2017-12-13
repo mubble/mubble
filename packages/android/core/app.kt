@@ -1,9 +1,8 @@
 package `in`.mubble.android.core
 
-import `in`.mubble.newschat.app.Const
+import `in`.mubble.android.ui.MubbleBaseActivity
 import android.app.Application
-import android.content.Intent
-import android.support.v4.content.LocalBroadcastManager
+import java.lang.ref.WeakReference
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -14,9 +13,11 @@ import android.support.v4.content.LocalBroadcastManager
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-open class MyApp : Application() {
+abstract class MyApp : Application() {
 
-  var initDone : Boolean = false
+  abstract val splashResourceId : Int
+  private  var initDone         : Boolean = false // late
+  private  var notifyActivity   : WeakReference<MubbleBaseActivity>? = null
 
   companion object {
     internal var instance: MyApp? = null
@@ -26,26 +27,29 @@ open class MyApp : Application() {
     super.onCreate()
 
     instance = this
-    initialize { this.onInitDone(it) }
+    onAppInit()
   }
 
-  open fun initialize(cb: (Boolean) -> Unit) {
-    cb(true)
+  fun isAppInitialized(activity: MubbleBaseActivity? = null): Boolean {
+
+    if (initDone) return true
+    if (activity !== null) notifyActivity = WeakReference(activity)
+    return false
   }
 
-  private fun onInitDone(initDone: Boolean) {
+  abstract protected fun onAppInit()
 
-    if (initDone) {
+  protected fun onAppInitComplete() {
 
-      this.initDone = initDone
+    check(initDone === false)
 
-      val intent = Intent(Const.LocalBroadcastMsg.ACTION)
-      intent.putExtra(Const.LocalBroadcastMsg.PAYLOAD_ID, Const.LocalBroadcastMsg.Payload.INIT_DONE)
-      LocalBroadcastManager.getInstance(applicationContext).sendBroadcast(intent)
+    initDone = true
 
-    } else {
-      // Init failed: codeBug
-    }
+    if (notifyActivity === null) return
+
+    val activity = notifyActivity!!.get()
+    activity?.mubbleAppInitialized()
+    notifyActivity = null
   }
 }
 

@@ -6,10 +6,8 @@ import `in`.mubble.newschat.app.Const
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Bundle
 import android.os.PersistableBundle
-import android.support.v4.content.LocalBroadcastManager
 import android.support.v7.app.AppCompatActivity
 import org.jetbrains.anko.info
 
@@ -23,10 +21,6 @@ import org.jetbrains.anko.info
 ------------------------------------------------------------------------------*/
 
 abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
-
-  abstract fun getBaseLayout(): Int
-
-  private var initDone : Boolean = false
 
   private val broadCastReceiver: BroadcastReceiver = object : BroadcastReceiver() {
 
@@ -49,94 +43,88 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
 
   final override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
-
-    setContentView(getBaseLayout())
-    initDone = App.instance.initDone
-
-    LocalBroadcastManager.getInstance(this).registerReceiver(
-        broadCastReceiver, IntentFilter(Const.LocalBroadcastMsg.ACTION))
-
-    if (!initDone) return
-
-    onMubbleCreate(savedInstanceState, null)
+    if (!App.instance.isAppInitialized(this)) {
+      setContentView(App.instance.splashResourceId)
+    } else {
+      onMubbleCreate(savedInstanceState, null)
+    }
   }
 
   final override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
     super.onCreate(savedInstanceState, persistentState)
-
-    if (!initDone) return
-    onMubbleCreate(savedInstanceState, persistentState)
+    if (!App.instance.isAppInitialized(this)) {
+      setContentView(App.instance.splashResourceId)
+    } else {
+      onMubbleCreate(savedInstanceState, persistentState)
+    }
   }
 
   final override fun onPostCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
     super.onPostCreate(savedInstanceState, persistentState)
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubblePostCreate(savedInstanceState, persistentState)
   }
 
   final override fun onPostCreate(savedInstanceState: Bundle?) {
     super.onPostCreate(savedInstanceState)
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubblePostCreate(savedInstanceState, null)
   }
 
   final override fun onRestart() {
     super.onRestart()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubbleRestart()
   }
 
   final override fun onStart() {
     super.onStart()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubbleStart()
   }
 
   final override fun onResume() {
     super.onResume()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubbleResume()
   }
 
   final override fun onResumeFragments() {
     super.onResumeFragments()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubbleResumeFragments()
   }
 
   final override fun onPostResume() {
     super.onPostResume()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubblePostResume()
   }
 
   final override fun onPause() {
     super.onPause()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubblePause()
   }
 
   final override fun onStop() {
     super.onStop()
 
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubbleStop()
   }
 
   final override fun onDestroy() {
     super.onDestroy()
-
-    LocalBroadcastManager.getInstance(this).unregisterReceiver(broadCastReceiver)
-
-    if (!initDone) return
+    if (!App.instance.isAppInitialized()) return
     onMubbleDestroy()
   }
 
@@ -182,6 +170,10 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
 
   open fun onMubbleLocalBroadcast(payloadId: String, intent: Intent) {
 
+  }
+
+  fun mubbleAppInitialized() {
+    relaunchSelf()
   }
 
   fun relaunchSelf() {

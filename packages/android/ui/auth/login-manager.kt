@@ -1,7 +1,9 @@
 package `in`.mubble.android.ui.auth
 
+import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.ui.MubbleBaseActivity
 import android.content.Intent
+import org.jetbrains.anko.info
 
 /**
  * Created by
@@ -10,10 +12,10 @@ import android.content.Intent
 
 open class LoginManager(private val activity: MubbleBaseActivity,
                         private val partner: PARTNER,
-                        private val cb: (responseCode: String, clientId: String?, idToken: String?) -> Unit) {
+                        private val cb: (responseCode: String, clientId: String?, idToken: String?) -> Unit): MubbleLogger {
 
-  private var requestCode   : Int           = -1
-  private var currentWorker : LoginWorker?  = null
+  private val requestCode   : Int
+  private val currentWorker : LoginWorker
 
   init {
 
@@ -21,25 +23,29 @@ open class LoginManager(private val activity: MubbleBaseActivity,
 
       PARTNER.GOOGLE -> {
         currentWorker = GoogleLoginWorker(activity, this)
-        requestCode   = currentWorker!!.signIn()
+        requestCode   = currentWorker.signIn()
       }
 
       PARTNER.FACEBOOK -> {
         currentWorker = FacebookLoginWorker(activity, this)
-        requestCode   = currentWorker!!.signIn()
+        requestCode   = currentWorker.signIn()
       }
     }
 
+    info { "init partner:$partner requestCode:$requestCode" }
   }
 
-  fun onActivityResult(resultCode: Int, data: Intent) = currentWorker!!.onActivityResult(requestCode, resultCode, data)
+  fun onActivityResult(resultCode: Int, data: Intent) {
+    info { "onActivityResult resultCode:$resultCode" }
+    currentWorker.onActivityResult(requestCode, resultCode, data)
+  }
 
   fun isLoginRequestCode(requestCode: Int): Boolean = requestCode == this.requestCode
 
   fun onSignInComplete(responseCode: String, clientId: String?, idToken: String?) {
 
+    info { "onSignInComplete responseCode:$responseCode clientId:$clientId idToken:$idToken" }
     cb(responseCode, clientId, idToken)
-    currentWorker = null
   }
 
   enum class PARTNER {
