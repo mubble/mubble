@@ -164,7 +164,7 @@ static async processUrl(rc           : RunContextServer,
     if(options.shrink)  gmImage.resize(options.shrink.w, options.shrink.h)
     if(options.quality) gmImage.quality(options.quality)
 
-    const colorMeta = await this.getTopColors(gmImage)
+    const colorMeta = await this.getTopColors(lo.cloneDeep(gmImage))
 
     return {
       data          : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
@@ -180,7 +180,7 @@ static async processUrl(rc           : RunContextServer,
     const gmImage   = await gm(imageData),
           retVal    = {} as ProcessGcsReturn,
           mime      = await this.getGmMime(gmImage),
-          colorMeta = await this.getTopColors(gmImage)
+          colorMeta = await this.getTopColors(lo.cloneDeep(gmImage))
 
     fileInfo.mimeVal     = mime
     retVal.mime          = mime
