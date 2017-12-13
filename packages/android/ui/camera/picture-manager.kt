@@ -200,10 +200,11 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
                                cropped: Boolean?, failureCode: String?) {
 
     val jsonObject = JSONObject()
-    jsonObject.put("success", true)
+    jsonObject.put("success", success)
     jsonObject.put("base64", base64)
     jsonObject.put("mimeType", mimeType)
     jsonObject.put("cropped", cropped)
+    jsonObject.put("failureCode", failureCode)
 
     listener(jsonObject)
     cleanUp()
