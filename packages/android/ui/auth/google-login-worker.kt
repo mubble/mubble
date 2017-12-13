@@ -2,6 +2,7 @@ package `in`.mubble.android.ui.auth
 
 import `in`.mubble.android.ui.MubbleBaseActivity
 import `in`.mubble.newschat.R
+import `in`.mubble.newschat.utils.AndroidBase
 import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
@@ -65,6 +66,14 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 //  }
 
   override fun signIn(): Int {
+
+    val connResult: Int = AndroidBase.checkPlayServices(activity)
+
+    if (connResult != ConnectionResult.SUCCESS) {
+      val handled = AndroidBase.updatePlayServices(activity, connResult)
+      onSignInComplete(if(handled) ERROR_PLAY_SERVICES else ERROR_SIGN_IN_FAIL, null, null)
+      return -1
+    }
 
     sessionSignOut()
 
@@ -165,6 +174,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
   companion object {
 
     val RC_SIGN_IN            = 9001
+    val ERROR_PLAY_SERVICES   = "playServicesFailure"
     val ERROR_CONNECTION_FAIL = "connectionFailure"
     val ERROR_SIGN_IN_FAIL    = "signInFailure"
     val ERROR_CANCELLED       = "cancelled"
