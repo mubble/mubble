@@ -166,7 +166,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
 
     let response: any
     if(inputData && options.headers && !options.headers['Content-Length']) 
-        options.headers['Content-Length'] = inputData.length
+        options.headers['Content-Length'] = Buffer.byteLength(inputData , 'utf-8')
 
     const traceId = 'executeHttpResultResponse',
           ack     = rc.startTraceSpan(traceId)
