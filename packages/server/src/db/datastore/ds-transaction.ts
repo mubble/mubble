@@ -73,10 +73,9 @@ export class DSTransaction {
       await this._transaction.commit()
     } catch(err) {
       await this._transaction.rollback()
-      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      else rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
+      rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
-    }finally{
+    } finally {
       rc.endTraceSpan(this.traceId , this.ack)
     }
   }
