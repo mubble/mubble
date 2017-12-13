@@ -28,6 +28,7 @@ abstract class MyApp : Application() {
 
     instance = this
     onAppInit()
+
   }
 
   fun isAppInitialized(activity: MubbleBaseActivity? = null): Boolean {
