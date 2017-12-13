@@ -142,9 +142,9 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   override fun onConnectionFailed(connectionResult: ConnectionResult) {
 
-//    hideProgressDialog()
-//    onSignInComplete(ERROR_CONNECTION_FAIL, null, null)
-//    cleanUp()
+    hideProgressDialog()
+    onSignInComplete(ERROR_CONNECTION_FAIL, null, null)
+    cleanUp()
   }
 
   private fun firebaseAuthWithGoogle(acct: GoogleSignInAccount?) {
@@ -158,7 +158,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
             activity.getString(R.string.default_web_client_id), acct.idToken)
 
       } else {
-        onSignInComplete(ERROR_SIGN_IN_FAIL, null, null)
+        onSignInComplete(ERROR_FIREBASE_AUTH, null, null)
       }
       hideProgressDialog()
       cleanUp()
@@ -177,6 +177,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     val ERROR_PLAY_SERVICES   = "playServicesFailure"
     val ERROR_CONNECTION_FAIL = "connectionFailure"
     val ERROR_SIGN_IN_FAIL    = "signInFailure"
+    val ERROR_FIREBASE_AUTH   = "firebaseAuthFailure"
     val ERROR_CANCELLED       = "cancelled"
   }
 }
