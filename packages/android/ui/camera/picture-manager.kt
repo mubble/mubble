@@ -134,7 +134,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
       galleryIntent.putExtra("return-data", true)
 
       this.currentReqCode = REQUEST_SELECT_PHOTO
-      parentActivity.startActivityForResult(galleryIntent, REQUEST_SELECT_PHOTO)
+      parentActivity.startActivityForResult(Intent.createChooser(galleryIntent, "Select Picture"), REQUEST_SELECT_PHOTO)
 
     } else {
       val galleryPickIntent = Intent(Intent.ACTION_PICK,
@@ -145,7 +145,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
         galleryPickIntent.putExtra("return-data", true)
 
         this.currentReqCode = REQUEST_SELECT_PHOTO
-        parentActivity.startActivityForResult(galleryPickIntent, REQUEST_SELECT_PHOTO)
+        parentActivity.startActivityForResult(Intent.createChooser(galleryPickIntent, "Select Picture"), REQUEST_SELECT_PHOTO)
 
       } else {
         respondWithFailure(ERROR_ACT_NOT_FOUND)
@@ -193,17 +193,18 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
   private fun respondWithSuccess(base64: String?, cropped: Boolean) {
 
-    onPictureResult(false, base64, MIME_TYPE, cropped, null)
+    onPictureResult(true, base64, MIME_TYPE, cropped, null)
   }
 
   private fun onPictureResult(success: Boolean, base64: String?, mimeType: String?,
                                cropped: Boolean?, failureCode: String?) {
 
     val jsonObject = JSONObject()
-    jsonObject.put("success", true)
+    jsonObject.put("success", success)
     jsonObject.put("base64", base64)
     jsonObject.put("mimeType", mimeType)
     jsonObject.put("cropped", cropped)
+    jsonObject.put("failureCode", failureCode)
 
     listener(jsonObject)
     cleanUp()
