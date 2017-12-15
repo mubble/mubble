@@ -18,7 +18,6 @@ export type ProcessedReturn = {
   mime          : string,
   height        : number,
   width         : number,
-  dominantColor : rgb,
   palette       : rgb[]
 }
 

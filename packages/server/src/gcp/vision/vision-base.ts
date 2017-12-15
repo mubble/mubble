@@ -164,15 +164,14 @@ static async processUrl(rc           : RunContextServer,
     if(options.shrink)  gmImage.resize(options.shrink.w, options.shrink.h)
     if(options.quality) gmImage.quality(options.quality)
 
-    const colorMeta = await this.getTopColors(lo.cloneDeep(gmImage))
+    const palette = await this.getTopColors(lo.cloneDeep(gmImage))
 
     return {
       data          : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
       mime          : await this.getGmMime(gmImage),
       height        : (options.shrink) ? options.shrink.h : height,
       width         : (options.shrink) ? options.shrink.w : width,
-      palette       : colorMeta.palette,
-      dominantColor : colorMeta.dominantColor
+      palette       : palette as any
     }
   }
 
@@ -180,12 +179,11 @@ static async processUrl(rc           : RunContextServer,
     const gmImage   = await gm(imageData),
           retVal    = {} as ProcessGcsReturn,
           mime      = await this.getGmMime(gmImage),
-          colorMeta = await this.getTopColors(lo.cloneDeep(gmImage))
+          palette   = await this.getTopColors(lo.cloneDeep(gmImage))
 
-    fileInfo.mimeVal     = mime
-    retVal.mime          = mime
-    retVal.palette       = colorMeta.palette,
-    retVal.dominantColor = colorMeta.dominantColor
+    fileInfo.mimeVal = mime
+    retVal.mime      = mime
+    retVal.palette   = palette as any
 
     if(options.crops && options.crops.length) {
       const crops  = options.crops,
@@ -251,11 +249,7 @@ static async processUrl(rc           : RunContextServer,
   
     if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
 
-    let   topColors     = lo.map(cData, this.parseHistogramLine)
-    const dominantColor = topColors.shift() as any,
-          palette       = topColors as any
-
-    return {dominantColor, palette}
+    return lo.map(cData, this.parseHistogramLine)
   }
 
   private static parseHistogramLine(xs : any) {
