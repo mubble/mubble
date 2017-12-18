@@ -130,26 +130,6 @@ export class CloudStorageBase {
     return (extension ? (basename + '.' + extension) : basename)
   }
     
-  static async getFileName(rc : RunContextServer, bucketName : string, path : string, extension : string | false) {
-    // TODO: THis filePath check is buggy for file names with append (_16x9...)
-    let id = UUIDv4()
-    const traceId : string = rc.getName(this)+':'+'getFileName',
-    ack = rc.startTraceSpan(traceId)
-    try{
-      while(true) {
-        const filePath = `${path}/${id}.${extension}`,
-              res      = await this.fileExists(rc, bucketName, filePath)
-        if(res) {
-          id = UUIDv4()
-        } else {
-          return id
-        }
-      }
-    }finally{
-      rc.endTraceSpan(traceId,ack)
-    }
-  }
-
   static async upload(rc : RunContextServer, bucketName : string, filePath : string, destination : string) : Promise<string> {
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           traceId : string = rc.getName(this) + ':' + 'upload',
