@@ -151,8 +151,8 @@ export class GcpLanguageBase {
     const allTags = lo(entities).orderBy(['occurences', 'salience'], ['desc', 'desc'])
     .flatMap((v : any) => {
       if(v.occurences == 1) return []
-      if(v.name.split(' ') == 1 && (v.name.charCodeAt(0) >= 65 && v.name.charCodeAt(0) < 97)) return [v.name]
       if(v.name.split(' ') > 1) return [v.name]
+      if(v.name.charCodeAt(0) >= 65 && v.name.charCodeAt(0) < 97) return [v.name]
       return []
     })
     .value()
