@@ -14,6 +14,7 @@ const language  : any = require('@google-cloud/language'),
 import * as lo                                    from 'lodash'
 import {RunContextServer}                         from '../../rc-server'
 import {GcloudEnv}                                from '../../gcp/gcloud-env'
+import { RunContextNcServer } from 'framework';
 
 export type GcpEntityInfo = {
   name          : string, 
@@ -146,6 +147,18 @@ export class GcpLanguageBase {
     if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
 
+  static getTopNTags (rc: RunContextNcServer, entities: Array<GcpEntityInfo>, count: number) {
+    const allTags = lo(entities).orderBy(['occurences', 'salience'], ['desc', 'desc'])
+    .flatMap((v : any) => {
+      if(v.occurences == 1) return []
+      if(v.name.split(' ') == 1 && (v.name.charCodeAt(0) >= 65 && v.name.charCodeAt(0) < 97)) return [v.name]
+      if(v.name.split(' ') > 1) return [v.name]
+      return []
+    })
+    .value()
+    return allTags.slice(0, count)  // Give max 'count' tags
+}
+  
   private static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<GcpTopicInfo>> {
     try {
       const res   =  await this._language.classifyText ({document: document}) 
