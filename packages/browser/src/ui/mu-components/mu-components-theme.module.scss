@@ -1,0 +1,25 @@
+@mixin mu-components-module-theme($theme) {
+
+  $primary: map-get($theme, primary);
+  $accent: map-get($theme, accent);
+  $warn: map-get($theme, warn);
+  $nc-colorful: map-get($theme, nc-colorful);
+  $foreground: map-get($theme, foreground);
+  $background: map-get($theme, background);
+  
+  .mu-components-module {
+
+    .bottom-in-toolbar-outline {
+      outline: 1px solid mat-color($foreground, divider)
+    }
+
+    .bottom-in-container {
+      background-color: mat-color($background, background);
+    }
+
+    .modal-root-div {
+      background: mat-color($background, background);
+    }
+
+  }
+}
