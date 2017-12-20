@@ -1,4 +1,5 @@
 export const ComponentRoutes = {
   Modal                         : 'modal',
-  BottomIn                      : 'bottomIn'
+  BottomIn                      : 'bottomIn',
+  LoadingOverlay                : 'loadingOvr'
 }

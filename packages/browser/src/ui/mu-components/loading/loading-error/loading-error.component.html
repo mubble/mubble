@@ -1,0 +1,13 @@
+<div class="mu-components-module">
+  <div class="loading-root">
+    <div class="text-body error-text-cont">
+      {{apiErrorText}}
+    </div>
+
+    <div class="error-btn-cont" *ngIf="apiCanRetry">
+      <button class="error-btn button-primary" 
+        (click)="onErrorAction()">{{apiRetryText}}
+      </button>
+    </div>
+  </div>
+</div>

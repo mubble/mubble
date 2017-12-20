@@ -19,8 +19,13 @@ import {  ActivatedRoute }      from '@angular/router'
 
 import { Nail,
          NailInterface,
-         AXIS, UiRouter, 
-         BottomInInterface, 
+         AXIS }                 from '../../nail'
+
+import { UiRouter }             from '../../router'
+
+import { DomHelper }            from '../../../util'
+
+import { BottomInInterface, 
          InjectionParentBase, 
          LOG_LEVEL, 
          RunContextBrowser}     from '@mubble/browser'
@@ -33,7 +38,6 @@ import {  query,
           group,
           animate }             from "@angular/animations"
 
-import { DomHelper }            from '@mubble/browser'
 import * as $                   from 'jquery'
 import { Mubble }               from '@mubble/core'
 

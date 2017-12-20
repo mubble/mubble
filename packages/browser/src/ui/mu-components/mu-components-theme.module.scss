@@ -21,5 +21,21 @@
       background: mat-color($background, background);
     }
 
+    .loading-root {
+      background: mat-color($background, background);
+    }
+
+    .component-loader {
+      background: mat-color($background, background);
+    }
+
+    .toast-text {
+      color: mat-color($foreground, toast-text);
+    }
+
+    .toast {
+      background: mat-color($background, toast-bg);
+    }
+
   }
 }
