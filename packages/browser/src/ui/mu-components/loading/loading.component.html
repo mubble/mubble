@@ -1,0 +1,11 @@
+<div class="mu-components-module">
+  <div class="loading-root">
+    <div class="spinner-cont"
+        [class.spinner-cont-top]="apiLoadingBottomIn">
+      <mat-spinner class="spinner" [strokeWidth]="3" [diameter]="35"></mat-spinner>
+    </div>
+    <div class="loading-text text-body">
+      {{apiLoadingText}}
+    </div>
+  </div>
+</div>

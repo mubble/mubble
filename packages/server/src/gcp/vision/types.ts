@@ -37,6 +37,11 @@ export type ProcessGcsReturn = {
   palette       : rgb[]
 }
 
+export type ImageMeta = {
+  width  : number,
+  height : number,
+}
+
 export type rgb = {
   r : number
   g : number

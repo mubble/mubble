@@ -1,0 +1,40 @@
+.main {
+  box-sizing: border-box;
+  width: 100vw;
+  position: absolute;
+  transform: translate3d(0, 0, 100px);
+  min-height: 100vh;
+  perspective: 1000px;
+  perspective-origin: center center;
+}
+
+.icon-align-right {
+  float: right;
+}
+
+.title {
+  margin-left: 2vw;
+}
+
+.left-button {
+  flex-grow: 0;
+}
+
+.right-button {
+  flex-grow: 0;
+}
+
+.component-container {
+  width: 100%;
+  overflow-y: auto;
+}
+
+.bottom-in-container {
+  width: 100%;
+}
+
+.test-bottom-in-title{}
+
+.test-bottom-in-less{}
+
+.test-bottom-in-more{}

@@ -133,7 +133,7 @@ export class ClusterMaster {
   }
 
   async checkRunning (rc : RunContextServer) {
-
+    
     const serverName  = this.config.SERVER_NAME,
           fileName    = crypto.createHash('md5').update(serverName).digest('hex') + '_' + serverName,
           fullPath    = path.join( os.tmpdir(), fileName)
@@ -311,7 +311,7 @@ class WorkerInfo {
   // either in case of fresh start, death, reload (code change or excessive memory usage) 
   public fork(rc: RunContextServer) {
     this.worker       = cluster.fork()
-    this.forkId       = this.worker.id
+    this.forkId       = this.worker.id as any
     this.lastStartTS  = Date.now()
     this.state        = WORKER_STATE.STARTED
     rc.isDebug() && rc.debug(rc.getName(this), 'Forking worker with index', this.workerIndex)

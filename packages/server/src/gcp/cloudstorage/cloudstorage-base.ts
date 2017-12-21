@@ -125,7 +125,7 @@ export class CloudStorageBase {
     
   private static getFileNameFromInfo (rc: RunContextServer, fileInfo: GcsUUIDFileInfo) {
     const extension = mime.extension(fileInfo.mimeVal),
-          basename  = `${fileInfo.namePrefix}${fileInfo.fileId}${fileInfo.nameSuffix}`
+          basename  = `${fileInfo.namePrefix || ''}${fileInfo.fileId}${fileInfo.nameSuffix || ''}`
 
     return (extension ? (basename + '.' + extension) : basename)
   }

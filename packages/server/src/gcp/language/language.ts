@@ -14,7 +14,6 @@ const language  : any = require('@google-cloud/language'),
 import * as lo                                    from 'lodash'
 import {RunContextServer}                         from '../../rc-server'
 import {GcloudEnv}                                from '../../gcp/gcloud-env'
-import { RunContextNcServer } from 'framework';
 
 export type GcpEntityInfo = {
   name          : string, 
@@ -147,7 +146,7 @@ export class GcpLanguageBase {
     if (dups.length) rc.isDebug && rc.debug (rc.getName (this), '\t==>Duplicates:', JSON.stringify (dups))
   }
 
-  static getTopNTags (rc: RunContextNcServer, entities: Array<GcpEntityInfo>, count: number) {
+  static getTopNTags (rc: RunContextServer, entities: Array<GcpEntityInfo>, count: number) {
     const allTags = lo(entities).orderBy(['occurences', 'salience'], ['desc', 'desc'])
     .flatMap((v : any) => {
       if(v.occurences == 1) return []
