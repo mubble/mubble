@@ -13,6 +13,7 @@ import * as zlib             from 'zlib'
 import * as url              from 'url'
 import * as request          from 'request'
 import {RunContextServer}    from '../rc-server'
+import * as stream           from 'stream'
 
 export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
 
@@ -43,11 +44,11 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
             response += chunk
           })
           outputStream.on('end', () => {
-            return resolve(response)
+            resolve(response)
           })
           outputStream.on('error', (err: any) => {
             rc.isStatus() && rc.status(rc.getName(this), `Error : ${err}`)
-            return reject(response)
+            reject(response)
           })
         })
 
@@ -70,6 +71,48 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
     }
   }
 
+  export async function getStream(rc: RunContextServer, urlStr: string, headers ?: any, encoding ?: string): Promise<stream> {
+    const traceId = 'executeHttpsRequest',
+          ack     = rc.startTraceSpan(traceId)
+    try { 
+      return await new Promise<stream>((resolve, reject) => {
+        const urlObj : any = url.parse(urlStr),
+              httpObj: any = urlObj.protocol === 'https:' ? https : http
+      
+        if(headers) urlObj.headers = headers
+
+        httpObj.request(urlObj, (outputStream : any) => {
+
+          outputStream.setEncoding(encoding || 'binary')
+
+          switch (outputStream.headers['content-encoding']) {
+          case 'gzip':
+            outputStream = outputStream.pipe(zlib.createGunzip())
+            break
+          case 'deflate':
+            outputStream = outputStream.pipe(zlib.createInflate())
+            break
+          }
+
+          resolve(outputStream)
+        })
+        .on('response', (res: any) => {
+          const hostname = url.parse(urlStr).host
+          rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + hostname + '], Status Code: ' + res.statusCode, 
+            'Content Length:', res.headers['content-length'], '/', res.headers['transfer-encoding'])
+        })
+        .on('error', (err: any) => {
+          rc.isStatus() && rc.status(rc.getName(this), err)
+          if(err.errno && err.errno === 'ENOTFOUND') return resolve(undefined) 
+          return reject(err)
+        })
+        .end()
+      })
+    } finally {
+      rc.endTraceSpan(traceId,ack)
+    }
+  }
+
   export async function executeHttpsWithOptions(rc: RunContextServer, urlObj: any, inputData ?: string): Promise<string> {
     const traceId = 'executeHttpsWithOptions',
           ack     = rc.startTraceSpan(traceId)
@@ -80,7 +123,7 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
         let   statusCode : number = 200
         
         if(inputData && !urlObj.headers['Content-Length'])
-          urlObj.headers['Content-Length'] = Buffer.byteLength(inputData)
+          urlObj.headers['Content-Length'] = Buffer.byteLength(inputData, 'utf8')
           
         if(httpObj === https)
           urlObj.agent = new https.Agent({keepAlive: true})

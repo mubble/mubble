@@ -40,7 +40,7 @@ export class HttpServer {
 
     ci.protocol       = this.secure ? Protocol.HTTPS : Protocol.HTTP
     ci.host           = host
-    ci.port           = port || (urlObj.protocol === 'https' ? 443 : 80)
+    ci.port           = Number(port) || (urlObj.protocol === 'https' ? 443 : 80)
     ci.url            = req.url || ''
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)

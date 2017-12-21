@@ -21,7 +21,8 @@ import {
         VisionParameters,
         ProcessedReturn,
         ProcessOptions,
-        ProcessGcsReturn
+        ProcessGcsReturn,
+        ImageMeta
        }                            from './types'
 import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
@@ -114,6 +115,22 @@ static async processUrl(rc           : RunContextServer,
           } as ProcessOptions
     
     return VisionBase.processAndUpload(rc, imageData, processOptions, fileInfo)
+}
+
+static getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
+  const gmImage = gm(imageData)
+
+  return new Promise((resolve, reject) => {
+    gmImage.size((error, size) => {
+      if(error) reject(error)
+
+      const retVal : ImageMeta = {
+        height : size.height,
+        width  : size.width
+      }
+      resolve(retVal) 
+    })
+  })
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
