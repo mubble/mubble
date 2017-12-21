@@ -67,7 +67,6 @@ export abstract class BaseDatastore {
   abstract getUniqueConstraints(rc : RunContextServer) : Array<string>
 
 /*------------------------------------------------------------------------------
-  // TODO: (AD) Redo the documentation
   - Get Child Entities 
   - Return Values is an object with 
     - field Name of the childEntity within this Entity (Parent Entity)
@@ -419,6 +418,12 @@ static getKindName(rc : RunContextServer) {
   return this._kindName
 }
 
+/*------------------------------------------------------------------------------
+  - Get Create Ts
+------------------------------------------------------------------------------*/ 
+getCreateTs(rc: RunContextServer) {
+  return this.createTs
+}
   
 /*------------------------------------------------------------------------------
   - Get ID from result
