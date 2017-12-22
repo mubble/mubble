@@ -4,66 +4,121 @@ import `in`.mubble.android.ui.MubbleBaseActivity
 import `in`.mubble.newschat.R
 import `in`.mubble.newschat.utils.AndroidBase
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.pm.PackageManager
+import android.net.Uri
+import android.provider.Settings
 import android.support.v4.app.ActivityCompat
 import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
 import android.view.Window
 import android.widget.Button
 import android.widget.TextView
 import org.jetbrains.anko.find
 import org.jetbrains.anko.toast
+import java.util.*
 
 /**
  * Created by
  * siddharthgarg on 30/11/17.
  */
 
-class PermissionManager(private val activity        : MubbleBaseActivity,
-                        private val askedPermGroup  : PermissionGroup,
-                        private val rationaleText   : String,
-                        private val cb : (PermissionGroup, Boolean) -> Unit) {
+class AskedPermission(private val permissionGroup : PermissionGroup,
+                      private val rationaleText   : String) {
 
-  init {
+  fun getPermissionGroup(): PermissionGroup = permissionGroup
 
-    if (askedPermGroup.shouldShowRationale(activity)) {
-      showRationaleDialog(askedPermGroup)
+  fun getRationaleText(): String = rationaleText
+}
+
+class PermissionManager(private val activity : MubbleBaseActivity,
+                        private val cb       : (MutableSet<AskedPermission>, Boolean) -> Unit) {
+
+  private val askedPerms = mutableSetOf<AskedPermission>()
+
+  private var requestTime     : Long    = -1
+  private var requestPending  : Boolean = false
+
+  companion object {
+
+    private val APP_PERMISSIONS_REQ_CODE = 1
+  }
+
+  fun askAppPermissions(askedPerms : MutableSet<AskedPermission>) {
+
+    if (requestPending) return
+    requestPending = true
+
+    this.askedPerms.addAll(askedPerms)
+
+    var canShowRationale  = false
+    val wantedPerms       = mutableSetOf<AskedPermission>()
+    val perms             = mutableListOf<String>()
+
+    for (perm in askedPerms) {
+      val group = perm.getPermissionGroup()
+      if (!group.hasPermission(activity)) {
+        wantedPerms.add(perm)
+        perms.addAll(group.groupPermissions)
+        if (group.shouldShowRationale(activity)) canShowRationale = true
+      }
+    }
+
+    if (wantedPerms.isEmpty()) {
+      cb(askedPerms, true)
+      return
+    }
+
+    if (canShowRationale) {
+      showRationaleDialog(wantedPerms)
 
     } else {
-      ActivityCompat.requestPermissions(activity, askedPermGroup.groupPermissions,
-          askedPermGroup.reqCode)
+      this.requestTime = Calendar.getInstance().timeInMillis
+      ActivityCompat.requestPermissions(activity, perms.toTypedArray(), APP_PERMISSIONS_REQ_CODE)
     }
   }
 
-  fun onRequestPermissionsResult(permissions: Array<String>,
-                                 grantResults: IntArray) {
+  fun onRequestPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
+
+    requestPending = false
 
     var canShowRationaleDialog = false
 
-    val grantedGroups  = mutableSetOf<PermissionGroup>()
-    val rejectedGroups = mutableSetOf<PermissionGroup>()
+    val grantedGroups  = mutableSetOf<AskedPermission>()
+    val rejectedGroups = mutableSetOf<AskedPermission>()
 
     for (i in grantResults.indices) {
       val grantResult = grantResults[i]
       val group       = PermissionGroup.getGroup(permissions[i])!!
+      var askedGroup: AskedPermission? = null
+
+      askedPerms
+          .filter { it.getPermissionGroup() == group }
+          .forEach { askedGroup = it }
 
       if (grantResult == PackageManager.PERMISSION_GRANTED) {
-        grantedGroups.add(group)
+        grantedGroups.add(askedGroup!!)
 
       } else {
-        rejectedGroups.add(group)
-        canShowRationaleDialog = true
+        canShowRationaleDialog = canShowRationaleDialog || group.shouldShowRationale(activity)
+        rejectedGroups.add(askedGroup!!)
       }
     }
 
-    if (canShowRationaleDialog) showRationaleDialog(this.askedPermGroup)
+    if (rejectedGroups.isEmpty()) {
+      cb(askedPerms, true)
+      return
+    }
 
-    else // TODO we are handling only one here
-      grantedGroups.forEach { group ->
-        cb(group, true)
-      }
+    when {
+      canShowRationaleDialog -> showRationaleDialog(rejectedGroups)
+      requestTime + 500 > Calendar.getInstance().timeInMillis -> showPermSettingDialog()
+      else -> activity.toast(R.string.prm_rationale_toast)
+    }
   }
 
-  private fun showRationaleDialog(group: PermissionGroup?) {
+  private fun showRationaleDialog(groups: MutableSet<AskedPermission>) {
 
     val builder     = AlertDialog.Builder(activity, R.style.PermissionDialog)
     val dialogView  = LayoutInflater.from(activity).inflate(R.layout.prm_rationale_dialog, null)
@@ -72,20 +127,36 @@ class PermissionManager(private val activity        : MubbleBaseActivity,
     val dialog = builder.create()
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
 
-    val rationaleDesc : TextView = dialogView.find(R.id.prm_rtnl_desc)
-    rationaleDesc.text = AndroidBase.fromHtml(this.rationaleText)
+    if (groups.size == 1) {
+      val rationaleDesc : TextView = dialogView.find(R.id.prm_rtnl_desc)
+      rationaleDesc.visibility = View.VISIBLE
+      rationaleDesc.text = AndroidBase.fromHtml(groups.first().getRationaleText())
+
+    } else {
+      val rationaleCont : ViewGroup = dialogView.find(R.id.prm_rtnl_cont)
+      rationaleCont.visibility = View.VISIBLE
+      for (groupPerm in groups) {
+        val bulletView = LayoutInflater.from(activity).inflate(R.layout.prm_rationale, rationaleCont, false)
+        bulletView.find<TextView>(R.id.cmn_bullet_text).text = groupPerm.getRationaleText()
+        rationaleCont.addView(bulletView)
+      }
+    }
 
     val posBtn : Button = dialogView.find(R.id.prm_rtnl_pos_btn)
     val negBtn : Button = dialogView.find(R.id.prm_rtnl_neg_btn)
 
+    val perms = mutableListOf<String>()
+    for (groupPerms in groups) perms.addAll(groupPerms.getPermissionGroup().groupPermissions)
+
     posBtn.setOnClickListener {
-      ActivityCompat.requestPermissions(activity, group!!.groupPermissions, group.reqCode)
+      ActivityCompat.requestPermissions(activity, perms.toTypedArray(), APP_PERMISSIONS_REQ_CODE)
       dialog.dismiss()
     }
 
     negBtn.setOnClickListener {
       activity.toast(R.string.prm_rationale_toast)
-      cb(this.askedPermGroup, false)
+      requestPending = false
+      cb(groups, false)
       dialog.dismiss()
     }
 
@@ -95,6 +166,22 @@ class PermissionManager(private val activity        : MubbleBaseActivity,
     params.width  = width
     dialog.window!!.attributes = params
   }
+
+  private fun showPermSettingDialog() {
+
+    val builder = AlertDialog.Builder(activity, R.style.PermissionDialog)
+    builder.setMessage(R.string.cmn_perm_rationale_go_to_settings)
+        .setPositiveButton(R.string.cmn_text_give_perm, { _, _ ->
+
+          val myApp = Uri.parse("package:" + activity.packageName)
+          val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, myApp)
+          intent.addCategory(Intent.CATEGORY_DEFAULT)
+          intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+          activity.startActivity(intent)
+          activity.toast(R.string.cch_toast_app_permit)
+        })
+        .setNegativeButton(R.string.cmn_text_later, { _, _ ->
+          activity.toast(R.string.cch_toast_permit_proceed)
+        }).create().show()
+  }
 }
-
-
