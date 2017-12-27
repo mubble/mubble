@@ -15,6 +15,7 @@ import { ConnectionInfo,
          WireEphEvent,
          WireSysEvent,
          WebSocketConfig,
+         ConnectionError,
          TimerInstance,
          WireObject,
          Leader }  from '@mubble/core'
@@ -191,6 +192,14 @@ export class WsBrowser {
         const message = this.preConfigQueue.shift()
         this.onMessage(message)
       }
+    } else if (se.name === SYS_EVENT.ERROR) {
+
+      const errMsg = se.data as ConnectionError
+      rc.isWarn() && rc.warn(rc.getName(this), 'processSysEvent' , errMsg)
+      if (this.ci.provider) {
+        this.cleanup()
+        this.router.providerFailed(errMsg.code)
+      }
     }
   }
 
@@ -220,13 +229,17 @@ export class WsBrowser {
 
   private cleanup() {
 
-    if (this.ci.provider) {
+    if (!this.ci.provider) return
 
+    try {
       this.timerPing.remove()
-
-      this.ci.provider  = null
-      this.ws           = null as any
+      
       this.encProvider  = null as any
-    }
+      this.ci.provider  = null
+
+      if (this.ws) this.ws.close()
+      this.ws           = null as any
+  
+    } catch (e) {}
   }
 }

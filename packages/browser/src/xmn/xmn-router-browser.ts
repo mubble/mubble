@@ -217,11 +217,11 @@ export abstract class XmnRouterBrowser {
     }
   }
 
-  providerFailed() {
+  providerFailed(errCode ?: string) {
 
     for (let index = 0; index < this.ongoingRequests.length; index++) {
       const wr = this.ongoingRequests[index];
-      this.finishRequest(this.rc, index, XmnError.ConnectionFailed)
+      this.finishRequest(this.rc, index, errCode || XmnError.ConnectionFailed)
     }
     this.ongoingRequests  = []
     this.lastEventTs      = 0

@@ -19,6 +19,7 @@ import {
         Protocol,
         WireObject,
         WebSocketConfig,
+        ConnectionError,
         WireSysEvent,
         SYS_EVENT,
         WIRE_TYPE,
@@ -191,8 +192,6 @@ export class ServerWebSocket {
 
   private async processMessage(rc: RunContextServer, data: Buffer) {
 
-    this.wss.markActive(this)
-
     const decodedData : WireObject[] = await this.encProvider.decodeBody(rc, data)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'processMessage', {
@@ -204,10 +203,23 @@ export class ServerWebSocket {
     })
 
     if (!this.connectionVerified) {
-      await this.router.verifyConnection(rc, this.ci)
+
+      try {
+        await this.router.verifyConnection(rc, this.ci)
+      } catch (e) {
+
+        await this.send(rc, new WireSysEvent(SYS_EVENT.ERROR, {
+          code : e.code || e.message,
+          msg  : e.code ? e.message : ''
+        } as ConnectionError))
+        // this.close() This closes the connection before client can process the message
+        // we will exit and let the timer cleanup the socket
+        return
+      }
       this.connectionVerified = true
     }
 
+    this.wss.markActive(this)
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
@@ -216,7 +228,7 @@ export class ServerWebSocket {
     if (!this.ci.provider) return
     
     if (!this.configSent) await this.sendConfig(rc)
-    this.sendInternal(rc, data)
+    await this.sendInternal(rc, data)
   }
 
   private async sendInternal(rc: RunContextServer, data: WireObject, msgType ?: string) {
@@ -226,7 +238,6 @@ export class ServerWebSocket {
 
     this.ws.send(msg)
   }
-  
 
   public onError(err: any) {
 
