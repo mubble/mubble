@@ -3,7 +3,6 @@ import { NgModule, ModuleWithProviders }    from '@angular/core'
 import { CommonModule }                     from '@angular/common'
 
 import { FormsModule }                      from '@angular/forms'
-import { MatProgressSpinnerModule }         from '@angular/material'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -18,7 +17,6 @@ import { ToastComponent }                   from './toast/toast.component'
   imports: [
     CommonModule,
     FormsModule,
-    MatProgressSpinnerModule,
     MuComponentsRoutingModule
   ],
 
