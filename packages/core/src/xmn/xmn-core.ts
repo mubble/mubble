@@ -184,5 +184,5 @@ export const Leader = {
 }
 
 export const Encoder = {
-  MIN_SIZE_TO_COMPRESS  : 200
+  MIN_SIZE_TO_COMPRESS  : 500
 }
