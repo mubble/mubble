@@ -15,6 +15,7 @@ import {
   CanActivateChild,
   NavigationExtras,
   CanLoad, Route,
+  NavigationStart,
   NavigationEnd,
   UrlSegment,
   UrlTree, 
@@ -32,6 +33,7 @@ import * as lo                  from 'lodash'
 import { DIRECTION }            from '../nail'
 import { RunContextBrowser }    from '../../rc-browser'
 import { ComponentRoutes }      from './shared-router-constants'
+import { NC_UI_EVENT } from 'common'
 
 const ROOT_URL     = '/#/?launched=true'
 
@@ -83,6 +85,7 @@ export class UiRouter {
   private lastNavMethod : NavMethod = 0
   private lastPopIndex  : number    = -1
   private lastNavUrl    : string    = ''
+  private lastGoingBack : boolean   = false
   private curOutlet     : OUTLET
   private currentQpId   : string    = ''
   private curQueryParam : Mubble.uObject<any>
@@ -95,7 +98,6 @@ export class UiRouter {
               private router            : Router) {
 
     this.historyWrapper = new HistoryWrapper(rcBrowser)
-    // this.$insert()
   }
 
   public init(runningInBrowser: boolean) {
@@ -130,6 +132,14 @@ export class UiRouter {
     return this.navigateByUrl([routeTo], extras, PRIMARY_OUTLET)
   }
 
+  public areWeGoingBack() {
+    return this.lastGoingBack
+  }
+
+  public isShowingPopup() {
+    return this.curOutlet !== PRIMARY_OUTLET
+  }
+
   private navigateByUrl(urlOrCommand: string | any[], extras ?: NcNavigationExtras, 
           outlet ?: OUTLET) {
 
@@ -142,10 +152,11 @@ export class UiRouter {
       this.lastNavMethod  = extras.replaceUrl ? NavMethod.CURRENT : NavMethod.NEXT
       this.lastPopIndex   = -1
       this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'Routing to', urlOrCommand, 'with', extras)
+      this.lastGoingBack = false
     } else {
-
+      this.lastGoingBack = true
       if (extras.replaceIndex >= this.urlStack.length) {
-        this.rcBrowser.isError() && this.rcBrowser.error(this.rcBrowser.getName(this), 
+        this.rcBrowser.isError() && this.rcBrowser.error(this.rcBrowser.getName(this),
         'Ignoring navigation to replaceIndex that is more than number of items in stack', 
         {replaceIndex: extras.replaceIndex, urlStackLength: this.urlStack.length})
         extras.replaceIndex = this.urlStack.length - 1
@@ -279,7 +290,6 @@ export class UiRouter {
   }
 
   public goBack(whereOrByHowMuch ?: string | number) {
-
     const stackLen = this.urlStack.length
 
     let index = typeof whereOrByHowMuch === 'number' ? stackLen + whereOrByHowMuch - 1 : stackLen - 2,
