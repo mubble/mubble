@@ -103,12 +103,9 @@ export const LANG_EN_TRANS = {
   'cmn_not_from_ka'           : 'Looks like you are not in Karnataka. Please select your districts',
   'cmn_detecting_location'    : 'Detecting your location',
   'cmn_later'                 : 'Later',
-<<<<<<< Updated upstream
   'cmn_news_local'            : 'Local',
   'cmn_news_for_you'          : 'For You',
   'cmn_news_all'              : 'All',
-=======
->>>>>>> Stashed changes
 
   // menu 
   'menu_home_feed'            : 'Home Feeds',
