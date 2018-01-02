@@ -21,8 +21,6 @@ import {
   UrlTree, 
 }                               from '@angular/router'
 
-import { EventSystem }          from '../../util'
-
 import { Mubble }               from '@mubble/core'
 
 import { INJECTION_PARAM, 
@@ -113,7 +111,6 @@ export class UiRouter {
 
     window.addEventListener('popstate', this.onPopState.bind(this))
     this.browserStack[0]  = this.urlStack[0].url
-  
     this.router.events.subscribe(this.onNavEnd.bind(this))
 
     this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'initialized with', {

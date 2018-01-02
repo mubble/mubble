@@ -13,6 +13,10 @@ import { LoadingErrorComponent }            from './loading/loading-error/loadin
 import { LoadingOverlayComponent }          from './loading/loading-overlay/loading-overlay.component'
 import { ToastComponent }                   from './toast/toast.component'
 
+import { TRANSLATION_PROVIDERS,
+         TranslateService,
+         TranslatePipe }                    from './translate'
+
 @NgModule({
   imports: [
     CommonModule,
@@ -26,7 +30,9 @@ import { ToastComponent }                   from './toast/toast.component'
     LoadingComponent,
     LoadingErrorComponent,
     LoadingOverlayComponent,
-    ToastComponent
+    ToastComponent,
+
+    TranslatePipe
   ],
   
   exports: [
@@ -35,7 +41,20 @@ import { ToastComponent }                   from './toast/toast.component'
     LoadingComponent,
     LoadingErrorComponent,
     LoadingOverlayComponent,
-    ToastComponent
+    ToastComponent,
+
+    TranslatePipe
   ]
 })
-export class MuComponentsModule {}
+
+export class MuComponentsModule {
+  static forRoot(): ModuleWithProviders {
+    return {
+      ngModule: MuComponentsModule,
+      providers: [
+        TRANSLATION_PROVIDERS,
+        TranslateService
+      ]
+    }
+  }
+}
