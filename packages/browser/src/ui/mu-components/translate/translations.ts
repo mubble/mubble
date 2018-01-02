@@ -7,8 +7,8 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { InjectionToken } from '@angular/core'
-import { dictionary } from "./dictionary"
+import { InjectionToken }   from '@angular/core'
+import { dictionary }       from '../../../../../framework/translations/dictionary'
 
 export const TRANSLATIONS = new InjectionToken('translations')
 
