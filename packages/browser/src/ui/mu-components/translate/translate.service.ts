@@ -15,8 +15,6 @@ import { Mubble }                               from '@mubble/core'
 
 const PLACEHOLDER = '%'
 
-export const EVENT_APP_LANG_UPDATE = 'appLangUpdate'
-
 @Injectable()
 export class TranslateService {
 
@@ -41,9 +39,7 @@ export class TranslateService {
   }
   
   public use(lang: string): void {
-
     this.currentLang = lang
-    EventSystem.broadcast(this.rc, EVENT_APP_LANG_UPDATE, {'langCode': lang})
   }
 
   private translate(key: string): string {

@@ -107,8 +107,6 @@ export const LANG_KN_TRANS = {
   'cmn_news_for_you'          : 'ನಿಮಗಾಗಿ',
   'cmn_news_all'              : 'ಎಲ್ಲಾ',
 
-
-
   // menu 
   'menu_home_feed'            : 'ಮುಖಪುಟ ಫೀಡ್ಗಳು',
   'menu_app'                  : 'ಅಪ್ಲಿಕೇಶನ್',
@@ -721,4 +719,6 @@ export const LANG_KN_TRANS = {
   'sgn_feature_like_comment'    : 'ಕಾಮೆಂಟ್ ಇಷ್ಟ ಪಡಲು',
   'sgn_feature_reply_comment'   : 'ಈ ಕಾಮೆಂಟ್ಗೆ ಉತ್ತರಿಸಿಲು',
   'sgn_feature_flag_comment'    : 'ಕಾಮೆಂಟ್ ಫ್ಲಾಗ್ ಮಾಡಲು',
+
+  'lnd_home_empty_loc'          : 'Select locations frow where you would like to see your feed'
 }

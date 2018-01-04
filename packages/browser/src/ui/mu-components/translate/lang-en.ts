@@ -107,7 +107,6 @@ export const LANG_EN_TRANS = {
   'cmn_news_for_you'          : 'For You',
   'cmn_news_all'              : 'All',
 
-
   // menu 
   'menu_home_feed'            : 'Home Feeds',
   'menu_app'                  : 'App',
@@ -263,6 +262,8 @@ export const LANG_EN_TRANS = {
   'cat_customize'             : 'Customize',
   'cat_more'                  : '+ %0 more',
   'cat_stances_on'            : '%0 on this',
+
+  'lnd_home_empty_loc'        : 'Select locations frow where you would like to see your feed',
 
   // ------------------------------ Misc Module --------------------------------
 
@@ -723,6 +724,5 @@ export const LANG_EN_TRANS = {
   'sgn_feature_comment'         : 'comment',
   'sgn_feature_like_comment'    : 'like comment',
   'sgn_feature_reply_comment'   : 'reply to this comment',
-  'sgn_feature_flag_comment'    : 'flag comment',
-
+  'sgn_feature_flag_comment'    : 'flag comment'
 }
