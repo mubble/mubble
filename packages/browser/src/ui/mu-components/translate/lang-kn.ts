@@ -103,12 +103,10 @@ export const LANG_KN_TRANS = {
   'cmn_not_from_ka'           : 'ನೀವು ಕರ್ನಾಟಕದಲ್ಲಿಲ್ಲ ಎಂದು ತೋರುತ್ತಿದೆ. ದಯವಿಟ್ಟು ನಿಮ್ಮ ಜಿಲ್ಲೆಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಿ',
   'cmn_detecting_location'    : 'ನಿಮ್ಮ ಸ್ಥಳವನ್ನು ಪತ್ತೆಹಚ್ಚಲಾಗುತ್ತಿದೆ',
   'cmn_later'                 : 'ನಂತರ',
-<<<<<<< Updated upstream
   'cmn_news_local'            : 'ಸ್ಥಳೀಯ',
   'cmn_news_for_you'          : 'ನಿಮಗಾಗಿ',
   'cmn_news_all'              : 'ಎಲ್ಲಾ',
-=======
->>>>>>> Stashed changes
+
 
 
   // menu 
