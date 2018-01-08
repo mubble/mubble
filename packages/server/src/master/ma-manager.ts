@@ -109,6 +109,8 @@ export class MasterMgr {
   dependencyMap : Mubble.uObject<string[]> = {}
   
   revDepMap : Mubble.uObject<string[]> = {}
+
+  private masterChangeSubs : {[mastername : string] : any [] } = {}
   
   static created : boolean = false
   // Todo : make sure singleton instance
@@ -136,6 +138,28 @@ export class MasterMgr {
     assert(memCache.cache , 'master ',mastername , 'is not not cached')
     return memCache.hash as Mubble.uObject<T>
   }
+
+  public subscribeToMasterChange(rc : RunContextServer , mastername : string , cb : (newData : MasterBase[])=> void) {
+
+    mastername = mastername.toLowerCase()
+    const memCache : MasterInMemCache = this.masterCache[mastername]
+    assert(memCache!=null , 'master ',mastername , 'is not present')
+    assert(memCache.cache , 'master ',mastername , 'is not not cached')
+
+    if(!this.masterChangeSubs[mastername]){
+      this.masterChangeSubs[mastername] = []
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'subscribeToMasterChange adding master cb change', mastername , cb)
+    
+    const subs = this.masterChangeSubs[mastername]
+    if(subs.indexOf(cb)!=-1) throw 'subscription added again for master '+mastername
+
+    subs.push(cb)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'total change cb listeners for master '+mastername , subs.length)
+  }
+
   /*
   Actions : 
   0. MasterRegistry init. Verify all master registries
@@ -266,6 +290,19 @@ export class MasterMgr {
 
       await this.refreshSelectModels(masters)
 
+      if(lo.isEmpty(this.masterChangeSubs)) return
+      
+      // Notify the all master change listeners
+      for(const master of masters){
+        if(!this.masterChangeSubs[master]) continue
+
+        const subs = this.masterChangeSubs[master] , 
+              data = this.getMasterRecords(master)
+
+        for(const cb of subs){
+          cb(data)
+        }
+      }
     })
   }
 
