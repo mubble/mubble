@@ -117,7 +117,7 @@ static async processUrl(rc           : RunContextServer,
     return VisionBase.processAndUpload(rc, imageData, processOptions, fileInfo)
 }
 
-static getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
+static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
   const gmImage = gm(imageData)
 
   return new Promise((resolve, reject) => {
@@ -128,9 +128,10 @@ static getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMe
         height : size.height,
         width  : size.width
       }
+      
       resolve(retVal) 
     })
-  })
+  }) as Promise<ImageMeta>
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -184,11 +185,11 @@ static getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMe
     const palette = await this.getTopColors(lo.cloneDeep(gmImage))
 
     return {
-      data          : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
-      mime          : await this.getGmMime(gmImage),
-      height        : (options.shrink) ? options.shrink.h : height,
-      width         : (options.shrink) ? options.shrink.w : width,
-      palette       : palette as any
+      data    : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
+      mime    : await this.getGmMime(gmImage),
+      height  : (options.shrink) ? options.shrink.h : height,
+      width   : (options.shrink) ? options.shrink.w : width,
+      palette : palette as any
     }
   }
 

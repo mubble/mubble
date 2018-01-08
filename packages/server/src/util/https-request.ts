@@ -52,6 +52,8 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
           })
         })
 
+        req.shouldKeepAlive = false
+
         req.on('response', (res: any) => {
           const hostname = url.parse(urlStr).host
           rc.isStatus () && rc.status (rc.getName (this), 'HTTP Response [' + hostname + '], Status Code: ' + res.statusCode, 
@@ -152,6 +154,8 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
           })
         })
 
+        req.shouldKeepAlive = false
+
         req.on('response', (res: any) => {
           rc.isStatus () && rc.status(rc.getName (this), 'HTTP Response [' + urlObj.host + '], Status Code: ' + res.statusCode)
           statusCode = res.statusCode
@@ -243,6 +247,8 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
             return reject(response)
           })
         })
+
+      req.shouldKeepAlive = false
 
       req.on('response', (res: any) => {
         response = res
