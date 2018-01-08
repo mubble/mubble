@@ -45,10 +45,11 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
 
     if (resultCode != RESULT_OK) {
-      if (requestCode == REQUEST_CROP_PHOTO && galleryImgBase64 != null) {
-        respondWithSuccess(galleryImgBase64, false)
-        return
-      }
+
+//      if (requestCode == REQUEST_CROP_PHOTO && galleryImgBase64 != null) {
+//        respondWithSuccess(galleryImgBase64, false)
+//        return
+//      }
 
       respondWithFailure(ERROR_ACT_RESULT_FAIL)
       return
