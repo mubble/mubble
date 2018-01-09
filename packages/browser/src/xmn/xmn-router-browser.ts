@@ -25,7 +25,7 @@ import {  ConnectionInfo,
           ClientIdentity,
           TimerInstance,
           SYS_EVENT,
-          delayedPromise,
+          UPromise,
           NetworkType       } from '@mubble/core'
 
 import {  WsBrowser }         from './ws-browser'
@@ -203,7 +203,7 @@ export abstract class XmnRouterBrowser {
       this.lastEventTs      = wireEvent.ts
       this.lastEventSendTs  = Date.now()
       this.timerEventTimeout.tickAfter(TIMEOUT_MS, true)
-      await delayedPromise(EVENT_SEND_DELAY)
+      await UPromise.delayedPromise(EVENT_SEND_DELAY)
     }
   }
 
