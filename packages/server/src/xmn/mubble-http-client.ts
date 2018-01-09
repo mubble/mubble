@@ -94,13 +94,13 @@ export namespace MubbleHttpClient {
 
     if (inData && !headers[HTTP.HeaderKey.contentType]) {
       if (typeof(inData) === 'string') {
-        headers[HTTP.HeaderKey.contentType] = mime.contentType('text')
+        headers[HTTP.HeaderKey.contentType] = mime.contentType('text') as string
         data = inData as string
       } else if (inData instanceof Buffer) {
-        headers[HTTP.HeaderKey.contentType] = mime.contentType('bin')
+        headers[HTTP.HeaderKey.contentType] = mime.contentType('bin') as string
         data = inData as Buffer
       } else {
-        headers[HTTP.HeaderKey.contentType] = mime.contentType('json')
+        headers[HTTP.HeaderKey.contentType] = mime.contentType('json') as string
         data = JSON.stringify(inData)
       }
     }
@@ -118,8 +118,8 @@ export namespace MubbleHttpClient {
             contentEncoding = resp.headers[HTTP.HeaderKey.contentEncoding],
             contentType     = resp.headers[HTTP.HeaderKey.contentType],
             contentLength   = resp.headers[HTTP.HeaderKey.contentLength],
-            extension       = mime.extension(contentType),
-            charset         = mime.charset(contentType)
+            extension       = mime.extension(contentType as string),
+            charset         = mime.charset(contentType as string)
 
       if (contentEncoding === HTTP.HeaderValue.gzip) readStreams.push(zlib.createGunzip() as any)
       else if (contentEncoding === HTTP.HeaderValue.deflate) readStreams.push(zlib.createInflate() as any)

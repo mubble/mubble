@@ -160,7 +160,7 @@ export class HttpServerProvider {
 
     res.writeHead(XmnError.errorCode || 200 , {
       [HTTP.HeaderKey.contentLength]  : result.length,
-      [HTTP.HeaderKey.contentType]    :  mime.contentType('json'),
+      [HTTP.HeaderKey.contentType]    :  mime.contentType('json') as string,
       // Default close, this may be passed as a param to this function to avoid for certain requests
       connection                      : 'close' 
     })
