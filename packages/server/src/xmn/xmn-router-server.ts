@@ -58,7 +58,11 @@ export abstract class XmnRouterServer {
   }
 
   abstract getPrivateKeyPem(rc: RunContextServer, ci: ConnectionInfo): string
-  abstract verifyConnection(rc: RunContextServer, ci: ConnectionInfo): void
+
+  async verifyConnection(rc: RunContextServer, ci: ConnectionInfo, apiName ?: string) {
+    const reqStruct = apiName ? this.apiMap[apiName] : null
+    await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
+  }
   
   public async sendEvent(rc: RunContextServer, ci: ConnectionInfo, eventName: string, data: object) {
 
@@ -99,31 +103,6 @@ export abstract class XmnRouterServer {
         })
       }
     }
-      
-        
-    //     case WIRE_TYPE.EVENT_RESP:
-    //     case WIRE_TYPE.REQ_RESP:
-    //     case WIRE_TYPE.SYS_EVENT:
-    //     rc.isDebug() && rc.debug(rc.getName(this), 'Received', wo)
-    //     break
-    //   }
-
-    //   if (wPrResp) {
-    //     wPrResp.then ( (resp : WireObject)=>{
-    //       if(wo && resp && (resp.type === WIRE_TYPE.EVENT_RESP || resp.type === WIRE_TYPE.REQ_RESP)){
-    //         rc.finish(ci ,  resp as any , wo)
-    //       }
-    //     })
-    //   } else {
-    //     if(
-    //       (wo.type === WIRE_TYPE.EVENT_RESP) || 
-    //       (wo.type === WIRE_TYPE.REQ_RESP) || 
-    //       (wo.type === WIRE_TYPE.SYS_EVENT) 
-    //     ){
-    //       rc.finish(ci , null as any , wo)
-    //     }
-    //   }
-    // }
   }
 
   async providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
@@ -138,6 +117,7 @@ export abstract class XmnRouterServer {
     }
   }
 
+  abstract connectionOpened(rc: RunContextServer, ci: ConnectionInfo, apiInfo: any): Promise<void>
   abstract connectionClosed(rc: RunContextServer, ci: ConnectionInfo): void
 
   async routeRequest(rc: RunContextServer, ci : ConnectionInfo, wo: WireObject) : Promise<WireReqResp> {

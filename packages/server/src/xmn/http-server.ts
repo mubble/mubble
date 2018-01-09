@@ -8,9 +8,10 @@
 ------------------------------------------------------------------------------*/
 
 import * as http          from 'http'
-import * as url           from 'url'
+import * as urlModule     from 'url'
 import * as querystring   from 'querystring'
 import * as lo            from 'lodash'
+import * as zlib          from 'zlib'
 
 import {
         ConnectionInfo,
@@ -30,8 +31,9 @@ import { UStream }                    from '../util/mubble-stream'
 import {XmnRouterServer}              from './xmn-router-server'
 import * as mime                      from 'mime-types'
 
-const TIMER_FREQUENCY_MS = 10 * 1000 // to detect timed-out requests
-const HTTP_TIMEOUT_MS    = 60 * 1000 // timeout in ms
+const TIMER_FREQUENCY_MS    = 10 * 1000 // to detect timed-out requests
+const HTTP_TIMEOUT_MS       = 60 * 1000 // timeout in ms
+const MIN_SIZE_TO_COMPRESS  = 2000
 
 export class HttpServer {
 
@@ -47,14 +49,18 @@ export class HttpServer {
 
     const rc = this.refRc.copyConstruct('', 'http-request')
 
-    const urlObj    = url.parse(req.url || '')
+    const urlObj      = urlModule.parse(req.url || ''),
+          pathName    = urlObj.pathname || '',
+          ar          = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/'),
+          apiName     = ar[0],
+          reqId       = Number(ar[1]) || Date.now()
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
 
     ci.protocol       = this.secure ? Protocol.HTTPS : Protocol.HTTP
     ci.host           = host
-    ci.port           = Number(port) || (urlObj.protocol === 'https' ? 443 : 80)
+    ci.port           = Number(port) || (urlObj.protocol === 'https:' ? 443 : 80)
     ci.url            = req.url || ''
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)
@@ -68,7 +74,7 @@ export class HttpServer {
     ci.publicRequest  = false
 
     try {
-      await this.router.verifyConnection(rc, ci)
+      await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
       res.writeHead(404, {
         [HTTP.HeaderKey.contentLength]  : 0,
@@ -80,7 +86,7 @@ export class HttpServer {
 
     ci.provider       = new HttpServerProvider(rc, ci, this.router, req, res, this)
     this.providerMap.set(ci.provider, Date.now())
-    ci.provider.processRequest(rc, urlObj)
+    ci.provider.processRequest(rc, apiName, reqId, urlObj.query || '')
   }
 
   markFinished(provider: HttpServerProvider) {
@@ -120,17 +126,14 @@ export class HttpServerProvider {
 
   }
 
-  async processRequest(rc: RunContextServer, urlObj: url.Url) {
+  async processRequest(rc: RunContextServer, apiName: string, reqId: number, query: string) {
 
-    const req         = this.req,
-          pathName    = urlObj.pathname || '',
-          apiName     = pathName.startsWith('/') ? pathName.substr(1) : pathName
-
-    this.wireRequest  = new WireRequest(apiName, {}, Date.now())
+    const req         = this.req
+    this.wireRequest  = new WireRequest(apiName, {}, reqId)
 
     switch (this.req.method) {
       case 'GET':
-      Object.assign(this.wireRequest.data, querystring.parse(urlObj.query))
+      Object.assign(this.wireRequest.data, querystring.parse(query))
       break
 
       case 'POST':
@@ -156,15 +159,23 @@ export class HttpServerProvider {
     }
 
     const res     = this.res,
-          result  = JSON.stringify(data)
+          result  = JSON.stringify(data),
+          headers = {
+            [HTTP.HeaderKey.contentType]    :  mime.contentType('json') as string,
+            // Default close, this may be passed as a param to this function to avoid for certain requests
+            connection                      : 'close' 
+          },
+          streams = [res]
+    
+    if (result.length > MIN_SIZE_TO_COMPRESS) {
+      headers[HTTP.HeaderKey.contentEncoding] = HTTP.HeaderValue.deflate
+      streams.unshift(zlib.createDeflate() as any)
+    } else {
+      headers[HTTP.HeaderKey.contentLength]   = String(result.length)
+    }    
+    res.writeHead(httpErrorStatus ? XmnError.errorCode : 200, headers)
+    new UStream.WriteStreams(rc, streams).write(result)
 
-    res.writeHead(XmnError.errorCode || 200 , {
-      [HTTP.HeaderKey.contentLength]  : result.length,
-      [HTTP.HeaderKey.contentType]    :  mime.contentType('json') as string,
-      // Default close, this may be passed as a param to this function to avoid for certain requests
-      connection                      : 'close' 
-    })
-    res.end(result)
     this.finished = true
     this.server.markFinished(this)
     this.router.providerClosed(rc, this.ci)

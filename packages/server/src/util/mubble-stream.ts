@@ -86,9 +86,9 @@ export namespace UStream {
       super(rc, streams, promise)
     }
 
-    public async write(data ?: Buffer | string) {
+    public async write(data : Buffer | string) {
       const writeStream = this.streams[0] as stream.Writable
-      writeStream.end(data)
+      data ? writeStream.end(data) : writeStream.end()
       await this.promise
     }
 

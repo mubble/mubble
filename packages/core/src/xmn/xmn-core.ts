@@ -20,7 +20,7 @@ export namespace HTTP {
     clientSecret    : 'x-client-secret',
     contentType     : 'content-type',
     contentLength   : 'content-length',
-    contentEncoding : 'content-encoding' 
+    contentEncoding : 'content-encoding'
   }
   
   /* HTTP Headers */

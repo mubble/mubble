@@ -25,8 +25,8 @@ export namespace Mubble {
 
   export class uPromise {
 
-    private  fnResolve : (result: any) => any
-    private  fnReject  : (err: Error)  => any
+    private  fnResolve : null | ((result: any) => any)
+    private  fnReject  : null | ((err: Error)  => any)
     readonly promise   : Promise<any>
 
     constructor() {
@@ -37,11 +37,22 @@ export namespace Mubble {
     }
 
     resolve(result ?: any) {
-      this.fnResolve(result)
+      if (this.fnResolve) {
+        this.fnResolve(result)
+        this.cleanup()
+      }
     }
 
     reject(err: Error) {
-      this.fnReject(err)
+      if (this.fnReject) {
+        this.fnReject(err)
+        this.cleanup()
+      }
+    }
+
+    private cleanup() {
+      this.fnResolve = null
+      this.fnReject  = null
     }
   }
   
