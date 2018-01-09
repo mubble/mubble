@@ -72,7 +72,7 @@ export abstract class XmnRouterServer {
     rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
   }
   
-  getIp(req: any) {
+  public getIp(req: any) {
 
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || '',
           i  = ip.indexOf(',') // "127.0.0.1, 119.81.86.214"
@@ -133,7 +133,9 @@ export abstract class XmnRouterServer {
   
   async providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
     await this.connectionClosed(rc, ci)
-    rc.finish(ci , null as any , null as any)
+    if (ci.protocol === Protocol.WEBSOCKET) {
+      rc.finish(ci , null as any , null as any)
+    }
   }
 
   abstract connectionClosed(rc: RunContextServer, ci: ConnectionInfo): void
@@ -146,15 +148,7 @@ export abstract class XmnRouterServer {
       rc.isDebug() && rc.debug(rc.getName(this), wo, reqStruct)
       
       if (!reqStruct) {
-        if(ci && (ci.protocol===Protocol.HTTP || ci.protocol===Protocol.HTTPS)){
-          rc.isDebug() && rc.debug(rc.getName(this), 'Unknown api called', wo.name)
-          // Want to avoid flooding error logs for google/crawler/hacker requests
-          const dummy = new WireReqResp(wo.name, wo.ts, {error : 'Unknown Api called '+wo.name})
-          await this.sendToProvider(rc, ci, dummy , wo)
-          return dummy
-        }else{
-          throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
-        }
+        throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
       }
       
       const ir = {
@@ -254,11 +248,7 @@ export abstract class XmnRouterServer {
 
   private async sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null) {
     if (ci.provider) {
-      // if ((response.type === WIRE_TYPE.REQ_RESP) && (response as WireReqResp).error) {
-      //   ci.provider.send(rc, response, 500)
-      // } else {
-      await ci.provider.send(rc, response)
-      // }
+      await ci.provider.send(rc, response, response.data ? response.data.error : undefined)
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
     }

@@ -16,6 +16,7 @@ import { SyncRequest } from '../master'
  */
 export interface ClientIdentity {
 
+  // only valid when request is from Mubble (web)app
   appName       : string
   channel       : string
   appVersion    : string

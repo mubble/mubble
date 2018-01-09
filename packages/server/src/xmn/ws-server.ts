@@ -116,7 +116,7 @@ export class WsServer {
 
   sendEventToAll(rc : RunContextServer , wo : WireObject) {
     for (const [webSocket, lastTs] of this.socketMap) {
-      webSocket.send(rc , wo)
+      webSocket.send(rc , wo, '')
     }
   }
 
@@ -211,7 +211,7 @@ export class ServerWebSocket {
         await this.send(rc, new WireSysEvent(SYS_EVENT.ERROR, {
           code : e.code || e.message,
           msg  : e.code ? e.message : ''
-        } as ConnectionError))
+        } as ConnectionError), '')
         // this.close() This closes the connection before client can process the message
         // we will exit and let the timer cleanup the socket
         return
@@ -223,7 +223,7 @@ export class ServerWebSocket {
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
-  public async send(rc: RunContextServer, data: WireObject) {
+  public async send(rc: RunContextServer, data: WireObject, errorCode: string) {
 
     if (!this.ci.provider) return
     

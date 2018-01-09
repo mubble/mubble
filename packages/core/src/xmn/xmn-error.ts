@@ -9,9 +9,12 @@
 
 export const XmnError = {
 
+  errorCode           : 555,
+
   ConnectionFailed    : 'ConnectionFailed',   // server connect problem: server not running, no network, connection break
   RequestTimedOut     : 'RequestTimedOut',    // ideally means api bug
   SendTimedOut        : 'SendTimedOut',       // ideally means terribly slow connection
+  UnAuthorized        : 'UnAuthorized',       // When the client id is not valid (server to server)
 
   _NotReady           : '_NotReady'
 }

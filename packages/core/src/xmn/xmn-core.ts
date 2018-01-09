@@ -7,7 +7,37 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import { Mubble } from '..'
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
+
+/* HTTP Headers */
+export namespace HTTP {
+
+  // normally these keys are written with uppercase, we are writing them in lowercase 
+  // for compatibility 
+  export const HeaderKey = {
+    userAgent       : 'user-agent',
+    clientSecret    : 'x-client-secret',
+    contentType     : 'content-type',
+    contentLength   : 'content-length',
+    contentEncoding : 'content-encoding' 
+  }
+  
+  /* HTTP Headers */
+  export const HeaderValue = {
+    form    : 'application/x-www-form-urlencoded',
+    gzip    : 'gzip',
+    deflate : 'deflate'
+  }
+
+  export const Const = {
+    protocolHttp  : 'http:',
+    protocolHttps : 'https:'
+    
+  }
+
+}
+
 
 export const NetworkType = {
   net2G   : '2G',
@@ -68,7 +98,7 @@ export class WireObject {
   type      : string
   name      : string
   ts        : number
-  data      : object
+  data      : Mubble.uObject<any>
 
   constructor(type: string, name: string, data: object, ts ?: any) {
     this.type = type

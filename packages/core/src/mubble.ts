@@ -21,5 +21,28 @@ export namespace Mubble {
     constructor(public code: string, msg: string) {
         super(msg)
     }
-}
+  }
+
+  export class uPromise {
+
+    private  fnResolve : (result: any) => any
+    private  fnReject  : (err: Error)  => any
+    readonly promise   : Promise<any>
+
+    constructor() {
+      this.promise = new Promise((resolve, reject) => {
+        this.fnResolve = resolve
+        this.fnReject  = reject
+      })
+    }
+
+    resolve(result ?: any) {
+      this.fnResolve(result)
+    }
+
+    reject(err: Error) {
+      this.fnReject(err)
+    }
+  }
+  
 }

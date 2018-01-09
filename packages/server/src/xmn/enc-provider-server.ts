@@ -11,7 +11,7 @@ import {  RunContextServer } from '../rc-server'
 import {  ConnectionInfo,
           WireObject,
           Leader,
-          execFn,
+          UPromise,
           Encoder
         } from '@mubble/core'
 
@@ -66,7 +66,7 @@ export class EncProviderServer {
     const leader    = String.fromCharCode(data[0]),
           outBuff   = this.decrypt(data.slice(1)),
           jsonStr   = leader !== Leader.DEF_JSON ? outBuff.toString() :
-                      (await execFn(zlib.inflate, zlib, outBuff)).toString(),
+                      (await UPromise.execFn(zlib.inflate, zlib, outBuff)).toString(),
                       // a = console.log(jsonStr),
           inJson    = JSON.parse(jsonStr),
           arData    = Array.isArray(inJson) ? inJson : [inJson]
@@ -92,7 +92,7 @@ export class EncProviderServer {
           leader = msgType || Leader.JSON
 
     if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && msgType !== Leader.CONFIG) {
-      const buf = await execFn(zlib.deflate, zlib, str)
+      const buf = await UPromise.execFn(zlib.deflate, zlib, str)
       if (buf.length < str.length) {
         firstPassBuffer = buf
         leader = Leader.DEF_JSON

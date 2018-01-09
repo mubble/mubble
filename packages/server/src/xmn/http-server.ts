@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : <Write about the file here>
+   About      : Http(s) server
    
    Created on : Tue Jul 11 2017
    Author     : Raghvendra Varma
@@ -11,25 +11,39 @@ import * as http          from 'http'
 import * as url           from 'url'
 import * as querystring   from 'querystring'
 import * as lo            from 'lodash'
+
 import {
         ConnectionInfo,
         Protocol,
         WireRequest,
-        WireObject
+        WireObject,
+        XmnError,
+        HTTP,
+        WireReqResp
        }                              from '@mubble/core'
 import {
         RunContextServer,
         RUN_MODE
        }                              from '../rc-server'
+import { UStream }                    from '../util/mubble-stream'
+       
 import {XmnRouterServer}              from './xmn-router-server'
+import * as mime                      from 'mime-types'
+
+const TIMER_FREQUENCY_MS = 10 * 1000 // to detect timed-out requests
+const HTTP_TIMEOUT_MS    = 60 * 1000 // timeout in ms
 
 export class HttpServer {
 
-  constructor(private refRc: RunContextServer, private router: XmnRouterServer , private secure : boolean) {
+  private providerMap : Map<HttpServerProvider, number> 
+  private timerPing : number
 
+  constructor(private refRc: RunContextServer, private router: XmnRouterServer, private secure : boolean) {
+    this.providerMap  = new Map()
+    this.timerPing    = setInterval(this.cbTimerPing.bind(this), TIMER_FREQUENCY_MS)
   }
 
-  requestHandler(req: http.IncomingMessage, res: http.ServerResponse) : void {
+  async requestHandler(req: http.IncomingMessage, res: http.ServerResponse) {
 
     const rc = this.refRc.copyConstruct('', 'http-request')
 
@@ -44,125 +58,146 @@ export class HttpServer {
     ci.url            = req.url || ''
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)
-    ci.msOffset       = 0
-    
-    ci.publicRequest  = true
-    ci.provider       = new HttpServerProvider(rc, ci, this.router, req, res)
 
+    // Following fields are unrelated / irrelevant for 3rd party / server to server 
+    // communication
+    ci.msOffset       = 0
+    ci.lastEventTs    = 0
+    ci.location       = ''
+    ci.networkType    = ''
+    ci.publicRequest  = false
+
+    try {
+      await this.router.verifyConnection(rc, ci)
+    } catch (err) {
+      res.writeHead(404, {
+        [HTTP.HeaderKey.contentLength]  : 0,
+        connection                      : 'close' 
+      })
+      res.end()
+      return
+    }
+
+    ci.provider       = new HttpServerProvider(rc, ci, this.router, req, res, this)
+    this.providerMap.set(ci.provider, Date.now())
     ci.provider.processRequest(rc, urlObj)
   }
+
+  markFinished(provider: HttpServerProvider) {
+    this.providerMap.delete(provider)
+  }
+
+  cbTimerPing() {
+
+    const notBefore = Date.now() - HTTP_TIMEOUT_MS,
+          rc        = this.refRc,
+          len       = this.providerMap.size
+
+    for (const [provider, lastTs] of this.providerMap) {
+      if (lastTs < notBefore) {
+        rc.isDebug() && rc.debug(rc.getName(this), 'Timing out a request')
+        provider.sendErrorResponse(rc, XmnError.RequestTimedOut)
+      } else if (rc.isDebug() && len === 1) {
+        rc.isDebug() && rc.debug(rc.getName(this), 'Requests checked and found active')
+      }
+    }
+  }
+  
 }
 
-const SUPPORTED_METHODS = ['HEAD','GET', 'POST']
+export class HttpServerProvider {
 
-
-class HttpServerProvider {
+  private finished = false
+  private wireRequest: WireRequest
 
   constructor(private refRc       : RunContextServer, 
               private ci          : ConnectionInfo, 
               private router      : XmnRouterServer,
               private req         : http.IncomingMessage, 
-              private res         : http.ServerResponse) {
+              private res         : http.ServerResponse,
+              private server      : HttpServer
+  ) {
 
   }
+
   async processRequest(rc: RunContextServer, urlObj: url.Url) {
 
-    const wireRequest = await this.readRequest(rc, urlObj)
-    if (!wireRequest) return
+    const req         = this.req,
+          pathName    = urlObj.pathname || '',
+          apiName     = pathName.startsWith('/') ? pathName.substr(1) : pathName
 
-    this.router.providerMessage(rc, this.ci, [wireRequest])
-    // The response is received in send
-  }
+    this.wireRequest  = new WireRequest(apiName, {}, Date.now())
 
-  async readRequest(rc: RunContextServer, urlObj: url.Url): Promise<WireRequest | null> {
+    switch (this.req.method) {
+      case 'GET':
+      Object.assign(this.wireRequest.data, querystring.parse(urlObj.query))
+      break
 
-    const req = this.req,
-          pathName = urlObj.pathname || '',
-          urlName = pathName.startsWith('/') ? pathName.substr(1) : pathName,
-          wr  = new WireRequest(urlName, {}, Date.now())
+      case 'POST':
+      Object.assign(this.wireRequest.data, await this.parseBody(rc))
+      break
+      
+      case 'HEAD':
+      break
 
-    if (SUPPORTED_METHODS.indexOf(req.method || '') === -1) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'Rejecting request with invalid method', req.method, urlName)
-      this.rejectRequest(rc)
-      return null
+      default:
+      rc.isWarn() && rc.warn(rc.getName(this), 'Rejecting request with invalid method', req.method, apiName)
+      return this.sendErrorResponse(rc, XmnError.UnAuthorized)
     }
 
-    let body: any
-    if (req.method === 'GET') {
-      body = querystring.parse(urlObj.query || '')
-    } else if (req.method === 'HEAD'){
-      body = {data : ''}
-    } else { // POST
-      body = await this.parseBody(rc)
-    }
-
-    if (body === null) {
-      this.rejectRequest(rc)
-      return null
-    }
-
-    for (const key in body) (wr.data as any)[key] = body[key]
-    return wr
+    this.router.providerMessage(rc, this.ci, [this.wireRequest])
   }
 
+  send(rc: RunContextServer, data: WireObject , httpErrorStatus ?: string): void {
+    
+    if (this.finished) {
+      rc.isWarn() && rc.warn(rc.getName(this), data.name, 'is already finished. Replying too late?', data)
+      return
+    }
 
-  send(rc: RunContextServer, data: WireObject , httpErrorStatus ?: number): void {
+    const res     = this.res,
+          result  = JSON.stringify(data)
 
-    const res = this.res
-    res.writeHead(httpErrorStatus || 200 , {'Content-Type': 'application/json'})
-    res.end(JSON.stringify(data))
+    res.writeHead(XmnError.errorCode || 200 , {
+      [HTTP.HeaderKey.contentLength]  : result.length,
+      [HTTP.HeaderKey.contentType]    :  mime.contentType('json') as string,
+      // Default close, this may be passed as a param to this function to avoid for certain requests
+      connection                      : 'close' 
+    })
+    res.end(result)
+    this.finished = true
+    this.server.markFinished(this)
+    this.router.providerClosed(rc, this.ci)
   }
 
+  sendErrorResponse(rc: RunContextServer, errorCode: string) {
+    const wo = new WireReqResp(this.wireRequest.name, this.wireRequest.ts, {error : errorCode})
+    this.send(rc, wo, errorCode)
+  }
 
-
-  private parseBody(rc: RunContextServer) {
+  private async parseBody(rc: RunContextServer) {
     /*
      * content-type (mime) : application/x-www-form-urlencoded
      *                       multipart/form-data; boundary="boundary-content_example";
      *                       https://en.wikipedia.org/wiki/MIME
      *
      * content-encoding    : normally absent for request (set to gzip likes in response)
-     *
      */
 
-    return new Promise<object | null>((resolve) => {
+    const data    = (await new UStream.ReadStreams(rc, [this.req]).read()).toString(),
+          headers = this.ci.headers
+    
+    switch (headers[HTTP.HeaderKey.contentType]) {
+      case HTTP.HeaderValue.form:
+        return querystring.parse(data)
 
-      let body        = '',
-          req         = this.req,
-          ct          = req.headers['content-type'] || '',
-          cleaned     = false,
-          lastDataTS  = 0, timer = null
-
-      req.on('data', (data) => {
-        body += data
-      })
-
-      req.on('end', () => {
-        if (ct.indexOf('application/x-www-form-urlencoded') !== -1) {
-          resolve(querystring.parse(body))
-        } else {
-          try {
-            const resp = JSON.parse(body)
-            resolve(resp)
-          } catch(err) {
-            rc.isDebug() && rc.debug(rc.getName(this), 'Could not parse body. Will be available as data')
-            resolve({data: body} as object)
-          }
+      default:
+        try {
+          return JSON.parse(data)
+        } catch (err) {
+          rc.isDebug() && rc.debug(rc.getName(this), 'Could not parse post data as json', data)
+          return {data}
         }
-      })
-
-      req.on('error', (err) => {
-        rc.isWarn() && rc.warn(rc.getName(this), 'Received error while parsing body', err)
-        this.rejectRequest(rc)
-        resolve(null)
-      })
-    })
-  }
-
-  private rejectRequest(rc: RunContextServer) {
-
-    const res = this.res
-    res.writeHead(200)
-    res.end()
+    }
   }
 }

@@ -10,3 +10,4 @@
 export * from './xmn-registry'
 export * from './web'
 export * from './xmn-router-server'
+export * from './mubble-http-client'
