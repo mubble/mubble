@@ -252,9 +252,9 @@ static getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMe
         const writeStream = new stream.PassThrough()
         let   strData     = ''
         
-        writeStream.on('data', (data) => {strData = strData + data.toString()})
+        writeStream.on('data', (data: any) => {strData = strData + data.toString()})
         writeStream.on('end', () => {resolve (strData)})
-        writeStream.on('error', (error) => {throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`))})
+        writeStream.on('error', (error: any) => {throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`))})
         stdout.pipe(writeStream)
       }) 
     }) as string

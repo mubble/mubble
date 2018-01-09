@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import {RunContextBase}     from '../rc-base'
+import {Mubble}             from '../'
 import {ClientIdentity}     from './client-identity'
 import {Protocol}           from './xmn-core'
 
@@ -22,7 +23,7 @@ export interface ConnectionInfo {
   host            : string    // host name of the server
   port            : number    // port of the server
   url             : string    // /api/getTopics Or connectUrl (for WS)
-  headers         : object    // empty for client
+  headers         : Mubble.uObject<any> // empty for client
   ip              : string    // ip address or host name of the client socket
 
   // Information passed by the client: to be used by Xmn internally

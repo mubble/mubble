@@ -223,7 +223,7 @@ export class ServerWebSocket {
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
-  public async send(rc: RunContextServer, data: WireObject) {
+  public async send(rc: RunContextServer, data: WireObject, errorCode: string) {
 
     if (!this.ci.provider) return
     
