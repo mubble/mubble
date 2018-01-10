@@ -17,6 +17,7 @@ import * as path             from 'path'
 import * as qs               from 'querystring'
 import * as mime             from 'mime-types'
 import * as stream           from 'stream'
+import * as fs               from 'fs'
 
 import { Mubble, 
          HTTP }              from '@mubble/core'
