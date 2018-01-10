@@ -27,7 +27,7 @@ import {
 import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
 import {GcloudEnv}                  from '../gcloud-env'
-import * as request                 from 'request' 
+import * as request                 from 'request'
 import * as fs                      from 'fs'
 import * as uuid                    from 'uuid/v4'
 import * as gm                      from 'gm'
@@ -41,7 +41,7 @@ export class VisionBase {
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if (gcloudEnv.authKey) {
       gcloudEnv.vision = gVision ({
@@ -59,14 +59,14 @@ export class VisionBase {
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                 FUNCTIONS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
-  static async processData(rc           : RunContextServer, 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+  static async processData(rc           : RunContextServer,
                            imageData    : Buffer,
                            imageOptions : VisionParameters,
                            resBase64    : boolean) : Promise<ProcessedReturn> {
 
     const crops : any = imageOptions.ratio
-                        ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
+                        ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData)
                         : null
 
     const processOptions = {
@@ -79,7 +79,7 @@ export class VisionBase {
     return VisionBase.process(rc, imageData, processOptions)
   }
 
-static async processUrl(rc           : RunContextServer, 
+static async processUrl(rc           : RunContextServer,
                         imageUrl     : string,
                         imageOptions : VisionParameters,
                         resBase64    : boolean) : Promise<ProcessedReturn> {
@@ -91,19 +91,19 @@ static async processUrl(rc           : RunContextServer,
             shrink       : imageOptions.shrink,
             crops        : crops,
             returnBase64 : resBase64
-          } as ProcessOptions 
+          } as ProcessOptions
 
     return VisionBase.process(rc, imageData, processOptions)
   }
 
-  static async processDataToGcs(rc           : RunContextServer, 
+  static async processDataToGcs(rc           : RunContextServer,
                                 imageData    : Buffer,
                                 imageOptions : VisionParameters,
                                 fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
     
     rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
     const crops : any = imageOptions.ratio
-                        ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData) 
+                        ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData)
                         : null
 
     rc.isDebug() && rc.debug(rc.getName(this), `Crops Detected, Crop Size: ${JSON.stringify(imageOptions)}`)
@@ -129,14 +129,14 @@ static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<I
         width  : size.width
       }
       
-      resolve(retVal) 
+      resolve(retVal)
     })
   }) as Promise<ImageMeta>
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             INTERNAL FUNCTIONS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   private static async detectCrops(rc : RunContextServer, ratio : number, imagePath ?: string, data ?: Buffer) : Promise<string> {
     const sourceVal : any = {},
           features  : any = [{
@@ -185,7 +185,7 @@ static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<I
     const palette = await this.getTopColors(lo.cloneDeep(gmImage))
 
     return {
-      data    : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage), 
+      data    : options.returnBase64 ? (await this.getGmBuffer(gmImage)).toString('base64') : await this.getGmBuffer(gmImage),
       mime    : await this.getGmMime(gmImage),
       height  : (options.shrink) ? options.shrink.h : height,
       width   : (options.shrink) ? options.shrink.w : width,
@@ -226,7 +226,7 @@ static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<I
   private static getGmBuffer(gmImage : any) : Promise<Buffer> {
     return new Promise((resolve, reject) => {
       gmImage.toBuffer((error : any, buffer : any) => {
-        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed[getGmBuffer] : ${JSON.stringify(error)}`))
+        if(error) reject(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED)
         resolve(buffer)
       })
     })
@@ -235,7 +235,7 @@ static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<I
   private static getGmMime(gmImage : any) : Promise<string> {
     return new Promise((resolve, reject) => {
       gmImage.format((error : any, data : any) => {
-        if(error) throw(new VisionError(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED, `GM Image Processing Filed[getGmMime] : ${JSON.stringify(error)}`))
+        if(error) reject(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED)
         resolve(mime.lookup(data) || '')
       })
     })
