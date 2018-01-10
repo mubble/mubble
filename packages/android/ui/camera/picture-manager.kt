@@ -3,6 +3,7 @@ package `in`.mubble.android.ui.camera
 import `in`.mubble.android.core.App
 import `in`.mubble.android.ui.MubbleBaseActivity
 import android.app.Activity.RESULT_OK
+import android.content.ClipData
 import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -114,9 +115,14 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
         output!!.parentFile.mkdirs()
       fileUri = FileProvider.getUriForFile(App.instance, AUTHORITY, output!!)
 
+      output!!.delete()
+
+      val clipData: ClipData = ClipData.newUri(App.instance.contentResolver, "A photo", fileUri)
+
+      takePictureIntent.clipData = clipData
       takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri)
       takePictureIntent.putExtra("return-data", true)
-      takePictureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+      takePictureIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
       this.currentReqCode = REQUEST_TAKE_PHOTO
       parentActivity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
@@ -168,9 +174,11 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     }
 
     val bundle = pictureCropExtras
+    val clipData: ClipData = ClipData.newUri(App.instance.contentResolver, "A photo", picUri)
+    cropIntent.clipData = clipData
     cropIntent.putExtras(bundle)
     cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, picUri)
-    cropIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+    cropIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_WRITE_URI_PERMISSION
     cropIntent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString())
 
     this.currentReqCode = REQUEST_CROP_PHOTO

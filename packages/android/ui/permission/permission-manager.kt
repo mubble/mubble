@@ -16,7 +16,6 @@ import android.view.Window
 import android.widget.Button
 import android.widget.TextView
 import org.jetbrains.anko.find
-import org.jetbrains.anko.toast
 import java.util.*
 
 /**
@@ -114,7 +113,7 @@ class PermissionManager(private val activity : MubbleBaseActivity,
     when {
       canShowRationaleDialog -> showRationaleDialog(rejectedGroups)
       requestTime + 500 > Calendar.getInstance().timeInMillis -> showPermSettingDialog()
-      else -> activity.toast(R.string.prm_rationale_toast)
+      //else -> activity.toast(R.string.prm_rationale_toast)
     }
   }
 
@@ -154,7 +153,7 @@ class PermissionManager(private val activity : MubbleBaseActivity,
     }
 
     negBtn.setOnClickListener {
-      activity.toast(R.string.prm_rationale_toast)
+      //activity.toast(R.string.prm_rationale_toast)
       requestPending = false
       cb(groups, false)
       dialog.dismiss()
@@ -178,10 +177,10 @@ class PermissionManager(private val activity : MubbleBaseActivity,
           intent.addCategory(Intent.CATEGORY_DEFAULT)
           intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
           activity.startActivity(intent)
-          activity.toast(R.string.cch_toast_app_permit)
+          //activity.toast(R.string.cch_toast_app_permit)
         })
         .setNegativeButton(R.string.cmn_text_later, { _, _ ->
-          activity.toast(R.string.cch_toast_permit_proceed)
+          //activity.toast(R.string.cch_toast_permit_proceed)
         }).create().show()
   }
 }
