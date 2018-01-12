@@ -3,8 +3,8 @@ package `in`.mubble.android.ui.camera
 import `in`.mubble.android.core.App
 import `in`.mubble.android.ui.MubbleBaseActivity
 import android.app.Activity.RESULT_OK
-import android.content.ClipData
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -14,6 +14,8 @@ import android.support.v4.content.FileProvider
 import android.util.Base64
 import org.json.JSONObject
 import java.io.*
+
+
 
 /**
  * Created by
@@ -57,6 +59,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     }
 
     try {
+
       val bm: Bitmap
       when (requestCode) {
 
@@ -96,6 +99,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
           respondWithSuccess(encImage, true)
         }
       }
+
     } catch (e: Exception) {
       respondWithFailure(ERROR_IO_EXCEPTION)
     }
@@ -106,29 +110,35 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
     val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
 
-    if (takePictureIntent.resolveActivity(App.instance.packageManager) != null) {
+    val resolvedIntentActivities = App.instance.packageManager
+        .queryIntentActivities(takePictureIntent, PackageManager.MATCH_DEFAULT_ONLY)
 
-      output = File(File(App.instance.filesDir, USERS), OUTPUT_FILENAME)
-      if (output!!.exists())
-        output!!.delete()
-      else
-        output!!.parentFile.mkdirs()
-      fileUri = FileProvider.getUriForFile(App.instance, AUTHORITY, output!!)
-
-      output!!.delete()
-
-      val clipData: ClipData = ClipData.newUri(App.instance.contentResolver, "A photo", fileUri)
-
-      takePictureIntent.clipData = clipData
-      takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri)
-      takePictureIntent.putExtra("return-data", true)
-      takePictureIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_WRITE_URI_PERMISSION
-
-      this.currentReqCode = REQUEST_TAKE_PHOTO
-      parentActivity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
-
-    } else {
+    if (resolvedIntentActivities.isEmpty()) {
       respondWithFailure(ERROR_ACT_NOT_FOUND)
+      return
+    }
+
+    output = File(File(App.instance.filesDir, USERS), OUTPUT_FILENAME)
+    if (output!!.exists()) output!!.delete()
+    else output!!.parentFile.mkdirs()
+
+    fileUri = FileProvider.getUriForFile(App.instance, AUTHORITY, output!!)
+
+    takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri)
+    takePictureIntent.putExtra("return-data", true)
+
+    this.currentReqCode = REQUEST_TAKE_PHOTO
+
+    resolvedIntentActivities.forEach {
+      App.instance.grantUriPermission(it.activityInfo.packageName, fileUri,
+          Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
+    if (resolvedIntentActivities.size == 1) {
+      parentActivity.startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO)
+    } else {
+      parentActivity.startActivityForResult(Intent
+          .createChooser(takePictureIntent, "Take Picture"), REQUEST_TAKE_PHOTO)
     }
   }
 
@@ -136,27 +146,43 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
     val galleryIntent = Intent(Intent.ACTION_GET_CONTENT)
 
-    if (galleryIntent.resolveActivity(App.instance.packageManager) != null) {
-      galleryIntent.type = "image/*"
-      galleryIntent.putExtra("return-data", true)
+    val resolvedIntentActivities = App.instance.packageManager
+        .queryIntentActivities(galleryIntent, PackageManager.MATCH_DEFAULT_ONLY)
 
-      this.currentReqCode = REQUEST_SELECT_PHOTO
-      parentActivity.startActivityForResult(Intent.createChooser(galleryIntent, "Select Picture"), REQUEST_SELECT_PHOTO)
-
+    if (resolvedIntentActivities.isEmpty()) {
+      pickFromGallery() // Fallback to ACTION_PICK
     } else {
-      val galleryPickIntent = Intent(Intent.ACTION_PICK,
-      android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
+      openGalleryForIntent(galleryIntent, resolvedIntentActivities.size)
+    }
+  }
 
-      if (galleryPickIntent.resolveActivity(App.instance.packageManager) != null) {
-        galleryPickIntent.type = "image/*"
-        galleryPickIntent.putExtra("return-data", true)
+  private fun pickFromGallery() {
 
-        this.currentReqCode = REQUEST_SELECT_PHOTO
-        parentActivity.startActivityForResult(Intent.createChooser(galleryPickIntent, "Select Picture"), REQUEST_SELECT_PHOTO)
+    val galleryPickIntent = Intent(Intent.ACTION_PICK,
+        android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI)
 
-      } else {
-        respondWithFailure(ERROR_ACT_NOT_FOUND)
-      }
+    val resolvedIntentActivities = App.instance.packageManager
+        .queryIntentActivities(galleryPickIntent, PackageManager.MATCH_DEFAULT_ONLY)
+
+    if (resolvedIntentActivities.isEmpty()) {
+      respondWithFailure(ERROR_ACT_NOT_FOUND)
+    } else {
+      openGalleryForIntent(galleryPickIntent, resolvedIntentActivities.size)
+    }
+  }
+
+  private fun openGalleryForIntent(galleryIntent: Intent, resolvedActivitySize: Int) {
+
+    galleryIntent.type = "image/*"
+    galleryIntent.putExtra("return-data", true)
+
+    this.currentReqCode = REQUEST_SELECT_PHOTO
+
+    if (resolvedActivitySize == 1) {
+      parentActivity.startActivityForResult(galleryIntent, REQUEST_SELECT_PHOTO)
+    } else {
+      parentActivity.startActivityForResult(Intent
+          .createChooser(galleryIntent, "Select Picture"), REQUEST_SELECT_PHOTO)
     }
   }
 
@@ -165,24 +191,35 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     val cropIntent = Intent("com.android.camera.action.CROP")
     cropIntent.setDataAndType(picUri, MIME_TYPE)
 
-    val list = App.instance.packageManager.queryIntentActivities(cropIntent, 0)
+    val list = App.instance.packageManager.queryIntentActivities(cropIntent,
+        PackageManager.MATCH_DEFAULT_ONLY)
     val size = list.size
 
-    if (size == 0) { // Cropping not supported on device
-      respondWithSuccess(galleryImgBase64, false)
+    if (size == 0) {
+      respondWithSuccess(galleryImgBase64, false) // Cropping not supported on device
       return
     }
 
+    list.forEach {
+      App.instance.grantUriPermission(it.activityInfo.packageName, fileUri,
+          Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+
     val bundle = pictureCropExtras
-    val clipData: ClipData = ClipData.newUri(App.instance.contentResolver, "A photo", picUri)
-    cropIntent.clipData = clipData
+
+    cropIntent.setDataAndType(picUri, "image/*")
     cropIntent.putExtras(bundle)
     cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, picUri)
-    cropIntent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_WRITE_URI_PERMISSION
     cropIntent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString())
 
     this.currentReqCode = REQUEST_CROP_PHOTO
-    parentActivity.startActivityForResult(cropIntent, REQUEST_CROP_PHOTO)
+    if (size == 1) {
+      parentActivity.startActivityForResult(cropIntent, REQUEST_CROP_PHOTO)
+    } else {
+      parentActivity.startActivityForResult(Intent
+          .createChooser(cropIntent, "Crop Using"), REQUEST_CROP_PHOTO)
+
+    }
   }
 
   @Throws(IOException::class)
