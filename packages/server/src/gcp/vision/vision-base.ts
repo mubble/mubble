@@ -7,7 +7,8 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision = require('@google-cloud/vision')
+const gVision   = require('@google-cloud/vision'),
+      smartcrop = require('smartcrop-gm')
 
 import {
         VISION_ERROR_CODES,
@@ -22,6 +23,7 @@ import {
         ProcessedReturn,
         ProcessOptions,
         ProcessGcsReturn,
+        SmartCropProcessReturn,
         ImageMeta
        }                            from './types'
 import {RunContextServer}           from '../../rc-server'
@@ -38,6 +40,7 @@ import * as lo                      from 'lodash'
 export class VisionBase {
 
   static _vision : any
+  static MODEL   : string = 'SC' // 'SC'
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -65,6 +68,145 @@ export class VisionBase {
                            imageOptions : VisionParameters,
                            resBase64    : boolean) : Promise<ProcessedReturn> {
 
+    const func = (this.MODEL === 'VB') ? this.processDataVB : this.processDataSC
+    return func (rc, imageData, imageOptions, resBase64)
+  }
+
+  static async processUrl(rc           : RunContextServer,
+                          imageUrl     : string,
+                          imageOptions : VisionParameters,
+                          resBase64    : boolean) : Promise<ProcessedReturn> {
+
+    const func = (this.MODEL === 'VB') ? this.processUrlVB : this.processUrlSC
+    return func (rc, imageUrl, imageOptions, resBase64)
+  }                        
+
+  static async processDataToGcs(rc           : RunContextServer,
+                                imageData    : Buffer,
+                                imageOptions : VisionParameters,
+                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
+
+    const func = (this.MODEL === 'VB') ? this.processDataToGcsVB : this.processDataToGcsSC
+    return func (rc, imageData, imageOptions, fileInfo)
+  }                        
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                               GM & SMARTCROP FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+  private static async processDataSC(rc           : RunContextServer,
+                                     imageData    : Buffer,
+                                     imageOptions : VisionParameters,
+                                     resBase64    : boolean) : Promise<ProcessedReturn> {
+
+    const processedReturnVal  = await VisionBase.smartcropProcess(rc, imageData, imageOptions),
+          retVal              = {} as ProcessedReturn
+
+    Object.assign(retVal, processedReturnVal)
+
+    retVal.data = resBase64 ? (await this.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await this.getGmBuffer(processedReturnVal.gmImage)
+
+    return retVal
+  }
+
+  private static async processUrlSC(rc           : RunContextServer,
+                                    imageUrl     : string,
+                                    imageOptions : VisionParameters,
+                                    resBase64    : boolean) : Promise<ProcessedReturn> {
+    
+    const imageData           = new Buffer(await executeHttpsRequest(rc, imageUrl, {'User-Agent': 'Newschat/1.0'}), 'binary'),
+          processedReturnVal  = await VisionBase.smartcropProcess(rc, imageData, imageOptions),
+          retVal              = {} as ProcessedReturn
+
+    Object.assign(retVal, processedReturnVal)
+
+    retVal.data = resBase64 ? (await this.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await this.getGmBuffer(processedReturnVal.gmImage)
+
+    return retVal
+  }
+
+  private static async processDataToGcsSC(rc           : RunContextServer,
+                                          imageData    : Buffer,
+                                          imageOptions : VisionParameters,
+                                          fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
+                      
+    const retVal = {} as ProcessGcsReturn
+    
+    rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
+
+    const res = await VisionBase.smartcropProcess(rc, imageData, imageOptions, fileInfo)
+
+    Object.assign(retVal, res)
+
+    fileInfo.mimeVal = res.mime
+    retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, res.gmImage.stream(), fileInfo)
+
+    return retVal
+  }
+
+  private static async smartcropProcess(rc : RunContextServer, imageData : Buffer, imageOptions : VisionParameters, fileInfo ?: GcsUUIDFileInfo) {
+    const retVal      = {} as SmartCropProcessReturn,
+          bufferImage = await new Promise((resolve, reject) => {
+      gm(imageData)
+      .borderColor('black')
+      .border(1, 1)
+      .fuzz(16, true)
+      .trim()
+      .toBuffer((err, buff) => {
+        if(err) rc.isError() && rc.error(rc.getName(this), `Error is ${err}`)
+        resolve(buff)
+      })
+    }) as Buffer
+
+    const ratio   : number  = imageOptions.ratio? imageOptions.ratio : 0,
+          gmImage           = await gm(bufferImage)
+
+    if(ratio != 0) {
+      let w    : number = 0, 
+          h    : number = 0,
+          maxW : number = 0,
+          maxH : number = 0
+
+      await new Promise((resolve, reject) => {
+        gmImage.identify(async (err : any, data : any) => {
+          if(err) rc.isError() && rc.error(rc.getName(this), `Error is ${err}`)
+            
+          w    = data.size.width
+          h    = data.size.height
+          maxW = (w / ratio > h) ? h * ratio : w
+          maxH = (w / ratio < h) ? w / ratio : h
+
+          resolve()
+        })
+      })
+
+      const result = await smartcrop.crop(bufferImage, {width : 100, height : 100}),
+            crop   = result.topCrop,
+            x      = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
+            y      = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
+
+      gmImage.crop(maxW, maxH, x, y)
+      retVal.height = (imageOptions.shrink) ? imageOptions.shrink.h : maxH
+      retVal.width  = (imageOptions.shrink) ? imageOptions.shrink.w : maxW
+    }
+
+    const palette = await this.getTopColors(lo.cloneDeep(gmImage)),
+          mime    = await this.getGmMime(gmImage)
+
+    retVal.mime    = mime
+    retVal.palette = palette as any
+    retVal.gmImage = gmImage
+          
+    return retVal
+  }
+
+/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+                               VISION BASE FUNCTIONS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
+  private static async processDataVB(rc           : RunContextServer,
+                                     imageData    : Buffer,
+                                     imageOptions : VisionParameters,
+                                     resBase64    : boolean) : Promise<ProcessedReturn> {
+
     const crops : any = imageOptions.ratio
                         ? await VisionBase.detectCrops(rc, imageOptions.ratio, '', imageData)
                         : null
@@ -79,10 +221,10 @@ export class VisionBase {
     return VisionBase.process(rc, imageData, processOptions)
   }
 
-static async processUrl(rc           : RunContextServer,
-                        imageUrl     : string,
-                        imageOptions : VisionParameters,
-                        resBase64    : boolean) : Promise<ProcessedReturn> {
+  private static async processUrlVB(rc           : RunContextServer,
+                                    imageUrl     : string,
+                                    imageOptions : VisionParameters,
+                                    resBase64    : boolean) : Promise<ProcessedReturn> {
     
     const imageData      : Buffer = new Buffer(await executeHttpsRequest(rc, imageUrl, {'User-Agent': 'Newschat/1.0'}), 'binary'),
           crops          : any    = imageOptions.ratio ? await VisionBase.detectCrops(rc, imageOptions.ratio, imageUrl) : null,
@@ -96,10 +238,10 @@ static async processUrl(rc           : RunContextServer,
     return VisionBase.process(rc, imageData, processOptions)
   }
 
-  static async processDataToGcs(rc           : RunContextServer,
-                                imageData    : Buffer,
-                                imageOptions : VisionParameters,
-                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
+  private static async processDataToGcsVB(rc           : RunContextServer,
+                                          imageData    : Buffer,
+                                          imageOptions : VisionParameters,
+                                          fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
     
     rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
     const crops : any = imageOptions.ratio
@@ -117,26 +259,23 @@ static async processUrl(rc           : RunContextServer,
     return VisionBase.processAndUpload(rc, imageData, processOptions, fileInfo)
 }
 
-static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
-  const gmImage = gm(imageData)
+  private static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
+    const gmImage = gm(imageData)
 
-  return new Promise((resolve, reject) => {
-    gmImage.size((error, size) => {
-      if(error) reject(error)
+    return new Promise((resolve, reject) => {
+      gmImage.size((error, size) => {
+        if(error) reject(error)
 
-      const retVal : ImageMeta = {
-        height : size.height,
-        width  : size.width
-      }
-      
-      resolve(retVal)
-    })
-  }) as Promise<ImageMeta>
-}
+        const retVal : ImageMeta = {
+          height : size.height,
+          width  : size.width
+        }
+        
+        resolve(retVal)
+      })
+    }) as Promise<ImageMeta>
+  }
 
-/* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                            INTERNAL FUNCTIONS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */
   private static async detectCrops(rc : RunContextServer, ratio : number, imagePath ?: string, data ?: Buffer) : Promise<string> {
     const sourceVal : any = {},
           features  : any = [{

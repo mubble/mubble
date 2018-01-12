@@ -25,6 +25,7 @@ export type ProcessOptions = {
   returnBase64  : boolean
   crops        ?: any,
   shrink       ?: {h : number, w : number}
+  palette       : boolean
   quality      ?: number 
 }
 
@@ -33,8 +34,15 @@ export type ProcessGcsReturn = {
   mime          : string,
   width         : number,
   height        : number,
-  dominantColor : rgb,
   palette       : rgb[]
+}
+
+export type SmartCropProcessReturn = {
+  mime          : string,
+  height        : number,
+  width         : number,
+  palette       : rgb[],
+  gmImage       : any
 }
 
 export type ImageMeta = {
