@@ -66,7 +66,7 @@ export type MRun = MElementBase & {
   isStrikethrough: boolean,
   isSmallCaps: boolean,
   verticalAlignment: MVerticalAlignment,
-  fontSize: Number,
+  fontSize: number,
   fontColor: string,
   font: string
 }
