@@ -11,24 +11,28 @@ import {RunContextServer}                        from '../rc-server'
 import {mapping, broken_cases, dependent_vowels, ignore_list, vattaksharagalu, ascii_arkavattu}
                                                  from './baraha-mapping'
 
+export type NudiUnicodeText = {
+  count   : number
+  unicode : string
+}
 export class NudiConvertor {
 
   private static DEBUG : boolean = false 
   private static ZWJ : string = '‍' // <U+200D> = Zero Width Joiner
 
 
-  static processText (rc: RunContextServer, text: string) {
+  static processText (rc: RunContextServer, text: string) : NudiUnicodeText {
     const words = text.split (/ +/) // (' ')
       const op_words = []
-      rc.isDebug() && rc.debug(rc.getName (this), 'Processing Words:', words.length)
-      let widx = 1
+      this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Processing Words:', words.length)
+      let widx = 0
     for (var w of words) {
-      rc.isDebug() && rc.debug(rc.getName (this), 'Processing Word:', w)
+      rc.isDebug() && rc.debug(rc.getName (this), 'Processing Word [' + (widx+1) + ']:', w)
       const wo = this.processWord(rc, w)
       op_words.push(wo)
       widx++
     }
-    return op_words.join(' ')
+    return { count: widx, unicode: op_words.join(' ') }
   }
   
   private static processWord (rc: RunContextServer, word: string) {
