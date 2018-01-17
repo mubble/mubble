@@ -7,13 +7,13 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {RunContextNcServer}                      from '../../framework'
+import {RunContextServer}                        from '../rc-server'
 export const mammoth  : any = require('mammoth')
 
 // Reference: node_modules/mammoth/lib/document.js => Should Ideally create a @types/mammoth
 
 export interface MTransformCbT { // Callback for Mammoth Transformation Processing 
-  (rc: RunContextNcServer, element: MParagraph): MParagraph
+  (rc: RunContextServer, element: MParagraph): MParagraph
 }
 
 export type MOptions = {
