@@ -7,16 +7,16 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {RunContextNcServer}                      from '../../framework'
+import {RunContextServer}                        from '../rc-server'
 import {mammoth, MOptions, MParagraph}           from './mammoth'
 
 export abstract class DocxTransformerBase {
-  abstract transformDocParagraph(rc: RunContextNcServer, paragraph: MParagraph) : MParagraph;
+  abstract transformDocParagraph(rc: RunContextServer, paragraph: MParagraph) : MParagraph;
 }
 
 export class DocxProcessor {
 
-  static async transform(rc: RunContextNcServer, filename: string, transformer : DocxTransformerBase) {
+  static async transform(rc: RunContextServer, filename: string, transformer : DocxTransformerBase) {
     var mammoth_options : MOptions = {
       includeDefaultStyleMap : true,
       transformDocument: mammoth.transforms.paragraph(transformer.transformDocParagraph.bind (transformer, rc)),
