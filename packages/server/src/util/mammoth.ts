@@ -48,7 +48,7 @@ export type MText = {
 
 export type MElementBase = {
   type: MType,  
-  children: Array<MRun>,
+  children: Array<MRun> | Array<MText>,
   styleId: string | null,
   styleName: string | null,
 }
