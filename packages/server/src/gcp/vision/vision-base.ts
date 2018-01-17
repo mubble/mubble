@@ -7,8 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision   = require('@google-cloud/vision'),
-      smartcrop = require('smartcrop-gm')
+const gVision   = require('@google-cloud/vision')
 
 import {
         VISION_ERROR_CODES,
@@ -29,6 +28,7 @@ import {
 import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
 import {GcloudEnv}                  from '../gcloud-env'
+import {SmartCropGM}                from './smartcrop-gm'
 import * as request                 from 'request'
 import * as fs                      from 'fs'
 import * as uuid                    from 'uuid/v4'
@@ -102,8 +102,7 @@ export class VisionBase {
           retVal              = {} as ProcessedReturn
 
     Object.assign(retVal, processedReturnVal)
-
-    retVal.data = resBase64 ? (await this.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await this.getGmBuffer(processedReturnVal.gmImage)
+    retVal.data = resBase64 ? (await VisionBase.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await VisionBase.getGmBuffer(processedReturnVal.gmImage)
 
     return retVal
   }
@@ -118,8 +117,7 @@ export class VisionBase {
           retVal              = {} as ProcessedReturn
 
     Object.assign(retVal, processedReturnVal)
-
-    retVal.data = resBase64 ? (await this.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await this.getGmBuffer(processedReturnVal.gmImage)
+    retVal.data = resBase64 ? (await VisionBase.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await VisionBase.getGmBuffer(processedReturnVal.gmImage)
 
     return retVal
   }
@@ -133,70 +131,74 @@ export class VisionBase {
     
     rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
 
-    const res = await VisionBase.smartcropProcess(rc, imageData, imageOptions, fileInfo)
+    const processedReturnVal = await VisionBase.smartcropProcess(rc, imageData, imageOptions, fileInfo)
 
-    Object.assign(retVal, res)
-
-    fileInfo.mimeVal = res.mime
-    retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, res.gmImage.stream(), fileInfo)
+    Object.assign(retVal, processedReturnVal)
+    fileInfo.mimeVal = processedReturnVal.mime
+    retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, processedReturnVal.gmImage.stream(), fileInfo)
 
     return retVal
   }
 
   private static async smartcropProcess(rc : RunContextServer, imageData : Buffer, imageOptions : VisionParameters, fileInfo ?: GcsUUIDFileInfo) {
-    const retVal      = {} as SmartCropProcessReturn,
-          bufferImage = await new Promise((resolve, reject) => {
-      gm(imageData)
-      .borderColor('black')
-      .border(1, 1)
-      .fuzz(16, true)
-      .trim()
-      .toBuffer((err, buff) => {
-        if(err) rc.isError() && rc.error(rc.getName(this), `Error is ${err}`)
-        resolve(buff)
-      })
-    }) as Buffer
-
-    const ratio   : number  = imageOptions.ratio? imageOptions.ratio : 0,
-          gmImage           = await gm(bufferImage)
-
-    if(ratio != 0) {
-      let w    : number = 0, 
-          h    : number = 0,
-          maxW : number = 0,
-          maxH : number = 0
-
-      await new Promise((resolve, reject) => {
-        gmImage.identify(async (err : any, data : any) => {
-          if(err) rc.isError() && rc.error(rc.getName(this), `Error is ${err}`)
-            
-          w    = data.size.width
-          h    = data.size.height
-          maxW = (w / ratio > h) ? h * ratio : w
-          maxH = (w / ratio < h) ? w / ratio : h
-
-          resolve()
+    const retVal      = {} as SmartCropProcessReturn
+    try {
+      const bufferImage = await new Promise((resolve, reject) => {
+        gm(imageData)
+        .borderColor('black')
+        .border(1, 1)
+        .fuzz(16, true)
+        .trim()
+        .toBuffer((err, buff) => {
+          if(err) rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          resolve(buff)
         })
-      })
+      }) as Buffer
 
-      const result = await smartcrop.crop(bufferImage, {width : 100, height : 100}),
-            crop   = result.topCrop,
-            x      = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
-            y      = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
+      const ratio   : number  = (imageOptions.ratio) ? imageOptions.ratio : 0,
+            gmImage           = await gm(bufferImage)
 
-      gmImage.crop(maxW, maxH, x, y)
-      retVal.height = (imageOptions.shrink) ? imageOptions.shrink.h : maxH
-      retVal.width  = (imageOptions.shrink) ? imageOptions.shrink.w : maxW
+      if(ratio != 0) {
+        let w    : number = 0, 
+            h    : number = 0,
+            maxW : number = 0,
+            maxH : number = 0
+
+        await new Promise((resolve, reject) => {
+          gmImage.identify((err : any, data : any) => {
+            if(err) rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
+              
+            w    = data.size.width
+            h    = data.size.height
+            maxW = (w / ratio > h) ? h * ratio : w
+            maxH = (w / ratio < h) ? w / ratio : h
+
+            resolve()
+          })
+        })
+
+        const result = await SmartCropGM.crop(bufferImage, {width : 100, height : 100}),
+              crop   = result.topCrop,
+              x      = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
+              y      = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
+
+        gmImage.crop(maxW, maxH, x, y)
+        retVal.width  = (imageOptions.shrink) ? imageOptions.shrink.w : maxW
+        retVal.height = (imageOptions.shrink) ? imageOptions.shrink.h : maxH
+      }
+
+      const palette = await this.getTopColors(lo.cloneDeep(gmImage)),
+            mime    = await this.getGmMime(gmImage)
+            
+      retVal.mime    = mime
+      retVal.palette = palette as any
+      retVal.gmImage = gmImage
+    } catch(error) {
+      rc.isError() && rc.error(rc.getName(this), `Error is ${error.message}`)
+      throw(error)
+    } finally {
+      return retVal
     }
-
-    const palette = await this.getTopColors(lo.cloneDeep(gmImage)),
-          mime    = await this.getGmMime(gmImage)
-
-    retVal.mime    = mime
-    retVal.palette = palette as any
-    retVal.gmImage = gmImage
-          
-    return retVal
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -382,7 +384,7 @@ export class VisionBase {
 
   private static async getTopColors(img : any) {
     const HIST_START = 'comment={',
-          HIST_END   = '\x0A}\x0A\x0C\x0A'
+          HIST_END   = '\x0A}'
 
     const strData = await new Promise((resolve, reject) => {
       img.noProfile()
@@ -399,11 +401,11 @@ export class VisionBase {
       }) 
     }) as string
     
-    
     const beginIndex = strData.indexOf(HIST_START) + HIST_START.length + 1,
           endIndex   = strData.indexOf(HIST_END),
           cData      = strData.slice(beginIndex, endIndex).split('\n')
   
+    if(cData.length > 8) cData.splice(0, cData.length - 8)
     if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
 
     return lo.map(cData, this.parseHistogramLine)
