@@ -7,8 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision   = require('@google-cloud/vision'),
-      smartcrop = require('smartcrop-gm')
+const gVision   = require('@google-cloud/vision')
 
 import {
         VISION_ERROR_CODES,
@@ -29,6 +28,7 @@ import {
 import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
 import {GcloudEnv}                  from '../gcloud-env'
+import {SmartCropGM}                from './smartcrop-gm'
 import * as request                 from 'request'
 import * as fs                      from 'fs'
 import * as uuid                    from 'uuid/v4'
@@ -150,7 +150,7 @@ export class VisionBase {
         .fuzz(16, true)
         .trim()
         .toBuffer((err, buff) => {
-          if(err) rc.isError() && rc.error(rc.getName(this), `Error is ${err}`)
+          if(err) rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
           resolve(buff)
         })
       }) as Buffer
@@ -166,7 +166,7 @@ export class VisionBase {
 
         await new Promise((resolve, reject) => {
           gmImage.identify((err : any, data : any) => {
-            if(err) rc.isError() && rc.error(rc.getName(this), `Error is ${err}`)
+            if(err) rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
               
             w    = data.size.width
             h    = data.size.height
@@ -177,7 +177,7 @@ export class VisionBase {
           })
         })
 
-        const result = await smartcrop.crop(bufferImage, {width : 100, height : 100}),
+        const result = await SmartCropGM.crop(bufferImage, {width : 100, height : 100}),
               crop   = result.topCrop,
               x      = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
               y      = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
@@ -194,7 +194,7 @@ export class VisionBase {
       retVal.palette = palette as any
       retVal.gmImage = gmImage
     } catch(error) {
-      rc.isError() && rc.error(rc.getName(this), `Error is ${error}`)
+      rc.isError() && rc.error(rc.getName(this), `Error is ${error.message}`)
       throw(error)
     } finally {
       return retVal
