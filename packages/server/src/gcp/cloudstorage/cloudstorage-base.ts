@@ -68,7 +68,7 @@ export class CloudStorageBase {
           reject(error) 
         })
         .on('finish', () => { 
-          rc.isDebug() && rc.debug (rc.getName (this), `Uploaded ${filename} to Datastore.`)
+          rc.isDebug() && rc.debug (rc.getName (this), `Uploaded ${filename} to Cloud Storage.`)
           resolve(true)
          })
       })
