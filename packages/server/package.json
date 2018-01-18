@@ -39,6 +39,7 @@
     "googleapis": "^20.1.0",
     "lodash": "^4.17.4",
     "mammoth": "github:christygeorgemubble/mammoth.js",
+    "mkdirp": "^0.5.1",
     "posix": "^4.1.1",
     "redis": "^2.8.0",
     "reflect-metadata": "^0.1.10",
