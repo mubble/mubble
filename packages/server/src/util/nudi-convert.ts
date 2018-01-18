@@ -12,8 +12,8 @@ import {mapping, broken_cases, dependent_vowels, ignore_list, vattaksharagalu, a
                                                  from './baraha-mapping'
 
 export type NudiUnicodeText = {
-  count   : number
-  unicode : string
+  wordCount  : number
+  unicode    : string
 }
 export class NudiConvertor {
 
@@ -32,7 +32,7 @@ export class NudiConvertor {
       op_words.push(wo)
       widx++
     }
-    return { count: widx, unicode: op_words.join(' ') }
+    return { wordCount: widx, unicode: op_words.join(' ') }
   }
   
   private static processWord (rc: RunContextServer, word: string) {
@@ -258,7 +258,7 @@ export class NudiConvertor {
     return result;
   }
 
-  private static stringToHex (tmp: string) {
+  private static stringToHex (tmp: string) { // Move to Core Utils?
     var str = '',
         i = 0,
         tmp_len = tmp.length,

@@ -34,6 +34,7 @@
     "request": "^2.81.0",
     "gm": "^1.23.0",
     "cld": "^2.4.7",
-    "smartcrop": "^1.1.1"
+    "smartcrop": "^1.1.1",
+    "mammoth": "github:christygeorgemubble/mammoth.js"
   }
 }

@@ -11,7 +11,13 @@ import {RunContextServer}                        from '../rc-server'
 import {mammoth, MOptions, MParagraph}           from './mammoth'
 
 export abstract class DocxTransformerBase {
+  iniitalze (rc: RunContextServer) {
+    // Default => Do Nothing
+  }
   abstract transformDocParagraph(rc: RunContextServer, paragraph: MParagraph) : MParagraph;
+  terminate (rc: RunContextServer) {
+    // Default => Do Nothing
+  }
 }
 
 export class DocxProcessor {
@@ -25,8 +31,10 @@ export class DocxProcessor {
           "p[style-name='Nudi'] => p.nudi"
       ]
     } 
+    transformer.iniitalze (rc)
     const htmlDoc = await mammoth.convertToHtml({path: filename}, mammoth_options)
     // console.log ('Html Doc:', htmlDoc)
+    transformer.terminate (rc)
     return (htmlDoc) ? true : false
   }
 }
