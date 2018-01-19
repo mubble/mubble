@@ -150,7 +150,10 @@ export class VisionBase {
         .fuzz(16, true)
         .trim()
         .toBuffer((err, buff) => {
-          if(err) rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          if(err) {
+            rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+            reject(err)
+          }
           resolve(buff)
         })
       }) as Buffer
@@ -166,7 +169,10 @@ export class VisionBase {
 
         await new Promise((resolve, reject) => {
           gmImage.identify((err : any, data : any) => {
-            if(err) rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
+            if(err) {
+              rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
+              reject(err)
+            }
               
             w    = data.size.width
             h    = data.size.height
