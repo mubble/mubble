@@ -24,10 +24,9 @@ export class NudiConvertor {
   static processText (rc: RunContextServer, text: string) : NudiUnicodeText {
     const words = text.split (/ +/) // (' ')
       const op_words = []
-      this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Processing Words:', words.length)
       let widx = 0
     for (var w of words) {
-      rc.isDebug() && rc.debug(rc.getName (this), 'Processing Word [' + (widx+1) + ']:', w)
+      this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Processing Word [' + (widx+1) + ']:', w)
       const wo = this.processWord(rc, w)
       op_words.push(wo)
       widx++
