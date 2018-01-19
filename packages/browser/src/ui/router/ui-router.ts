@@ -328,7 +328,7 @@ export class UiRouter {
     const index     = this.historyWrapper.getState().index,
           stackLen  = this.urlStack.length
 
-    this.rcBrowser.isDebug() && this.rcBrowser.debug('onPopState', e, {stackLen, index})
+    this.rcBrowser.isDebug() && this.rcBrowser.debug('onPopState', {stackLen, index})
 
     this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), typeof index === 'number' && 
       index < (stackLen - 1), {stackLen, index})
