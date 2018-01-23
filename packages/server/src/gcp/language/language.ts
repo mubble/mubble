@@ -172,6 +172,8 @@ export class GcpLanguageBase {
   }
 
   static async detectLanguage(rc: RunContextServer, text: string) : Promise<any> {
+    if(!text) return 'en'
+    
     const cldOptions = {
       isHTML       : false,
       // languageHint : 'BULGARIAN',
