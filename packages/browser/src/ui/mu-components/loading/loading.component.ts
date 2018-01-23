@@ -11,7 +11,7 @@ import { Component, OnInit, Input, Inject } from '@angular/core'
 import { RunContextBrowser }                from '../../../rc-browser'
 
 @Component({
-  selector    : 'app-loading',
+  selector    : 'loading',
   templateUrl : './loading.component.html',
   styleUrls   : ['./loading.component.scss']
 })

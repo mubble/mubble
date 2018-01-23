@@ -35,6 +35,7 @@ import { DomHelper }                  from '@mubble/browser'
 const ROUTE_ANIM_MS     = 400
 
 @Component({
+  selector    : 'modal-popup',
   templateUrl: './modal-popup.component.html',
   styleUrls: ['./modal-popup.component.scss'],
   animations: [
@@ -111,7 +112,7 @@ const ROUTE_ANIM_MS     = 400
 
 export class ModalPopupComponent extends InjectionParentBase implements AfterViewInit, OnDestroy {
 
-  @HostBinding('class.flex-centered') true
+  @HostBinding('class.glb-flex-centered') true
   @HostBinding('@routeAnimation') __routeAnimation = true
   @HostBinding('class.animated-element') animElem   = true
   // @HostBinding('style.z-index')   zIndex   = 3000;

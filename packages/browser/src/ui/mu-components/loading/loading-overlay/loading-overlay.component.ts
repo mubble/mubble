@@ -12,7 +12,7 @@ import { Component, OnInit,
          AfterViewInit, Inject }            from '@angular/core'
 
 @Component({
-  selector    : 'app-loading-overlay',
+  selector    : 'loading-overlay',
   templateUrl : './loading-overlay.component.html',
   styleUrls : ['./loading-overlay.component.scss']
 })

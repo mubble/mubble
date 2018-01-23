@@ -13,7 +13,7 @@ import { Component, OnInit,
 import { RunContextBrowser }                from '../../../../rc-browser'
 
 @Component({
-  selector    : 'app-loading-error',
+  selector    : 'loading-error',
   templateUrl : './loading-error.component.html',
   styleUrls   : ['./loading-error.component.scss']
 })

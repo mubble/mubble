@@ -7,7 +7,8 @@
   $foreground: map-get($theme, foreground);
   $background: map-get($theme, background);
   
-  .mu-components-module {
+
+  .bottom-in-comp {
 
     .bottom-in-toolbar-outline {
       outline: 1px solid mat-color($foreground, divider)
@@ -17,18 +18,26 @@
       background-color: mat-color($background, background);
     }
 
+  }
+
+  .modal-popup-comp {
+
     .modal-root-div {
       background: mat-color($background, background);
     }
 
-    .loading-root {
-      background: mat-color($background, background);
-    }
+  }
+
+  .loadng-overlay-comp {
 
     .component-loader {
       background: mat-color($background, background);
     }
 
+  }
+
+  .toast-comp {
+    
     .toast-text {
       color: mat-color($foreground, toast-text);
     }
@@ -38,4 +47,11 @@
     }
 
   }
+
+
+  .mu-loading-root {
+    background: mat-color($background, background);
+  }
+
+
 }

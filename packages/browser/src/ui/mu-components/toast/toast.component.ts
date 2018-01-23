@@ -4,7 +4,7 @@ import { animate, state,
          trigger }                            from '@angular/core'
 
 @Component({
-  selector    : 'app-toast',
+  selector    : 'toast',
   templateUrl : './toast.component.html',
   styleUrls   : ['./toast.component.scss'],
   animations  : [

@@ -50,6 +50,7 @@ const STATE             = {HALF: 'HALF', FULL: 'FULL'},
       QUICK_SPEED       = .3
 
 @Component({
+  selector   : 'bottom-in',
   templateUrl: './bottom-in.component.html',
   styleUrls: ['./bottom-in.component.scss'],
   animations: [
