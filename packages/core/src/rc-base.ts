@@ -181,6 +181,21 @@ export type LogCacheEntry = {
   log : string 
 }
 
+// Replacer Function to take Care of cyclic object references
+export function safeReplacerFn(){
+  
+  const seen : any [] = []
+  return function(key : string, value : any) : any {
+    if (value != null && typeof value == "object") {
+      if (seen.indexOf(value) >= 0) {
+        return
+      }
+      seen.push(value);
+    }
+    return value
+  }
+}
+
 export abstract class RCLoggerBase {
 
   public  sesLogCache       : LogCacheEntry[]  = []
@@ -345,15 +360,18 @@ export abstract class RCLoggerBase {
       return maxLevels === pendingLevels ? fn.toString() : 'function ' + fn.name
     }
     //console.log(`obj: ${obj} ,${typeof(obj)}, ${obj.toString()} , ${typeof(obj.toString())}`)
-    if (!isArray && typeof(obj.toString) === 'function' && typeof(obj.toString())=== 'number') {
+    if (!isArray && typeof(obj.toString) === 'function') {
       //console._log('toString did not match', obj.toString, ({}).toString)
-      return obj.toString()
+      const str = obj.toString()
+      if(typeof(str)==='number') return str
+      if(typeof(str)==='string' && str.startsWith('[object')) return str
     }
     
+    /*
     if (!isArray && typeof(obj.toString) === 'function' && (!(str = obj.toString()).startsWith('[object'))) {
       //console._log('toString did not match', obj.toString, ({}).toString)
       return str
-    }
+    }*/
     
     for (const key of keys) {
       
@@ -375,7 +393,7 @@ export abstract class RCLoggerBase {
         
       } else if ((!value) || (valType !== 'object')) {
         
-        str = String(JSON.stringify(value))
+        str = String(JSON.stringify(value , safeReplacerFn()))
         buffer += str.length > 50 ? str.substr(0, 50) + '..' : str
         
       } else {
