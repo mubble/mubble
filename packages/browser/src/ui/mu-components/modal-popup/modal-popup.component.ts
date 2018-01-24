@@ -114,7 +114,7 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
 
   @HostBinding('class.glb-flex-centered') true
   @HostBinding('@routeAnimation') __routeAnimation = true
-  @HostBinding('class.animated-element') animElem   = true
+  @HostBinding('class.glb-animated-element') animElem   = true
   // @HostBinding('style.z-index')   zIndex   = 3000;
   // @HostBinding('style.background-color') bg   = 'rgba(0,0,0,.5)'
  

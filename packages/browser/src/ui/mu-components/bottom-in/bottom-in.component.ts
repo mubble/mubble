@@ -92,7 +92,7 @@ export class BottomInComponent extends InjectionParentBase implements
     AfterViewInit, NailInterface, OnDestroy {
 
   @HostBinding('@routeAnimation') __routeAnimation  = null
-  @HostBinding('class.animated-element') animElem   = true
+  @HostBinding('class.glb-animated-element') animElem   = true
   // @HostBinding('style.z-index')   zIndex   = 2000
  
   @HostListener('click', ['$event.target']) onHostClick() {
