@@ -15,8 +15,6 @@ import android.util.Base64
 import org.json.JSONObject
 import java.io.*
 
-
-
 /**
  * Created by
  * siddharthgarg on 31/08/17.
@@ -280,18 +278,18 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
   companion object {
 
-    val REQUEST_TAKE_PHOTO              = 2001
-    val REQUEST_CROP_PHOTO              = 2002
-    val REQUEST_SELECT_PHOTO            = 2003
+    const val REQUEST_TAKE_PHOTO              = 2001
+    const val REQUEST_CROP_PHOTO              = 2002
+    const val REQUEST_SELECT_PHOTO            = 2003
 
-    private val AUTHORITY               = "in.mubble.newschat.fileprovider"
-    private val USERS                   = "users"
-    private val OUTPUT_FILENAME         = "output.jpeg"
-    private val MIME_TYPE               = "image/jpeg"
+    private const val AUTHORITY               = "in.mubble.newschat.fileprovider"
+    private const val USERS                   = "users"
+    private const val OUTPUT_FILENAME         = "output.jpeg"
+    private const val MIME_TYPE               = "image/jpeg"
 
-    private val ERROR_ACT_NOT_FOUND     = "actNotFound"
-    private val ERROR_ACT_RESULT_FAIL   = "actResultFailure"
-    private val ERROR_INTENT_DATA_FAIL  = "intentDataFailure"
-    private val ERROR_IO_EXCEPTION      = "ioException"
+    private const val ERROR_ACT_NOT_FOUND     = "actNotFound"
+    private const val ERROR_ACT_RESULT_FAIL   = "actResultFailure"
+    private const val ERROR_INTENT_DATA_FAIL  = "intentDataFailure"
+    private const val ERROR_IO_EXCEPTION      = "ioException"
   }
 }

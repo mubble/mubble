@@ -41,7 +41,7 @@ class PermissionManager(private val activity : MubbleBaseActivity,
 
   companion object {
 
-    private val APP_PERMISSIONS_REQ_CODE = 1
+    private const val APP_PERMISSIONS_REQ_CODE = 1
   }
 
   fun askAppPermissions(askedPerms : MutableSet<AskedPermission>) {
