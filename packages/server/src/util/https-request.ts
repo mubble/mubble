@@ -175,12 +175,17 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
 
   export async function expandUrl(rc: RunContextServer, shortUrl: string) : Promise<string | undefined> {
     const traceId = 'expandUrl',
-          ack     = rc.startTraceSpan(traceId)
+          ack     = rc.startTraceSpan(traceId),
+          options = {
+            headers            : {'User-Agent' : 'Newschat/1.0'},
+            method             : "HEAD",
+            url                : shortUrl,
+            followAllRedirects : true
+          }
     
     try {
       return await new Promise<string>((resolve, reject) => {
-      request({method : "HEAD", url : shortUrl, followAllRedirects : true},
-        (error : any, response : any) => {
+      request(options, (error : any, response : any) => {
           if(error) reject(error)
           if(response && response.request) {
             rc.isDebug() && rc.debug(rc.getName(this), `Expanded URL: ${response.request.href}`)
