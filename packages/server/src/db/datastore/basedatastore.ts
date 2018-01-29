@@ -426,6 +426,13 @@ getCreateTs(rc: RunContextServer) {
 }
   
 /*------------------------------------------------------------------------------
+  - Get deleted Flag
+------------------------------------------------------------------------------*/ 
+isDeleted(rc: RunContextServer) : boolean {
+  return this.deleted
+}
+  
+/*------------------------------------------------------------------------------
   - Get ID from result
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
