@@ -31,7 +31,7 @@ import {  ConnectionInfo,
 import {  WsBrowser }         from './ws-browser'
 import {  EventSystem }       from '../util'
 
-const TIMEOUT_MS          = 55000,
+const TIMEOUT_MS          = 15000,
       SEND_RETRY_MS       = 1000,
       SEND_TIMEOUT        = 10000,
       EVENT_SEND_DELAY    = 1000,

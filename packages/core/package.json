@@ -14,9 +14,8 @@
     "@types/mime-types": "^2.1.0",
     "@types/lodash": "^4.14.61"
   },
-  "peerDependencies": {
+  "dependencies": {
     "mime-types": "^2.1.15",
     "lodash": "^4.17.4"
-  },
-  "dependencies": {}
+  }
 }
