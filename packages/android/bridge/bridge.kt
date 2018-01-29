@@ -94,10 +94,8 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   fun sendAsyncResponseToJs(requestId: Int, json: JSONObject) {
 
     asyncExecuteInMainThread {
-
       executeJsFunction("asyncResponseFromNative", requestId, json) {}
     }
-
   }
 
   private fun executeJsFunction(fnName: String, vararg args: Any?,
