@@ -35,8 +35,8 @@ import { NC_UI_EVENT } from 'common'
 
 const ROOT_URL     = '/#/?launched=true'
 
-const PRIMARY_OUTLET = 'primary',
-      MODAL_OUTLET   = 'modal'
+export const PRIMARY_OUTLET = 'primary',
+             MODAL_OUTLET   = 'modal'
 
 export enum TOAST_POSITION { TOP = 1, MIDDLE, BOTTOM }
 
@@ -427,7 +427,7 @@ export class UiRouter {
       })
     } 
     
-    this.onMubbleScreenChange(event.url, this.lastNavMethod)
+    this.onMubbleScreenChange(event.url, this.curOutlet, this.lastNavMethod)
   
     if (this.urlStack.length === refIndex) this.urlStack[refIndex] = new StackItem()
     const urlStack = this.urlStack[refIndex]
@@ -547,7 +547,7 @@ export class UiRouter {
     return this.componentRegistry[compName]
   }
 
-  public onMubbleScreenChange(url: string, lastNavMethod: NavMethod) {
+  public onMubbleScreenChange(url: string, outlet: OUTLET, lastNavMethod: NavMethod) {
   
   }
 
