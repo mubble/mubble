@@ -361,17 +361,9 @@ export abstract class RCLoggerBase {
     }
     //console.log(`obj: ${obj} ,${typeof(obj)}, ${obj.toString()} , ${typeof(obj.toString())}`)
     if (!isArray && typeof(obj.toString) === 'function') {
-      //console._log('toString did not match', obj.toString, ({}).toString)
       const str = obj.toString()
-      if(typeof(str)==='number') return str
-      if(typeof(str)==='string' && str.startsWith('[object')) return str
+      if(typeof(str) === 'number' || (typeof(str)==='string' && !str.startsWith('[object'))) return str
     }
-    
-    /*
-    if (!isArray && typeof(obj.toString) === 'function' && (!(str = obj.toString()).startsWith('[object'))) {
-      //console._log('toString did not match', obj.toString, ({}).toString)
-      return str
-    }*/
     
     for (const key of keys) {
       
