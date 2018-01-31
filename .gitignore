@@ -3,3 +3,4 @@ lib
 .DS_Store
 .vscode
 vscode-user-settings.json
+package-lock.json
