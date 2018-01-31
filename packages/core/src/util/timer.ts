@@ -55,7 +55,7 @@ export class Timer {
 
   private currentTimer               = null
   private nextTs: number             = 0
-  private logging                    = false
+  private logging                    = true
 
   constructor() {
     this.cbTimer = this.timerEvent.bind(this)
@@ -87,25 +87,25 @@ export class Timer {
     if (index !== -1) { // already subscribed
       if (overwrite || sub.nextTickAt >= nextTickAt || sub.nextTickAt <= now) {
         sub.nextTickAt = nextTickAt
-        this.logging && console.info(`Timer:tickAfter modified ${sub.name} with ${
+        this.logging && console.info(`${sub.name}:tickAfter modified ${
           ms} ms overwrite:${overwrite} for supplied value`)
       } else {
         nextTickAt = sub.nextTickAt
-        this.logging && console.info(`Timer:tickAfter ignoring ${sub.name} after ${
+        this.logging && console.info(`${sub.name}:tickAfter ignoring after ${
           ms} as old value is lower`)
       }
     } else { // not subscribed
       sub.nextTickAt = nextTickAt
       subs.push(sub)
-      this.logging && console.info(`Timer:tickAfter inserted ${sub.name} for ${ms}`)
+      this.logging && console.info(`${sub.name}:tickAfter inserted after ${ms}`)
     }
 
     if (this.nextTs > nextTickAt || !this.nextTs) {
       if (this.currentTimer) clearTimeout(this.currentTimer as any)
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
       this.nextTs       = nextTickAt
-      this.logging && console.info(`Timer:tickAfter timer scheduled after ${
-        nextTickAt - now} ms length:${subs.length} for ${sub.name}`)
+      this.logging && console.info(`${sub.name}:tickAfter timer scheduled after ${
+        nextTickAt - now} ms length:${subs.length}`)
     }
   }
 
@@ -118,7 +118,7 @@ export class Timer {
     if (index !== -1) {
       // We don't worry about the timeout call on timer as it managed in timeout
       const [sub] = this.subscriptions.splice(index, 1)
-      this.logging && console.info(`Timer:removed timer ${sub.name} length:${this.subscriptions.length}`)
+      this.logging && console.info(`${sub.name}:removed timer length:${this.subscriptions.length}`)
     }
   }
 
@@ -140,18 +140,17 @@ export class Timer {
         const thisNextTick = sub.cb(),
               updatedSub   = subs[i]
 
-        this.logging && console.info(`Timer:timerEvent called ${sub.name} response:${thisNextTick}`)
-        
-
-        if (updatedSub !== sub) { // timer got removed while processing timeout
+        if (updatedSub !== sub) { // During timeout timer was removed via remove() call
           i--
           continue
-        } else if (thisTickAt !== updatedSub.nextTickAt) { // timeout got modified during the callback, ignore return value
+        } else if (thisTickAt !== updatedSub.nextTickAt) { // timeout got modified via tickAfter() during the callback, ignore return value
           thisTickAt = updatedSub.nextTickAt
-        } else if (!thisNextTick || thisNextTick < 0) {
+        } else if (!thisNextTick || thisNextTick < 0) { // The return value says cancel the timer
+          this.logging && console.info(`${sub.name}:timerEvent removed subscription based on callback return value`)
           this.subscriptions.splice(i--, 1)
           continue
-        } else {
+        } else { // Next tick is set via the return value of callback
+          this.logging && console.info(`${sub.name}:timerEvent will be re-scheduled after ${thisNextTick}`)
           thisTickAt = now + thisNextTick
         }
       }
@@ -162,16 +161,16 @@ export class Timer {
       }
     }
 
-    if (selectedSub) {
+    if (selectedSub) { // Next timer to schedule based on selectedSub tick time
       this.currentTimer = setTimeout(this.cbTimer, nextTickAt - now) as any
 
       this.nextTs       = nextTickAt
-      this.logging && console.info(`Timer:timerEvent timer scheduled after ${
-        nextTickAt - now} ms length:${subs.length} for ${selectedSub.name}`)
+      this.logging && console.info(`${selectedSub.name}:timerEvent timer scheduled after ${
+        nextTickAt - now} ms number of timers:${subs.length}`)
     } else {
       this.currentTimer = null
       this.nextTs       = 0
-      this.logging && console.info(`Timer:timerEvent removed timer`)
+      this.logging && console.info(`Timer:timerEvent removed all timers. Assert zeros subs: ${subs.length} === 0`)
     }
   }
 }

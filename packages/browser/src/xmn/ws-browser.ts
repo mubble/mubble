@@ -5,6 +5,12 @@
    Author     : Raghvendra Varma
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
+
+  Ping: Ping indicates to the server that client is up and kicking.... 
+  Websocket carries ephemeral events too. Design of Ping also helps in carrying 
+  ephemeral events. This is the reason we don't tick timer when we receive 
+  messages from the server
+
 ------------------------------------------------------------------------------*/
 
 import { ConnectionInfo,
@@ -76,10 +82,10 @@ export class WsBrowser {
         (ws && (ws.readyState !== WebSocket.OPEN || !this.configured || ws.bufferedAmount)) ) {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Websocket is not ready right now', {
-        sending         : this.sending,
-        configured      : this.configured, 
-        readyState      : this.ws.readyState, 
-        bufferedAmount  : this.ws.bufferedAmount
+        anotherSendInProgress : this.sending,
+        configured            : this.configured,
+        readyState            : this.ws ? this.ws.readyState : 'to be created',
+        bufferedAmount        : this.ws.bufferedAmount
       })
 
       return XmnError._NotReady
@@ -180,8 +186,13 @@ export class WsBrowser {
 
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
 
-      const config: WebSocketConfig = se.data as WebSocketConfig
-      this.msPingInterval = config.msPingInterval
+      const config: WebSocketConfig = se.data as WebSocketConfig,
+            msPing = config.msPingInterval
+
+      this.msPingInterval = msPing
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+                            msPing && Number.isInteger(msPing), msPing)
+      
       await this.encProvider.setNewKey(config.syncKey)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
@@ -204,11 +215,8 @@ export class WsBrowser {
   }
 
   setupTimer(rc: RunContextBrowser) {
-    // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'setupTimer')
-
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.msPingInterval)
     this.lastMessageTs = Date.now()
-    this.timerPing.tickAfter(this.msPingInterval)
+    this.timerPing.tickAfter(this.msPingInterval, true)
   }
 
   cbTimerPing(): number {
@@ -219,7 +227,6 @@ export class WsBrowser {
           diff  = this.lastMessageTs + this.msPingInterval - now
 
     if (diff <= 0) {
-      // name: "मेरा"
       this.send(this.rc, new WireSysEvent(SYS_EVENT.PING, {}))
       return this.msPingInterval
     } else {
