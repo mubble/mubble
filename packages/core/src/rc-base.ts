@@ -385,7 +385,12 @@ export abstract class RCLoggerBase {
         
       } else if ((!value) || (valType !== 'object')) {
         
-        str = String(JSON.stringify(value , safeReplacerFn()))
+        try{
+          str = String(JSON.stringify(value))
+        }catch(error){
+          // Take care of circular Objects
+          str = String(JSON.stringify(value , safeReplacerFn()))
+        }
         buffer += str.length > 50 ? str.substr(0, 50) + '..' : str
         
       } else {

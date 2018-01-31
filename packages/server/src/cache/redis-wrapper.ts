@@ -42,7 +42,7 @@ export class RedisCmds {
   incr      (...args : string[]) : Promise<void> {return true as any}
 
   mget      (...args : string[]) : Promise<string []> {return true as any}
-  mset      (...args : string[]) : Promise<void> {return true as any}
+  mset      (...args : string[]) : Promise<string> {return true as any}
 
   hdel      (key : string , ...args : string[]) : Promise<void> { return true as any }
   hget      (key : string , field : string) : Promise<string> { return true as any }
