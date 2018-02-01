@@ -29,7 +29,7 @@ internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: Login
     callbackManager = CallbackManager.Factory.create()
 
     loginButton = LoginButton(activity)
-    loginButton.setReadPermissions(Arrays.asList("public_profile", "email", "user_birthday"))
+    loginButton.setReadPermissions(Arrays.asList("public_profile", "email"))
     loginButton.registerCallback(callbackManager, object : FacebookCallback<LoginResult> {
       override fun onSuccess(loginResult: LoginResult) {
 
