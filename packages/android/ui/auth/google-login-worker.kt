@@ -33,8 +33,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     .requestServerAuthCode(activity.getString(R.string.default_web_client_id))
     .requestIdToken(activity.getString(R.string.default_web_client_id))
     .requestEmail()
-    .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE),
-                   Scope(PeopleScopes.USER_BIRTHDAY_READ))
+    .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE))
     .build()
 
     mGoogleApiClient = GoogleApiClient.Builder(activity)
@@ -167,17 +166,17 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   private fun cleanUp() {
 
-    mGoogleApiClient.disconnect()
     mGoogleApiClient.stopAutoManage(activity)
+    mGoogleApiClient.disconnect()
   }
 
   companion object {
 
-    val RC_SIGN_IN            = 9001
-    val ERROR_PLAY_SERVICES   = "playServicesFailure"
-    val ERROR_CONNECTION_FAIL = "connectionFailure"
-    val ERROR_SIGN_IN_FAIL    = "signInFailure"
-    val ERROR_FIREBASE_AUTH   = "firebaseAuthFailure"
-    val ERROR_CANCELLED       = "cancelled"
+    const val RC_SIGN_IN            = 9001
+    const val ERROR_PLAY_SERVICES   = "playServicesFailure"
+    const val ERROR_CONNECTION_FAIL = "connectionFailure"
+    const val ERROR_SIGN_IN_FAIL    = "signInFailure"
+    const val ERROR_FIREBASE_AUTH   = "firebaseAuthFailure"
+    const val ERROR_CANCELLED       = "cancelled"
   }
 }
