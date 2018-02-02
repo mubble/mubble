@@ -30,6 +30,7 @@ import {
        }                      from '@mubble/core'
 import {EncProviderServer}    from './enc-provider-server'
 import {RunContextServer}     from '../rc-server'
+import {TraceBase}            from '../gcp/trace/trace-base'
 
 export class InvokeStruct {
 
@@ -60,8 +61,16 @@ export abstract class XmnRouterServer {
   abstract getPrivateKeyPem(rc: RunContextServer, ci: ConnectionInfo): string
 
   async verifyConnection(rc: RunContextServer, ci: ConnectionInfo, apiName ?: string) {
+    //const rc : RunContextNcServer = refRc.copyConstruct('', refRc.contextName)
     const reqStruct = apiName ? this.apiMap[apiName] : null
     await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
+    const apiname = 'verifyConnection'
+    if(ci.clientIdentity){
+      rc.finish(ci , null as any , null as any , apiname)
+    }else if(ci.protocol === Protocol.WEBSOCKET){
+      TraceBase.sendTrace(rc, apiname , {type: 'NC_API'})
+    }
+    
   }
   
   public async sendEvent(rc: RunContextServer, ci: ConnectionInfo, eventName: string, data: object) {
@@ -234,7 +243,7 @@ export abstract class XmnRouterServer {
     }
   }
 
-  upgradeClientIdentity(rc   : RunContextServer, 
+  async upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
                         data : object) {
 
@@ -254,7 +263,7 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , null)
+      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , null)
     }
   }
 
