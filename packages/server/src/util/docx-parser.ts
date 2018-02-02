@@ -22,7 +22,7 @@ export abstract class DocxTransformerBase {
 
 export class DocxProcessor {
 
-  static async transform(rc: RunContextServer, filename: string, transformer : DocxTransformerBase) {
+  static async transformFile(rc: RunContextServer, filename: string, transformer : DocxTransformerBase) {
     var mammoth_options : MOptions = {
       includeDefaultStyleMap : true,
       transformDocument: mammoth.transforms.paragraph(transformer.transformDocParagraph.bind (transformer, rc)),
@@ -33,6 +33,22 @@ export class DocxProcessor {
     } 
     transformer.iniitalze (rc)
     const htmlDoc = await mammoth.convertToHtml({path: filename}, mammoth_options)
+    // console.log ('Html Doc:', htmlDoc)
+    transformer.terminate (rc)
+    return (htmlDoc) ? true : false
+  }
+
+  static async transformBuffer(rc: RunContextServer, buffer: Buffer, transformer : DocxTransformerBase) {
+    var mammoth_options : MOptions = {
+      includeDefaultStyleMap : true,
+      transformDocument: mammoth.transforms.paragraph(transformer.transformDocParagraph.bind (transformer, rc)),
+      styleMap: [
+          "i => strong", // Default = 'em'
+          "p[style-name='Nudi'] => p.nudi"
+      ]
+    } 
+    transformer.iniitalze (rc)
+    const htmlDoc = await mammoth.convertToHtml({buffer: buffer}, mammoth_options)
     // console.log ('Html Doc:', htmlDoc)
     transformer.terminate (rc)
     return (htmlDoc) ? true : false
