@@ -55,7 +55,7 @@ export class Timer {
 
   private currentTimer               = null
   private nextTs: number             = 0
-  private logging                    = true
+  private logging                    = false
 
   constructor() {
     this.cbTimer = this.timerEvent.bind(this)

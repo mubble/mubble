@@ -83,8 +83,8 @@ export abstract class RunContextBase {
     }*/
   }
 
-  public finish(ic : ConnectionInfo, resp: WireEventResp | WireReqResp  , req : WireObject) : void {
-      this.logger.finish(ic, resp , req)
+  public finish(ic : ConnectionInfo,  resp: WireEventResp | WireReqResp  , req : WireObject , apiName ?: string) : void {
+      this.logger.finish(ic, resp , req , apiName)
   }
   
   public setupLogger(obj: any, moduleName: string, logLevel ?: LOG_LEVEL) {
@@ -212,7 +212,7 @@ export abstract class RCLoggerBase {
     
   }
 
-  public finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject) : void {
+  public finish(ic : ConnectionInfo, er: WireEventResp | WireReqResp , req : WireObject , apiName ?: string) : void {
     // default Implementation .
   }
 
