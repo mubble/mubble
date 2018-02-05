@@ -121,13 +121,13 @@ export class RcServerExtLogger extends ExternalLogger {
       }
       const stream : WriteStream = entry.stream
       
-      if(!entry.distroyed && stream){
+      if(!entry.destroyed && stream){
         // Todo : Put try catch
         stream.write(logMsg+'\n')
       }else{
         // create again the stream which might have been closed
-        if(entry.distroyed) {
-          console.error('entry distroyed',logMsg)
+        if(entry.destroyed) {
+          console.error('entry destroyed',logMsg)
           return
         }else if(!stream){
           console.error('write stream closed. creating again',entry.fileName)
@@ -167,13 +167,13 @@ class FileEntry {
  fileName   : string 
  dateStr    : string 
  stream     : WriteStream
- distroyed  : boolean 
+ destroyed  : boolean 
 
  constructor(filename : string , dateStr : string) {
    
    this.fileName  = filename 
    this.dateStr   = dateStr 
-   this.distroyed = false
+   this.destroyed = false
    this.createStream(this.fileName)
  }
 
@@ -211,7 +211,7 @@ class FileEntry {
   //console.log('closing entry',this.fileName)
   try{
     
-    this.distroyed = true
+    this.destroyed = true
     this.fileName = null as any
     this.dateStr  = null as any
     
@@ -233,7 +233,7 @@ class FileEntry {
    }catch(err){
      console.log('stream closure failure',this.fileName)
    }
-   this.distroyed = true
+   this.destroyed = true
    this.fileName = null as any
    this.dateStr  = null as any
  }
