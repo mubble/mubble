@@ -31,8 +31,9 @@ class AskedPermission(private val permissionGroup : PermissionGroup,
   fun getRationaleText(): String = rationaleText
 }
 
-class PermissionManager(private val activity : MubbleBaseActivity,
-                        private val cb       : (MutableSet<AskedPermission>, Boolean) -> Unit) {
+class PermissionManager(private val activity      : MubbleBaseActivity,
+                        private val showRationale : Boolean,
+                        private val cb            : (MutableSet<AskedPermission>, Boolean) -> Unit) {
 
   private val askedPerms = mutableSetOf<AskedPermission>()
 
@@ -111,7 +112,14 @@ class PermissionManager(private val activity : MubbleBaseActivity,
     }
 
     when {
-      canShowRationaleDialog -> showRationaleDialog(rejectedGroups)
+      canShowRationaleDialog -> {
+        if (this.showRationale) {
+          showRationaleDialog(rejectedGroups)
+        } else {
+          requestPending = false
+          cb(rejectedGroups, false)
+        }
+      }
       requestTime + 500 > Calendar.getInstance().timeInMillis -> showPermSettingDialog()
       //else -> activity.toast(R.string.prm_rationale_toast)
     }
