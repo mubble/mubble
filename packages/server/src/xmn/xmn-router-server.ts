@@ -53,6 +53,7 @@ export abstract class XmnRouterServer {
 
   private apiMap   : {[index: string]: InvokeStruct} = {}
   private eventMap : {[index: string]: InvokeStruct} = {}
+  private piggyfrontMap = new WeakMap<InvocationData, Array<WireEphEvent>>()
 
   constructor(rc: RunContextServer, ...providers: any[]) {
     XmnRegistry.commitRegister(rc, this, providers)   
@@ -81,8 +82,19 @@ export abstract class XmnRouterServer {
     }
 
     const we = new WireEphEvent(eventName, data)
-    await ci.provider.send(rc, we)
+    await ci.provider.send(rc, [we])
     rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
+  }
+  
+  public async piggyfrontEvent(rc: RunContextServer, ci: ConnectionInfo, 
+    eventName: string, data: object, invData: InvocationData) {
+
+    const we = new WireEphEvent(eventName, data),
+          ar = this.piggyfrontMap.get(invData) || []
+    if (!ar.length) this.piggyfrontMap.set(invData, ar)
+
+    ar.push(we)
+    rc.isDebug() && rc.debug(rc.getName(this), 'queued event', eventName)
   }
   
   public getIp(req: any) {
@@ -132,6 +144,12 @@ export abstract class XmnRouterServer {
   async routeRequest(rc: RunContextServer, ci : ConnectionInfo, wo: WireObject) : Promise<WireReqResp> {
     
     let wResp : WireReqResp  = null as any
+    const ir = {
+      name    : wo.name,
+      ts      : wo.ts + ci.msOffset,
+      params  : wo.data
+    } as InvocationData
+
     try {
       const reqStruct = this.apiMap[wo.name] 
       rc.isDebug() && rc.debug(rc.getName(this), 'Routing Request', wo, reqStruct)
@@ -140,14 +158,9 @@ export abstract class XmnRouterServer {
         throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
       }
       
-      const ir = {
-        name    : wo.name,
-        ts      : wo.ts + ci.msOffset,
-        params  : wo.data
-      } as InvocationData
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       wResp = new WireReqResp(ir.name, wo.ts, resp)
-      await this.sendToProvider(rc, ci, wResp , wo)
+      await this.sendToProvider(rc, ci, wResp, ir)
 
     } catch (err) {
       let errStr = (err instanceof Mubble.uError) ? err.code 
@@ -157,7 +170,7 @@ export abstract class XmnRouterServer {
       rc.isError() && rc.error(rc.getName(this), err)
       wResp = new WireReqResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, errStr , err)
-      await this.sendToProvider(rc, ci, wResp , wo)
+      await this.sendToProvider(rc, ci, wResp, ir)
     } finally {
       return wResp
     }
@@ -166,21 +179,22 @@ export abstract class XmnRouterServer {
   async routeEvent(rc: RunContextServer, ci: ConnectionInfo, wo: WireObject) : Promise<WireEventResp> {
     
     let wResp : WireEventResp  = null as any
+    const ie = {
+      name    : wo.name,
+      ts      : wo.ts + ci.msOffset,
+      params  : wo.data
+    } as InvocationData
+
     try {
       if (wo.ts > ci.lastEventTs) {
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
-        const ie = {
-          name    : wo.name,
-          ts      : wo.ts + ci.msOffset,
-          params  : wo.data
-        } as InvocationData
 
         await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
 
       wResp = new WireEventResp(wo.name, wo.ts)
-      this.sendEventResponse(rc, ci, wResp , wo)
+      this.sendEventResponse(rc, ci, wResp, ie)
 
     } catch (err) {
       
@@ -191,8 +205,7 @@ export abstract class XmnRouterServer {
 
       wResp = new WireEventResp(wo.name, wo.ts, 
                        {error: err.message || err.name}, errStr , err)
-      this.sendEventResponse(rc, ci, wResp  ,wo)
-
+      this.sendEventResponse(rc, ci, wResp, ie)
     }
 
     return wResp
@@ -230,14 +243,23 @@ export abstract class XmnRouterServer {
     return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent)
   }
 
-  private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, resp: WireEventResp , req : WireObject ) {
+  private async sendEventResponse(rc: RunContextServer, ci: ConnectionInfo, 
+                                  resp: WireEventResp , invData : InvocationData ) {
+
     if (ci.lastEventTs < resp.ts) ci.lastEventTs = resp.ts // this is same as req.ts
-    await this.sendToProvider(rc, ci, resp , req)
+    await this.sendToProvider(rc, ci, resp , invData)
   }
 
-  private async sendToProvider(rc: RunContextServer, ci: ConnectionInfo, response: WireObject , request: WireObject | null) {
+  private async sendToProvider(rc: RunContextServer, ci: ConnectionInfo, 
+                  response: WireObject, invData: InvocationData | null) {
     if (ci.provider) {
-      await ci.provider.send(rc, response, response.data ? response.data.error : undefined)
+
+      const ar = invData && this.piggyfrontMap.get(invData) || []
+      if (invData && ar.length) this.piggyfrontMap.delete(invData)
+
+      ar.push(response)
+      await ci.provider.send(rc, ar)
+
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
     }
@@ -245,7 +267,7 @@ export abstract class XmnRouterServer {
 
   async upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
-                        data : object) {
+                        data : object /* , invData: InvocationData */) {
 
     rc.isAssert() && rc.assert(rc.getName(this), ci.clientIdentity)
     let updated = false
@@ -263,7 +285,7 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , null)
+      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , /* invData */ null)
     }
   }
 

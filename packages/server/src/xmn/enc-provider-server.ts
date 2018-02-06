@@ -83,11 +83,19 @@ export class EncProviderServer {
   }
 
   // Should return binary buffer
-  async encodeBody(rc: RunContextServer, data: WireObject, msgType ?: string) {
+  async encodeBody(rc: RunContextServer, arData: WireObject[], msgType ?: string) {
 
-    if (data.data instanceof Buffer) return this.encodeBinaryBody(rc, data)
+    const arStrData = []
+    for (const data of arData) {
+      if (data.data instanceof Buffer) {
+        rc.isAssert() && rc.assert(rc.getName(this), arData.length === 1, 
+          'Binary data cannot be sent as array of messages')
+        return this.encodeBinaryBody(rc, data)
+      }
+      arStrData.push(data.stringify())
+    }
 
-    const str = data.stringify()
+    const str = JSON.stringify(arStrData)
     let   firstPassBuffer,
           leader = msgType || Leader.JSON
 

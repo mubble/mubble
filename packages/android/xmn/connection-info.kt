@@ -29,6 +29,5 @@ data class ConnectionInfo(
   // provider for this connection (WebSocket, Http etc.)
   // var provider        : any       // The protocol provider keeps it's custom data here
 
-  // var syncKey         : any
-
+  var syncKey         : ByteArray = ByteArray(32)
 }

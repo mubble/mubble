@@ -114,9 +114,9 @@ export class WsServer {
     this.socketMap.delete(webSocket)
   }
 
-  sendEventToAll(rc : RunContextServer , wo : WireObject) {
+  sendEventToAll(rc : RunContextServer , wo: WireObject) {
     for (const [webSocket, lastTs] of this.socketMap) {
-      webSocket.send(rc , wo, '')
+      webSocket.send(rc , [wo])
     }
   }
 
@@ -169,7 +169,8 @@ export class ServerWebSocket {
       syncKey        : encKey.toString('base64')
     } as WebSocketConfig
 
-    await this.sendInternal(rc, new WireSysEvent(SYS_EVENT.WS_PROVIDER_CONFIG, config), Leader.CONFIG)
+    await this.sendInternal(rc, [new WireSysEvent(SYS_EVENT.WS_PROVIDER_CONFIG, 
+      config)], Leader.CONFIG)
 
     // Update the key to new key
     this.ci.syncKey = key
@@ -208,10 +209,10 @@ export class ServerWebSocket {
         await this.router.verifyConnection(rc, this.ci)
       } catch (e) {
 
-        await this.send(rc, new WireSysEvent(SYS_EVENT.ERROR, {
+        await this.send(rc, [new WireSysEvent(SYS_EVENT.ERROR, {
           code : e.code || e.message,
           msg  : e.code ? e.message : ''
-        } as ConnectionError), '')
+        } as ConnectionError)])
         // this.close() This closes the connection before client can process the message
         // we will exit and let the timer cleanup the socket
         return
@@ -223,7 +224,7 @@ export class ServerWebSocket {
     this.router.providerMessage(rc, this.ci, decodedData)
   }
 
-  public async send(rc: RunContextServer, data: WireObject, errorCode: string) {
+  public async send(rc: RunContextServer, data: WireObject[]) {
 
     if (!this.ci.provider) return
     
@@ -231,7 +232,7 @@ export class ServerWebSocket {
     await this.sendInternal(rc, data)
   }
 
-  private async sendInternal(rc: RunContextServer, data: WireObject, msgType ?: string) {
+  private async sendInternal(rc: RunContextServer, data: WireObject[], msgType ?: string) {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', data)
     const msg = await this.encProvider.encodeBody(rc, data, msgType)

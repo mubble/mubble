@@ -1,6 +1,13 @@
 package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
+import java.security.KeyFactory
+import java.security.SecureRandom
+import java.security.spec.X509EncodedKeySpec
+import javax.crypto.Cipher
+import javax.crypto.spec.IvParameterSpec
+import javax.crypto.spec.SecretKeySpec
+
 
 /*------------------------------------------------------------------------------
    About      : Router to manage communication with mubble servers
@@ -57,8 +64,14 @@ class EncProviderAndroid(private val syncKey : ByteArray,
 
   }
 
+  private val ivSpec = IvParameterSpec(ByteArray(16))
+
+
   init {
     EncProviderAndroid.init(ci)
+
+    // Generate random key for communication
+    SecureRandom().nextBytes(ci.syncKey)
   }
 
   fun encodeHeader() {
@@ -68,8 +81,29 @@ class EncProviderAndroid(private val syncKey : ByteArray,
       this.syncKey: Public key that is used to protect this.ci.syncKey
     */
 
+    val encKey = ByteArray(1)
 
 
+
+
+  }
+
+  // 2 way encryption decryption
+  // https://docs.oracle.com/javase/8/docs/technotes/guides/security/crypto/CryptoSpec.html#AppA
+  fun encryptDecrypt(inpBytes: ByteArray, decrypt: Boolean = false): ByteArray {
+    val newKey = SecretKeySpec(ci.syncKey, "AES")
+    val cipher = Cipher.getInstance("AES/CBC/PKCS5Padding")
+    cipher.init(if (decrypt) Cipher.DECRYPT_MODE else Cipher.ENCRYPT_MODE, newKey, ivSpec)
+    return cipher.doFinal(inpBytes)
+  }
+
+  // Encryption of sym key using public key
+  fun encryptKey(): ByteArray {
+    val cipher = Cipher.getInstance("RSA/ECB/PKCS1PADDING")
+    val pubKeySpec = X509EncodedKeySpec(syncKey)
+    val fact = KeyFactory.getInstance("RSA", "BC")
+    cipher.init(Cipher.ENCRYPT_MODE, fact.generatePublic(pubKeySpec))
+    return cipher.doFinal(ci.syncKey)
   }
 
 

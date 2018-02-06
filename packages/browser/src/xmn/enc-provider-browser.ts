@@ -151,13 +151,12 @@ export class EncryptionBrowser {
                                                    : this.uint8ArToStr(temp),
             inJson    = JSON.parse(inJsonStr)
 
-      arData = Array.isArray(inJson) ? inJson : [inJson]
+      arData = inJson
       decLen = inJsonStr.length
       
       for (index = 0; index < arData.length; index++) {
-        arData[index] = WireObject.getWireObject(arData[index])
+        arData[index] = WireObject.getWireObject(JSON.parse(arData[index]))
       }
-
     }
   
     rc.isDebug() && rc.debug(rc.getName(this), 'decodeBody', {
