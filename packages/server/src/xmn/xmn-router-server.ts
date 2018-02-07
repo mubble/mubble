@@ -88,13 +88,15 @@ export abstract class XmnRouterServer {
   
   public async piggyfrontEvent(rc: RunContextServer, ci: ConnectionInfo, 
     eventName: string, data: object, invData: InvocationData) {
+    const we = new WireEphEvent(eventName, data)
+    this.insertIntoPiggyfrontMap(rc, we, invData)
+  }
 
-    const we = new WireEphEvent(eventName, data),
-          ar = this.piggyfrontMap.get(invData) || []
+  private insertIntoPiggyfrontMap(rc: RunContextServer, we: WireObject, invData: InvocationData) {
+    const ar = this.piggyfrontMap.get(invData) || []
     if (!ar.length) this.piggyfrontMap.set(invData, ar)
-
     ar.push(we)
-    rc.isDebug() && rc.debug(rc.getName(this), 'queued event', eventName)
+    rc.isDebug() && rc.debug(rc.getName(this), 'queued event', we.name)
   }
   
   public getIp(req: any) {
@@ -288,7 +290,9 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity), invData)
+      await this.insertIntoPiggyfrontMap(rc, 
+        new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity), 
+        invData)
     }
   }
 
