@@ -135,7 +135,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   }
 
   @JavascriptInterface
-  protected fun asyncRequestResponseFromJs(requestTag: String, respJsonStr: String) {
+  fun asyncRequestResponseFromJs(requestTag: String, respJsonStr: String) {
 
     check(state > LOADING)
 
