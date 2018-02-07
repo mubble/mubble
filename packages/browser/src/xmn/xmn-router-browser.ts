@@ -239,9 +239,10 @@ export abstract class XmnRouterBrowser {
 
   async providerMessage(rc: RunContextBrowser, arData: WireObject[]) {
 
-    for (const wo of arData) {
+    for (let index = 0; index < arData.length; index++) {
 
-      rc.isDebug() && rc.debug(rc.getName(this), 'providerMessage', wo)
+      const wo = arData[index]
+      rc.isDebug() && rc.debug(rc.getName(this), `providerMessage@${index}`, wo)
 
       switch (wo.type) {
 

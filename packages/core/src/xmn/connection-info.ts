@@ -41,7 +41,7 @@ export interface ConnectionInfo {
   clientIdentity  : ClientIdentity
 
   // provider for this connection (WebSocket, Http etc.)
-  provider        : XmnProvider | null  // The protocol provider keeps it's custom data here
+  provider        : XmnProvider | any | null  // The protocol provider keeps it's custom data here
 
   syncKey         : any
 }
