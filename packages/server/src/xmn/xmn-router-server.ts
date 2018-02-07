@@ -256,9 +256,12 @@ export abstract class XmnRouterServer {
 
       const ar = invData && this.piggyfrontMap.get(invData) || []
       if (invData && ar.length) this.piggyfrontMap.delete(invData)
-
+      
       ar.push(response)
-      await ci.provider.send(rc, ar)
+      
+      const err = (response as WireReqResp|WireEventResp).error
+      // Do not send piggy front events if error api execution fails
+      await ci.provider.send(rc, err? [response] : ar)
 
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
@@ -267,7 +270,7 @@ export abstract class XmnRouterServer {
 
   async upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
-                        data : object /* , invData: InvocationData */) {
+                        data : object, invData: InvocationData) {
 
     rc.isAssert() && rc.assert(rc.getName(this), ci.clientIdentity)
     let updated = false
@@ -285,7 +288,7 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , /* invData */ null)
+      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity), invData)
     }
   }
 

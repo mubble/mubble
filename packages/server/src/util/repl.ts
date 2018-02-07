@@ -179,13 +179,18 @@ export class ReplProvider {
     }
   }
 
-  send(rc: RunContextServer, wo: WireObject): void {
+  send(rc: RunContextServer, data: WireObject[]): void {
+    rc.isDebug() && rc.debug (rc.getName (this), 'Sending to Client:', data.length, 'messages.')
+    data.forEach ((wo, idx) => this.sendOneMessage (rc, wo, idx))
+
+  }
+
+  sendOneMessage (rc: RunContextServer, wo: WireObject, idx: number) : void {
     if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == 'UPGRADE_CLIENT_IDENTITY') {
       this.ci.clientIdentity = wo.data as ClientIdentity
       rc.isStatus() && rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
       return
     }
-
     const apiSignature = wo.name + ':' + wo.ts
     if (wo && (<any>wo).error) {
       rc.isDebug() && rc.debug (rc.getName (this), 'Send Error to client: ', wo)
@@ -193,7 +198,7 @@ export class ReplProvider {
       delete this.requests[apiSignature]
     }
     else if (!wo.data) {
-        rc.isWarn() && rc.warn (rc.getName (this), 'Invalid Response to client: WireObject data is undefined')
+        rc.isWarn() && rc.warn (rc.getName (this), 'Invalid Response to client: WireObject data is undefined', JSON.stringify (wo))
         this.requests[apiSignature].rejecter ('Invalid Response to client: WireObject data is undefined')
         delete this.requests[apiSignature]
     }
