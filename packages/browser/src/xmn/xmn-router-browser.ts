@@ -38,9 +38,13 @@ const TIMEOUT_MS          = 15000,
       EVENT_SEND_DELAY    = 1000,
       MAX_EVENTS_TO_SEND  = 5
 
+export interface BrowserConnectionInfo extends  ConnectionInfo {
+  provider : WsBrowser
+} 
+
 export abstract class XmnRouterBrowser {
 
-  private ci              : ConnectionInfo
+  private ci              : BrowserConnectionInfo
   private ongoingRequests : WireRequest[] = []
   private eventSubMap     : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
   
@@ -64,7 +68,7 @@ export abstract class XmnRouterBrowser {
     const urlParser     = document.createElement('a')
     urlParser.href      = serverUrl
 
-    this.ci             = ci
+    this.ci             = ci as BrowserConnectionInfo
     this.ci.protocol    = Protocol.WEBSOCKET
     this.ci.host        = urlParser.hostname
     this.ci.port        = Number(urlParser.port) || 80
@@ -206,7 +210,7 @@ export abstract class XmnRouterBrowser {
       const eventTable = arEvent[index],
             wireEvent  = new WireEvent(eventTable.name, JSON.parse(eventTable.data), eventTable.ts)
 
-      if (this.ci.provider.send(rc, wireEvent)) break // failed to send
+      if (this.ci.provider.send(rc, [wireEvent])) break // failed to send
 
       rc.isDebug() && rc.debug(rc.getName(this), 'sent event', wireEvent)
       this.lastEventTs      = wireEvent.ts

@@ -75,7 +75,7 @@ export class WsBrowser implements XmnProvider{
     this.ephemeralEvents.push(event)
   }
 
-  public send(rc: RunContextBrowser, data: WireObject[]): string | null {
+  public send(rc: RunContextBrowser, data: WireObject[] | WireObject): string | null {
 
     const ws = this.ws
 
@@ -92,7 +92,7 @@ export class WsBrowser implements XmnProvider{
       return XmnError._NotReady
     }
 
-    const objects: WireObject[] = data 
+    const objects: WireObject[] = Array.isArray(data) ? data : [data] 
 
     if (this.ephemeralEvents.length) {
       objects.push(...this.ephemeralEvents)
