@@ -24,7 +24,8 @@ import {
         SYS_EVENT,
         WIRE_TYPE,
         Leader,
-        WEB_SOCKET_URL
+        WEB_SOCKET_URL,
+        XmnProvider
        }                              from '@mubble/core'
 import {
         RunContextServer,
@@ -140,7 +141,7 @@ export class WsServer {
 /*------------------------------------------------------------------------------
    ServerWebSocket
 ------------------------------------------------------------------------------*/
-export class ServerWebSocket {
+export class ServerWebSocket implements XmnProvider {
 
   private configSent          = false
   private connectionVerified  = false
@@ -231,6 +232,7 @@ export class ServerWebSocket {
     if (!this.configSent) await this.sendConfig(rc)
     await this.sendInternal(rc, data)
   }
+  
 
   private async sendInternal(rc: RunContextServer, data: WireObject[], msgType ?: string) {
 

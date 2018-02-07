@@ -10,7 +10,9 @@
 import {RunContextBase}     from '../rc-base'
 import {Mubble}             from '../'
 import {ClientIdentity}     from './client-identity'
-import {Protocol}           from './xmn-core'
+import {Protocol,
+        XmnProvider}        from './xmn-core'
+
 
 export interface ConnectionInfo {
 
@@ -39,7 +41,7 @@ export interface ConnectionInfo {
   clientIdentity  : ClientIdentity
 
   // provider for this connection (WebSocket, Http etc.)
-  provider        : any       // The protocol provider keeps it's custom data here
+  provider        : XmnProvider | null  // The protocol provider keeps it's custom data here
 
   syncKey         : any
 }

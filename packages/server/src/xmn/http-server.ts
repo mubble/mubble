@@ -20,7 +20,8 @@ import {
         WireObject,
         XmnError,
         HTTP,
-        WireReqResp
+        WireReqResp,
+        XmnProvider
        }                              from '@mubble/core'
 import {
         RunContextServer,
@@ -29,6 +30,7 @@ import {
 import { UStream }                    from '../util/mubble-stream'
        
 import {XmnRouterServer}              from './xmn-router-server'
+
 import * as mime                      from 'mime-types'
 
 const TIMER_FREQUENCY_MS    = 10 * 1000 // to detect timed-out requests
@@ -84,9 +86,10 @@ export class HttpServer {
       return
     }
 
-    ci.provider       = new HttpServerProvider(rc, ci, this.router, req, res, this)
-    this.providerMap.set(ci.provider, Date.now())
-    ci.provider.processRequest(rc, apiName, reqId, urlObj.query || '')
+    const httpProvider = new HttpServerProvider(rc, ci, this.router, req, res, this)
+    ci.provider       = httpProvider
+    this.providerMap.set(httpProvider , Date.now())
+    httpProvider.processRequest(rc, apiName, reqId, urlObj.query || '')
   }
 
   markFinished(provider: HttpServerProvider) {
@@ -111,7 +114,7 @@ export class HttpServer {
   
 }
 
-export class HttpServerProvider {
+export class HttpServerProvider implements XmnProvider {
 
   private finished = false
   private wireRequest: WireRequest
@@ -151,8 +154,10 @@ export class HttpServerProvider {
     this.router.providerMessage(rc, this.ci, [this.wireRequest])
   }
 
-  send(rc: RunContextServer, data: WireObject , httpErrorStatus ?: string): void {
+  send(rc: RunContextServer, wbs: WireObject[]): void {
     
+    const data : WireReqResp = wbs[0] as WireReqResp
+
     if (this.finished) {
       rc.isWarn() && rc.warn(rc.getName(this), data.name, 'is already finished. Replying too late?', data)
       return
@@ -173,7 +178,7 @@ export class HttpServerProvider {
     } else {
       headers[HTTP.HeaderKey.contentLength]   = String(result.length)
     }    
-    res.writeHead(httpErrorStatus ? XmnError.errorCode : 200, headers)
+    res.writeHead(data.error ? XmnError.errorCode : 200, headers)
     new UStream.WriteStreams(rc, streams).write(result)
 
     this.finished = true
@@ -183,7 +188,7 @@ export class HttpServerProvider {
 
   sendErrorResponse(rc: RunContextServer, errorCode: string) {
     const wo = new WireReqResp(this.wireRequest.name, this.wireRequest.ts, {error : errorCode})
-    this.send(rc, wo, errorCode)
+    this.send(rc, [wo])
   }
 
   private async parseBody(rc: RunContextServer) {

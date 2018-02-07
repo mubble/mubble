@@ -17,7 +17,9 @@ import {
         ClientIdentity,
         WIRE_TYPE,
         NetworkType,
-        WireEventResp
+        WireEventResp,
+        XmnProvider,
+        WireReqResp
        }                            from '@mubble/core'
 import {
         RunContextServer,
@@ -34,12 +36,14 @@ export abstract class Repl {
   
   protected ci : ConnectionInfo
   protected replServer : any
+  protected provider : ReplProvider
 
   constructor(protected rc: RunContextServer, private clientIdentity: ClientIdentity) {
     this.ci = this.getConnectionInfo ()
+    this.provider = this.ci.provider as ReplProvider
   }
 
-  abstract async callApi(apiName: string, param: object) : Promise<void>
+  abstract async callApi(apiName: string, param: object , ncInstanceId ?: number , userLinkId ?: string) : Promise<any>
 
   init(context ?: any) {
 
@@ -94,6 +98,7 @@ export abstract class Repl {
   createNewConnectionInfo(clientIdentity: ClientIdentity) {
     this.ci = this.getConnectionInfo ()
     this.ci.clientIdentity = clientIdentity
+    this.provider = this.ci.provider as ReplProvider
   }
 
   getConnectionInfo() {
@@ -123,7 +128,7 @@ export abstract class Repl {
   }
 }
 
-export class ReplProvider {
+export class ReplProvider implements XmnProvider {
 
   private configSent = false
   private requests : { [index: string] : { rejecter: any, resolver: any }}
@@ -136,7 +141,7 @@ export class ReplProvider {
   start(rc: RunContextServer, wo: WireObject) {
     const apiSignature = wo.name + ':' + wo.ts
     if (!this.requests) this.requests = {} 
-    return new Promise ((resolve, reject) => {
+    return new Promise<{data : any}> ((resolve, reject) => {
       this.requests[apiSignature] = { rejecter: reject, resolver: resolve }
     })
   }
@@ -160,7 +165,7 @@ export class ReplProvider {
     }
   }
 
-  async routeEvent (rc: RunContextServer, eventName: string, param: object) {
+  async routeEvent (rc: RunContextServer, eventName: string, param: object) : Promise<{data: any}>{
     const wo = {
             name    : eventName,
             type    : WIRE_TYPE.EVENT,

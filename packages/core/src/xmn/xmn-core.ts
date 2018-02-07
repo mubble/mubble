@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { Mubble } from '..'
+import { Mubble, RunContextBase } from '..'
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
 /* HTTP Headers */
@@ -214,4 +214,8 @@ export const Leader = {
 
 export const Encoder = {
   MIN_SIZE_TO_COMPRESS  : 500
+}
+
+export interface XmnProvider {
+  send(rc: RunContextBase , data: WireObject[]) : void 
 }
