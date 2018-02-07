@@ -106,12 +106,16 @@ export abstract class MasterDb extends Dexie {
       this.syncHashModels[modelName] = st ? st.hash : {ts: 0}
     }
     rc.isDebug() && rc.debug(rc.getName(this), 'restored syncHashModels', this.syncHashModels)
+  }
 
+  public onRouterAvailable(rc: RunContextBrowser) {
     const rcb: any = rc
     rcb.router.subscribeEvent(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
   }
 
   public getSyncRequest(rc: RunContextBrowser): SyncRequest {
+
+    rc.isAssert() && rc.assert(rc.getName(this), Object.keys(this.syncHashModels).length)
     return {hash: this.syncHashModels, segments: (rc.globalKeyVal.syncSegments as Segments)}
   }
 
