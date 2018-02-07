@@ -42,7 +42,7 @@ export abstract class XmnRouterBrowser {
 
   private ci              : ConnectionInfo
   private ongoingRequests : WireRequest[] = []
-  private eventSubMap     : Mubble.uObject<(name: string, data: any)=>any> = {}
+  private eventSubMap     : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
   
   private timerReqResend: TimerInstance
   private timerReqTimeout: TimerInstance
@@ -150,7 +150,8 @@ export abstract class XmnRouterBrowser {
     this.ci.provider.sendEphemeralEvent(event)
   }
 
-  public subscribeEvent(eventName: string, eventHandler: (name: string, data: any) => any) {
+  public subscribeEvent(eventName: string, eventHandler: 
+      (rc: RunContextBrowser, name: string, data: any) => any) {
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), eventName && eventHandler)
     this.eventSubMap[eventName] = eventHandler
   }
@@ -251,7 +252,7 @@ export abstract class XmnRouterBrowser {
         case WIRE_TYPE.EPH_EVENT:
           const handler = this.eventSubMap[wo.name]
           if (handler) {
-            await handler(wo.name, wo.data)
+            await handler(rc, wo.name, wo.data)
           } else {
             EventSystem.broadcast(rc, wo.name, wo.data)
           }

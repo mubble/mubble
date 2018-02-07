@@ -108,7 +108,7 @@ export abstract class MasterDb extends Dexie {
     rc.isDebug() && rc.debug(rc.getName(this), 'restored syncHashModels', this.syncHashModels)
 
     const rcb: any = rc
-    rcb.router.subscribe(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
+    rcb.router.subscribeEvent(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
   }
 
   public getSyncRequest(rc: RunContextBrowser): SyncRequest {
@@ -152,10 +152,9 @@ export abstract class MasterDb extends Dexie {
     }
   }
 
-  private async onMasterUpdate(event: any) {
+  private async onMasterUpdate(rc:RunContextBrowser, eventName: string, data: any) {
 
-    const syncResponse:SyncResponse = event.detail.data,
-          rc:RunContextBrowser      = event.detail.rc
+    const syncResponse:SyncResponse = data
 
     rc.isDebug() && rc.debug(rc.getName(this), 'onMasterUpdate', JSON.stringify(syncResponse))
     let updated = false
