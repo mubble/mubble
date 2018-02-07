@@ -267,7 +267,7 @@ export abstract class XmnRouterServer {
 
   async upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
-                        data : object /* , invData: InvocationData */) {
+                        data : object, invData: InvocationData) {
 
     rc.isAssert() && rc.assert(rc.getName(this), ci.clientIdentity)
     let updated = false
@@ -285,7 +285,7 @@ export abstract class XmnRouterServer {
     }
 
     if (updated) {
-      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity) , /* invData */ null)
+      await this.sendToProvider(rc, ci, new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity), invData)
     }
   }
 
