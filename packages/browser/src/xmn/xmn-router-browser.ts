@@ -103,7 +103,7 @@ export abstract class XmnRouterBrowser {
 
       if (!this.ci.provider) this.prepareConnection(rc)
 
-      if (!this.ci.provider.send(rc, wr)) {
+      if (!this.ci.provider.send(rc, [wr])) {
         wr._isSent = true
         rc.isDebug() && rc.debug(rc.getName(this), 'sent request', wr)
         this.timerReqTimeout.tickAfter(TIMEOUT_MS)

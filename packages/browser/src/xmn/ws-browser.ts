@@ -24,7 +24,8 @@ import { ConnectionInfo,
          ConnectionError,
          TimerInstance,
          WireObject,
-         Leader }  from '@mubble/core'
+         Leader,
+         XmnProvider}  from '@mubble/core'
 
 import { XmnRouterBrowser } from './xmn-router-browser'
 
@@ -35,7 +36,7 @@ import {
 
 import {  EncryptionBrowser } from './enc-provider-browser'         
 
-export class WsBrowser {
+export class WsBrowser implements XmnProvider{
 
   private ws                : WebSocket
   private encProvider       : EncryptionBrowser
@@ -74,7 +75,7 @@ export class WsBrowser {
     this.ephemeralEvents.push(event)
   }
 
-  public send(rc: RunContextBrowser, data: WireObject | WireObject[]): string | null {
+  public send(rc: RunContextBrowser, data: WireObject[]): string | null {
 
     const ws = this.ws
 
@@ -91,7 +92,7 @@ export class WsBrowser {
       return XmnError._NotReady
     }
 
-    const objects: WireObject[] = Array.isArray(data) ? data : [data]
+    const objects: WireObject[] = data 
 
     if (this.ephemeralEvents.length) {
       objects.push(...this.ephemeralEvents)
@@ -227,7 +228,7 @@ export class WsBrowser {
           diff  = this.lastMessageTs + this.msPingInterval - now
 
     if (diff <= 0) {
-      this.send(this.rc, new WireSysEvent(SYS_EVENT.PING, {}))
+      this.send(this.rc, [new WireSysEvent(SYS_EVENT.PING, {})])
       return this.msPingInterval
     } else {
       return diff
