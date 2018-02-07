@@ -92,8 +92,6 @@ export abstract class MasterDb extends Dexie {
       TODO ???? validate accumulated versionSchema with this.buildSchema(schema)
     */
     versionSchema[0].tableSchema[SYNC_HASH] = 'model'
-    
-    EventSystem.subscribe(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
     this.verifySegmentVersion(rc, version)
   }
 
@@ -108,6 +106,9 @@ export abstract class MasterDb extends Dexie {
       this.syncHashModels[modelName] = st ? st.hash : {ts: 0}
     }
     rc.isDebug() && rc.debug(rc.getName(this), 'restored syncHashModels', this.syncHashModels)
+
+    const rcb: any = rc
+    rcb.router.subscribe(MASTER_UPDATE_EVENT, this.onMasterUpdate.bind(this))
   }
 
   public getSyncRequest(rc: RunContextBrowser): SyncRequest {

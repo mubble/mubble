@@ -163,7 +163,7 @@ export class WsBrowser {
       }
     }
     const messages = await this.encProvider.decodeBody(this.rc, data)
-    this.router.providerMessage(this.rc, messages)
+    await this.router.providerMessage(this.rc, messages)
   }
 
   onError(err: any) {
@@ -201,7 +201,7 @@ export class WsBrowser {
       this.configured = true
       while (this.preConfigQueue.length) {
         const message = this.preConfigQueue.shift()
-        this.onMessage(message)
+        await this.onMessage(message)
       }
     } else if (se.name === SYS_EVENT.ERROR) {
 
