@@ -11,7 +11,8 @@ import Dexie                  from 'dexie'
 
 import {  RunContextBrowser } from '../rc-browser'
 
-import {  ConnectionInfo,
+import {  Mubble,
+          ConnectionInfo,
           Protocol,
           XmnError,
           WIRE_TYPE,
@@ -41,6 +42,7 @@ export abstract class XmnRouterBrowser {
 
   private ci              : ConnectionInfo
   private ongoingRequests : WireRequest[] = []
+  private eventSubMap     : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
   
   private timerReqResend: TimerInstance
   private timerReqTimeout: TimerInstance
@@ -87,7 +89,7 @@ export abstract class XmnRouterBrowser {
   }
 
   getSyncKey() { return this.syncKey }
-  abstract upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: ClientIdentity): void
+  abstract async upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: ClientIdentity)
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
   abstract getClientIdentity(rc: RunContextBrowser): ClientIdentity
@@ -147,6 +149,13 @@ export abstract class XmnRouterBrowser {
     const event      = new WireEphEvent(eventName, data)
     this.ci.provider.sendEphemeralEvent(event)
   }
+
+  public subscribeEvent(eventName: string, eventHandler: 
+      (rc: RunContextBrowser, name: string, data: any) => any) {
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), eventName && eventHandler)
+    this.eventSubMap[eventName] = eventHandler
+  }
+
 
   private prepareConnection(rc: RunContextBrowser) {
 
@@ -241,7 +250,12 @@ export abstract class XmnRouterBrowser {
           break
 
         case WIRE_TYPE.EPH_EVENT:
-          EventSystem.broadcast(rc, wo.name, wo.data)
+          const handler = this.eventSubMap[wo.name]
+          if (handler) {
+            await handler(rc, wo.name, wo.data)
+          } else {
+            EventSystem.broadcast(rc, wo.name, wo.data)
+          }
           break
 
         case WIRE_TYPE.EVENT_RESP:
@@ -268,11 +282,11 @@ export abstract class XmnRouterBrowser {
             return
           }
 
-          this.finishRequest(this.rc, index, resp.error, resp.data)
+          await this.finishRequest(this.rc, index, resp.error, resp.data)
           break
 
         case WIRE_TYPE.SYS_EVENT:
-          this.processSysEvent(this.rc, wo)
+          await this.processSysEvent(this.rc, wo)
           break
 
         default:
@@ -281,12 +295,12 @@ export abstract class XmnRouterBrowser {
     }
   }
 
-  private processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
+  private async processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
     if (se.name === SYS_EVENT.UPGRADE_CLIENT_IDENTITY) {
-      this.upgradeClientIdentity(rc, se.data as ClientIdentity)
+      await this.upgradeClientIdentity(rc, se.data as ClientIdentity)
       this.prepareConnection(rc)
     } else {
-      this.ci.provider.processSysEvent(this.rc, se)
+      await this.ci.provider.processSysEvent(this.rc, se)
     }
   }
 
