@@ -200,7 +200,7 @@ export class CloudStorageBase {
     }          
   }
 
-  static async getFiles(rc : RunContextServer, bucketName : string, prefix ?: string, delimiter ?: string) {
+  static async getFileList(rc : RunContextServer, bucketName : string, prefix ?: string, delimiter ?: string) {
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           options : any    = {},
           traceId : string = rc.getName(this) + ':' + 'getFiles',
