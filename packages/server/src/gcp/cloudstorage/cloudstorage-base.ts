@@ -199,4 +199,28 @@ export class CloudStorageBase {
       rc.endTraceSpan(traceId, ack)
     }          
   }
+
+  static async getFiles(rc : RunContextServer, bucketName : string, prefix ?: string, delimiter ?: string) {
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          options : any    = {},
+          traceId : string = rc.getName(this) + ':' + 'getFiles',
+          ack              = rc.startTraceSpan(traceId)
+
+    /*
+      delimiter - Results will contain only objects whose names, aside from the prefix, do not contain delimiter. 
+      Objects whose names, aside from the prefix, contain delimiter will have their name truncated after the delimiter, 
+      returned in apiResponse.prefixes. Duplicate prefixes are omitted.
+
+      prefix - Filter results to objects whose names begin with this prefix.
+    */
+    try {
+      if(prefix) options.prefix = prefix
+      if(delimiter) options.delimiter = delimiter
+
+      const data : any = await bucket.getFiles(options)
+      return data[0]
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }          
+  }
 }
