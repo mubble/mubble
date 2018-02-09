@@ -95,7 +95,7 @@ export class EncProviderServer {
       arStrData.push(data.stringify())
     }
 
-    const str = JSON.stringify(arStrData)
+    const str = arStrData.length === 1 ? arStrData[0] : JSON.stringify(arStrData)
     let   firstPassBuffer,
           leader = msgType || Leader.JSON
 

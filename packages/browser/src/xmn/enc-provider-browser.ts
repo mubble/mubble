@@ -150,9 +150,9 @@ export class EncryptionBrowser {
       const inJsonStr = leader === Leader.DEF_JSON ? await pwc.inflate(temp)
                                                    : this.uint8ArToStr(temp),
             inJson    = JSON.parse(inJsonStr)
-
-      arData = inJson
+            
       decLen = inJsonStr.length
+      arData = Array.isArray(inJson) ? inJson: [inJsonStr]
       
       for (index = 0; index < arData.length; index++) {
         arData[index] = WireObject.getWireObject(JSON.parse(arData[index]))
