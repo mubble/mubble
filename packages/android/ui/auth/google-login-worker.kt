@@ -23,7 +23,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 
 internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, loginMgr: LoginManager) : LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
 
-  private val mGoogleApiClient  : GoogleApiClient
+  private var mGoogleApiClient  : GoogleApiClient? = null
   private var progressDialog    : ProgressDialog? = null
   private var sessionSignOut    : Boolean         = false
 
@@ -35,6 +35,10 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     .requestEmail()
     .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE))
     .build()
+
+    if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) {
+      cleanUp()
+    }
 
     mGoogleApiClient = GoogleApiClient.Builder(activity)
     .addOnConnectionFailedListener(this)
@@ -103,15 +107,15 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
     FirebaseAuth.getInstance().currentUser ?: return
 
-    if (!mGoogleApiClient.isConnected) {
-      mGoogleApiClient.connect()
+    if (!mGoogleApiClient!!.isConnected) {
+      mGoogleApiClient!!.connect()
     }
 
-    mGoogleApiClient.registerConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
+    mGoogleApiClient!!.registerConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
       override fun onConnected(bundle: Bundle?) {
 
         Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback { _ -> FirebaseAuth.getInstance().signOut() }
-        mGoogleApiClient.unregisterConnectionCallbacks(this)
+        mGoogleApiClient!!.unregisterConnectionCallbacks(this)
       }
 
       override fun onConnectionSuspended(i: Int) {
@@ -166,8 +170,8 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   private fun cleanUp() {
 
-    mGoogleApiClient.stopAutoManage(activity)
-    mGoogleApiClient.disconnect()
+    mGoogleApiClient!!.stopAutoManage(activity)
+    mGoogleApiClient!!.disconnect()
   }
 
   companion object {

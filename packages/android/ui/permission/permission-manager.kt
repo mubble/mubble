@@ -70,7 +70,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
       return
     }
 
-    if (canShowRationale) {
+    if (canShowRationale && showRationale) {
       showRationaleDialog(wantedPerms)
 
     } else {

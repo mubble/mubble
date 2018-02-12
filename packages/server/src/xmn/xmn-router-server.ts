@@ -270,27 +270,28 @@ export abstract class XmnRouterServer {
     }
   }
 
-  async upgradeClientIdentity(rc   : RunContextServer, 
+  upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
-                        data : object, invData: InvocationData) {
-
+                        data : {[key in 'clientId' |  'userLinkId' | 'userName'] ?: string|number } , invData: InvocationData) {
+    
     rc.isAssert() && rc.assert(rc.getName(this), ci.clientIdentity)
     let updated = false
 
-    for (const key of Object.keys(data)) {
+    for (const key in data) {
 
       const val = (data as any)[key]
+      // This check is not rquired now
       rc.isAssert() && rc.assert(rc.getName(this), typeof(val) === 'string' || typeof(val) === 'number')
-      const oldVal = ci.clientIdentity
+      const oldVal : Mubble.uObject<any> = ci.clientIdentity
 
-      if (val != oldVal) {
-        (ci.clientIdentity as any)[key] = val
+      if (val != oldVal[key]) {
+        oldVal[key] = val
         updated = true
       }
     }
 
     if (updated) {
-      await this.insertIntoPiggyfrontMap(rc, 
+      this.insertIntoPiggyfrontMap(rc, 
         new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity), 
         invData)
     }
