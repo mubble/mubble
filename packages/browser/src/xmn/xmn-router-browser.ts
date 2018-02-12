@@ -231,10 +231,11 @@ export abstract class XmnRouterBrowser {
   }
 
   providerFailed(errCode ?: string) {
-
-    for (let index = 0; index < this.ongoingRequests.length; index++) {
-      const wr = this.ongoingRequests[index];
-      this.finishRequest(this.rc, index, errCode || XmnError.ConnectionFailed)
+  
+    // finishRequest removed the item from ongoingRequests array
+    while (this.ongoingRequests.length) {
+      const wr = this.ongoingRequests[0];
+      this.finishRequest(this.rc, 0, errCode || XmnError.ConnectionFailed)
     }
     this.ongoingRequests  = []
     this.lastEventTs      = 0
@@ -372,7 +373,7 @@ export abstract class XmnRouterBrowser {
           now = Date.now()
 
     this.ongoingRequests.splice(index, 1)
-
+    
     if (!wr.resolve) {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Trying to finish already finished request', errorCode,
