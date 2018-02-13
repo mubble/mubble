@@ -76,7 +76,7 @@ internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: Login
     return loginButton.requestCode
   }
 
-  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     callbackManager.onActivityResult(requestCode, resultCode, data)
   }
 
@@ -97,7 +97,7 @@ internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: Login
 
   companion object {
 
-    val ERROR_SIGN_IN_FAIL  = "signInFailure"
-    val ERROR_CANCELLED     = "cancelled"
+    const val ERROR_SIGN_IN_FAIL  = "signInFailure"
+    const val ERROR_CANCELLED     = "cancelled"
   }
 }

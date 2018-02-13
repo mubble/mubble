@@ -10,7 +10,7 @@ import android.content.Intent
 internal abstract class LoginWorker(private val loginManager: LoginManager) {
 
   abstract fun signIn(): Int
-  abstract fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent)
+  abstract fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?)
 
   fun onSignInComplete(responseCode: String, clientId: String?, idToken: String?)
       = loginManager.onSignInComplete(responseCode, clientId, idToken)

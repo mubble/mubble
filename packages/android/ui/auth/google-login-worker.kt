@@ -88,7 +88,14 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     return RC_SIGN_IN
   }
 
-  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent) {
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+
+    if (data == null) {
+      hideProgressDialog()
+      onSignInComplete(ERROR_SIGN_IN_FAIL, null, null)
+      cleanUp()
+      return
+    }
 
     val result = Auth.GoogleSignInApi.getSignInResultFromIntent(data)
 

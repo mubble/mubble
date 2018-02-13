@@ -8,6 +8,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.support.annotation.NonNull
 import android.support.v4.app.ActivityCompat
 import android.view.LayoutInflater
 import android.view.View
@@ -33,7 +34,7 @@ class AskedPermission(private val permissionGroup : PermissionGroup,
 
 class PermissionManager(private val activity      : MubbleBaseActivity,
                         private val showRationale : Boolean,
-                        private val cb            : (MutableSet<AskedPermission>, Boolean) -> Unit) {
+                        private val cb            : (MutableSet<AskedPermission>, Boolean, Boolean) -> Unit) {
 
   private val askedPerms = mutableSetOf<AskedPermission>()
 
@@ -66,7 +67,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
     }
 
     if (wantedPerms.isEmpty()) {
-      cb(askedPerms, true)
+      cb(askedPerms, false, true)
       return
     }
 
@@ -79,7 +80,9 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
     }
   }
 
-  fun onRequestPermissionsResult(permissions: Array<String>, grantResults: IntArray) {
+  fun onRequestPermissionsResult(@NonNull permissions: Array<String>, @NonNull grantResults: IntArray) {
+
+    val dialogShown = requestTime + 500 < Calendar.getInstance().timeInMillis
 
     requestPending = false
 
@@ -107,7 +110,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
     }
 
     if (rejectedGroups.isEmpty()) {
-      cb(askedPerms, true)
+      cb(askedPerms, dialogShown, true)
       return
     }
 
@@ -117,7 +120,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
           showRationaleDialog(rejectedGroups)
         } else {
           requestPending = false
-          cb(rejectedGroups, false)
+          cb(rejectedGroups, dialogShown, false)
         }
       }
       requestTime + 500 > Calendar.getInstance().timeInMillis -> showPermSettingDialog()
@@ -163,7 +166,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
     negBtn.setOnClickListener {
       //activity.toast(R.string.prm_rationale_toast)
       requestPending = false
-      cb(groups, false)
+      cb(groups, true, false)
       dialog.dismiss()
     }
 

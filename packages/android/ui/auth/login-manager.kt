@@ -35,7 +35,7 @@ open class LoginManager(private val activity: MubbleBaseActivity,
     info { "init partner:$partner requestCode:$requestCode" }
   }
 
-  fun onActivityResult(resultCode: Int, data: Intent) {
+  fun onActivityResult(resultCode: Int, data: Intent?) {
     info { "onActivityResult resultCode:$resultCode" }
     currentWorker.onActivityResult(requestCode, resultCode, data)
   }
