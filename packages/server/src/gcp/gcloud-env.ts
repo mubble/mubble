@@ -62,7 +62,17 @@ export class GcloudEnv {
   static async init(rc : RunContextServer, bqEnv ?: any): Promise<GcloudEnv> {
     
     const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
-    let gCloudEnv     = null
+    let   gCloudEnv   = null
+
+    if(rc.getRunMode() === RUN_MODE.LOAD) {
+      const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
+
+      if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD])
+      else gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, RUN_MODE[RUN_MODE.LOAD], Credentials.AUTH_KEY)
+
+      await this.initGcpComponents(rc, gCloudEnv, bqEnv)
+      return gCloudEnv
+    }
 
     if (rc.getRunMode() === RUN_MODE.PROD) {
       if (instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))

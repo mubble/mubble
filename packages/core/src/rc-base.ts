@@ -22,7 +22,7 @@ import { Timer } from './util/timer'
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
 export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
-export enum RUN_MODE {DEV, PROD}
+export enum RUN_MODE {DEV, PROD, LOAD}
 
 export abstract class ExternalLogger {
   
