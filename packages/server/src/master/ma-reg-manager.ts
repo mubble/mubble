@@ -138,7 +138,7 @@ export class MasterRegistryMgr {
   }
 
 
-  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : Mubble.uObject<object> , now : number ) : SourceSyncData {
+  public static validateBeforeSourceSync (rc : RunContextServer , mastername : string , source : Array<object> , redisData : Mubble.uObject<object> , now : number ) : Promise<SourceSyncData> {
     
     const registry : MasterRegistry = this.getMasterRegistry(mastername)
     this.verifySourceRecords(rc , registry , source )
@@ -227,7 +227,7 @@ export class MasterRegistryMgr {
 
   }
   
-  private static verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIds : Mubble.uObject<object> , targetMap : Mubble.uObject<object> , now : number ) : SourceSyncData {
+  private static async verifyModifications (rc : RunContextServer , registry : MasterRegistry , sourceIds : Mubble.uObject<object> , targetMap : Mubble.uObject<object> , now : number ) : Promise<SourceSyncData> {
     
     MaRegMgrLog(rc , 'verifyModifications' , registry.mastername ,'source size:' , lo.size(sourceIds) , 'target size:', lo.size(targetMap) )
 
@@ -237,15 +237,15 @@ export class MasterRegistryMgr {
           ssd : SourceSyncData = new SourceSyncData(registry.mastername , sourceIds , targetMap , now) ,
           instanceObj : MasterBase = registry.masterInstance
 
-    lo.forEach(sourceIds , (srcRec : any , pk: string) => {
-      
-      const ref : any   = targetMap[pk]
+    for(const pk in sourceIds){
+      const srcRec : any = sourceIds[pk],
+            ref : any   = targetMap[pk]
       
       if(!ref) {
         // this is an new record
         // check allow insert . allow all
         
-        instanceObj.verifyRecord(rc , srcRec )
+        await instanceObj.verifyRecord(rc , srcRec )
         
         //if(lo.hasIn(fldMap , MasterBaseFields.Deleted )) srcRec[MasterBaseFields.Deleted] = false
         srcRec[MasterBaseFields.Deleted] = false
@@ -254,7 +254,7 @@ export class MasterRegistryMgr {
 
       }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , registry , masTsField , ref , srcRec ) ){
         
-        instanceObj.verifyRecord(rc , srcRec , ref)
+        await instanceObj.verifyRecord(rc , srcRec , ref)
 
         //if(lo.hasIn(fldMap , MasterBaseFields.Deleted)) srcRec[MasterBaseFields.Deleted] = false
         srcRec[MasterBaseFields.Deleted] = false
@@ -263,9 +263,9 @@ export class MasterRegistryMgr {
 
         ssd.updates[pk] = srcRec
       }
-
-    })
-
+      
+    }  
+    
     // Check if there are any records deleted
     lo.forEach(targetMap , (ref : any , id : string)=>{
       // Ignore already deleted

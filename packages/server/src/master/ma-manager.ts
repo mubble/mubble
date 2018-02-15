@@ -422,7 +422,7 @@ export class MasterMgr {
      }
 
      const redisData : Mubble.uObject<object> = await this.listAllMasterData(rc , master) ,
-           ssd  : SourceSyncData = MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData , now )       
+           ssd  : SourceSyncData = await MasterRegistryMgr.validateBeforeSourceSync(rc , master , json as Array<object> , redisData , now )       
      
      MaMgrLog(rc , 'applyFileData' , master ,'inserts:' , lo.size(ssd.inserts) ,'updates:', lo.size(ssd.updates) , 'deletes:',lo.size(ssd.deletes) )
      this.setParentMapData(rc , master , masterCache , ssd) 

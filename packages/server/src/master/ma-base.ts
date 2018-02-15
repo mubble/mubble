@@ -201,7 +201,7 @@ export class MasterBase {
     this._mastername = masterName
   }
 
-  verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) {
+  async verifyRecord (rc : RunContextServer , newObj : object , oldObj ?: object) : Promise<boolean> {
     return true
   }
 
