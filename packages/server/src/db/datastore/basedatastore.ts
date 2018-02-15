@@ -254,6 +254,28 @@ private getNamespace() : string {
     }
   }
 
+  public static async mDelete(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<boolean> {
+
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
+
+    const traceId : string = rc.getName(this)+':'+'mDelete',
+          ack              = rc.startTraceSpan(traceId)
+
+    try {
+      const delKeys : any[] = models.map((mod) => {
+        return mod.getDatastoreKey(rc)
+      })
+      await BaseDatastore._datastore.delete(delKeys)
+      return true
+    } catch(err) {
+      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      else rc.isError() && rc.error(err)
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    } finally {
+      rc.endTraceSpan(traceId,ack)
+    }
+  }
+
 
 /*------------------------------------------------------------------------------
   - Insert to datastore 
@@ -525,7 +547,6 @@ private static async mSetUnique(rc : RunContextServer, allowDupRec : boolean, ..
 
   try {
     if(!entities.length) return true
-    console.log(JSON.stringify(entities, null, '\t'))
     await BaseDatastore._datastore.insert(entities)
     return true
 
