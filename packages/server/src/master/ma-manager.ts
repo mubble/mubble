@@ -455,6 +455,27 @@ export class MasterMgr {
     MaMgrLog(rc , 'applySingleItem' , 'results',results)
   }
 
+  public async deleteSingleMaster(rc : RunContextServer , master : string , srcRec : Object) {
+    master = master.toLowerCase()
+    
+    const todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}} = {} ,
+          registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
+    
+    assert(registry!=null , 'Unknow master ', master , 'for deleteSingleMaster')
+    
+    const pk = registry.getIdStr(srcRec)
+
+    const targetMasterItem = await this.listSingleMasterItem(rc , master , pk),
+    ssd  : SourceSyncData = await MasterRegistryMgr.deleteSingleMaster(rc , registry , pk , targetMasterItem as Object , Date.now())
+    
+    MaMgrLog(rc , 'deleteSingleMaster' , 'ssd',ssd)
+    todoModelz[master] = {ssd , fDigest : `${master}fDigest` , modelDigest: `${master}modelDigest`}
+
+    const results : any[] = []
+    await this.applyData(rc , results , {} , todoModelz)
+    MaMgrLog(rc , 'deleteSingleMaster' , 'results',results)
+  }
+
   public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , jsonFilePath : string} []) {  
     
     MaMgrLog(rc , 'applyFileDataFromPath ', masters)

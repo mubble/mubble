@@ -324,6 +324,24 @@ export class MasterRegistryMgr {
     
     return ssd
   }
+  public static async deleteSingleMaster (rc : RunContextServer , registry : MasterRegistry , pk : string , target : object , now : number ) : Promise<SourceSyncData> {
+    
+    MaRegMgrLog(rc , 'deleteSingleModification' , registry.mastername , 'target', target )
+
+    const config : ModelConfig = registry.config , 
+          masTsField : string  = config.getMasterTsField() ,
+          fldMap : Mubble.uObject<FieldInfo> = registry.fieldsMap ,
+          ssd : SourceSyncData = new SourceSyncData(registry.mastername , {} , {} , now) ,
+          instanceObj : MasterBase = registry.masterInstance 
+
+    const delRec : any = lo.cloneDeep(target)
+    
+    delRec[MasterBaseFields.Deleted] = true
+    delRec[masTsField] = now
+    ssd.deletes[pk] = delRec
+
+    return ssd
+  }
 
   public static verifyRedisDataWithJson(rc : RunContextServer , registry : MasterRegistry , jsonSourceIds : Mubble.uObject<object> , redisDataMap : Mubble.uObject<object> ) : SourceSyncData {
 
