@@ -11,6 +11,7 @@ const cloudStorage : any = require('@google-cloud/storage')
 
 import {RunContextServer}                        from '../../rc-server'
 import {GcloudEnv}                               from '../../gcp/gcloud-env'
+import {Mubble}                                  from '@mubble/core'
 import {v4 as UUIDv4}                            from 'uuid'
 import * as mime                                 from 'mime-types'
 import * as stream                               from 'stream'
@@ -222,5 +223,33 @@ export class CloudStorageBase {
     } finally {
       rc.endTraceSpan(traceId, ack)
     }          
+  }
+
+  static async getFileBuffer(rc: RunContextServer, bucketName : string, filename : string) : Promise<Buffer> {
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          gcFile  : any    = bucket.file (filename),
+          traceId  = `UploadDataToCloudStorage : ${filename}`,
+          ack      = rc.startTraceSpan(traceId)
+          
+    try {
+      let data : any = []
+      const response = await new Promise ((resolve, reject) => {
+        gcFile.createReadStream({ })
+        .on('error', (error : Error) => { 
+          rc.isError() && rc.error (rc.getName(this), 'GCS Read Stream :', bucketName + '/' + filename, 'Error :', error)
+          reject(error) 
+        })
+        .on('data', (chunk: any) => {
+            data.push (chunk)
+        })
+        .on('finish', () => { 
+          rc.isDebug() && rc.debug (rc.getName (this), `Downloaded ${filename} from Cloud Storage.`)
+          resolve(Buffer.concat(data))
+        })
+      })
+      return response as Buffer
+    } finally { 
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 }
