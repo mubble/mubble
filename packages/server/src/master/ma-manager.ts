@@ -434,6 +434,27 @@ export class MasterMgr {
     MaMgrLog(rc , 'applyData' , 'results',results)
   }
 
+  public async applySingleItem(rc : RunContextServer , master : string , srcRec : Object) {
+    master = master.toLowerCase()
+    
+    const todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}} = {} ,
+          registry : MasterRegistry = MasterRegistryMgr.getMasterRegistry(master)
+    
+    assert(registry!=null , 'Unknow master ', master , 'for applySingleItem')
+    
+    const pk = registry.getIdStr(srcRec)
+
+    const targetMasterItem = await this.listSingleMasterItem(rc , master , pk),
+    ssd  : SourceSyncData = await MasterRegistryMgr.verifySingleModification(rc , registry , srcRec , targetMasterItem , Date.now())
+    
+    MaMgrLog(rc , 'applySingleItem' , 'ssd',ssd)
+    todoModelz[master] = {ssd , fDigest : `${master}fDigest` , modelDigest: `${master}modelDigest`}
+
+    const results : any[] = []
+    await this.applyData(rc , results , {} , todoModelz)
+    MaMgrLog(rc , 'applySingleItem' , 'results',results)
+  }
+
   public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , jsonFilePath : string} []) {  
     
     MaMgrLog(rc , 'applyFileDataFromPath ', masters)
@@ -648,6 +669,16 @@ export class MasterMgr {
     return FuncUtil.toParseObjectMap(map)
   }
 
+  public async listSingleMasterItem(rc : RunContextServer , master : string , key : string) : Promise<object|null> {
+    
+        const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
+        const results : string[] =  await this.mredis.redisCommand().hmget(masterKey , ...[key]),
+              itemStr : string   = results[0]
+        
+        // Parse the string value to object
+        return itemStr ? JSON.parse(itemStr) : null
+  }
+      
   public async listActiveMasterData(rc : RunContextServer , master : string) : Promise<Mubble.uObject<object>> {
 
     const masterKey : string = CONST.REDIS_NS + CONST.REDIS_DATA_HASH + master
