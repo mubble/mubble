@@ -300,7 +300,7 @@ export class MasterMgr {
               data = this.getMasterRecords(master)
 
         for(const cb of subs){
-          cb(data)
+          await cb(data)
         }
       }
     })
