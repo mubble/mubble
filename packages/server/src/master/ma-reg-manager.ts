@@ -285,6 +285,64 @@ export class MasterRegistryMgr {
     return ssd
   }
 
+  public static async verifySingleModification (rc : RunContextServer , registry : MasterRegistry , source : object , target : object | null , now : number ) : Promise<SourceSyncData> {
+    
+    MaRegMgrLog(rc , 'verifySingleModification' , registry.mastername ,'source' , source , 'target', target )
+
+    const config : ModelConfig = registry.config , 
+          masTsField : string  = config.getMasterTsField() ,
+          fldMap : Mubble.uObject<FieldInfo> = registry.fieldsMap ,
+          ssd : SourceSyncData = new SourceSyncData(registry.mastername , {} , {} , now) ,
+          instanceObj : MasterBase = registry.masterInstance , 
+          pk          : string  = registry.getIdStr(source) 
+
+      const srcRec : any = source ,
+            ref : any   = target
+      
+      if(!ref) {
+        // this is an new record
+        // check allow insert . allow all
+        
+        await instanceObj.verifyRecord(rc , srcRec)
+        
+        //if(lo.hasIn(fldMap , MasterBaseFields.Deleted )) srcRec[MasterBaseFields.Deleted] = false
+        srcRec[MasterBaseFields.Deleted] = false
+        srcRec[MasterBaseFields.CreateTs] = srcRec[masTsField] = now
+        ssd.inserts[pk] = srcRec
+
+      }else if (ref[MasterBaseFields.Deleted] || this.isModified(rc , registry , masTsField , ref , srcRec ) ){
+        
+        await instanceObj.verifyRecord(rc , srcRec , ref)
+
+        //if(lo.hasIn(fldMap , MasterBaseFields.Deleted)) srcRec[MasterBaseFields.Deleted] = false
+        srcRec[MasterBaseFields.Deleted] = false
+        srcRec[masTsField] = now
+        srcRec[MasterBaseFields.CreateTs] = ref[MasterBaseFields.CreateTs]
+
+        ssd.updates[pk] = srcRec
+      }
+    
+    return ssd
+  }
+  public static async deleteSingleMaster (rc : RunContextServer , registry : MasterRegistry , pk : string , target : object , now : number ) : Promise<SourceSyncData> {
+    
+    MaRegMgrLog(rc , 'deleteSingleModification' , registry.mastername , 'target', target )
+
+    const config : ModelConfig = registry.config , 
+          masTsField : string  = config.getMasterTsField() ,
+          fldMap : Mubble.uObject<FieldInfo> = registry.fieldsMap ,
+          ssd : SourceSyncData = new SourceSyncData(registry.mastername , {} , {} , now) ,
+          instanceObj : MasterBase = registry.masterInstance 
+
+    const delRec : any = lo.cloneDeep(target)
+    
+    delRec[MasterBaseFields.Deleted] = true
+    delRec[masTsField] = now
+    ssd.deletes[pk] = delRec
+
+    return ssd
+  }
+
   public static verifyRedisDataWithJson(rc : RunContextServer , registry : MasterRegistry , jsonSourceIds : Mubble.uObject<object> , redisDataMap : Mubble.uObject<object> ) : SourceSyncData {
 
     function getJsonRecFromRedisData(redisRec : any) : any {
