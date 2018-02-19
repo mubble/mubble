@@ -104,7 +104,7 @@ export abstract class BaseDatastore {
   - Defaults to false , which means machine env namespace will be used.
   - Models wish to be global namespace can override this and return true
 ------------------------------------------------------------------------------*/ 
-public isGlobalNamespace() : boolean {
+public isGlobalNamespace(rc : RunContextServer) : boolean {
   return false
 } 
 
@@ -112,8 +112,8 @@ public isGlobalNamespace() : boolean {
   - Get the namespace string depending upon whether namespace is global or local
 ------------------------------------------------------------------------------*/ 
 
-private getNamespace() : string {
-  return this.isGlobalNamespace() ? GLOBAL_NAMESPACE : BaseDatastore._namespace
+private getNamespace(rc : RunContextServer) : string {
+  return this.isGlobalNamespace(rc) ? GLOBAL_NAMESPACE : BaseDatastore._namespace
 }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -507,7 +507,7 @@ isDeleted(rc: RunContextServer) : boolean {
 
     const model : BaseDatastore = new (this as any)()  
     
-    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(), this._kindName)
+    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(rc), this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
   }
 
@@ -517,7 +517,7 @@ isDeleted(rc: RunContextServer) : boolean {
   static createTransaction(rc : RunContextServer) : DSTransaction {
     const model : BaseDatastore =  new (this as any)()
     
-    return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace())
+    return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace(rc))
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -626,12 +626,12 @@ getDatastoreKey(rc : RunContextServer, id ?: number | string | null , unique ?: 
   if(unique) kindName += '_unique'
   if(!parentKey) {
     datastoreKey = BaseDatastore._datastore.key({
-      namespace : this.getNamespace(),
+      namespace : this.getNamespace(rc),
       path      : ([kindName, id]) 
     })
   } else {
     datastoreKey = BaseDatastore._datastore.key({
-      namespace : this.getNamespace(),
+      namespace : this.getNamespace(rc),
       path      : (parentKey.path.concat([kindName, id]))
     })
   }

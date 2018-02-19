@@ -21,7 +21,7 @@ export class DSQuery {
 
   constructor(rc : RunContextServer, private datastore : any, private kindName : any, model : any) {
     this.model     = model
-    this.namespace = model.getNamespace()
+    this.namespace = model.getNamespace(rc)
     this.kindName  = kindName
     this.indexed   = model.getIndexedFields(rc).concat(BaseDatastore._indexedFields)
     this._query    = this.datastore.createQuery(this.namespace, kindName)
