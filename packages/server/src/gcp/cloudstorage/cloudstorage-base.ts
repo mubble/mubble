@@ -252,4 +252,20 @@ export class CloudStorageBase {
       rc.endTraceSpan(traceId, ack)
     }
   }
+
+  static async setMetadata(rc: RunContextServer, bucketName: string, filename: string, metaKey: string, metaValue: string) {
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+          gcFile  : any    = bucket.file (filename)
+    if (gcFile) {
+      const metadata    : any = {}
+      metadata[metaKey] = metaValue
+      const metaInfo = await gcFile.setMetadata ({ metadata: metadata })
+      if (metaInfo && metaInfo.length > 0) return metaInfo[0].metadata
+    }
+    return null
+  } 
+
+  static getProjectId(rc: RunContextServer) {
+    return this._cloudStorage.projectId
+  }
 }
