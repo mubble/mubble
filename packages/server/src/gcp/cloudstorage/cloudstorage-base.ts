@@ -243,7 +243,7 @@ export class CloudStorageBase {
             data.push (chunk)
         })
         .on('finish', () => { 
-          rc.isDebug() && rc.debug (rc.getName (this), `Downloaded ${filename} from Cloud Storage.`)
+          // rc.isDebug() && rc.debug (rc.getName (this), `Downloaded ${filename} from Cloud Storage.`)
           resolve(Buffer.concat(data))
         })
       })
