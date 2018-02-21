@@ -85,9 +85,9 @@ export abstract class UserKeyValue {
   get userLinkId()  {return this._userLinkId}
   set userLinkId(userLinkId : string) {
     if (userLinkId === this._userLinkId) return
-    if (this._userLinkId) throw('Cannot set userLinkId when it is already set: ' + 
+    if (this._userLinkId && !userLinkId === null) throw('Cannot set userLinkId when it is already set: ' + 
                         JSON.stringify({userLinkId, existing:this._userLinkId}))
-    this._userLinkId = userLinkId                    
+    this._userLinkId = userLinkId
   }
 
   serialize(): object {
