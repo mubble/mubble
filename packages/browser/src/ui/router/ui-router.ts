@@ -31,7 +31,6 @@ import * as lo                  from 'lodash'
 import { DIRECTION }            from '../nail'
 import { RunContextBrowser }    from '../../rc-browser'
 import { ComponentRoutes }      from './shared-router-constants'
-import { NC_UI_EVENT } from 'common'
 
 const ROOT_URL     = '/#/?launched=true'
 
