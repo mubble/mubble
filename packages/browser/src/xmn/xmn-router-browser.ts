@@ -32,7 +32,7 @@ import {  Mubble,
 import {  WsBrowser }         from './ws-browser'
 import {  EventSystem }       from '../util'
 
-const TIMEOUT_MS          = 15000,
+const TIMEOUT_MS          = 30000,
       SEND_RETRY_MS       = 1000,
       SEND_TIMEOUT        = 10000,
       EVENT_SEND_DELAY    = 1000,
@@ -161,7 +161,7 @@ export abstract class XmnRouterBrowser {
   }
 
 
-  private prepareConnection(rc: RunContextBrowser) {
+  prepareConnection(rc: RunContextBrowser) {
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.ci.provider)
     this.ci.networkType     = this.getNetworkType(rc)
