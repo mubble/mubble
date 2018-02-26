@@ -23,20 +23,20 @@ export namespace Mubble {
     }
   }
 
-  export class uPromise {
+  export class uPromise<T> {
 
     private  fnResolve : null | ((result: any) => any)
     private  fnReject  : null | ((err: Error)  => any)
-    readonly promise   : Promise<any>
+    readonly promise   : Promise<T>
 
     constructor() {
-      this.promise = new Promise((resolve, reject) => {
+      this.promise = new Promise<T>((resolve, reject) => {
         this.fnResolve = resolve
         this.fnReject  = reject
       })
     }
 
-    resolve(result ?: any) {
+    resolve(result : T) {
       if (this.fnResolve) {
         this.fnResolve(result)
         this.cleanup()

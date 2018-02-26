@@ -27,7 +27,7 @@ export namespace UStream {
     readonly fnError = this.onError.bind(this)
 
     constructor(readonly rc: RunContextServer, readonly streams: (stream.Writable | stream.Readable) [], 
-                readonly promise : Mubble.uPromise = new Mubble.uPromise()) {
+                readonly promise : Mubble.uPromise<any> = new Mubble.uPromise()) {
 
       const len         = streams.length,
             lastStream  = streams[len - 1],
@@ -82,7 +82,7 @@ export namespace UStream {
     private fnFinish: () => void
 
     constructor(rc: RunContextServer, streams: (stream.Writable | stream.Readable) [], 
-                promise ?: Mubble.uPromise) {
+                promise ?: Mubble.uPromise<any>) {
       super(rc, streams, promise)
     }
 
@@ -115,7 +115,7 @@ export namespace UStream {
     private body: Buffer | string
 
     constructor(rc: RunContextServer, streams: (stream.Writable | stream.Readable) [], 
-                promise ?: Mubble.uPromise) {
+                promise ?: Mubble.uPromise<any>) {
       super(rc, streams, promise)
     }
 
