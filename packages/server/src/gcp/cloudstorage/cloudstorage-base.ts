@@ -65,8 +65,8 @@ export class CloudStorageBase {
           metadata   : {'Cache-Control': 'public, max-age=31536000'}
         }))
         .on('error', (error : Error) => { 
-          rc.isError() && rc.error (rc.getName(this), 'GCS Write Stream :', JSON.stringify(fileInfo), 'Error :', error)
-          reject(error) 
+          rc.isError() && rc.error (rc.getName(this), 'GCS Write Stream :', JSON.stringify(fileInfo), 'Error :', error.message)
+          reject(error.message) 
         })
         .on('finish', () => { 
           rc.isDebug() && rc.debug (rc.getName (this), `Uploaded ${filename} to Cloud Storage.`)
@@ -236,8 +236,8 @@ export class CloudStorageBase {
       const response = await new Promise ((resolve, reject) => {
         gcFile.createReadStream({ })
         .on('error', (error : Error) => { 
-          rc.isError() && rc.error (rc.getName(this), 'GCS Read Stream :', bucketName + '/' + filename, 'Error :', error)
-          reject(error) 
+          rc.isError() && rc.error (rc.getName(this), 'GCS Read Stream :', bucketName + '/' + filename, 'Error :', error.message)
+          reject(error.message) 
         })
         .on('data', (chunk: any) => {
             data.push (chunk)
