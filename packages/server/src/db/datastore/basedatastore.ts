@@ -265,6 +265,14 @@ private getNamespace(rc : RunContextServer) : string {
       const delKeys : any[] = models.map((mod) => {
         return mod.getDatastoreKey(rc)
       })
+
+      models.forEach((mod) => {
+        const uniqueConstraints : any = mod.getUniqueConstraints(rc)
+
+        for(const constraint of uniqueConstraints) {
+          delKeys.push(mod.getDatastoreKey(rc, (<any>mod)[constraint], true))
+        }
+      })
       await BaseDatastore._datastore.delete(delKeys)
       return true
     } catch(err) {
@@ -272,7 +280,7 @@ private getNamespace(rc : RunContextServer) : string {
       else rc.isError() && rc.error(err)
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     } finally {
-      rc.endTraceSpan(traceId,ack)
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
