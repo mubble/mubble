@@ -111,7 +111,7 @@ export class WsBrowser implements XmnProvider{
 
       if (!this.encProvider) this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getSyncKey())
         
-      const url     = `ws://${this.ci.host}:${this.ci.port}/${
+      const url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${
                        this.ci.publicRequest ? WEB_SOCKET_URL.PUBLIC : WEB_SOCKET_URL.PRIVATE}/`,
             header  = await this.encProvider.encodeHeader(rc),
             body    = await this.encProvider.encodeBody(rc, data)

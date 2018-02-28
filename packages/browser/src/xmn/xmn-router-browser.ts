@@ -71,7 +71,7 @@ export abstract class XmnRouterBrowser {
     this.ci             = ci as BrowserConnectionInfo
     this.ci.protocol    = Protocol.WEBSOCKET
     this.ci.host        = urlParser.hostname
-    this.ci.port        = Number(urlParser.port) || 80
+    this.ci.port        = Number(urlParser.port) || (urlParser.protocol === 'https:' ? 443 : 80)
 
     this.timerReqResend    = rc.timer.register('router-resend', this.cbTimerReqResend.bind(this))
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
