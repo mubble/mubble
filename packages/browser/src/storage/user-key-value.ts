@@ -14,9 +14,10 @@ const USERS     = 'users'
 
 export abstract class UserKeyValue {
 
-  private _clientId     : number
-  private _userLinkId   : string
-  userName              : string
+  private _clientId               : number
+  private _userLinkId             : string
+  private _webProfilePicBase64    : string
+  userName                        : string
 
   private users         : {[key: string]: object} = {}
   private lastClientId  : number
@@ -42,6 +43,11 @@ export abstract class UserKeyValue {
     this.save(rc)
   }
 
+  setWebProfilePicBase64(rc: RunContextBrowser, base64: string) {
+    this._webProfilePicBase64 = base64
+    this.save(rc)
+  }
+
   switchUserOnCurrRun(clientId: number) {
     this.lastClientId = clientId
     localStorage.setItem(LAST_USER, String(this.lastClientId))
@@ -57,6 +63,10 @@ export abstract class UserKeyValue {
       this.lastClientId = this._clientId
       localStorage.setItem(LAST_USER, String(this.lastClientId))
     }
+  }
+
+  getWebProfilePicBase64(clientId: number): string {
+    return this.users[clientId]['webProfilePicBase64']
   }
 
   getAllClientIds(): number[] { return Object.keys(this.users).map(Number) }
@@ -92,16 +102,18 @@ export abstract class UserKeyValue {
 
   serialize(): object {
     return {
-      clientId      : this._clientId,
-      userLinkId    : this._userLinkId,
-      userName      : this.userName
+      clientId            : this._clientId,
+      userLinkId          : this._userLinkId,
+      userName            : this.userName,
+      webProfilePicBase64 : this._webProfilePicBase64 
     }
   }
 
   deserialize(obj: {[key: string]: any}) {
-    this._clientId    = obj.clientId
-    this._userLinkId  = obj.userLinkId
-    this.userName     = obj.userName
+    this._clientId              = obj.clientId
+    this._userLinkId            = obj.userLinkId
+    this.userName               = obj.userName
+    this._webProfilePicBase64   = obj.webProfilePicBase64
   }
 
   $dump() {
