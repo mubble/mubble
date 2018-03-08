@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : <Write about the file here>
+   About      : Index File to export Services as @mubble/server
    
    Created on : Wed Apr 12 2017
    Author     : Raghvendra Varma
