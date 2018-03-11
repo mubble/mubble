@@ -30,6 +30,7 @@ export interface ConnectionInfo {
 
   // Information passed by the client: to be used by Xmn internally
   publicRequest   : boolean
+  useEncryption   : boolean
 
   // Server fields. Not used by client
   msOffset        : number    // this is inferred by the server based on client's now field. Api/event need not use this

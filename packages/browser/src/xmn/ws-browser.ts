@@ -51,8 +51,8 @@ export class WsBrowser implements XmnProvider{
 
   private ephemeralEvents   : WireEvent[] = []
   
-  constructor(private rc : RunContextBrowser, 
-              private ci : ConnectionInfo, 
+  constructor(private rc     : RunContextBrowser, 
+              private ci     : ConnectionInfo, 
               private router : XmnRouterBrowser) {
 
     rc.setupLogger(this, 'WsBrowser')
@@ -109,10 +109,14 @@ export class WsBrowser implements XmnProvider{
 
     if (!this.ws) {
 
-      if (!this.encProvider) this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getSyncKey())
+      if (!this.encProvider) {
+        this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getSyncKey())
+        await this.encProvider.init()
+      }
         
-      const url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${
-                       this.ci.publicRequest ? WEB_SOCKET_URL.PUBLIC : WEB_SOCKET_URL.PRIVATE}/`,
+      const dest    = this.ci.useEncryption ? (this.ci.publicRequest ? WEB_SOCKET_URL.ENC_PUBLIC : WEB_SOCKET_URL.ENC_PRIVATE) : 
+                      (this.ci.publicRequest ? WEB_SOCKET_URL.PLAIN_PUBLIC : WEB_SOCKET_URL.PLAIN_PRIVATE),
+            url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${dest}/`,
             header  = await this.encProvider.encodeHeader(rc),
             body    = await this.encProvider.encodeBody(rc, data)
 
@@ -194,7 +198,7 @@ export class WsBrowser implements XmnProvider{
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
                             msPing && Number.isInteger(msPing), msPing)
       
-      await this.encProvider.setNewKey(config.syncKey)
+      if (config.syncKey) await this.encProvider.setNewKey(rc, config.syncKey)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
       'First message in', Date.now() - this.socketCreateTs, 'ms')

@@ -37,14 +37,9 @@ export class EncProviderServer {
     // console.log('uniqueId', this.ci.uniqueId)
   }
 
-  decodeHeader(rc: RunContextServer, data: Buffer, pk: string): void {
+  decodeHeader(rc: RunContextServer, data: Buffer, pk: string | null): void {
 
-    const startPtr  = 7,
-          endPtr    = 7 + 256,
-          encKey    = data.slice(startPtr, endPtr)
-
-    rc.isAssert() && rc.assert(rc.getName(this), data.length >= endPtr, 'Incorrect header')    
-    this.ci.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
+    const endPtr    = this.extractKey(rc, data, pk)
           
     const headers   = JSON.parse(this.decrypt(data.slice(endPtr)).toString())
 
@@ -60,6 +55,20 @@ export class EncProviderServer {
 
     this.ci.clientIdentity  = headers
   }
+
+  extractKey(rc: RunContextServer, data: Buffer, pk: string | null) {
+
+    const startPtr  = 7
+    if (!this.ci.useEncryption) return startPtr
+
+    const endPtr    = 7 + 256,
+          encKey    = data.slice(startPtr, endPtr)
+
+    rc.isAssert() && rc.assert(rc.getName(this), data.length !== 256, 'Incorrect header')
+
+    if (pk) this.ci.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
+    return endPtr
+  } 
 
   async decodeBody(rc: RunContextServer, data: Buffer): Promise<[WireObject]> {
 
@@ -118,6 +127,7 @@ export class EncProviderServer {
 
   private encrypt(buffer: Buffer) {
 
+    if (!this.ci.useEncryption) return buffer
     // console.log('encrypt', this.ci.syncKey.length, this.ci.syncKey)
 
     const cipher  = crypto.createCipheriv('aes-256-cbc', this.ci.syncKey, IV),
@@ -133,6 +143,8 @@ export class EncProviderServer {
   }
 
   private decrypt(buffer: Buffer) {
+
+    if (!this.ci.useEncryption) return buffer
 
     const decipher  = crypto.createDecipheriv('aes-256-cbc', this.ci.syncKey, IV),
           outBuf1   = decipher.update(buffer),

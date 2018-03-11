@@ -63,7 +63,7 @@ export abstract class XmnRouterBrowser {
   private lastEventSendTs  = 0
   private syncKey: Uint8Array
 
-  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, syncKey: string) {
+  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, syncKey ?: string) {
 
     const urlParser     = document.createElement('a')
     urlParser.href      = serverUrl
@@ -72,13 +72,18 @@ export abstract class XmnRouterBrowser {
     this.ci.protocol    = Protocol.WEBSOCKET
     this.ci.host        = urlParser.hostname
     this.ci.port        = Number(urlParser.port) || (urlParser.protocol === 'https:' ? 443 : 80)
+    
+    if (syncKey) {
+      this.ci.useEncryption = true
+      const cls:any = Uint8Array
+      this.syncKey  = cls.from(atob(syncKey), c => c.charCodeAt(0))      
+    } else {
+      this.ci.useEncryption = false
+    }
 
     this.timerReqResend    = rc.timer.register('router-resend', this.cbTimerReqResend.bind(this))
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
     this.timerEventTimeout = rc.timer.register('router-event-timeout', this.cbTimerEventTimeout.bind(this))
-
-    const cls:any = Uint8Array
-    this.syncKey  = cls.from(atob(syncKey), c => c.charCodeAt(0))      
 
     // rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
@@ -159,7 +164,6 @@ export abstract class XmnRouterBrowser {
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), eventName && eventHandler)
     this.eventSubMap[eventName] = eventHandler
   }
-
 
   prepareConnection(rc: RunContextBrowser) {
 

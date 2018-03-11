@@ -272,7 +272,7 @@ export abstract class XmnRouterServer {
 
   upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
-                        data : {[key in 'clientId' |  'userLinkId' | 'userName'] ?: string|number } , invData: InvocationData) {
+                        data : {[key in 'clientId' |  'userLinkId' | 'userName' | 'userRole'] ?: string|number } , invData: InvocationData) {
     
     rc.isAssert() && rc.assert(rc.getName(this), ci.clientIdentity)
     let updated = false

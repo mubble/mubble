@@ -63,11 +63,17 @@ export class WsServer {
 
       const req       = socket.upgradeReq,
             urlObj    = url.parse(req.url || ''),
-            pathName  = urlObj.pathname || '' // it is like /engine.io/header/body
+            pathName  = urlObj.pathname || '', // it is like /engine.io/header/body
+            mainUrls  = [
+              WEB_SOCKET_URL.ENC_PUBLIC, 
+              WEB_SOCKET_URL.ENC_PRIVATE,
+              WEB_SOCKET_URL.PLAIN_PUBLIC, 
+              WEB_SOCKET_URL.PLAIN_PRIVATE 
+            ]
 
-      let   [, mainUrl, header, body] = pathName.split('/')
+      let [, mainUrl, header, body] = pathName.split('/')
 
-      if (!(mainUrl === WEB_SOCKET_URL.PUBLIC || mainUrl === WEB_SOCKET_URL.PRIVATE) || !header || !body) {
+      if (mainUrls.indexOf(mainUrl) === -1 || !header || !body) {
         rc.isWarn() && rc.warn(rc.getName(this), 'Ignoring websocket request with url', req.url)
         return socket.close()
       }
@@ -86,14 +92,15 @@ export class WsServer {
       ci.ip             = this.router.getIp(req)
       ci.lastEventTs    = 0
 
-      ci.publicRequest  = mainUrl === WEB_SOCKET_URL.PUBLIC
+      ci.publicRequest = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.PLAIN_PUBLIC
+      ci.useEncryption = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.ENC_PRIVATE
       
       const encProvider    = new EncProviderServer(rc, ci),
             headerBuffer   = new Buffer(header, 'base64')
 
       encProvider.extractHeader(rc, headerBuffer)
 
-      const pk = this.router.getPrivateKeyPem(rc, ci)
+      const pk = ci.useEncryption ? this.router.getPrivateKeyPem(rc, ci) : null
       encProvider.decodeHeader(rc, headerBuffer, pk)
 
       const webSocket = ci.provider = new ServerWebSocket(rc, ci, encProvider, 
@@ -162,8 +169,8 @@ export class ServerWebSocket implements XmnProvider {
   private async sendConfig(rc: RunContextServer) {
 
     this.configSent = true
-
-    const {key, encKey} = this.encProvider.getNewKey()
+    
+    const {key, encKey} = this.ci.useEncryption ? this.encProvider.getNewKey() : {key: '', encKey: new Buffer('')}
     
     const config = {
       msPingInterval : PING_FREQUENCY_MS, 
@@ -232,7 +239,6 @@ export class ServerWebSocket implements XmnProvider {
     if (!this.configSent) await this.sendConfig(rc)
     await this.sendInternal(rc, data)
   }
-  
 
   private async sendInternal(rc: RunContextServer, data: WireObject[], msgType ?: string) {
 

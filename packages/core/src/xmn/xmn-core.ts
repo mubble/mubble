@@ -50,8 +50,10 @@ export const NetworkType = {
 }
 
 export const WEB_SOCKET_URL = {
-  PUBLIC: 'socket.io',
-  PRIVATE: 'engine.io'
+  ENC_PUBLIC    : 'socket.io',
+  ENC_PRIVATE   : 'engine.io',
+  PLAIN_PUBLIC  : 'rocket.io',
+  PLAIN_PRIVATE : 'locket.io'
 }
 
 let lastReqId   : number = 0
@@ -190,8 +192,8 @@ export class WireSysEvent extends WireObject {
 }
 
 export interface WebSocketConfig {
-  msPingInterval  : number
-  syncKey         : string
+  msPingInterval   : number
+  syncKey         ?: string
 }
 
 export interface ConnectionError {
