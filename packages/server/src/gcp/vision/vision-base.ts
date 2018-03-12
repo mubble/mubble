@@ -36,6 +36,7 @@ import * as gm                      from 'gm'
 import * as mime                    from 'mime-types'
 import * as stream                  from 'stream'
 import * as lo                      from 'lodash'
+import * as sharp                   from 'sharp'
 
 export class VisionBase {
 
@@ -141,7 +142,7 @@ export class VisionBase {
   }
 
   private static async smartcropProcess(rc : RunContextServer, imageData : Buffer, imageOptions : VisionParameters, fileInfo ?: GcsUUIDFileInfo) {
-    const retVal      = {} as SmartCropProcessReturn
+    const retVal = {} as SmartCropProcessReturn
     try {
       const bufferImage = await new Promise((resolve, reject) => {
         gm(imageData)
@@ -158,8 +159,9 @@ export class VisionBase {
         })
       }) as Buffer
 
-      const ratio   : number  = (imageOptions.ratio) ? imageOptions.ratio : 0,
-            gmImage           = await gm(bufferImage)
+      const ratio = (imageOptions.ratio) ? imageOptions.ratio : 0
+            
+      let gmImage = await gm(bufferImage)
 
       if(ratio != 0) {
         let w    : number = 0, 
@@ -188,7 +190,70 @@ export class VisionBase {
               x      = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
               y      = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
 
-        gmImage.crop(maxW, maxH, x, y)
+        if(w / h <= 1.05 && w / h >= 0.7) {
+          const desiredW = h * ratio
+          let finalImage = new Buffer('')
+          if(h <= 200) {
+            const bgbuffer = await new Promise((resolve, reject) => {
+              gm(bufferImage)
+              .crop(maxW, maxH, x, y)
+              .resize(desiredW, h, '!')
+              .blur(0, 10)
+              .toBuffer((err : any, buff : any) => {
+                if(err) {
+                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                  reject(err)
+                }
+                resolve(buff)
+              })
+            }) as Buffer
+            
+            finalImage = await new Promise((resolve, reject) => {
+              sharp(bgbuffer)
+              .overlayWith(bufferImage)
+              .toBuffer((err : any, buff : Buffer) => {
+                if(err) {
+                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                  console.log('\n\nBG : '+desiredW+'x'+h+'\n\n')
+                  console.log('\n\nFG : '+w+'x'+h+'\n\n')
+                  reject(err)
+                }
+                resolve(buff)
+              })
+            }) as Buffer
+          } else {
+            const bgbuffer = await new Promise((resolve, reject) => {
+              gm(bufferImage)
+              .crop(maxW, maxH, x, y)
+              .resize(desiredW, h, '!')
+              .blur(0, 15)
+              .toBuffer((err : any, buff : any) => {
+                if(err) {
+                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                  reject(err)
+                }
+                resolve(buff)
+              })
+            }) as Buffer
+            
+            finalImage = await new Promise((resolve, reject) => {
+              sharp(bgbuffer)
+              .overlayWith(bufferImage)
+              .toBuffer((err : any, buff : Buffer) => {
+                if(err) {
+                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                  console.log('\n\nBG : '+desiredW+'x'+h+'\n\n')
+                  console.log('\n\nFG : '+w+'x'+h+'\n\n')
+                  reject(err)
+                }
+                resolve(buff)
+              })
+            }) as Buffer
+          }
+          gmImage = await gm(finalImage)
+        } else {
+          gmImage.crop(maxW, maxH, x, y)
+        }
         retVal.width  = (imageOptions.shrink) ? imageOptions.shrink.w : maxW
         retVal.height = (imageOptions.shrink) ? imageOptions.shrink.h : maxH
       }
@@ -388,13 +453,15 @@ export class VisionBase {
     })
   }
 
-  private static async getTopColors(img : any) {
+  public static async getTopColors(img : any, count ?: number) {
     const HIST_START = 'comment={',
           HIST_END   = '\x0A}'
 
+    count = count ? count : 8
+
     const strData = await new Promise((resolve, reject) => {
       img.noProfile()
-      .colors(8)
+      .colors(count)
       .stream('histogram', (error : any, stdout : any, stderr : any) => {
         if(error || !stdout) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error || stderr}`))
         const writeStream = new stream.PassThrough()
@@ -411,7 +478,7 @@ export class VisionBase {
           endIndex   = strData.indexOf(HIST_END),
           cData      = strData.slice(beginIndex, endIndex).split('\n')
   
-    if(cData.length > 8) cData.splice(0, cData.length - 8)
+    if(cData.length > count) cData.splice(0, cData.length - count)
     if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
 
     return lo.map(cData, this.parseHistogramLine)
