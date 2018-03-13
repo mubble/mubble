@@ -20,6 +20,8 @@ import {
 }  from '@mubble/core'
 
 import  {GcloudEnv}         from './gcp/gcloud-env'
+import  {MasterMgr}         from './master/ma-manager'
+
 // Import from external modules without types
 const colors:any = require('colors/safe') // https://github.com/marak/colors.js/
 
@@ -76,6 +78,7 @@ export abstract class RunContextServer extends RunContextBase {
   /*------------------------------------------------------------------------------
     Static declarations
   ------------------------------------------------------------------------------*/
+  masterMgr   : MasterMgr
 
   private static initDone: boolean
   
