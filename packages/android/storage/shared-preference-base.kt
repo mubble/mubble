@@ -166,6 +166,10 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
 
       } else {
 
+        check(value is Long|| value is String || value is Int || value is Float || value is Boolean, {
+          "setValue:=> Invalid value for $key as $value"
+        })
+
         val savedValue = thisRef.initMap!!.remove(key)
         val initValue: T = if (savedValue !== null) {
           if (savedValue::class !== (value as Any)::class) {

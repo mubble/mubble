@@ -119,7 +119,7 @@ export abstract class MasterDb extends Dexie {
     return {hash: this.syncHashModels, segments: (rc.globalKeyVal.syncSegments as Segments)}
   }
 
-  abstract afterMasterUpdate(rc: RunContextBrowser): void
+  abstract async afterMasterUpdate(rc: RunContextBrowser): Promise<void>
 
   getTableForClass(rc: RunContextBrowser, classFn: Function) {
 
@@ -171,7 +171,7 @@ export abstract class MasterDb extends Dexie {
       if (await this.applyMasterData(rc, modelName, modelData)) updated = true
     }
 
-    if (updated) this.afterMasterUpdate(rc)
+    if (updated) await this.afterMasterUpdate(rc)
   }
 
   private async applyMasterData(rc: RunContextBrowser, modelName: string, modelData: SyncModelResponse): Promise<boolean> {
