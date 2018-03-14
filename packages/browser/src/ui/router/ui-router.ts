@@ -225,6 +225,12 @@ export class UiRouter {
     return segments[0].path
   }
 
+  public getPathName(url): string {
+    const urlTree: UrlTree        = this.router.parseUrl(url)
+    const segments: UrlSegment[]  = urlTree.root.children.primary.segments
+    return segments[0].path
+  }
+
   public getQueryParams(params): any {
 
     const nc_paramsId = params.nc_paramsId
@@ -282,7 +288,7 @@ export class UiRouter {
     const repUrl: boolean = replaceUrl || false
 
     this.navigateByUrl([{outlets: { modal: componentRoute}}], 
-      {replaceUrl: false, queryParams: queryParams, paramsById: true}, MODAL_OUTLET)
+      {replaceUrl: repUrl, queryParams: queryParams, paramsById: true}, MODAL_OUTLET)
   }
 
   public goBack(whereOrByHowMuch ?: string | number) {
@@ -576,6 +582,7 @@ class HistoryWrapper {
   }
 
   replaceState(state: Mubble.uObject<any>, title: string, url: string) {
+
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'replaceState', {length: history.length, state: history.state})
     history.replaceState(state, title, url)
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'replacedState', {length: history.length, state})
