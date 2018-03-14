@@ -5,12 +5,49 @@
    Author     : Raghvendra Varma
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
+
+------------------------------------------------------------------------------
+
+- GlobalKeyValue is an automatic persistent storage system that persists the 
+key, values in localStorage with keys like 'global.version'.
+- A field must be annotated with @GlobalKeyValue.autoStore() for making it eligible
+  for automatic storage. 
+
+  - string default to ''
+  - number defaults to 0
+  - boolean defaults to false
+  - object defaults to null
+
+- A field can be given a different default value while declaring. Fields with default 
+  value, are not stored in localStorage till they are changed. Once stored they
+  are never deleted
+
+- To save changes to an object, when its internal property has changed, you will
+  need to CALL detectSaveChanges(), as internal changes to object are not detected
+  automatically
+
+Design
+------
+- autoStore.set is called before constructor for default value initialization
+  
+- Last persisted value of autoStore field is kept in _fieldName. The stringified 
+  last persisted value is kept in _#fieldName. There is no data kept at the actual field
+
+- ???? TODO: Write a housekeep function that will delete the unused keys
+
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
 import { RunContextBrowser } from '..'
 
 const PREFIX      = 'global',
-      META_KEY    = 'autoStore'
+      META_KEY    = 'autoStore',
+      VALID_TYPES = [String, Number, Boolean, Object]
+
+type fieldMapType = { [key: string]:  {
+    type      : object, 
+    strValue ?: string /* initial value from localStore or default */ 
+  }
+}
 
 export abstract class GlobalKeyValue {
 
@@ -36,49 +73,39 @@ export abstract class GlobalKeyValue {
 
         set: function(value: any) {
 
-          // console.log('autoStore:setter', fieldType, this['_' + propertyKey], value)
-
           const fieldType = Reflect.getMetadata('design:type', target, propertyKey),
-                oldValue  = this['_' + propertyKey],
-                rc        = this['rc'],
-                key       = PREFIX + '.' + propertyKey
+                rc        = this['rc']
 
-          if ((value !== null && value.constructor !== fieldType) || 
-              (value === null) && fieldType !== Object) {
-            throw(new Error(`You are trying to set ${propertyKey}=${value} with invalid type ${typeof(value)}`))
+          rc.isDebug() && rc.debug(rc.getName(this), 'autoStore.set', propertyKey, value)
+
+          rc.isAssert() && rc.assert(rc.getName(this), value !== undefined)
+          rc.isAssert() && rc.assert(rc.getName(this), VALID_TYPES.indexOf(fieldType) !== -1)
+
+          rc.isAssert() && rc.assert(rc.getName(this), 
+            value === null ? fieldType === Object : value.constructor === fieldType,
+            `You are trying to set ${propertyKey}=${value} with invalid type ${typeof(value)}`)
+
+          let strValue = fieldType === Object ? JSON.stringify(value) : String(value)
+
+          const oldValue    = this['_' + propertyKey]
+
+          // undefined indicates that GlobalKeyValue has not been initialized
+          if (oldValue === undefined) {
+            rc.isDebug() && rc.debug(rc.getName(this), 
+              `Remembering default ${propertyKey}=${value}`)
+            GlobalKeyValue.fieldMap[propertyKey] = {type: fieldType, strValue}
+            return
           }
 
-          this['_' + propertyKey] = value
+          const strOldValue = this['_$' + propertyKey],
+                key         = PREFIX + '.' + propertyKey
 
-          // undefined indicates that value is being set in the constructor
-          if (oldValue === undefined) return
-
-          let strValue: string,
-              strOldValue: string
-
-          switch (fieldType) {
-            case String:
-            case Number:
-            case Boolean:
-              strValue    = String(value)
-              strOldValue = String(oldValue)
-              break
-
-            case Object:
-
-              strValue    = JSON.stringify(value)
-              strOldValue = JSON.stringify(oldValue)
-              break
-            
-            default:
-              // console.log('autoStore:setter', 'unknown field type', fieldType)
-              throw(new Error('autoStore:setter - unknown field type' + fieldType))
-          }
-          
-          // no change in the value
           if (strOldValue === strValue) return
-
+          
+          this['_' + propertyKey]  = value
+          this['_$' + propertyKey] = strValue
           localStorage.setItem(key, strValue)
+
           if (rc && rc.isDebug) {
             rc.isDebug() && rc.debug('GlobalKeyValue', `Saved key ${key}=${strValue}`)
           }
@@ -87,66 +114,89 @@ export abstract class GlobalKeyValue {
     }
   }
   
-  private autoFields: {name: string, type: object}[] = []
+  private static fieldMap: fieldMapType = {}
 
   constructor(private rc: RunContextBrowser) {
+  }
 
-    this.autoFields = []
-    this.extractFields(this, this.autoFields)
+  init() {
 
-    for (const autoField of this.autoFields) {
+    const rc = this.rc
 
-      const name      = autoField.name,
-            strValue  = localStorage.getItem(PREFIX + '.' + name)
+    rc.isDebug() && rc.debug(rc.getName(this), 'GlobalKeyValue::Constructor')
+    this.extractFields(this, GlobalKeyValue.fieldMap)
+
+    for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
+
+      const field           = GlobalKeyValue.fieldMap[name],
+            strSavedValue   = localStorage.getItem(PREFIX + '.' + name),
+            strDefaultValue = field.strValue,
+            strValue        = strSavedValue || strDefaultValue
 
       let value
 
-      switch (autoField.type) {
+      switch (field.type) {
         case String:
-          value = strValue || ''
+          value = strValue ? strValue : ''
           break
 
         case Number:
-          value = Number(strValue) || 0
+          value = strValue ? Number(strValue) : 0
           break
 
         case Boolean:
-          value = strValue === String(true)
+          value = strValue ? strValue === String(true) : false
           break
 
         case Object:
-          value = strValue === 'null' ? null : JSON.parse(strValue)  
+          value = strValue ? JSON.parse(strValue) : null
           break
       }
 
-      this[name] = value
+      this['_' + name]  = value
+      this['_$' + name] = field.type === Object ? JSON.stringify(value) : String(value)
+    }
+    return this
+  }
+
+  // Need to be called only for fields of type object, when some internal property
+  // has been changed
+  public detectSaveChanges() {
+    for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
+
+      const field   = GlobalKeyValue.fieldMap[name],
+            type    = (field.type as any).name
+
+      if (field.type !== Object) continue
+      this[name] = this[name] // forces the set function to get called
     }
   }
 
-  private extractFields(proto: any, fields: any[]): void {
+  private extractFields(proto: any, fieldz: fieldMapType): void {
 
     if (proto === null) return
 
     const keys = Object.getOwnPropertyNames(proto)
     for (const key of keys) {
+      if (fieldz[key]) continue
       try {
         if (Reflect.getMetadata(META_KEY, proto, key)) {
           // console.log('GlobalKeyValue:extractFields()', key)
-          fields.push({name: key, type: Reflect.getMetadata('design:type', proto, key)})
+          fieldz[key] = {type: Reflect.getMetadata('design:type', proto, key)}
         }
       } catch(err) {
         console.info('GlobalKeyValue:extractFields()', 'failed for', key)
       }
     }
-    return this.extractFields(Object.getPrototypeOf(proto), fields)
+    return this.extractFields(Object.getPrototypeOf(proto), fieldz)
   }
 
   $dump() {
 
-    for (const autoField of this.autoFields) {
+    for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
-      const name    = autoField.name,
-            type    = (autoField.type as any).name,
+      const field   = GlobalKeyValue.fieldMap[name],
+            type    = (field.type as any).name,
             memory  = this[name],
             store   = localStorage.getItem(PREFIX + '.' + name)
 
