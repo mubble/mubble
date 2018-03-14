@@ -193,12 +193,19 @@ export class VisionBase {
         if(w / h <= 1.05 && w / h >= 0.7) {
           const desiredW = h * ratio
           let finalImage = new Buffer('')
-          if(h <= 200) {
+
+          const logoColors = await this.checkLogoBorders(rc, bufferImage, w, h)
+
+          if(logoColors.length > 1) {
             const bgbuffer = await new Promise((resolve, reject) => {
               gm(bufferImage)
-              .crop(maxW, maxH, x, y)
-              .resize(desiredW, h, '!')
-              .blur(0, 10)
+              .resize(Math.round(desiredW), h, '!')
+              .stroke(logoColors[0], 0)
+              .fill(logoColors[0])
+              .drawRectangle(0, 0, Math.round(desiredW) / 2, h)
+              .stroke(logoColors[1], 0)
+              .fill(logoColors[1])
+              .drawRectangle(Math.round(desiredW) / 2, 0, Math.round(desiredW), h)
               .toBuffer((err : any, buff : any) => {
                 if(err) {
                   rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
@@ -207,48 +214,72 @@ export class VisionBase {
                 resolve(buff)
               })
             }) as Buffer
-            
+    
             finalImage = await new Promise((resolve, reject) => {
               sharp(bgbuffer)
               .overlayWith(bufferImage)
               .toBuffer((err : any, buff : Buffer) => {
                 if(err) {
                   rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
-                  console.log('\n\nBG : '+desiredW+'x'+h+'\n\n')
-                  console.log('\n\nFG : '+w+'x'+h+'\n\n')
                   reject(err)
                 }
                 resolve(buff)
               })
             }) as Buffer
           } else {
-            const bgbuffer = await new Promise((resolve, reject) => {
-              gm(bufferImage)
-              .crop(maxW, maxH, x, y)
-              .resize(desiredW, h, '!')
-              .blur(0, 15)
-              .toBuffer((err : any, buff : any) => {
-                if(err) {
-                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
-                  reject(err)
-                }
-                resolve(buff)
-              })
-            }) as Buffer
-            
-            finalImage = await new Promise((resolve, reject) => {
-              sharp(bgbuffer)
-              .overlayWith(bufferImage)
-              .toBuffer((err : any, buff : Buffer) => {
-                if(err) {
-                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
-                  console.log('\n\nBG : '+desiredW+'x'+h+'\n\n')
-                  console.log('\n\nFG : '+w+'x'+h+'\n\n')
-                  reject(err)
-                }
-                resolve(buff)
-              })
-            }) as Buffer
+            if(h <= 200) {
+              const bgbuffer = await new Promise((resolve, reject) => {
+                gm(bufferImage)
+                .crop(maxW, maxH, x, y)
+                .resize(desiredW, h, '!')
+                .blur(0, 10)
+                .toBuffer((err : any, buff : any) => {
+                  if(err) {
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    reject(err)
+                  }
+                  resolve(buff)
+                })
+              }) as Buffer
+              
+              finalImage = await new Promise((resolve, reject) => {
+                sharp(bgbuffer)
+                .overlayWith(bufferImage)
+                .toBuffer((err : any, buff : Buffer) => {
+                  if(err) {
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    reject(err)
+                  }
+                  resolve(buff)
+                })
+              }) as Buffer
+            } else {
+              const bgbuffer = await new Promise((resolve, reject) => {
+                gm(bufferImage)
+                .crop(maxW, maxH, x, y)
+                .resize(desiredW, h, '!')
+                .blur(0, 15)
+                .toBuffer((err : any, buff : any) => {
+                  if(err) {
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    reject(err)
+                  }
+                  resolve(buff)
+                })
+              }) as Buffer
+              
+              finalImage = await new Promise((resolve, reject) => {
+                sharp(bgbuffer)
+                .overlayWith(bufferImage)
+                .toBuffer((err : any, buff : Buffer) => {
+                  if(err) {
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    reject(err)
+                  }
+                  resolve(buff)
+                })
+              }) as Buffer
+            }
           }
           gmImage = await gm(finalImage)
         } else {
@@ -269,6 +300,123 @@ export class VisionBase {
       throw(error)
     } finally {
       return retVal
+    }
+  }
+
+  private static async checkLogoBorders(rc : RunContextServer, image : Buffer, w : number, h : number) {
+    const leftBorderTrue = await new Promise((resolve, reject) => {
+      gm(image)
+      .crop(3, h, 0, 0)
+      .toBuffer((err : any, buff : any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          reject(err)
+        }
+        resolve(buff)
+      })
+    }) as Buffer
+
+    const leftBorderGray = await new Promise((resolve, reject) => {
+      gm(image)
+      .colorspace('Gray')
+      .crop(3, h, 0, 0)
+      .toBuffer((err : any, buff : any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          reject(err)
+        }
+        resolve(buff)
+      })
+    }) as Buffer
+
+    const leftBorderSD = await new Promise((resolve, reject) => {
+      gm(leftBorderGray)
+      .identify((err : any, data : any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
+          reject(err)
+        }
+
+        const colorSD : {[id : string] : any} = {}
+        Object.keys(data['Channel Statistics']).forEach((key) => {
+          colorSD[key] = Number(((((data['Channel Statistics'])[key])['Standard Deviation']).split(' ('))[0])
+        })
+
+        const isSDLessThan1300 = Object.keys(colorSD).every((key) => {
+          if(colorSD[key] < 1300) return true
+          else return false
+        })
+
+        if(isSDLessThan1300)
+          resolve(true)
+        else
+          resolve(false)
+      })
+    })
+
+    const rightBorderTrue = await new Promise((resolve, reject) => {
+      gm(image)
+      .crop(3, h, w - 3, 0)
+      .toBuffer((err : any, buff : any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          reject(err)
+        }
+        resolve(buff)
+      })
+    }) as Buffer
+
+    const rightBorderGray = await new Promise((resolve, reject) => {
+      gm(image)
+      .colorspace('Gray')
+      .crop(3, h, w - 3, 0)
+      .toBuffer((err : any, buff : any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          reject(err)
+        }
+        resolve(buff)
+      })
+    }) as Buffer
+
+    const rightBorderSD = await new Promise((resolve, reject) => {
+      gm(leftBorderGray)
+      .identify((err : any, data : any) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
+          reject(err)
+        }
+
+        const colorSD : {[id : string] : any} = {}
+        Object.keys(data['Channel Statistics']).forEach((key) => {
+          colorSD[key] = Number(((((data['Channel Statistics'])[key])['Standard Deviation']).split(' ('))[0])
+        })
+
+        const isSDLessThan1300 = Object.keys(colorSD).every((key) => {
+          if(colorSD[key] < 1300) return true
+          else return false
+        })
+
+        if(isSDLessThan1300)
+          resolve(true)
+        else
+          resolve(false)
+      })
+    })
+
+    if(leftBorderSD && rightBorderSD) {
+      const gmLeftBorder  = await gm(leftBorderTrue),
+            topColorLeft  = await VisionBase.getTopColors(gmLeftBorder, 1),
+            lbColor       = topColorLeft[0] as any,
+            hexColorLeft  = `#${(lbColor.r).toString(16)}${(lbColor.g).toString(16)}${(lbColor.b).toString(16)}`,
+            gmRightBorder = await gm(rightBorderTrue),
+            topColorRight = await VisionBase.getTopColors(gmLeftBorder, 1),
+            rbColor       = topColorRight[0] as any,
+            hexColorRight = `#${(rbColor.r).toString(16)}${(rbColor.g).toString(16)}${(rbColor.b).toString(16)}`
+
+      return [hexColorLeft, hexColorRight]
+    } else {
+      return []
     }
   }
 
