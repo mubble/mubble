@@ -66,8 +66,11 @@ export abstract class GlobalKeyValue {
       return {
 
         get: function() {
-          const value = this['_' + propertyKey]
-          // console.log('autoStore:getter', propertyKey, Reflect.getMetadata('design:type', target, propertyKey), value)
+          const value = this['_' + propertyKey],
+                rc    = this.rc
+
+          rc.isAssert() && rc.assert(rc.getName(this), value !== undefined, 
+            `You are trying to fetch ${propertyKey}=${value} before init`)
           return value
         },
 
