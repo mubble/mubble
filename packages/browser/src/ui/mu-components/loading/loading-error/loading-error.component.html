@@ -6,7 +6,8 @@
 
     <div class="error-btn-cont" *ngIf="apiCanRetry">
       <button class="error-btn button-primary" 
-        ncAllowSingleClick (ncClick)="onErrorAction()">{{apiRetryText}}
+        (click)="onErrorAction()">
+        {{apiRetryText}}
       </button>
     </div>
   </div>
