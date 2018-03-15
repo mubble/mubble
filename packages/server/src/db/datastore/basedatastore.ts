@@ -313,7 +313,7 @@ private getNamespace(rc : RunContextServer) : string {
         throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
       }
     }finally{
-      rc.endTraceSpan(traceId,ack)
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
@@ -525,7 +525,7 @@ isDeleted(rc: RunContextServer) : boolean {
   static createTransaction(rc : RunContextServer) : DSTransaction {
     const model : BaseDatastore =  new (this as any)()
     
-    return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace(rc))
+    return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace(rc), this._kindName)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
