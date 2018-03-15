@@ -20,16 +20,18 @@ export class DSTransaction {
 
   private _transaction : any
   private _namespace   : string
+  private _kindname    : string
   private _datastore   : any
   private traceId      : string 
-  private ack          : any  
+  private ack          : any
 
-  constructor(rc : RunContextServer, datastore : any, namespace : string) {
+  constructor(rc : RunContextServer, datastore : any, namespace : string, kindname : string) {
     this._transaction = datastore.transaction()
     this._namespace   = namespace
+    this._kindname    = kindname
     this._datastore   = datastore
-    this.traceId = 'transaction_'+ Date.now()
-    this.ack = rc.startTraceSpan(this.traceId)
+    this.traceId      = 'transaction_' + Date.now() + '_' + this._kindname
+    this.ack          = rc.startTraceSpan(this.traceId)
 }
 
 /*------------------------------------------------------------------------------
@@ -69,6 +71,8 @@ export class DSTransaction {
   - Needed only if we use a transaction outside models.
 ------------------------------------------------------------------------------*/
   async commit(rc : RunContextServer) {
+    const traceId = rc.getName(this) + ':' + 'transaction_commit_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
     try {
       await this._transaction.commit()
     } catch(err) {
@@ -76,7 +80,8 @@ export class DSTransaction {
       rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     } finally {
-      rc.endTraceSpan(this.traceId , this.ack)
+      rc.endTraceSpan(traceId, ack)
+      rc.endTraceSpan(this.traceId, this.ack)
     }
   }
 
@@ -92,19 +97,27 @@ export class DSTransaction {
   - Get with Transaction
 ------------------------------------------------------------------------------*/
   async get(rc : RunContextServer, model : any, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
-    const mId      : string | number = model.getId(rc),
-          kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+    const traceId = rc.getName(this) + ':' + 'transaction_get_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
 
-    rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
-    const key       = model.getDatastoreKey(rc, mId, false, parentKey),
-          entityRec = await this._transaction.get(key)
+    try {
+      const mId      : string | number = model.getId(rc),
+            kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
-    if (!entityRec[0]) {
-      if (!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `[Kind: ${kindName}, Id: ${mId}]`))
-      return false
+      rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
+      const key       = model.getDatastoreKey(rc, mId, false, parentKey),
+            entityRec = await this._transaction.get(key)
+
+      if(!entityRec[0]) {
+        if(!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `[Kind: ${kindName}, Id: ${mId}]`))
+        return false
+      }
+
+      model.deserialize(rc, entityRec[0])
+      return true
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
-    model.deserialize(rc, entityRec[0])
-    return true
   }
 
 /*------------------------------------------------------------------------------
