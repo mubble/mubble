@@ -142,7 +142,9 @@ export class VisionBase {
   }
 
   private static async smartcropProcess(rc : RunContextServer, imageData : Buffer, imageOptions : VisionParameters, fileInfo ?: GcsUUIDFileInfo) {
-    const retVal = {} as SmartCropProcessReturn
+    const traceId = rc.getName(this) + '_smartcropProcess',
+          ack     = rc.startTraceSpan(traceId),
+          retVal  = {} as SmartCropProcessReturn
     try {
       const bufferImage = await new Promise((resolve, reject) => {
         gm(imageData)
@@ -295,11 +297,12 @@ export class VisionBase {
       retVal.mime    = mime
       retVal.palette = palette as any
       retVal.gmImage = gmImage
+      return retVal
     } catch(error) {
       rc.isError() && rc.error(rc.getName(this), `Error is ${error.message}`)
       throw(error)
     } finally {
-      return retVal
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
