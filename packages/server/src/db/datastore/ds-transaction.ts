@@ -57,12 +57,16 @@ export class DSTransaction {
   - Needed only if we use a transaction outside models.
 ------------------------------------------------------------------------------*/
   async start(rc : RunContextServer) {
+    const traceId = rc.getName(this) + ':' + 'transaction_start_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
     try {
       await this._transaction.run()
     } catch(err) {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(rc.getName(this), 'Unable to start transaction', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
