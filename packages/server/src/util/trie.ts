@@ -81,7 +81,7 @@ export class Trie {
     return match ? match.val : null
   }
 
-  public searchLongest (rc: RunContextServer, word: string): TrieResult {
+  private searchLongest (rc: RunContextServer, word: string): TrieResult {
     let match
     let currentNode = this.root
     lo.forEach ([...word], (char, idx) => {
@@ -93,9 +93,9 @@ export class Trie {
     return match
 }
 
-public search(rc: RunContextServer, word: string): string | null {
+public search(rc: RunContextServer, word: string): TrieValue {
   const node = this.getNode(rc, word);
-  return (node && node.value && node.value.val) ? node.value.val : null
+  return (node && node.value) ? node.value : null
 }
 
 public startsWith(rc: RunContextServer, prefix: string): boolean {
