@@ -55,6 +55,11 @@ export function getWorkerIndex() : number {
   return clusterWorker.workerIndex
 }
 
+export function getWorkerRestartCount() : number {
+  return clusterWorker.restartCount
+}
+
+
 
 interface UserInfo {
   uid: number
@@ -336,7 +341,7 @@ class WorkerInfo {
 
   public online(rc: RunContextServer): void {
     this.state = WORKER_STATE.ONLINE
-    const msgObj = new ipc.CWInitializeWorker(this.workerIndex , rc.getRunMode())
+    const msgObj = new ipc.CWInitializeWorker(this.workerIndex , rc.getRunMode() , this.restartCount)
     msgObj.send(this.worker)
   }
 
@@ -365,7 +370,6 @@ class WorkerInfo {
   }
 
   toString(): string {
-    return `Worker #${this.workerIndex} state: ${this.state} forkId:${this.forkId}
-started at:${this.lastStartTS} restarts:${this.restartCount}`
+    return `Worker #${this.workerIndex} state: ${this.state} forkId:${this.forkId} started at:${this.lastStartTS} restarts:${this.restartCount}`
   }
 }

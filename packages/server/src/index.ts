@@ -9,7 +9,8 @@
 export {
         startCluster,
         isClusterMaster,
-        getWorkerIndex
+        getWorkerIndex,
+        getWorkerRestartCount
        }                      from './cluster/master'
 export *                      from './xmn'
 export *                      from './rc-server'

@@ -26,6 +26,7 @@ const CONST = {
 export class ClusterWorker {
 
   public  workerIndex         : number = -1
+  public  restartCount        : number = -1
   private pendingInitResolve  : any
   private config              : CONFIG
 
@@ -62,7 +63,9 @@ export class ClusterWorker {
 
     case ipc.CWInitializeWorker.name:
       const wMsg : ipc.CWInitializeWorker = msg
-      this.workerIndex = wMsg.workerIndex
+      this.workerIndex  = wMsg.workerIndex
+      this.restartCount = wMsg.restartCount
+      
       rc.initConfig.runMode = wMsg.runMode
 
       process.title = this.config.SERVER_NAME + '_' + this.workerIndex
