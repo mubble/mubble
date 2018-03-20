@@ -95,7 +95,7 @@ export class Trie {
 
 public search(rc: RunContextServer, word: string): TrieValue {
   const node = this.getNode(rc, word);
-  return (node && node.value) ? node.value : null
+  return (node && node.value) ? node.value.val : null
 }
 
 public startsWith(rc: RunContextServer, prefix: string): boolean {
