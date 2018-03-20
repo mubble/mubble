@@ -55,7 +55,7 @@ export class Trie {
           node = tnode
       }
       if (node.value && node.value.val !== value) {
-        // rc.isStatus() && rc.status (rc.getName (this), 'Duplicate Found, Word:', word, '=>', node.value, 'to', value)
+        rc.isStatus() && rc.status (rc.getName (this), 'Duplicate Found, Word:', word, '=>', node.value, 'to', value)
         this.dupCount ++
         return false
       }
