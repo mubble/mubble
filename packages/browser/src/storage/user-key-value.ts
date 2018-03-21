@@ -48,6 +48,26 @@ export abstract class UserKeyValue {
     this.save(rc)
   }
 
+  logOutCurrentUser(): string {
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this._userLinkId, 
+      'Trying to logout a user who is not registered')
+
+    const userLinkId = this._userLinkId
+    
+    delete this.users[this._clientId]
+    localStorage.setItem(USERS, JSON.stringify(this.users))
+    
+    if (Object.keys(this.users).length > 0) {
+      const lastClientId = Number(Object.keys(this.users)[0])
+      this.switchUserOnCurrRun(lastClientId)
+    } else {
+      localStorage.setItem(LAST_USER, null)
+    }
+
+    return userLinkId
+  }
+
   switchUserOnCurrRun(clientId: number) {
     this.lastClientId = clientId
     localStorage.setItem(LAST_USER, String(this.lastClientId))
@@ -77,7 +97,7 @@ export abstract class UserKeyValue {
       const userLinkId: string = this.users[clientId]['userLinkId']
       if (userLinkId === reqUserLinkId) return Number(clientId)
     }
-    return null
+    return 0
   }
 
   getUserInfo(clientId: number): object { return this.users[clientId] }
