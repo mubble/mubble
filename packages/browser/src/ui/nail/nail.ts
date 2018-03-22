@@ -311,7 +311,9 @@ export class Nail  {
       session.ifNail = this.appComponent
     }
 
-    event.axis = session.axis
+    event.axis    = session.axis
+    event.deltaX  = deltaX
+    event.deltaY  = deltaY
     if (this.session.ifNail.onPanStart) {
       if (this.measure) this.session.perf.startStep('onPanStart')
       this.session.ifNail.onPanStart(event)
