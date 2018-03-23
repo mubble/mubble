@@ -152,8 +152,11 @@ export class MasterMgr {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'subscribeToMasterChange adding master cb change', mastername , cb)
     
-    const subs = this.masterChangeSubs[mastername]
-    if(subs.indexOf(cb)!=-1) throw 'subscription added again for master '+mastername
+    const subs = this.masterChangeSubs[mastername] ,
+          cbStr = cb.toString()
+    if(subs.some((sub)=>{
+      return sub.toString()===cbStr
+    })) throw 'subscription added again for master '+mastername + ' '+cbStr
 
     subs.push(cb)
 
