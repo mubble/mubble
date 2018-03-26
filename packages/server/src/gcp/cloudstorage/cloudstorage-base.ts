@@ -219,7 +219,10 @@ export class CloudStorageBase {
       if(delimiter) options.delimiter = delimiter
 
       const data : any = await bucket.getFiles(options)
+      
       return data[0]
+    } catch(error) {
+      rc.isError() && rc.error (rc.getName(this), error)
     } finally {
       rc.endTraceSpan(traceId, ack)
     }          
