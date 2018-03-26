@@ -36,9 +36,9 @@ const LOG_ID = 'RedisWrapper'
 export class RedisCmds {
   
   del       (...args : string[]) : Promise<number> {return true as any}
-  expire    (...args : string[]) : Promise<void> {return true as any}
+  expire    (key : string, seconds : number) : Promise<void> {return true as any}
   get       (key : string ) : Promise<string> {return true as any}
-  set       (key : string, value: string, ...options: string[]) : Promise<string> {return true as any}
+  set       (key : string, value: any, ...options: string[]) : Promise<string> {return true as any}
   incr      (...args : string[]) : Promise<void> {return true as any}
 
   mget      (...args : string[]) : Promise<string []> {return true as any}
@@ -53,6 +53,8 @@ export class RedisCmds {
   hset      (key : string , field : string , value : string | number) : Promise<number> { return true as any }
   hsetnx    (key : string , field : string , value : string | number) : Promise<number> { return true as any }
   hincrby   (key : string , field : string, incr : number) : Promise<number>  { return true as any }
+
+  rpush     (key : string , field : string) : Promise<number> { return true as any }
   
   // z sorted set apis 
   zadd      (key : string , option : string , ...scoreValuePairs : any[]) : Promise<number> { return true as any }
