@@ -91,6 +91,10 @@ export abstract class UserKeyValue {
 
   getAllClientIds(): number[] { return Object.keys(this.users).map(Number) }
 
+  getAllUserLinkIds(): string[] { return Object.values(this.users).map((user) => {
+    return user['userLinkId']
+  })}
+
   getClientIdForUserLink(reqUserLinkId: string): number {
 
     for (let clientId in this.users) {

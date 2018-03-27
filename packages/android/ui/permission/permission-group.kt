@@ -3,6 +3,7 @@ package `in`.mubble.android.ui.permission
 import android.Manifest
 import android.Manifest.permission.*
 import android.app.Activity
+import android.content.Context
 import android.content.pm.PackageManager
 import android.support.v4.app.ActivityCompat
 import android.support.v4.content.ContextCompat
@@ -18,12 +19,16 @@ enum class PermissionGroup constructor(val group: String, val reqCode: Int, val 
 
   LOCATION("android.permission-group.LOCATION", 1, arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)),
 
-  CAMERA("android.permission-group.CAMERA", 2, arrayOf(Manifest.permission.CAMERA));
+  CAMERA("android.permission-group.CAMERA", 2, arrayOf(Manifest.permission.CAMERA)),
 
-  fun hasPermission(activity: Activity): Boolean {
+  SMS("android.permission-group.SMS", 3, arrayOf(SEND_SMS, RECEIVE_SMS, READ_SMS)),
+
+  CONTACTS("android.permission-group.CONTACTS", 4, arrayOf(READ_CONTACTS, WRITE_CONTACTS, GET_ACCOUNTS));
+
+  fun hasPermission(context: Context): Boolean {
 
     for (perm in groupPermissions) {
-      val permStatus = ContextCompat.checkSelfPermission(activity, perm)
+      val permStatus = ContextCompat.checkSelfPermission(context, perm)
       if (permStatus != PackageManager.PERMISSION_GRANTED) return false
     }
 
