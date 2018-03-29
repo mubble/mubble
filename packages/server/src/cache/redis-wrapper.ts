@@ -54,6 +54,9 @@ export class RedisCmds {
   hsetnx    (key : string , field : string , value : string | number) : Promise<number> { return true as any }
   hincrby   (key : string , field : string, incr : number) : Promise<number>  { return true as any }
 
+  lrange    (key : string , start : number , stop : number) : Promise<string[]> { return true as any }
+  ltrim     (key : string , start : number , stop : number) : Promise<string[]> { return true as any }
+
   rpush     (key : string , field : string) : Promise<number> { return true as any }
   
   // z sorted set apis 
