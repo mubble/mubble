@@ -5,6 +5,7 @@ import `in`.mubble.android.ui.MubbleBaseActivity
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
+import android.util.Log
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.credentials.Credential
 import com.google.android.gms.auth.api.credentials.HintRequest
@@ -16,7 +17,7 @@ import com.google.android.gms.common.api.GoogleApiClient
  */
 
 open class HintRequestManager(private val activity: MubbleBaseActivity,
-                        private val cb: (selectedId: String?) -> Unit): MubbleLogger {
+                              private val cb: (selectedId: String?) -> Unit): MubbleLogger {
 
   private var mGoogleApiClient : GoogleApiClient? = null
 
@@ -52,7 +53,7 @@ open class HintRequestManager(private val activity: MubbleBaseActivity,
   @Suppress("UNUSED_PARAMETER")
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
 
-    if (requestCode == Activity.RESULT_OK && data != null) {
+    if (resultCode == Activity.RESULT_OK && data != null) {
       val credential: Credential = data.getParcelableExtra(Credential.EXTRA_KEY)
       cb(credential.id)
     } else {
