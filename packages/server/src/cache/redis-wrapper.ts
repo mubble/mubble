@@ -40,6 +40,7 @@ export class RedisCmds {
   get       (key : string ) : Promise<string> {return true as any}
   set       (key : string, value: any, ...options: string[]) : Promise<string> {return true as any}
   incr      (...args : string[]) : Promise<void> {return true as any}
+  watch     (...args : string[] ) : Promise<string []> {return true as any}
 
   mget      (...args : string[]) : Promise<string []> {return true as any}
   mset      (...args : string[]) : Promise<string> {return true as any}
