@@ -55,6 +55,8 @@ export class GcpLanguageBase {
   static _language   : any
   static _translate  : any
 
+  private static MAX_TRANS_LENGTH = 500
+
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
@@ -206,7 +208,9 @@ export class GcpLanguageBase {
 
   static async translateToEnglish (rc: RunContextServer, text: string) : Promise<GcpTranslationInfo | null> {
     try {
-      const res   =  await this._translate.translate (text, 'en') 
+      const textForTranslation = (text.length <= this.MAX_TRANS_LENGTH) ? text
+                               : text.substr (0, this.MAX_TRANS_LENGTH)
+      const res   =  await this._translate.translate (textForTranslation, 'en') 
       return res[1].data.translations[0]
     }
     catch (e) {
