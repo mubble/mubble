@@ -176,7 +176,7 @@ export class HttpServerProvider implements XmnProvider {
       headers[HTTP.HeaderKey.contentEncoding] = HTTP.HeaderValue.deflate
       streams.unshift(zlib.createDeflate() as any)
     } else {
-      headers[HTTP.HeaderKey.contentLength]   = String(result.length)
+      headers[HTTP.HeaderKey.contentLength]   = String(Buffer.byteLength(result))
     }    
     res.writeHead(data.error ? XmnError.errorCode : 200, headers)
     new UStream.WriteStreams(rc, streams).write(result)
