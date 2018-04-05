@@ -192,6 +192,73 @@ private getNamespace(rc : RunContextServer) : string {
     return result
   }
 
+  static async mQuery(rc : RunContextServer, filterKey : string, values : Array<any>) : Promise<BaseDatastore[]> {
+    const traceId : string                = rc.getName(this) + ':' + 'mQuery',
+          ack     : any                   = rc.startTraceSpan(traceId),
+          queries : Array<DSQuery>        = [],
+          models  : Array<BaseDatastore>  = []
+
+    try {
+      for(const value of values) {
+        const query = this.createQuery(rc) as DSQuery
+        query.filter(filterKey, value)
+        queries.push(query)
+      }
+
+      const results = await Promise.all(queries.map(query => query.run(rc))) as Array<any>
+      for(const result of results) {
+        if(result && result[0] && result[0].length) {
+          const entities = result[0],
+                len      = entities.length
+          
+          for(let i = 0; i < len; i++) {
+            const model = new (this as any)()
+            model.deserialize(rc, entities.pop())
+
+            models.push(model)
+          }
+        }
+      }
+      
+      return models
+    } catch(err) {
+      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      else rc.isError() && rc.error(err)
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
+
+  // Not working
+  // static async mQueryOr(rc : RunContextServer, filterKey : string, values : Array<any>) : Promise<any[]> {
+  //   const traceId : string     = rc.getName(this) + ':' + 'mQueryOr',
+  //         ack     : any        = rc.startTraceSpan(traceId),
+  //         ids     : Array<any> = []
+
+  //   try {
+  //     let query   = this._datastore.createQuery(this._namespace, this._kindName)
+  //     query = query.select(['__key__', filterKey])
+
+  //     const results = await this._datastore.runQuery(query)
+  //     if(results && results[0] && results[0].length) {
+  //       const entities = results[0] as Array<any>
+  //       for(const entity of entities) {
+  //         const index = values.indexOf(entity[filterKey])
+  //         if(index !== -1) ids.push(entity.__key__)
+  //       }
+  //     }
+
+  //     return ids
+  //   } catch(err) {
+  //     if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+  //     else rc.isError() && rc.error(err)
+  //     throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+  //   } finally {
+  //     rc.endTraceSpan(traceId, ack)
+  //   }
+  // }
+
   static async mInsert(rc : RunContextServer, insertTime : number|undefined, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mInsert models invalid')
 
