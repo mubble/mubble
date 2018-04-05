@@ -192,8 +192,8 @@ private getNamespace(rc : RunContextServer) : string {
     return result
   }
 
-  static async mQuery(rc : RunContextServer, filterKey : string, values : Array<any>) : Promise<BaseDatastore[]> {
-    const traceId : string                = rc.getName(this) + ':' + 'mQuery',
+  static async mQueryOr(rc : RunContextServer, filterKey : string, values : Array<any>) : Promise<BaseDatastore[]> {
+    const traceId : string                = rc.getName(this) + ':' + 'mQueryOr',
           ack     : any                   = rc.startTraceSpan(traceId),
           queries : Array<DSQuery>        = [],
           models  : Array<BaseDatastore>  = []
