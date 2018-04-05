@@ -55,7 +55,7 @@ export class GcpLanguageBase {
   static _language   : any
   static _translate  : any
 
-  private static MAX_TRANS_LENGTH = 500
+  private static MAX_TRANS_LENGTH = 600
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
