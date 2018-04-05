@@ -9,7 +9,7 @@
 
 package `in`.mubble.android.util
 
-import `in`.mubble.android.core.App
+import `in`.mubble.newschat.app.App
 import android.os.Handler
 import android.os.Looper
 import org.jetbrains.anko.runOnUiThread

@@ -1,7 +1,7 @@
 package `in`.mubble.android.notification
 
-import `in`.mubble.android.core.App
 import `in`.mubble.android.core.MubbleLogger
+import `in`.mubble.newschat.app.App
 import android.app.NotificationManager
 import android.content.Context
 

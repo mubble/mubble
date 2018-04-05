@@ -19,16 +19,10 @@ abstract class MyApp : Application() {
   private  var initDone         : Boolean = false // late
   private  var notifyActivity   : WeakReference<MubbleBaseActivity>? = null
 
-  companion object {
-    internal var instance: MyApp? = null
-  }
-
   override fun onCreate() {
     super.onCreate()
 
-    instance = this
     onAppInit()
-
   }
 
   fun isAppInitialized(activity: MubbleBaseActivity? = null): Boolean {
@@ -38,11 +32,11 @@ abstract class MyApp : Application() {
     return false
   }
 
-  abstract protected fun onAppInit()
+  protected abstract fun onAppInit()
 
-  protected fun onAppInitComplete() {
+  protected open fun onAppInitComplete() {
 
-    check(initDone === false)
+    check(!initDone)
 
     initDone = true
 
@@ -51,11 +45,5 @@ abstract class MyApp : Application() {
     val activity = notifyActivity!!.get()
     activity?.mubbleAppInitialized()
     notifyActivity = null
-  }
-}
-
-object App {
-  val instance: MyApp by lazy {
-    MyApp.instance!!
   }
 }

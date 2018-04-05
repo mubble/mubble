@@ -28,7 +28,7 @@ TODO ????
  * timerName : name of the timer, used for logging
  * callback  : callback function, returns re-run after ms (0 stops the timer)
  */
-class AdhocTimer (timerName : String, callback  : () -> Int) : MubbleLogger {
+class AdhocTimer (timerName : String, callback  : () -> Long) : MubbleLogger {
 
   override val customTag: String = "$timerName:AdhocTimer"
   private var scheduledAt: Long = 0L
@@ -43,10 +43,10 @@ class AdhocTimer (timerName : String, callback  : () -> Int) : MubbleLogger {
     val msAfter = callback()
 
     info { "Callback returned $msAfter" }
-    if (msAfter != 0 && scheduledAt == 0L) reSchedule(msAfter)
+    if (msAfter != 0L && scheduledAt == 0L) reSchedule(msAfter)
   }
 
-  fun tickAfter(ms: Int, overwrite : Boolean = false) {
+  fun tickAfter(ms: Long, overwrite : Boolean = false) {
 
     check(looper === Looper.myLooper())
 
@@ -60,7 +60,7 @@ class AdhocTimer (timerName : String, callback  : () -> Int) : MubbleLogger {
     reSchedule(0)
   }
 
-  private fun reSchedule(ms: Int) {
+  private fun reSchedule(ms: Long) {
 
     val handler = Handler(looper)
     if (scheduledAt > 0L) handler.removeCallbacks(runnable)
@@ -68,7 +68,7 @@ class AdhocTimer (timerName : String, callback  : () -> Int) : MubbleLogger {
     scheduledAt = if (ms > 0) {
 
       val now   = System.currentTimeMillis()
-      handler.postDelayed(runnable, ms.toLong())
+      handler.postDelayed(runnable, ms)
       now + ms
 
     } else {

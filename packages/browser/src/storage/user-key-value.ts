@@ -22,13 +22,13 @@ export abstract class UserKeyValue {
   private users         : {[key: string]: object} = {}
   private lastClientId  : number
 
-  constructor(private rc: RunContextBrowser) {
+  constructor(private rc: RunContextBrowser, private storage) {
 
-    const users = localStorage.getItem(USERS)
+    const users = storage.getItem(USERS)
     if (!users) return
 
     this.users = JSON.parse(users)
-    this.lastClientId = Number(localStorage.getItem(LAST_USER))
+    this.lastClientId = Number(storage.getItem(LAST_USER))
 
     if (!this.lastClientId) return
     this.deserialize(this.users[this.lastClientId])
@@ -62,13 +62,13 @@ export abstract class UserKeyValue {
     const userLinkId = this._userLinkId
     
     delete this.users[this._clientId]
-    localStorage.setItem(USERS, JSON.stringify(this.users))
+    this.storage.setItem(USERS, JSON.stringify(this.users))
     
     if (Object.keys(this.users).length > 0) {
       const lastClientId = Number(Object.keys(this.users)[0])
       this.switchUserOnCurrRun(lastClientId)
     } else {
-      localStorage.setItem(LAST_USER, null)
+      this.storage.setItem(LAST_USER, null)
     }
 
     return userLinkId
@@ -76,18 +76,18 @@ export abstract class UserKeyValue {
 
   switchUserOnCurrRun(clientId: number) {
     this.lastClientId = clientId
-    localStorage.setItem(LAST_USER, String(this.lastClientId))
+    this.storage.setItem(LAST_USER, String(this.lastClientId))
     this.deserialize(this.users[this.lastClientId])
   }
 
   save(rc: RunContextBrowser): void {
 
     this.users[this._clientId] = this.serialize()
-    localStorage.setItem(USERS, JSON.stringify(this.users))
+    this.storage.setItem(USERS, JSON.stringify(this.users))
 
     if (this.lastClientId !== this._clientId) {
       this.lastClientId = this._clientId
-      localStorage.setItem(LAST_USER, String(this.lastClientId))
+      this.storage.setItem(LAST_USER, String(this.lastClientId))
     }
   }
 
@@ -118,7 +118,7 @@ export abstract class UserKeyValue {
     if (clientId === this._clientId) return
     if (this._clientId) throw('Cannot set clientId when it is already set: ' + 
                         JSON.stringify({clientId, existing:this._clientId}))
-    this._clientId = clientId                    
+    this._clientId = clientId
   }
 
   // User Link Id

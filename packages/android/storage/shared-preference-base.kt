@@ -9,8 +9,8 @@
 
 package `in`.mubble.android.storage
 
-import `in`.mubble.android.core.App
 import `in`.mubble.android.core.MubbleLogger
+import `in`.mubble.newschat.app.App
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Looper

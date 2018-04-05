@@ -26,8 +26,7 @@ import {  Mubble,
           ClientIdentity,
           TimerInstance,
           SYS_EVENT,
-          UPromise,
-          NetworkType       } from '@mubble/core'
+          UPromise       } from '@mubble/core'
 
 import {  WsBrowser }         from './ws-browser'
 import {  EventSystem }       from '../util'
@@ -76,7 +75,7 @@ export abstract class XmnRouterBrowser {
     if (syncKey) {
       this.ci.useEncryption = true
       const cls:any = Uint8Array
-      this.syncKey  = cls.from(atob(syncKey), c => c.charCodeAt(0))      
+      this.syncKey  = cls.from(atob(syncKey), c => c.charCodeAt(0))
     } else {
       this.ci.useEncryption = false
     }
@@ -86,15 +85,6 @@ export abstract class XmnRouterBrowser {
     this.timerEventTimeout = rc.timer.register('router-event-timeout', this.cbTimerEventTimeout.bind(this))
 
     // rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
-  }
-
-  async setNetwork(netType: string) {
-
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'setNetwork', netType)
-    if (netType) {
-      this.prepareConnection(this.rc)
-      if (await this.initEvents()) this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
-    }
   }
 
   getSyncKey() { return this.syncKey }
@@ -123,7 +113,7 @@ export abstract class XmnRouterBrowser {
     })
   }
 
-  async sendPersistentEvent(rc: RunContextBrowser, eventName: string, data: object) {
+  protected async sendPersistentEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
     if (!this.ci.provider) this.prepareConnection(rc)
       const clientIdentity = this.ci.clientIdentity
@@ -144,7 +134,7 @@ export abstract class XmnRouterBrowser {
     }
   }
 
-  async sendEphemeralEvent(rc: RunContextBrowser, eventName: string, data: object) {
+  protected async sendEphemeralEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
     if (!this.ci.provider) this.prepareConnection(rc)
       const clientIdentity = this.ci.clientIdentity

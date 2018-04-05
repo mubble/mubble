@@ -107,7 +107,7 @@ export abstract class GlobalKeyValue {
           
           this['_' + propertyKey]  = value
           this['_$' + propertyKey] = strValue
-          localStorage.setItem(key, strValue)
+          this.storage.setItem(key, strValue)
 
           if (rc && rc.isDebug) {
             rc.isDebug() && rc.debug('GlobalKeyValue', `Saved key ${key}=${strValue}`)
@@ -119,7 +119,7 @@ export abstract class GlobalKeyValue {
   
   private static fieldMap: fieldMapType = {}
 
-  constructor(private rc: RunContextBrowser) {
+  constructor(private rc: RunContextBrowser, private storage) {
   }
 
   init() {
@@ -132,7 +132,7 @@ export abstract class GlobalKeyValue {
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
       const field           = GlobalKeyValue.fieldMap[name],
-            strSavedValue   = localStorage.getItem(PREFIX + '.' + name),
+            strSavedValue   = this.storage.getItem(PREFIX + '.' + name),
             strDefaultValue = field.strValue,
             strValue        = strSavedValue || strDefaultValue
 
@@ -201,7 +201,7 @@ export abstract class GlobalKeyValue {
       const field   = GlobalKeyValue.fieldMap[name],
             type    = (field.type as any).name,
             memory  = this[name],
-            store   = localStorage.getItem(PREFIX + '.' + name)
+            store   = this.storage.getItem(PREFIX + '.' + name)
 
       console.info({name, type, memory, store})
     }

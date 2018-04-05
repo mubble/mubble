@@ -183,6 +183,10 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
     }
   }
 
+  fun canCommunicate(): Boolean {
+    return state == SHOWN
+  }
+
   // TimeoutTimer to timeout requests that are not responded in time
   private inner class TimeoutTimer : TimerTask() {
 

@@ -1,7 +1,7 @@
 package `in`.mubble.android.ui.camera
 
-import `in`.mubble.android.core.App
 import `in`.mubble.android.ui.MubbleBaseActivity
+import `in`.mubble.newschat.app.App
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager

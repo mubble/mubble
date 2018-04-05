@@ -158,7 +158,7 @@ export abstract class MasterDb extends Dexie {
     }
   }
 
-  private async onMasterUpdate(rc:RunContextBrowser, eventName: string, data: any) {
+  async onMasterUpdate(rc:RunContextBrowser, eventName: string, data: any) {
 
     try {
       const syncResponse:SyncResponse = data

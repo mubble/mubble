@@ -1,7 +1,7 @@
 package `in`.mubble.android.ui
 
-import `in`.mubble.android.core.App
 import `in`.mubble.android.core.MubbleLogger
+import `in`.mubble.newschat.app.App
 import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle

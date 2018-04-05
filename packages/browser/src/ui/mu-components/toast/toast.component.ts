@@ -1,7 +1,7 @@
 import {  Component, Input, HostBinding }     from '@angular/core'
 import { animate, state, 
          style, transition, 
-         trigger }                            from '@angular/core'
+         trigger }                            from '@angular/animations'
 
 @Component({
   selector    : 'toast',

@@ -40,7 +40,6 @@ export class EncProviderServer {
   decodeHeader(rc: RunContextServer, data: Buffer, pk: string | null): void {
 
     const endPtr    = this.extractKey(rc, data, pk)
-          
     const headers   = JSON.parse(this.decrypt(data.slice(endPtr)).toString())
 
     this.ci.networkType     = headers.networkType

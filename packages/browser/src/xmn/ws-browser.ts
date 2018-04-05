@@ -36,7 +36,7 @@ import {
 
 import {  EncryptionBrowser } from './enc-provider-browser'         
 
-export class WsBrowser implements XmnProvider{
+export class WsBrowser implements XmnProvider {
 
   private ws                : WebSocket
   private encProvider       : EncryptionBrowser
@@ -219,12 +219,12 @@ export class WsBrowser implements XmnProvider{
     }
   }
 
-  setupTimer(rc: RunContextBrowser) {
+  private setupTimer(rc: RunContextBrowser) {
     this.lastMessageTs = Date.now()
     this.timerPing.tickAfter(this.msPingInterval, true)
   }
 
-  cbTimerPing(): number {
+  private cbTimerPing(): number {
 
     if (!this.ci.provider) return 0
 
