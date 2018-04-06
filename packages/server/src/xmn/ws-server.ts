@@ -122,11 +122,18 @@ export class WsServer {
     this.socketMap.delete(webSocket)
   }
 
-  sendEventToAll(rc : RunContextServer , wo: WireObject) {
+  async sendEventToAll(rc : RunContextServer , wo: WireObject) {
     for (const [webSocket, lastTs] of this.socketMap) {
       webSocket.send(rc , [wo])
     }
   }
+
+  async sendEventToAllFn(rc : RunContextServer , woFn: (ci : ConnectionInfo) => Promise<WireObject>) {
+    for (const [webSocket, lastTs] of this.socketMap) {
+      webSocket.send(rc , [await woFn(webSocket.ci)])
+    }
+  }
+
 
   cbTimerPing() {
 
@@ -154,7 +161,7 @@ export class ServerWebSocket implements XmnProvider {
   private connectionVerified  = false
   
   constructor(private refRc       : RunContextServer, 
-              private ci          : ConnectionInfo, 
+              public  ci          : ConnectionInfo, 
               private encProvider : EncProviderServer,
               private router      : XmnRouterServer,
               private ws          : WebSocket,
