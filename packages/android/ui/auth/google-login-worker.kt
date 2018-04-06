@@ -21,7 +21,8 @@ import com.google.firebase.auth.GoogleAuthProvider
  * siddharthgarg on 16/06/17.
  */
 
-internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, loginMgr: LoginManager) : LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
+internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, loginMgr: LoginManager)
+  : LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
 
   private var mGoogleApiClient  : GoogleApiClient? = null
   private var progressDialog    : ProgressDialog? = null
@@ -41,10 +42,10 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     }
 
     mGoogleApiClient = GoogleApiClient.Builder(activity)
-    .addOnConnectionFailedListener(this)
-    .enableAutoManage(activity, this)
-    .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
-    .build()
+        .addOnConnectionFailedListener(this)
+        .enableAutoManage(activity, this)
+        .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+        .build()
   }
 
 //  fun attemptSilentSignIn(emailId: String) {
@@ -179,6 +180,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
     mGoogleApiClient!!.stopAutoManage(activity)
     mGoogleApiClient!!.disconnect()
+    mGoogleApiClient = null
   }
 
   companion object {

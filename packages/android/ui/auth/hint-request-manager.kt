@@ -8,6 +8,7 @@ import android.content.Intent
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.credentials.Credential
 import com.google.android.gms.auth.api.credentials.HintRequest
+import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.api.GoogleApiClient
 
 /**
@@ -15,7 +16,8 @@ import com.google.android.gms.common.api.GoogleApiClient
  * siddharthgarg on 23/03/18.
  */
 
-open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleLogger {
+open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleLogger,
+    GoogleApiClient.OnConnectionFailedListener {
 
   private var mGoogleApiClient : GoogleApiClient? = null
   private lateinit var cb: (selId: String?) -> Unit
@@ -26,18 +28,9 @@ open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleL
 
   init {
 
-    if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) mGoogleApiClient!!.disconnect()
-
-    mGoogleApiClient = GoogleApiClient.Builder(activity)
-        .addOnConnectionFailedListener {
-        }
-        .enableAutoManage(activity, {
-
-        })
-        .addApi(Auth.CREDENTIALS_API)
-        .build()
-
-    mGoogleApiClient!!.connect()
+    if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) {
+      disconnectClient()
+    }
   }
 
   fun requestMobNumHint(cb: (selectedId: String?) -> Unit) {
@@ -48,12 +41,27 @@ open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleL
         .setPhoneNumberIdentifierSupported(true)
         .build()
 
+    if (mGoogleApiClient == null) {
+      mGoogleApiClient = GoogleApiClient.Builder(activity)
+          .addOnConnectionFailedListener(this)
+          .enableAutoManage(activity, this)
+          .addApi(Auth.CREDENTIALS_API)
+          .build()
+    }
+
+    if (!mGoogleApiClient!!.isConnected) {
+      mGoogleApiClient!!.connect()
+    }
 
     val intent: PendingIntent = Auth.CredentialsApi.getHintPickerIntent(mGoogleApiClient, hintReq)
     activity.startIntentSenderForResult(intent.intentSender, RESOLVE_HINT, null, 0, 0, 0)
   }
 
   fun isHintRequestCode(requestCode: Int) = requestCode == RESOLVE_HINT
+
+  override fun onConnectionFailed(p0: ConnectionResult) {
+
+  }
 
   @Suppress("UNUSED_PARAMETER")
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -65,7 +73,14 @@ open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleL
       cb(null)
     }
 
-    if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) mGoogleApiClient!!.disconnect()
+    disconnectClient()
+  }
+
+  private fun disconnectClient() {
+
+    mGoogleApiClient!!.disconnect()
+    mGoogleApiClient!!.stopAutoManage(activity)
+    mGoogleApiClient = null
   }
 
 }
