@@ -5,7 +5,6 @@ import `in`.mubble.android.ui.MubbleBaseActivity
 import android.app.Activity
 import android.app.PendingIntent
 import android.content.Intent
-import android.util.Log
 import com.google.android.gms.auth.api.Auth
 import com.google.android.gms.auth.api.credentials.Credential
 import com.google.android.gms.auth.api.credentials.HintRequest
@@ -16,20 +15,16 @@ import com.google.android.gms.common.api.GoogleApiClient
  * siddharthgarg on 23/03/18.
  */
 
-open class HintRequestManager(private val activity: MubbleBaseActivity,
-                              private val cb: (selectedId: String?) -> Unit): MubbleLogger {
+open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleLogger {
 
   private var mGoogleApiClient : GoogleApiClient? = null
+  private lateinit var cb: (selId: String?) -> Unit
 
   companion object {
     private const val RESOLVE_HINT = 6000
   }
 
-  fun requestMobNumHint() {
-
-    val hintReq: HintRequest = HintRequest.Builder()
-        .setPhoneNumberIdentifierSupported(true)
-        .build()
+  init {
 
     if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) mGoogleApiClient!!.disconnect()
 
@@ -43,6 +38,16 @@ open class HintRequestManager(private val activity: MubbleBaseActivity,
         .build()
 
     mGoogleApiClient!!.connect()
+  }
+
+  fun requestMobNumHint(cb: (selectedId: String?) -> Unit) {
+
+    this.cb = cb
+
+    val hintReq: HintRequest = HintRequest.Builder()
+        .setPhoneNumberIdentifierSupported(true)
+        .build()
+
 
     val intent: PendingIntent = Auth.CredentialsApi.getHintPickerIntent(mGoogleApiClient, hintReq)
     activity.startIntentSenderForResult(intent.intentSender, RESOLVE_HINT, null, 0, 0, 0)
