@@ -120,6 +120,11 @@ export class Nail  {
     }
   }
 
+  public setDirections(allowLeft: boolean, allowRight: boolean) {
+    this.config.allowLeft  = allowLeft
+    this.config.allowRight = allowRight
+  }
+
   private setConfig(config) {
 
     config.threshold   = config.threshold || THRESHOLD
@@ -303,9 +308,9 @@ export class Nail  {
     'Ascertained', axis, {deltaX, deltaY})
     session.axis   = axis
     
-    if ((session.startX < config.gutterWidth) && config.gutterLeft) {
+    if (((session.startX < config.gutterWidth) || !config.allowRight) && config.gutterLeft) {
       session.ifNail = config.gutterLeft
-    } else if ((session.startX > (this.pageWidth - config.gutterWidth)) && config.gutterRight) {
+    } else if (((session.startX > (this.pageWidth - config.gutterWidth)) || !config.allowLeft) && config.gutterRight) {
       session.ifNail = config.gutterRight
     } else {
       session.ifNail = this.appComponent

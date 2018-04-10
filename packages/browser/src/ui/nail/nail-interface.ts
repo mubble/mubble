@@ -22,6 +22,10 @@ export interface NailConfig {
   gutterWidth   ?: number    // default: GUTTER_WIDTH
   gutterLeft    ?: NailInterface
   gutterRight   ?: NailInterface
+
+  // Dynamically settable values even at later stage via API
+  allowLeft     ?: boolean
+  allowRight    ?: boolean
 }
 
 /*---------------------------------------------------------------------------------------------------
@@ -44,9 +48,9 @@ panEnd/gutterEnd event also has:
 // Reported back along with change (delta) in panning event
 export enum DIRECTION {
   UP    = 1, // absolute direction wrt touch start, would mean that we are deltaY is negative
-  RIGHT = 2, // absolute direction wrt touch start, would mean that we are deltaY is positive
-  DOWN  = 3, // absolute direction wrt touch start, would mean that we are deltaY is positive
-  LEFT  = 4  // absolute direction wrt touch start, would mean that we are deltaY is positive
+  RIGHT = 2, // absolute direction wrt touch start, would mean that we are deltaX is positive
+  DOWN  = 4, // absolute direction wrt touch start, would mean that we are deltaY is positive
+  LEFT  = 8  // absolute direction wrt touch start, would mean that we are deltaX is negative
 }
 
 // Reported along with the event
