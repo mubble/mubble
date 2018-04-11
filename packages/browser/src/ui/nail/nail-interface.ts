@@ -24,8 +24,8 @@ export interface NailConfig {
   gutterRight   ?: NailInterface
 
   // Dynamically settable values even at later stage via API
-  allowLeft     ?: boolean
-  allowRight    ?: boolean
+  disallowLeft  ?: boolean
+  disallowRight ?: boolean
 }
 
 /*---------------------------------------------------------------------------------------------------

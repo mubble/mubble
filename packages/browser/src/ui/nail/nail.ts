@@ -120,9 +120,9 @@ export class Nail  {
     }
   }
 
-  public setDirections(allowLeft: boolean, allowRight: boolean) {
-    this.config.allowLeft  = allowLeft
-    this.config.allowRight = allowRight
+  public setDirections(disallowLeft: boolean, disallowRight: boolean) {
+    this.config.disallowLeft  = disallowLeft
+    this.config.disallowRight = disallowRight
   }
 
   private setConfig(config) {
@@ -308,9 +308,9 @@ export class Nail  {
     'Ascertained', axis, {deltaX, deltaY})
     session.axis   = axis
     
-    if (((session.startX < config.gutterWidth) || !config.allowRight) && config.gutterLeft) {
+    if (((session.startX < config.gutterWidth) || config.disallowRight) && config.gutterLeft) {
       session.ifNail = config.gutterLeft
-    } else if (((session.startX > (this.pageWidth - config.gutterWidth)) || !config.allowLeft) && config.gutterRight) {
+    } else if (((session.startX > (this.pageWidth - config.gutterWidth)) || config.disallowLeft) && config.gutterRight) {
       session.ifNail = config.gutterRight
     } else {
       session.ifNail = this.appComponent

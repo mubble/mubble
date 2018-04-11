@@ -90,6 +90,21 @@ export class DSTransaction {
   }
 
 /*------------------------------------------------------------------------------
+  - Abandon a transaction
+------------------------------------------------------------------------------*/
+async rollback(rc : RunContextServer) {
+  const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
+        ack     = rc.startTraceSpan(traceId)
+  try {
+    await this._transaction.rollback()
+  } finally {
+    rc.endTraceSpan(traceId, ack)
+    rc.endTraceSpan(this.traceId, this.ack)
+  }
+}
+
+
+/*------------------------------------------------------------------------------
   - Create a query
   - This only works for sub-entities = [Entities with a parent key]
 ------------------------------------------------------------------------------*/
