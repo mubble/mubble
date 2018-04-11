@@ -9,7 +9,8 @@
 ------------------------------------------------------------------------------*/
 
 const datastore : any = require('@google-cloud/datastore')
-
+const MAX_DS_ITEMS_AT_A_TIME : number = 450
+    
 import {
         ERROR_CODES,
         DSError
@@ -149,8 +150,17 @@ private getNamespace(rc : RunContextServer) : string {
     }
   }
 
-  static async mGet(rc : RunContextServer , ignoreRNF : boolean , ...models : BaseDatastore[]) : Promise<boolean> {
+  static async mGet(rc : RunContextServer , ignoreRNF : boolean , ...recs : BaseDatastore[]) : Promise<boolean> {
     let   result  : boolean = true
+    
+    const models : BaseDatastore[] = lo.clone(recs)
+    if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
+      while(models.length){
+        await this.mGet(rc , ignoreRNF , ...models.splice(0 , MAX_DS_ITEMS_AT_A_TIME-1))
+      }
+      return true
+    }
+    
     const traceId : string  = rc.getName(this) + ':' + 'mget',
           ack               = rc.startTraceSpan(traceId)
       
@@ -259,9 +269,17 @@ private getNamespace(rc : RunContextServer) : string {
   //   }
   // }
 
-  static async mInsert(rc : RunContextServer, insertTime : number|undefined, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mInsert models invalid')
+  static async mInsert(rc : RunContextServer, insertTime : number|undefined, allowDupRec : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
 
+    const models : BaseDatastore[] = lo.clone(recs)
+    
+    if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
+      while(models.length){
+        await this.mInsert(rc , insertTime , allowDupRec , ...models.splice(0 , MAX_DS_ITEMS_AT_A_TIME-1))
+      }
+      return true
+    }
     const traceId : string = rc.getName(this) + ':' + 'mInsert',
           ack     : any    = rc.startTraceSpan(traceId)
 
@@ -297,10 +315,16 @@ private getNamespace(rc : RunContextServer) : string {
   }
 
 
-  public static async mUpdate(rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
+  public static async mUpdate(rc : RunContextServer, ...recs : BaseDatastore[] ) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
+    const models : BaseDatastore[] = lo.clone(recs)
     
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mUpdate models invalid')
-    
+    if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
+      while(models.length){
+        await this.mUpdate(rc , ...models.splice(0 , MAX_DS_ITEMS_AT_A_TIME-1))
+      }
+      return true
+    }
     const traceId : string = rc.getName(this)+':'+'mUpdate',
           ack = rc.startTraceSpan(traceId)
     
