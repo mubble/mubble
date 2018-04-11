@@ -308,9 +308,9 @@ export class Nail  {
     'Ascertained', axis, {deltaX, deltaY})
     session.axis   = axis
     
-    if (((session.startX < config.gutterWidth) || config.disallowRight) && config.gutterLeft) {
+    if (((session.startX < config.gutterWidth) || (deltaX > 0 && config.disallowRight)) && config.gutterLeft) {
       session.ifNail = config.gutterLeft
-    } else if (((session.startX > (this.pageWidth - config.gutterWidth)) || config.disallowLeft) && config.gutterRight) {
+    } else if (((session.startX > (this.pageWidth - config.gutterWidth)) || (deltaX < 0 && config.disallowLeft)) && config.gutterRight) {
       session.ifNail = config.gutterRight
     } else {
       session.ifNail = this.appComponent
