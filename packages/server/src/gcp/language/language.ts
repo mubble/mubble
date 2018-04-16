@@ -55,7 +55,9 @@ export class GcpLanguageBase {
   static _language   : any
   static _translate  : any
 
-  private static MAX_TRANS_LENGTH = 600
+  private static MAX_TRANS_LENGTH   = 600
+  private static LANG_DET_THRESHOLD = 75
+
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -197,10 +199,12 @@ export class GcpLanguageBase {
           const langCodes = lo.map (response.languages, (lang) => lang.name + ':' + lang.percent)
           rc.isStatus () && rc.status (rc.getName (this), 'Multiple Language Detected:', JSON.stringify (langCodes))
         }
-        if (response.languages[0].percent < 80) {
-          rc.isWarn () && rc.warn (rc.getName (this), 'Detected Language has a lower threshold', response.languages[0].code)
+        if (response.languages[0].percent >= GcpLanguageBase.LANG_DET_THRESHOLD) resolve (response.languages[0].code)
+        else {
+          rc.isWarn () && rc.warn (rc.getName (this), 'Detected Language has threshold < ', 
+                        GcpLanguageBase.LANG_DET_THRESHOLD + '%', response.languages[0].code, '=> Using English')
+          resolve ('en')
         }
-        resolve (response.languages[0].code)
       })  
     })
     return cldres
