@@ -48,6 +48,24 @@ export class DSQuery {
     return res
   }
 
+  async runCursorTillNoMoreResults<T extends BaseDatastore> (rc : RunContextServer) : Promise<T[]>{
+
+    let items : T[] = [] ,
+        results  = await this.runCursor(rc)
+
+    while(results){
+      const msgs : T[]     = results[0],
+      info                 = results[1]
+      items = items.concat(msgs)
+      
+      results = null
+      if(info.moreResults !== BaseDatastore._datastore.NO_MORE_RESULTS)
+        results = await this.runCursor(rc, info.endCursor)
+    }    
+
+    return items
+  }
+
   filter(key : string, value : any, symbol ?: string) : DSQuery {
     if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + key)
     if(value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD + ' Filter key:' + key)
