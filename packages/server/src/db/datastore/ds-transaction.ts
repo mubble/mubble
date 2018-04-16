@@ -184,7 +184,7 @@ async rollback(rc : RunContextServer) {
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
     
     model.setId(id)
-    this.setUnique(rc, model)
+    await BaseDatastore.mUnique(rc, this._transaction, model)
     this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
   }
 
@@ -232,28 +232,28 @@ async rollback(rc : RunContextServer) {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  setUnique(rc : RunContextServer, model : any) : void {
-    const uniqueConstraints : any    = model.getUniqueConstraints(rc),
-          kindName          : string = model._kindName
+  // setUnique(rc : RunContextServer, model : any) : void {
+  //   const uniqueConstraints : any    = model.getUniqueConstraints(rc),
+  //         kindName          : string = model._kindName
 
-    for(const constraint of uniqueConstraints) {
-      let uniqueEntityKey = model.getDatastoreKey(rc, model[constraint], true)
+  //   for(const constraint of uniqueConstraints) {
+  //     let uniqueEntityKey = model.getDatastoreKey(rc, model[constraint], true)
 
-      this._transaction.save({key: uniqueEntityKey, method: 'insert', data: ''})
-    }
-  }
+  //     this._transaction.save({key: uniqueEntityKey, method: 'insert', data: ''})
+  //   }
+  // }
 
 /*------------------------------------------------------------------------------
 - The unique keys are to be deleted when the corresponding entity is deleted
 ------------------------------------------------------------------------------*/
-  deleteUnique(rc : RunContextServer, model : any) : void {
-    const uniqueConstraints : any    = model.getUniqueConstraints(rc),
-          kindName          : string = model._kindName
+  // deleteUnique(rc : RunContextServer, model : any) : void {
+  //   const uniqueConstraints : any    = model.getUniqueConstraints(rc),
+  //         kindName          : string = model._kindName
 
-    for(const constraint of uniqueConstraints) {
-      let uniqueEntityKey = model.getDatastoreKey(rc, model[constraint], true)
+  //   for(const constraint of uniqueConstraints) {
+  //     let uniqueEntityKey = model.getDatastoreKey(rc, model[constraint], true)
 
-      this._transaction.delete(uniqueEntityKey)
-    }
-  } 
+  //     this._transaction.delete(uniqueEntityKey)
+  //   }
+  // } 
 }
