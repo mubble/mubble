@@ -398,10 +398,10 @@ private getNamespace(rc : RunContextServer) : string {
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       if (err.toString().split(':')[1] !== ' entity already exists') {
-        throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+        throw(new Error(ERROR_CODES.GCP_ERROR))
       } else {
         if(allowDupRec) return true
-        throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
+        throw(new Error(ERROR_CODES.RECORD_ALREADY_EXISTS))
       }
     }finally{
       rc.endTraceSpan(traceId, ack)
@@ -683,8 +683,8 @@ async setUnique(rc : RunContextServer, allowDupRec ?: boolean) : Promise<boolean
     else {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       if (err.toString().split(':')[1] === ' entity already exists') 
-        throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, err.message))
-      else throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+        throw(new Error(ERROR_CODES.UNIQUE_KEY_EXISTS))
+      else throw(new Error(ERROR_CODES.GCP_ERROR))
     } 
   }
   return true
