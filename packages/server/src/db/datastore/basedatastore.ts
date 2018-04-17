@@ -381,7 +381,7 @@ private getNamespace(rc : RunContextServer) : string {
                                .replace(/type/, '"type"')
                               .replace(/name/, ', "name"')
         const json = JSON.parse (msg)
-        err = new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, 'Entity Exists:' + JSON.stringify (json))
+        err = new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, 'Entity Exists:' + json.type + '=' + json.name)
       }
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
