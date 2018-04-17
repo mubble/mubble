@@ -68,10 +68,15 @@ export abstract class BaseDatastore {
   abstract getUniqueConstraints(rc : RunContextServer) : Array<string>
 
 /*------------------------------------------------------------------------------
-  - Get the Value to be inserted.
+  - Get a list of Fields which need to be checked for Uniqueness. 
+  - The difference from the above is that these keys are prefixed by keyNames.
+  - Return Values is an array of
+    - field Name in this Entity
+  - Example: 
+    return ['mobileNo', 'emailId']
 ------------------------------------------------------------------------------*/                  
-  getUniqueKeyValue(rc : RunContextServer, keyField: string) : string {
-    return (this as any)[keyField]
+  getPrefixedUniqueConstraints(rc : RunContextServer) : Array<string> {
+    return []
   }
 
 /*------------------------------------------------------------------------------
@@ -637,13 +642,20 @@ isDeleted(rc: RunContextServer) : boolean {
     var entities : {key : any, data : any}[] = []
     for(const model of models) {
       const uniqueConstraints : any    = model.getUniqueConstraints(rc),
-          kindName          : string = (<any>model)._kindName || (model.constructor as any)._kindName,
-          tEntities : {key : any, data : any}[]  = lo.flatMap (uniqueConstraints as string[], (prop) => {
-            if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-            const value = model.getUniqueKeyValue (rc, prop)
-            return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
-          })
+            kindName          : string = (<any>model)._kindName || (model.constructor as any)._kindName,
+            tEntities : {key : any, data : any}[]  = lo.flatMap (uniqueConstraints as string[], (prop) => {
+              if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
+              const value = (this as any)[prop]
+              return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
+            })
       entities = entities.concat(tEntities)    
+      const uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc),
+            tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (prop) => {
+              if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
+              const value = prop + '|' + (this as any)[prop]
+              return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
+            })
+      entities = entities.concat(tuEntities)    
     }
     return entities
   }
