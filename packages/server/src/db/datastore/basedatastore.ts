@@ -379,11 +379,14 @@ private getNamespace(rc : RunContextServer) : string {
       if (err.toString().split(':')[1] === ' entity already exists') {
         const msg = err.message.replace(/[^{]+({[^}]+})[\n>]*/m, '$1') // Convert to JSON
                                .replace(/type/, '"type"')
-                              .replace(/name/, ', "name"')
+                               .replace(/name/, ', "name"')
         const json = JSON.parse (msg)
         err = new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, 'Entity Exists:' + json.type + '=' + json.name)
+        rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       }
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      else {
+        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      }
       await transaction.rollback()
       if (err instanceof DSError) throw err // Mostly, ERROR_CODES.UNIQUE_KEY_EXISTS
       throw(new Error(ERROR_CODES.GCP_ERROR))
