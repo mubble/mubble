@@ -376,14 +376,18 @@ private getNamespace(rc : RunContextServer) : string {
       await transaction.commit ()
       return true
     } catch (err) {
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       if (err.toString().split(':')[1] === ' entity already exists') {
-        err = new Error(ERROR_CODES.RECORD_ALREADY_EXISTS)
+        const msg = err.message.replace(/[^{]+({[^}]+})[\n>]*/m, '$1') // Convert to JSON
+                               .replace(/type/, '"type"')
+                              .replace(/name/, ', "name"')
+        const json = JSON.parse (msg)
+        err = new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, 'Entity Exists:' + JSON.stringify (json))
       }
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       await transaction.rollback()
       if (err instanceof DSError) throw err // Mostly, ERROR_CODES.UNIQUE_KEY_EXISTS
       throw(new Error(ERROR_CODES.GCP_ERROR))
-  }finally{
+    }finally{
       rc.endTraceSpan(traceId, ack)
     }
   }
@@ -622,6 +626,7 @@ isDeleted(rc: RunContextServer) : boolean {
     if(entityRecords.length !== 0) { // Not Unique!
       throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Insert, One or more Unique Keys Exist')) 
     }
+    transaction.save (uniqueEntities)
     return true
   }
 
