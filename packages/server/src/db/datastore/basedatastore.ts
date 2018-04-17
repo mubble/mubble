@@ -9,7 +9,6 @@
 ------------------------------------------------------------------------------*/
 
 const datastore : any = require('@google-cloud/datastore')
-const MAX_DS_ITEMS_AT_A_TIME : number = 450
     
 import {
         ERROR_CODES,
@@ -22,7 +21,8 @@ import {DSTransaction}    from './ds-transaction'
 import {RunContextServer} from '../../rc-server'
 import * as lo            from 'lodash'
 
-const GLOBAL_NAMESPACE : string = '--GLOBAL--'
+const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
+      MAX_DS_ITEMS_AT_A_TIME : number = 450
 
 export abstract class BaseDatastore {
 
@@ -37,8 +37,9 @@ export abstract class BaseDatastore {
 
   // Static Variables
   protected static _kindName : string
-  static _datastore          : any
   private static _namespace  : string
+
+  static _datastore          : any
   static _autoFields         : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
   static _indexedFields      : Array<string> = ['createTs', 'deleted', 'modTs']
 
@@ -138,43 +139,45 @@ private getNamespace(rc : RunContextServer) : string {
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
   protected async get(rc : RunContextServer, id : number | string, ignoreRNF ?: boolean) : Promise<boolean> {
-    const traceId : string = rc.getName(this)+':'+'get',
-          ack = rc.startTraceSpan(traceId)
+    const traceId = `${rc.getName(this)}:get`,
+          ack     = rc.startTraceSpan(traceId)
+
     try {
       const key      = this.getDatastoreKey(rc, id),
             kindName = (<any>this)._kindName || (this.constructor as any)._kindName
+
       rc.assert (rc.getName (this), !!id, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
       const entityRec = await BaseDatastore._datastore.get(key)
 
-        if (!entityRec[0]) {
-          if (ignoreRNF) return false
-          throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${id}`))
-        }
-        this.deserialize(rc, entityRec[0])
-        return true
+      if(!entityRec[0]) {
+        if(ignoreRNF) return false
+        throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Id: ${id}`))
+      }  
+      this.deserialize(rc, entityRec[0])
+      return true
 
-    } catch (err) {
+    } catch(err) {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(err)
-      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-    }finally{
-      rc.endTraceSpan(traceId,ack)
+      throw(new Error(ERROR_CODES.GCP_ERROR))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
-  static async mGet(rc : RunContextServer , ignoreRNF : boolean , ...recs : BaseDatastore[]) : Promise<boolean> {
-    let   result  : boolean = true
-    
-    const models : BaseDatastore[] = lo.clone(recs)
+  static async mGet(rc : RunContextServer, ignoreRNF : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
+    let   result  : boolean         = true
+    const models  : BaseDatastore[] = lo.clone(recs)
+
     if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
-      while(models.length){
-        await this.mGet(rc , ignoreRNF , ...models.splice(0 , MAX_DS_ITEMS_AT_A_TIME-1))
+      while(models.length) {
+        await this.mGet(rc, ignoreRNF, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
       }
       return true
     }
     
-    const traceId : string  = rc.getName(this) + ':' + 'mget',
-          ack               = rc.startTraceSpan(traceId)
+    const traceId = `${rc.getName(this)}:mget`,
+          ack     = rc.startTraceSpan(traceId)
       
     try {
       const keys : any = []
@@ -206,7 +209,7 @@ private getNamespace(rc : RunContextServer) : string {
     } catch(err) {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(err)
-      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+      throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId , ack)
     }
@@ -214,23 +217,23 @@ private getNamespace(rc : RunContextServer) : string {
     return result
   }
 
-  static async mInsert(rc : RunContextServer, insertTime : number|undefined, allowDupRec : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
+  static async mInsert(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
 
     const models : BaseDatastore[] = lo.clone(recs)
     
     if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
-      while(models.length){
-        await this.mInsert(rc , insertTime , allowDupRec , ...models.splice(0 , MAX_DS_ITEMS_AT_A_TIME-1))
+      while(models.length) {
+        await this.mInsert(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
       }
       return true
     }
-    const traceId : string = rc.getName(this) + ':' + 'mInsert',
-          ack     : any    = rc.startTraceSpan(traceId),
-          transaction      = BaseDatastore._datastore.transaction()
+    const traceId     = `${rc.getName(this)}:mInsert`,
+          ack         = rc.startTraceSpan(traceId),
+          transaction = BaseDatastore._datastore.transaction()
   
     try {
-      await BaseDatastore.mUnique (rc, transaction, ...models)
+      await BaseDatastore.mUnique(rc, transaction, ...models)
 
       const insertObjects : {key : any, data : any}[] = models.map((mod) => {
         return {
@@ -251,7 +254,7 @@ private getNamespace(rc : RunContextServer) : string {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(err)
       await transaction.rollback ()
-      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+      throw(new Error(ERROR_CODES.GCP_ERROR))
 
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -261,16 +264,17 @@ private getNamespace(rc : RunContextServer) : string {
   // TODO: [CG] Handle Changing of Unique Keys. At least dont allow changing of unique keys!
   public static async mUpdate(rc : RunContextServer, ...recs : BaseDatastore[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
+
     const models : BaseDatastore[] = lo.clone(recs)
     
     if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
       while(models.length){
-        await this.mUpdate(rc , ...models.splice(0 , MAX_DS_ITEMS_AT_A_TIME-1))
+        await this.mUpdate(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
       }
       return true
     }
-    const traceId : string = rc.getName(this)+':'+'mUpdate',
-          ack = rc.startTraceSpan(traceId)
+    const traceId = `${rc.getName(this)}:mUpdate`,
+          ack     = rc.startTraceSpan(traceId)
     
     try {
       const updateObjects : {key : any, data : any}[] = models.map((mod) => {
@@ -282,19 +286,19 @@ private getNamespace(rc : RunContextServer) : string {
       await BaseDatastore._datastore.save(updateObjects)
       return true
     } 
-    catch (err) {
-      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-    }finally{
+    catch(err) {
+      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      throw(new Error(ERROR_CODES.GCP_ERROR))
+    } finally {
       rc.endTraceSpan(traceId,ack)
     }
   }
 
   public static async mDelete(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<boolean> {
-
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
 
-    const traceId : string = rc.getName(this)+':'+'mDelete',
-          ack              = rc.startTraceSpan(traceId)
+    const traceId = `${rc.getName(this)}:mDelete`,
+          ack     = rc.startTraceSpan(traceId)
 
     try {
       const delKeys : any[] = models.map((mod) => {
@@ -313,7 +317,7 @@ private getNamespace(rc : RunContextServer) : string {
     } catch(err) {
       if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       else rc.isError() && rc.error(err)
-      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+      throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -330,34 +334,28 @@ private getNamespace(rc : RunContextServer) : string {
 ------------------------------------------------------------------------------*/ 
 
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
-
-    const traceId = rc.getName(this) + ':' + 'insert',
-          ack     = rc.startTraceSpan(traceId)
-
-    const transaction = BaseDatastore._datastore.transaction()
+    const transaction = BaseDatastore.createTransaction(rc),
+          traceId     = `${rc.getName(this)} : insert`,
+          ack         = rc.startTraceSpan(traceId)
     try {
-      await BaseDatastore.mUnique (rc, this)
-      const datastoreKey = this.getDatastoreKey(rc)
-      transaction.save({key: datastoreKey, data: this.getInsertRec(rc, insertTime)})
-      this.setIdFromKey(rc, datastoreKey)
-      await transaction.commit ()
+      await transaction.insert(rc, this)
+      await transaction.commit(rc)
       return true
-    } catch (err) {
-      if (err.toString().split(':')[1] === ' entity already exists') {
+    } catch(err) {
+      if(err.toString().indexOf('entity already exists') > 0) {
         const msg = err.message.replace(/[^{]+({[^}]+})[\n>]*/m, '$1') // Convert to JSON
                                .replace(/type/, '"type"')
                                .replace(/name/, ', "name"')
-        const json = JSON.parse (msg)
-        err = new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, 'Entity Exists:' + json.type + '=' + json.name)
-        rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      }
-      else {
+
+        const json = JSON.parse(msg)
+        rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + ']', 'Entity Exists:' + json.type + '=' + json.name)
+        err = new Error(ERROR_CODES.RECORD_ALREADY_EXISTS)
+      } else {
         rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+        err = new Error(ERROR_CODES.GCP_ERROR)
       }
-      await transaction.rollback()
-      if (err instanceof DSError) throw err // Mostly, ERROR_CODES.UNIQUE_KEY_EXISTS
-      throw(new Error(ERROR_CODES.GCP_ERROR))
-    }finally{
+      throw err
+    } finally {
       rc.endTraceSpan(traceId, ack)
     }
   }
@@ -394,8 +392,8 @@ private getNamespace(rc : RunContextServer) : string {
   // TODO: [CG] Handle Changing of Unique Keys. At least dont allow changing of unique keys!
 ------------------------------------------------------------------------------*/ 
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore> {
-    const traceId : string = rc.getName(this)+':'+'update',
-          ack = rc.startTraceSpan(traceId)
+    const traceId = `${rc.getName(this)}:update`,
+          ack     = rc.startTraceSpan(traceId)
     
     try {
       const datastoreKey = this.getDatastoreKey(rc, id)
@@ -408,10 +406,11 @@ private getNamespace(rc : RunContextServer) : string {
       await BaseDatastore._datastore.save({key: datastoreKey, data: this.getUpdateRec(rc)})
       return this
     } 
-    catch (err) {
-      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-    }finally{
-      rc.endTraceSpan(traceId,ack)
+    catch(err) {
+      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      throw(new Error(ERROR_CODES.GCP_ERROR))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
@@ -445,6 +444,8 @@ protected async updateChild(rc : RunContextServer, childModel : any, updRec : an
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
   protected async softDelete(rc : RunContextServer, id : number | string, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
+    const traceId = `${rc.getName(this)}:softDelete`,
+          ack     = rc.startTraceSpan(traceId)
     try {
       const datastoreKey = this.getDatastoreKey(rc, id)
       
@@ -457,9 +458,11 @@ protected async updateChild(rc : RunContextServer, childModel : any, updRec : an
       await BaseDatastore._datastore.save({key: datastoreKey, data: this.getUpdateRec(rc)})
       return true
     } 
-    catch (err) {
+    catch(err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
   }
 
@@ -585,30 +588,32 @@ isDeleted(rc: RunContextServer) : boolean {
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
   static async mUnique(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique models invalid ')
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique models invalid')
 
-    const uniqueEntities = await BaseDatastore.getUniqueEntities (rc, ...models)
-
-    const keys : any    = uniqueEntities.map ((entity) => entity.key),
+    const uniqueEntities = BaseDatastore.getUniqueEntities (rc, ...models)
+    if(!uniqueEntities || !uniqueEntities.length) return true
+    
+    const keys          = uniqueEntities.map((entity) => entity.key),
           res           = await transaction.get(keys),
           entityRecords = res[0]
           
     if(entityRecords.length !== 0) { // Not Unique!
       throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Insert, One or more Unique Keys Exist')) 
     }
-    transaction.save (uniqueEntities)
+    
+    transaction.save(uniqueEntities)
     return true
   }
 
-  private static async getUniqueEntities (rc: RunContextServer, ...models : BaseDatastore[]) {
-    var entities : {key : any, data : any}[] = []
+  private static getUniqueEntities(rc: RunContextServer, ...models : BaseDatastore[]) {
+    let entities : {key : any, data : any}[] = []
     for(const model of models) {
-      const uniqueConstraints : any    = model.getUniqueConstraints(rc),
-            kindName          : string = (<any>model)._kindName || (model.constructor as any)._kindName,
+      const uniqueConstraints : any                = model.getUniqueConstraints(rc),
+            kindName          : string             = (<any>model)._kindName || (model.constructor as any)._kindName,
             tEntities : {key : any, data : any}[]  = lo.flatMap (uniqueConstraints as string[], (prop) => {
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
               const value = (this as any)[prop]
-              return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
+              return [{ key: model.getDatastoreKey(rc, value, true), data: ''}]
             })
       entities = entities.concat(tEntities)    
       const uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc),
