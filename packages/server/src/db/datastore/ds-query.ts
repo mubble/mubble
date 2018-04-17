@@ -8,7 +8,10 @@
 ------------------------------------------------------------------------------*/
 
 import {RunContextServer} from '../../rc-server'
-import {ERROR_CODES}      from './error-codes'
+import {
+        ERROR_CODES,
+        DSError
+       }                  from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {BaseDatastore}    from './basedatastore'
 
@@ -17,14 +20,15 @@ export class DSQuery {
   private _query    : any
   private model     : any
   private namespace : any
+  private kindName  : string
   private indexed   : string[]
 
-  constructor(rc : RunContextServer, private datastore : any, private kindName : any, model : any) {
+  constructor(rc : RunContextServer, private datastore : any, kindName : string, model : any) {
     this.model     = model
     this.namespace = model.getNamespace(rc)
     this.kindName  = kindName
     this.indexed   = model.getIndexedFields(rc).concat(BaseDatastore._indexedFields)
-    this._query    = this.datastore.createQuery(this.namespace, kindName)
+    this._query    = this.datastore.createQuery(this.namespace, this.kindName)
   }
 
   async run(rc : RunContextServer) : Promise<any> {
@@ -119,4 +123,71 @@ export class DSQuery {
     this._query = this._query.select(val)
     return this
   }
+
+  async mQueryOr(rc : RunContextServer, key : string, values : Array<any>) : Promise<BaseDatastore[]> {
+    const traceId : string                = rc.getName(this) + ':' + 'mQueryOr',
+          ack     : any                   = rc.startTraceSpan(traceId),
+          queries : Array<DSQuery>        = [],
+          models  : Array<BaseDatastore>  = []
+
+    try {
+      for(const value of values) {
+        const query = this.datastore.createQuery(this.namespace, this.kindName)
+        query.filter(key, '=', value)
+        queries.push(query)
+      }
+
+      const results = await Promise.all(queries.map(query => this.datastore.runQuery(query))) as Array<any>
+      for(const result of results) {
+        if(result && result[0] && result[0].length) {
+          const entities = result[0],
+                len      = entities.length
+          
+          for(let i = 0; i < len; i++) {
+            const model = new (BaseDatastore as any)()
+            model.deserialize(rc, entities.pop())
+
+            models.push(model)
+          }
+        }
+      }
+      
+      return models
+    } catch(err) {
+      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      else rc.isError() && rc.error(err)
+      throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
+
+  // Not working
+  // static async mQueryOr(rc : RunContextServer, filterKey : string, values : Array<any>) : Promise<any[]> {
+  //   const traceId : string     = rc.getName(this) + ':' + 'mQueryOr',
+  //         ack     : any        = rc.startTraceSpan(traceId),
+  //         ids     : Array<any> = []
+
+  //   try {
+  //     let query   = this._datastore.createQuery(this._namespace, this._kindName)
+  //     query = query.select(['__key__', filterKey])
+
+  //     const results = await this._datastore.runQuery(query)
+  //     if(results && results[0] && results[0].length) {
+  //       const entities = results[0] as Array<any>
+  //       for(const entity of entities) {
+  //         const index = values.indexOf(entity[filterKey])
+  //         if(index !== -1) ids.push(entity.__key__)
+  //       }
+  //     }
+
+  //     return ids
+  //   } catch(err) {
+  //     if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+  //     else rc.isError() && rc.error(err)
+  //     throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
+  //   } finally {
+  //     rc.endTraceSpan(traceId, ack)
+  //   }
+  // }
 }
