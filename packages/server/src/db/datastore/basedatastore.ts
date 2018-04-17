@@ -342,16 +342,8 @@ private getNamespace(rc : RunContextServer) : string {
       await transaction.commit(rc)
       return true
     } catch(err) {
-      if(err.toString().indexOf('entity already exists') > 0) {
-        const msg = err.message.replace(/[^{]+({[^}]+})[\n>]*/m, '$1') // Convert to JSON
-                               .replace(/type/, '"type"')
-                               .replace(/name/, ', "name"')
-
-        const json = JSON.parse(msg)
-        rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + ']', 'Entity Exists:' + json.type + '=' + json.name)
-        err = new Error(ERROR_CODES.RECORD_ALREADY_EXISTS)
-      } else {
-        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      if(err.name !== ERROR_CODES.UNIQUE_KEY_EXISTS) {
+        rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
         err = new Error(ERROR_CODES.GCP_ERROR)
       }
       throw err
@@ -590,14 +582,16 @@ isDeleted(rc: RunContextServer) : boolean {
   static async mUnique(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique models invalid')
 
-    const uniqueEntities = BaseDatastore.getUniqueEntities (rc, ...models)
+    const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
     if(!uniqueEntities || !uniqueEntities.length) return true
     
     const keys          = uniqueEntities.map((entity) => entity.key),
           res           = await transaction.get(keys),
-          entityRecords = res[0]
+          entityRecords = res[0],
+          resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
           
     if(entityRecords.length !== 0) { // Not Unique!
+      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist : ${JSON.stringify(resKeys)}`)
       throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Insert, One or more Unique Keys Exist')) 
     }
     
@@ -608,18 +602,20 @@ isDeleted(rc: RunContextServer) : boolean {
   private static getUniqueEntities(rc: RunContextServer, ...models : BaseDatastore[]) {
     let entities : {key : any, data : any}[] = []
     for(const model of models) {
-      const uniqueConstraints : any                = model.getUniqueConstraints(rc),
-            kindName          : string             = (<any>model)._kindName || (model.constructor as any)._kindName,
-            tEntities : {key : any, data : any}[]  = lo.flatMap (uniqueConstraints as string[], (prop) => {
+      const uniqueConstraints : any               = model.getUniqueConstraints(rc),
+            kindName          : string            = (<any>model)._kindName || (model.constructor as any)._kindName,
+            tEntities : {key : any, data : any}[] = lo.flatMap (uniqueConstraints as string[], (prop) => {
+              
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = (this as any)[prop]
+              const value = (model as any)[prop]
+              
               return [{ key: model.getDatastoreKey(rc, value, true), data: ''}]
             })
       entities = entities.concat(tEntities)    
       const uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc),
             tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (prop) => {
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = prop + '|' + (this as any)[prop]
+              const value = prop + '|' + (model as any)[prop]
               return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
             })
       entities = entities.concat(tuEntities)    
