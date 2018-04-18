@@ -226,34 +226,4 @@ async rollback(rc : RunContextServer) {
     rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
     this._transaction.delete(model.getDatastoreKey(rc, mId, false, parentKey))
   }
-
-/*------------------------------------------------------------------------------
-  - Unique params are identified and set as a primary key in a different
-    collection to avoid duplication
-  - Unique params are defined in the model
-------------------------------------------------------------------------------*/
-  // setUnique(rc : RunContextServer, model : any) : void {
-  //   const uniqueConstraints : any    = model.getUniqueConstraints(rc),
-  //         kindName          : string = model._kindName
-
-  //   for(const constraint of uniqueConstraints) {
-  //     let uniqueEntityKey = model.getDatastoreKey(rc, model[constraint], true)
-
-  //     this._transaction.save({key: uniqueEntityKey, method: 'insert', data: ''})
-  //   }
-  // }
-
-/*------------------------------------------------------------------------------
-- The unique keys are to be deleted when the corresponding entity is deleted
-------------------------------------------------------------------------------*/
-  // deleteUnique(rc : RunContextServer, model : any) : void {
-  //   const uniqueConstraints : any    = model.getUniqueConstraints(rc),
-  //         kindName          : string = model._kindName
-
-  //   for(const constraint of uniqueConstraints) {
-  //     let uniqueEntityKey = model.getDatastoreKey(rc, model[constraint], true)
-
-  //     this._transaction.delete(uniqueEntityKey)
-  //   }
-  // } 
 }

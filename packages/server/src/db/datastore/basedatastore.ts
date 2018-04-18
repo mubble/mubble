@@ -251,8 +251,7 @@ private getNamespace(rc : RunContextServer) : string {
       await transaction.commit ()
       return true
     } catch(err) {
-      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      else rc.isError() && rc.error(err)
+      rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
       await transaction.rollback ()
       throw(new Error(ERROR_CODES.GCP_ERROR))
 
@@ -260,17 +259,18 @@ private getNamespace(rc : RunContextServer) : string {
       rc.endTraceSpan(traceId, ack)
     }
   }
-
-  // TODO: [CG] Handle Changing of Unique Keys. At least dont allow changing of unique keys!
+  
+  // Blind Update, Not using Transaction: Use with Care!
   public static async mUpdate(rc : RunContextServer, ...recs : BaseDatastore[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
-
-    const models : BaseDatastore[] = lo.clone(recs)
-    
-    if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
+    // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
+    let models : BaseDatastore[] = recs
+    if(recs.length > MAX_DS_ITEMS_AT_A_TIME) {
+      models = lo.clone(recs)
       while(models.length){
         await this.mUpdate(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
       }
+
       return true
     }
     const traceId = `${rc.getName(this)}:mUpdate`,
@@ -287,7 +287,7 @@ private getNamespace(rc : RunContextServer) : string {
       return true
     } 
     catch(err) {
-      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId,ack)
@@ -301,28 +301,28 @@ private getNamespace(rc : RunContextServer) : string {
           ack     = rc.startTraceSpan(traceId)
 
     try {
-      const delKeys : any[] = models.map((mod) => {
-        return mod.getDatastoreKey(rc)
+      const delKeys : any[] = models.map((model) => {
+        return model.getDatastoreKey(rc)
       })
 
-      models.forEach((mod) => {
-        const uniqueConstraints : any = mod.getUniqueConstraints(rc)
+      models.forEach((model) => {
+        const uniqueConstraints : any = model.getUniqueConstraints(rc),
+              uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc),
 
         for(const constraint of uniqueConstraints) {
-          delKeys.push(mod.getDatastoreKey(rc, (<any>mod)[constraint], true))
+          const value = (<any>model)[constraint] || constraint // UNC composite Key
+          delKeys.push(model.getDatastoreKey(rc, value, true))
         }
       })
       await BaseDatastore._datastore.delete(delKeys)
       return true
     } catch(err) {
-      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      else rc.isError() && rc.error(err)
+      rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
   }
-
 
 /*------------------------------------------------------------------------------
   - Insert to datastore 
@@ -334,108 +334,47 @@ private getNamespace(rc : RunContextServer) : string {
 ------------------------------------------------------------------------------*/ 
 
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
-    const transaction = BaseDatastore.createTransaction(rc),
-          traceId     = `${rc.getName(this)} : insert`,
+    // Re-direction to DS Transaction!
+    const traceId     = `${rc.getName(this)} : insert`,
+          transaction = BaseDatastore.createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
       await transaction.insert(rc, this)
       await transaction.commit(rc)
       return true
     } catch(err) {
-      if(err.toString().indexOf('entity already exists') > 0) {
-        const msg = err.message.replace(/[^{]+({[^}]+})[\n>]*/m, '$1') // Convert to JSON
-                               .replace(/type/, '"type"')
-                               .replace(/name/, ', "name"')
-
-        const json = JSON.parse(msg)
-        rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + ']', 'Entity Exists:' + json.type + '=' + json.name)
-        err = new Error(ERROR_CODES.RECORD_ALREADY_EXISTS)
-      } else {
-        rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-        err = new Error(ERROR_CODES.GCP_ERROR)
-      }
+      await transaction.rollback (rc)
       throw err
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
   }
 
-
-/*------------------------------------------------------------------------------
-  - Insert a child.
-  - Populated child model should be provided
-  - Parent Id should be populated in the parent
-------------------------------------------------------------------------------*/ 
-  protected async insertChild(rc : RunContextServer, childModel : any, ignoreDupRec ?: boolean, insertTime ?: number) : Promise<boolean> {
-    // TODO: (AD) Check using isChildOf, getChildLinks..
-    try {
-      const res          = await childModel.setUnique(rc, undefined, ignoreDupRec),
-            parentKey    = this.getDatastoreKey(rc, this.getId(rc)),
-            datastoreKey = childModel.getDatastoreKey(rc, null, false, parentKey)
-
-      if(!res) return false
-      await BaseDatastore._datastore.save({key: datastoreKey, data: childModel.getInsertRec(rc, insertTime)})
-      return true
-    } catch (err) {
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      if (err.toString().split(':')[1] !== ' entity already exists') {
-        throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-      } else {
-        if (ignoreDupRec) return true
-        throw(new DSError(ERROR_CODES.RECORD_ALREADY_EXISTS, err.message))
-      }
-    }
-  }
-
 /*------------------------------------------------------------------------------
   - Update
-  // TODO: [CG] Handle Changing of Unique Keys. At least dont allow changing of unique keys!
 ------------------------------------------------------------------------------*/ 
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore> {
+    // Re-direction to DS Transaction!
     const traceId = `${rc.getName(this)}:update`,
+          transaction = BaseDatastore.createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     
     try {
-      const datastoreKey = this.getDatastoreKey(rc, id)
-
+      // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
       this._id = id
-      const res = await BaseDatastore._datastore.get(datastoreKey)
-      if(!res || !res[0]) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Key: ${datastoreKey}`))
-      this.deserialize(rc, res[0])
+      await transaction.get(rc, this)
       Object.assign(this, updRec)
-      await BaseDatastore._datastore.save({key: datastoreKey, data: this.getUpdateRec(rc)})
+      await transaction.update (rc, this)
+      await transaction.commit (rc)
       return this
     } 
     catch(err) {
-      rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      throw(new Error(ERROR_CODES.GCP_ERROR))
+      await transaction.rollback (rc)
+      throw err
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
   }
-
-/*------------------------------------------------------------------------------
-  - Update a child.
-  - Populated child model should be provided
-  - Parent Id should be populated in the parent
-------------------------------------------------------------------------------*/ 
-protected async updateChild(rc : RunContextServer, childModel : any, updRec : any, ignoreRNF ?: boolean) : Promise<boolean> {
-  // TODO: Validate Child Parent Relationships..
-  try {
-    const parentKey    = this.getDatastoreKey(rc, this.getId(rc)),
-          datastoreKey = childModel.getDatastoreKey(rc, null, false, parentKey)
-
-    const res = await BaseDatastore._datastore.get(datastoreKey)
-    if(!res || !res[0]) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Key: ${datastoreKey}`))
-    childModel.deserialize(rc, res[0])
-    Object.assign(childModel, updRec)
-    await BaseDatastore._datastore.save({key: datastoreKey, data: childModel.getUpdateRec(rc)})
-    return true
-  } 
-  catch (err) {
-    throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-  }
-}
 
 /*------------------------------------------------------------------------------
   - Soft Delete
@@ -465,31 +404,6 @@ protected async updateChild(rc : RunContextServer, childModel : any, updRec : an
       rc.endTraceSpan(traceId, ack)
     }
   }
-
-/*------------------------------------------------------------------------------
-  - Soft Delete Child
-  - The 'deleted' param will be set as true
-  - The unique param is deleted, if set
-  - Optional params to be modified can be provided
-------------------------------------------------------------------------------*/ 
-protected async softDeleteChild(rc : RunContextServer, childModel : any, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
-  try {
-    const parentKey    = this.getDatastoreKey(rc, this.getId(rc)),
-          datastoreKey = childModel.getDatastoreKey(rc, null, false, parentKey)
-    
-    const res = await BaseDatastore._datastore.get(datastoreKey)
-    if(!res || !res[0]) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Key: ${datastoreKey}`))
-    childModel.deserialize(rc, res[0])
-    childModel.deleted = true
-    if(params) Object.assign(childModel, params)
-    await BaseDatastore._datastore.save({key: datastoreKey, data: childModel.getUpdateRec(rc)})
-    return true
-  } 
-  catch (err) {
-    rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-    throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
-  }
-}
 
 /*------------------------------------------------------------------------------
   - Get kind Name 
@@ -588,7 +502,7 @@ isDeleted(rc: RunContextServer) : boolean {
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
   static async mUnique(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique models invalid')
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: mUnique models invalid')
 
     const uniqueEntities = BaseDatastore.getUniqueEntities (rc, ...models)
     if(!uniqueEntities || !uniqueEntities.length) return true
@@ -605,6 +519,16 @@ isDeleted(rc: RunContextServer) : boolean {
     return true
   }
 
+  static async hasUniqueChanged(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'CheckUnique: mUnique models invalid')
+    for(const model of models) {
+      // TODO: How do we find field Changes?
+      // If the Unique Fields are changed... Then we should throw an error..
+      // How do we handle Composite Fields (UNC: userId, ncId)
+    }
+    return true
+  }
+
   private static getUniqueEntities(rc: RunContextServer, ...models : BaseDatastore[]) {
     let entities : {key : any, data : any}[] = []
     for(const model of models) {
@@ -612,14 +536,14 @@ isDeleted(rc: RunContextServer) : boolean {
             kindName          : string             = (<any>model)._kindName || (model.constructor as any)._kindName,
             tEntities : {key : any, data : any}[]  = lo.flatMap (uniqueConstraints as string[], (prop) => {
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = (this as any)[prop]
+              const value = (this as any)[prop] || prop // UNC Composite Key
               return [{ key: model.getDatastoreKey(rc, value, true), data: ''}]
             })
       entities = entities.concat(tEntities)    
       const uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc),
             tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (prop) => {
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = prop + '|' + (this as any)[prop]
+              const value = prop + '|' + ((this as any)[prop] || prop) 
               return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
             })
       entities = entities.concat(tuEntities)    
