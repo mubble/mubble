@@ -76,8 +76,7 @@ export abstract class BaseDatastore {
   - Example: 
     return ['mobileNo', 'emailId']
 ------------------------------------------------------------------------------*/                  
-  getPrefixedUniqueConstraints(rc : RunContextServer) : Array<string> {
-    // Note: Does not support Composite Fields
+  getUniqueConstraintValues(rc : RunContextServer) : Array<string> {
     return []
   }
 
@@ -308,11 +307,14 @@ private getNamespace(rc : RunContextServer) : string {
 
       models.forEach((model) => {
         const uniqueConstraints : any = model.getUniqueConstraints(rc),
-              uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc)
+              uPrefixedConstraints : any = model.getUniqueConstraintValues (rc)
 
         for(const constraint of uniqueConstraints) {
-          const value = (<any>model)[constraint] || constraint // UNC composite Key
+          const value = (<any>model)[constraint] || constraint 
           delKeys.push(model.getDatastoreKey(rc, value, true))
+        }
+        for(const constraintValue of uPrefixedConstraints) {
+          delKeys.push(model.getDatastoreKey(rc, constraintValue, true))
         }
       })
       await BaseDatastore._datastore.delete(delKeys)
@@ -544,15 +546,14 @@ isDeleted(rc: RunContextServer) : boolean {
             tEntities : {key : any, data : any}[] = lo.flatMap (uniqueConstraints as string[], (prop) => {
               
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = (this as any)[prop] || prop // UNC Composite Key
+              const value = (this as any)[prop]
               return [{ key: model.getDatastoreKey(rc, value, true), data: ''}]
             })
       entities = entities.concat(tEntities)    
-      const uPrefixedConstraints : any = model.getPrefixedUniqueConstraints (rc),
-            tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (prop) => {
-              if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = prop + '|' + (model as any)[prop]
-              return [ { key: model.getDatastoreKey(rc, value, true), data: ''} ]
+      const uPrefixedConstraints : any = model.getUniqueConstraintValues (rc),
+            tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (propValue) => {
+              if (propValue === undefined || propValue === null) return []
+              return [ { key: model.getDatastoreKey(rc, propValue, true), data: ''} ]
             })
       entities = entities.concat(tuEntities)    
     }
