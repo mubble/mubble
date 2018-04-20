@@ -76,7 +76,7 @@ export abstract class BaseDatastore {
   - Example: 
     return ['mobileNo', 'emailId']
 ------------------------------------------------------------------------------*/                  
-  getUniqueConstraintValues(rc : RunContextServer) : Array<string> {
+  getUniqueConstraintValues(rc : RunContextServer, updRec ?: any) : Array<string> {
     return []
   }
 
@@ -233,7 +233,7 @@ private getNamespace(rc : RunContextServer) : string {
           transaction = BaseDatastore._datastore.transaction()
   
     try {
-      await BaseDatastore.mUnique(rc, transaction, ...models)
+      await BaseDatastore.mUniqueInsert(rc, transaction, ...models)
 
       const insertObjects : {key : any, data : any}[] = models.map((mod) => {
         return {
@@ -260,7 +260,9 @@ private getNamespace(rc : RunContextServer) : string {
     }
   }
   
-  // Blind Update, Not using Transaction: Use with Care!
+  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  // Blind Update, Not using Transaction: Use with Care! Not checking for Constraints!
+  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   public static async mUpdate(rc : RunContextServer, ...recs : BaseDatastore[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
@@ -367,7 +369,7 @@ private getNamespace(rc : RunContextServer) : string {
           ack     = rc.startTraceSpan(traceId)
     
     try {
-      // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
+      await BaseDatastore.mUniqueUpdate (rc, transaction, this, updRec) // Check Unique Constraints!
       this._id = id
       await transaction.get(rc, this)
       Object.assign(this, updRec)
@@ -391,21 +393,21 @@ private getNamespace(rc : RunContextServer) : string {
 ------------------------------------------------------------------------------*/ 
   protected async softDelete(rc : RunContextServer, id : number | string, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:softDelete`,
+          transaction = BaseDatastore.createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     try {
-      const datastoreKey = this.getDatastoreKey(rc, id)
-      
-      this._id = id
-      const res = await BaseDatastore._datastore.get(datastoreKey)
-      if(!res || !res[0]) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Key: ${datastoreKey}`))
-      this.deserialize(rc, res[0])
+      BaseDatastore.mUniqueDelete (rc, transaction, this)
+
       this.deleted = true
+      // TODO: Need to reset the unique Constraint Fields...
       if(params) Object.assign(this, params)
-      await BaseDatastore._datastore.save({key: datastoreKey, data: this.getUpdateRec(rc)})
+      transaction.update(rc, this)
+      await transaction.commit (rc)
       return true
     } 
     catch(err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
+      await transaction.rollback (rc)
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -508,8 +510,8 @@ isDeleted(rc: RunContextServer) : boolean {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  static async mUnique(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: mUnique models invalid')
+  static async mUniqueInsert(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Models: ZERO')
 
     const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
     if(!uniqueEntities || !uniqueEntities.length) return true
@@ -520,7 +522,7 @@ isDeleted(rc: RunContextServer) : boolean {
           resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
           
     if(entityRecords.length !== 0) { // Not Unique!
-      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist : ${JSON.stringify(resKeys)}`)
+      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist [INS] : ${JSON.stringify(resKeys)}`)
       throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Insert, One or more Unique Keys Exist')) 
     }
     
@@ -528,16 +530,44 @@ isDeleted(rc: RunContextServer) : boolean {
     return true
   }
 
-  static async hasUniqueChanged(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'CheckUnique: mUnique models invalid')
-    for(const model of models) {
-      // TODO: How do we find field Changes?
-      // If the Unique Fields are changed... Then we should throw an error..
-      // How do we handle Composite Fields (UNC: userId, ncId)
+  static async mUniqueUpdate(rc : RunContextServer, transaction: any, model: BaseDatastore, ...recs : any[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs) , 'mUnique: Number of Records to be Updated: ZERO')
+
+    const uniqueEntities = BaseDatastore.getUniqueEntitiesForUpdate (rc, model, ...recs)
+    if(!uniqueEntities || !uniqueEntities.length) return true
+    
+    const keys          = uniqueEntities.map((entity) => entity.key),
+          res           = await transaction.get(keys),
+          entityRecords = res[0],
+          resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
+          
+    if(entityRecords.length !== 0) { // Not Unique!
+      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist [UPD] : ${JSON.stringify(resKeys)}`)
+      throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Update, One or more Unique Keys Exist')) 
     }
+    
+    transaction.save(uniqueEntities)
     return true
   }
 
+  static async mUniqueDelete(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
+    const delKeys : any[] = []
+    for(const model of models) {
+      const uniqueConstraints : any = model.getUniqueConstraints(rc),
+          uPrefixedConstraints : any = model.getUniqueConstraintValues (rc)
+
+      for(const constraint of uniqueConstraints) {
+        const value = (<any>model)[constraint] || constraint 
+        delKeys.push(model.getDatastoreKey(rc, value, true))
+      }
+      for(const constraintValue of uPrefixedConstraints) {
+        delKeys.push(model.getDatastoreKey(rc, constraintValue, true))
+      }
+    }
+    await transaction.delete(delKeys)
+    return true
+  }
+  
   private static getUniqueEntities(rc: RunContextServer, ...models : BaseDatastore[]) {
     let entities : {key : any, data : any}[] = []
     for(const model of models) {
@@ -556,6 +586,28 @@ isDeleted(rc: RunContextServer) : boolean {
               return [ { key: model.getDatastoreKey(rc, propValue, true), data: ''} ]
             })
       entities = entities.concat(tuEntities)    
+    }
+    return entities
+  }
+
+  private static getUniqueEntitiesForUpdate(rc : RunContextServer, model: BaseDatastore, ...updRecs : any[]) {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(updRecs) , 'CheckUnique: mUnique models invalid')
+    const uniqueConstraints    : any = model.getUniqueConstraints(rc)
+    let entities : {key : any, data : any}[] = []
+    for(const updRec of updRecs) {
+      const uPrefixedConstraints : any = model.getUniqueConstraintValues (rc, updRec)
+      uniqueConstraints.forEach ((prop: string) => {
+        if (prop in updRec && (model as any)[prop]) { // If Constraint Changes...
+          throw(new DSError(ERROR_CODES.UNSUPPORTED_UPDATE_FIELDS, 'Unique Constraint Field has Changed, ' + 
+              prop + ':' + (model as any)[prop] + '=>' + updRec[prop] + ', ID:' + model._id)) 
+        }
+        if (updRec[prop]) entities.push ({ key: model.getDatastoreKey(rc, updRec[prop], true), data: ''})
+      })
+      const tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (propValue) => {
+        if (propValue === undefined || propValue === null) return []
+        return [ { key: model.getDatastoreKey(rc, propValue, true), data: ''} ]
+      })
+      entities = entities.concat  (tuEntities)
     }
     return entities
   }

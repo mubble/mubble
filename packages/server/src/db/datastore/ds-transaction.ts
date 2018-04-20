@@ -184,7 +184,7 @@ async rollback(rc : RunContextServer) {
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
     
     model.setId(id)
-    await BaseDatastore.mUnique(rc, this._transaction, model)
+    await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
     this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
   }
 
