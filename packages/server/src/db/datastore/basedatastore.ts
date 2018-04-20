@@ -254,7 +254,6 @@ private getNamespace(rc : RunContextServer) : string {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
       await transaction.rollback ()
       throw(new Error(ERROR_CODES.GCP_ERROR))
-
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -300,29 +299,17 @@ private getNamespace(rc : RunContextServer) : string {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
 
     const traceId = `${rc.getName(this)}:mDelete`,
+          transaction = BaseDatastore.createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
 
     try {
-      const delKeys : any[] = models.map((model) => {
-        return model.getDatastoreKey(rc)
-      })
-
-      models.forEach((model) => {
-        const uniqueConstraints : any = model.getUniqueConstraints(rc),
-              uPrefixedConstraints : any = model.getUniqueConstraintValues (rc)
-
-        for(const constraint of uniqueConstraints) {
-          const value = (<any>model)[constraint] || constraint 
-          delKeys.push(model.getDatastoreKey(rc, value, true))
-        }
-        for(const constraintValue of uPrefixedConstraints) {
-          delKeys.push(model.getDatastoreKey(rc, constraintValue, true))
-        }
-      })
-      await BaseDatastore._datastore.delete(delKeys)
+      await BaseDatastore.mUniqueDelete (rc, transaction, ...models)
+      for (const model of models) await transaction.delete(rc, model)
+      await transaction.commit(rc)
       return true
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
+      await transaction.rollback (rc)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -369,11 +356,9 @@ private getNamespace(rc : RunContextServer) : string {
           ack     = rc.startTraceSpan(traceId)
     
     try {
-      await BaseDatastore.mUniqueUpdate (rc, transaction, this, updRec) // Check Unique Constraints!
       this._id = id
       await transaction.get(rc, this)
-      Object.assign(this, updRec)
-      await transaction.update (rc, this)
+      await transaction.update (rc, this, updRec)
       await transaction.commit (rc)
       return this
     } 
@@ -398,10 +383,10 @@ private getNamespace(rc : RunContextServer) : string {
     try {
       BaseDatastore.mUniqueDelete (rc, transaction, this)
 
+      // TODO: Need to add the unique Constraint Fields with undefined value to params...
       this.deleted = true
-      // TODO: Need to reset the unique Constraint Fields...
-      if(params) Object.assign(this, params)
-      transaction.update(rc, this)
+      if (params) Object.assign (this, params)
+      await transaction.update(rc, this) // Dont Check Constraints. mUniqueDelete Done...
       await transaction.commit (rc)
       return true
     } 

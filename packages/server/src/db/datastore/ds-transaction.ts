@@ -189,12 +189,16 @@ async rollback(rc : RunContextServer) {
   }
 
 /*------------------------------------------------------------------------------
-  - Update with Transaction
+  - Update with Transaction. [Unique Check will only happen if updRec is passed]
 ------------------------------------------------------------------------------*/
-  update(rc : RunContextServer, model : BaseDatastore, parentKey ?: any) : void {
+  async update(rc : RunContextServer, model : BaseDatastore, updRec ?: any, parentKey ?: any) : Promise<void> {
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
     
+    if (updRec) { // Check Unique Constraints!
+      await BaseDatastore.mUniqueUpdate (rc, this._transaction, model, updRec) 
+      Object.assign(model, updRec)
+    }
     rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
     this._transaction.save({key: model.getDatastoreKey(rc, mId, false, parentKey), data: model.getUpdateRec(rc)})
   }
