@@ -291,6 +291,9 @@ export class VisionBase {
         retVal.height = (imageOptions.shrink) ? imageOptions.shrink.h : maxH
       }
 
+      if(imageOptions.shrink) gmImage.resize(imageOptions.shrink.w, imageOptions.shrink.h, '!')
+      if(imageOptions.quality && retVal.width > 400) gmImage.quality(imageOptions.quality)
+
       const palette = await this.getTopColors(lo.cloneDeep(gmImage)),
             mime    = await this.getGmMime(gmImage)
             
