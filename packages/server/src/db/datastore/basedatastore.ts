@@ -275,7 +275,7 @@ private getNamespace(rc : RunContextServer) : string {
     return true
   }
   
-  public static async mUpdateInternal (rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
+  private static async mUpdateInternal (rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:mUpdate`,
         ack     = rc.startTraceSpan(traceId)
     
