@@ -269,13 +269,15 @@ private getNamespace(rc : RunContextServer) : string {
     if(recs.length > MAX_DS_ITEMS_AT_A_TIME) {
       models = lo.clone(recs)
       while(models.length){
-        await this.mUpdate(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
+        await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
       }
-
-      return true
     }
+    return true
+  }
+  
+  public static async mUpdateInternal (rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:mUpdate`,
-          ack     = rc.startTraceSpan(traceId)
+        ack     = rc.startTraceSpan(traceId)
     
     try {
       const updateObjects : {key : any, data : any}[] = models.map((mod) => {
