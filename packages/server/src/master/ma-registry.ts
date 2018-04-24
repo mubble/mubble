@@ -205,7 +205,7 @@ export class MasterRegistry {
 
   public verify(context : RunContextServer) {
     
-    debug(context , 'Verifying ',this.mastername)
+    // debug(context , 'Verifying ',this.mastername)
     
     // Todo
     /*

@@ -327,13 +327,13 @@ export abstract class XmnRouterServer {
 
   private logRegistration(rc: RunContextServer, apiName: string , fnName: string, parent: any, isApi: boolean) {
 
-    const pName  = rc.getName(parent),
-          lpName = lo.lowerFirst(pName)
+    // const pName  = rc.getName(parent),
+    //       lpName = lo.lowerFirst(pName)
 
-    rc.debug(rc.getName(this), 'Registered', isApi ? 'api' : 'event', apiName ,  'like',
-      parent[fnName] ? 
-        (parent.prototype ? `'static ${pName}.${fnName}()'` : `'singleton ${lpName}.${fnName}()'`) : 
-        `'new ${pName}().${fnName}()'`
-    )
+    // rc.debug(rc.getName(this), 'Registered', isApi ? 'api' : 'event', apiName ,  'like',
+    //   parent[fnName] ? 
+    //     (parent.prototype ? `'static ${pName}.${fnName}()'` : `'singleton ${lpName}.${fnName}()'`) : 
+    //     `'new ${pName}().${fnName}()'`
+    // )
   }
 }

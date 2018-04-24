@@ -155,7 +155,7 @@ export class MasterMgr {
       this.masterChangeSubs[mastername] = []
     }
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'subscribeToMasterChange adding master cb change', mastername , cb)
+    // rc.isDebug() && rc.debug(rc.getName(this), 'subscribeToMasterChange adding master cb change', mastername , cb)
     
     const subs = this.masterChangeSubs[mastername] ,
           cbStr = cb.toString()
@@ -405,7 +405,7 @@ export class MasterMgr {
           // all masters update records will have same timestamp
           now         : number = lo.now()
     
-    debug(rc , 'digestMap:',digestMap , arModels.map((x)=> x.master) )     
+    // debug(rc , 'digestMap:',digestMap , arModels.map((x)=> x.master) )     
     
     for(let i : number = 0 ; i <arModels.length ; i++ ){
       
@@ -422,7 +422,7 @@ export class MasterMgr {
             fDigest : string              = crypto.createHash('md5').update(JSON.stringify(json) /*oModel.source*/).digest('hex')
             
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
-     debug(rc , master , 'mDigest:',mDigest , 'fDigest:',fDigest)
+     // debug(rc , master , 'mDigest:',mDigest , 'fDigest:',fDigest)
      
      if(lo.isEqual(mDigest , fDigest)){
         results.push({name : master , error : 'skipping as file is unchanged'}) 
@@ -439,7 +439,10 @@ export class MasterMgr {
     }
 
     if(lo.size(todoModelz)) await this.applyData(rc , results , masterCache , todoModelz)
-    MaMgrLog(rc , 'applyData' , 'results',results)
+
+    results.forEach(result => {
+      MaMgrLog(rc , 'applyData', result)
+    })
   }
 
   public async applySingleItem(rc : RunContextServer , master : string , srcRec : Object) {
