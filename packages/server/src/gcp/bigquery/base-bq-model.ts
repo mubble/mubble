@@ -279,4 +279,43 @@ static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_tim
 
     return table.import(path, metadata)
   }
+
+  static async listTables(rc : RunContextServer, dsName : string) {
+    const traceId = `BqListTables:${Date.now()}`,
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
+      const dataset = BigQueryBase._bigQuery.dataset(dsName),
+            data    = await dataset.getTables()
+
+      rc.isDebug() && rc.debug(rc.getName(this), 'Table Listing Success')
+      return data[0]
+      
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), err)
+      throw err
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+    
+  }
+
+  static async deleteTable(rc : RunContextServer, id : string, dsName : string) {
+    const traceId = `BqDeleteTable:${Date.now()}`,
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
+      const dataset = BigQueryBase._bigQuery.dataset(dsName),
+            table   = dataset.table(id)
+
+      await table.delete()
+      rc.isDebug() && rc.debug(rc.getName(this), 'Table Deletion Success :', id)
+      
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), err)
+      throw err
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
 }
