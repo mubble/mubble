@@ -29,6 +29,9 @@ export namespace MubbleHttpClient {
   let selfFQDN: string
   let credentialRegistry: CredentialRegistry
 
+  const LOGGING = true,
+        ClassName = 'MubbleHttpClient'
+
   export type MubbleCredential = {
     id                : string // typically fqdn of client
     clientSecret      : string // base64 encoded secret of the client
@@ -42,7 +45,7 @@ export namespace MubbleHttpClient {
   // Set the domain name of the server. It is used as user agent name
   // Credential Registry provides secret for each clients fqdn, typically kept in master
   export function init(rc: RunContextServer, selfFullyQualifiedDomainName: string, registry: CredentialRegistry) {
-    rc.isAssert() && rc.assert(rc.getName(this), !selfFQDN, 'calling twice?')
+    rc.isAssert() && rc.assert(ClassName, !selfFQDN, 'calling twice?')
 
     selfFQDN            = selfFullyQualifiedDomainName
     credentialRegistry  = registry
@@ -52,7 +55,7 @@ export namespace MubbleHttpClient {
                                   host: string, port = 443, certFullPath = '',
                                   resultType: ResultType = ResultType.basic) {
 
-    rc.isAssert() && rc.assert(rc.getName(this), selfFQDN && credentialRegistry)
+    rc.isAssert() && rc.assert(ClassName, selfFQDN && credentialRegistry)
 
     const certificate = certFullPath ? fs.readFileSync(certFullPath).toString() : 
                                        credentialRegistry.getCredential(host).serverCertificate,
@@ -100,6 +103,10 @@ export namespace MubbleHttpClient {
           readPromise   = new Mubble.uPromise(),
           resultStruct  = new ResultStruct()
 
+    if (LOGGING) {
+      rc.isDebug() && rc.debug(ClassName, 'options', options, 'headers', headers)
+    }                              
+
     req.on('response', (resp: http.IncomingMessage) => {
 
       resultStruct.status  = resp.statusCode || 200
@@ -115,7 +122,7 @@ export namespace MubbleHttpClient {
       const format = mime.extension(contentType) === 'json' ? UStream.Encoding.json : 
                      (mime.charset(contentType) === 'UTF-8' ? UStream.Encoding.text : UStream.Encoding.bin)
 
-      rc.isDebug() && rc.debug(rc.getName(this), 'req:response', {
+      rc.isDebug() && rc.debug(ClassName, 'req:response', {
         path          : options.path, 
         status        : resp.statusCode, 
         contentLength : resp.headers[HTTP.HeaderKey.contentLength], 
@@ -130,6 +137,8 @@ export namespace MubbleHttpClient {
     })
 
     req.on('error', (err) => {
+      LOGGING && rc.isWarn() && rc.warn(ClassName, 'req.on(error)', err)
+
       writePromise.reject(err)
       readPromise.reject(err)
     })
@@ -141,6 +150,7 @@ export namespace MubbleHttpClient {
       const [_, output] = await Promise.all([writePromise.promise, readPromise.promise])
       resultStruct.output = output
     } catch (err) {
+      LOGGING && rc.isWarn() && rc.warn(ClassName, 'Promise.all', err)
       resultStruct.error = err
     }
 

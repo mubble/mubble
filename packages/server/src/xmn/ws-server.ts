@@ -146,7 +146,7 @@ export class WsServer {
         rc.isDebug() && rc.debug(rc.getName(this), 'Cleaning up a connection as no ping or close')
         webSocket.close()
       } else if (rc.isDebug() && len === 1) {
-        rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active')
+        // rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active')
       }
     }
   }
@@ -210,7 +210,7 @@ export class ServerWebSocket implements XmnProvider {
 
     const decodedData : WireObject[] = await this.encProvider.decodeBody(rc, data)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'processMessage', {
+    decodedData[0].name !== 'PING' && rc.isDebug() && rc.debug(rc.getName(this), 'processMessage', {
       incomingLength  : data.length,
       type            : data.constructor ? data.constructor.name : undefined,
       key             : (<any>this.ci.headers)['sec-websocket-key'],
