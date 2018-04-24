@@ -227,7 +227,25 @@ async rollback(rc : RunContextServer) {
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
-    rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
+    rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
+    BaseDatastore.mUniqueDelete(rc, this._transaction, model) 
     this._transaction.delete(model.getDatastoreKey(rc, mId, false, parentKey))
+  }
+
+/*------------------------------------------------------------------------------
+  - Bulk Delete with Transaction
+------------------------------------------------------------------------------*/
+  mDelete(rc : RunContextServer, ...models : BaseDatastore[]) : void {
+    const keys : Array<any> = []
+
+    for(const model of models) {
+      const mId      : string | number = model.getId(rc),
+            kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+
+      rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
+      keys.push(model.getDatastoreKey(rc, mId, false))
+    }
+    BaseDatastore.mUniqueDelete(rc, this._transaction, ...models)
+    this._transaction.delete(keys)
   }
 }

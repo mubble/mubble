@@ -277,7 +277,7 @@ private getNamespace(rc : RunContextServer) : string {
   
   private static async mUpdateInternal (rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:mUpdate`,
-        ack     = rc.startTraceSpan(traceId)
+          ack     = rc.startTraceSpan(traceId)
     
     try {
       const updateObjects : {key : any, data : any}[] = models.map((mod) => {
@@ -300,18 +300,17 @@ private getNamespace(rc : RunContextServer) : string {
   public static async mDelete(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
 
-    const traceId = `${rc.getName(this)}:mDelete`,
+    const traceId     = `${rc.getName(this)}:mDelete`,
           transaction = BaseDatastore.createTransaction(rc),
-          ack     = rc.startTraceSpan(traceId)
+          ack         = rc.startTraceSpan(traceId)
 
     try {
-      await BaseDatastore.mUniqueDelete (rc, transaction, ...models)
-      for (const model of models) await transaction.delete(rc, model)
+      await transaction.mDelete(rc, ...models)
       await transaction.commit(rc)
       return true
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
-      await transaction.rollback (rc)
+      await transaction.rollback(rc)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -537,21 +536,12 @@ isDeleted(rc: RunContextServer) : boolean {
     return true
   }
 
-  static async mUniqueDelete(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
-    const delKeys : any[] = []
-    for(const model of models) {
-      const uniqueConstraints : any = model.getUniqueConstraints(rc),
-          uPrefixedConstraints : any = model.getUniqueConstraintValues (rc)
+  static mUniqueDelete(rc : RunContextServer, transaction : any, ...models : BaseDatastore[]) : boolean {
+    const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
+    if(!uniqueEntities || !uniqueEntities.length) return true
 
-      for(const constraint of uniqueConstraints) {
-        const value = (<any>model)[constraint] || constraint 
-        delKeys.push(model.getDatastoreKey(rc, value, true))
-      }
-      for(const constraintValue of uPrefixedConstraints) {
-        delKeys.push(model.getDatastoreKey(rc, constraintValue, true))
-      }
-    }
-    await transaction.delete(delKeys)
+    const delKeys : any[] = uniqueEntities.map((entity) => entity.key)
+    transaction.delete(delKeys)
     return true
   }
   
@@ -607,46 +597,46 @@ isDeleted(rc: RunContextServer) : boolean {
       path      : [The complete path]
     }
 ------------------------------------------------------------------------------*/
-getDatastoreKey(rc : RunContextServer, id ?: number | string | null , unique ?: boolean, parentKey ?: any) {
-  let datastoreKey
-  if(!id) id = this._id
-  let kindName = (<any>this)._kindName || (this.constructor as any)._kindName
-  if(unique) kindName += '_unique'
-  if(!parentKey) {
-    datastoreKey = BaseDatastore._datastore.key({
-      namespace : this.getNamespace(rc),
-      path      : ([kindName, id]) 
-    })
-  } else {
-    datastoreKey = BaseDatastore._datastore.key({
-      namespace : this.getNamespace(rc),
-      path      : (parentKey.path.concat([kindName, id]))
-    })
+  getDatastoreKey(rc : RunContextServer, id ?: number | string | null , unique ?: boolean, parentKey ?: any) {
+    let datastoreKey
+    if(!id) id = this._id
+    let kindName = (<any>this)._kindName || (this.constructor as any)._kindName
+    if(unique) kindName += '_unique'
+    if(!parentKey) {
+      datastoreKey = BaseDatastore._datastore.key({
+        namespace : this.getNamespace(rc),
+        path      : ([kindName, id]) 
+      })
+    } else {
+      datastoreKey = BaseDatastore._datastore.key({
+        namespace : this.getNamespace(rc),
+        path      : (parentKey.path.concat([kindName, id]))
+      })
+    }
+    return datastoreKey
   }
-  return datastoreKey
-}
 
 /*------------------------------------------------------------------------------
   - Deserialize: Assign the values of the object passed to the respective fields
 ------------------------------------------------------------------------------*/
-deserialize (rc : RunContextServer, value : any) {
-  
-  if(!this._id) this._id = BaseDatastore.getIdFromResult(rc, value)
+  deserialize (rc : RunContextServer, value : any) {
+    
+    if(!this._id) this._id = BaseDatastore.getIdFromResult(rc, value)
 
-  for (let prop in value) { 
-    let val     = value[prop],
-        dVal    = (<any>this)[prop]
-    
-    if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
-    
-    if (dVal && typeof(dVal) === 'object' && dVal.deserialize instanceof Function) {
-      (<any>this)[prop] = dVal.deserialize(val)
-    } else {
-      (<any>this)[prop] = val
+    for (let prop in value) { 
+      let val     = value[prop],
+          dVal    = (<any>this)[prop]
+      
+      if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
+      
+      if (dVal && typeof(dVal) === 'object' && dVal.deserialize instanceof Function) {
+        (<any>this)[prop] = dVal.deserialize(val)
+      } else {
+        (<any>this)[prop] = val
+      }
     }
+    return this
   }
-  return this
-}
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             INTERNAL FUNCTIONS
