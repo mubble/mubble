@@ -222,6 +222,16 @@ export class UiRouter {
     const topUrl: string          = this.urlStack[this.urlStack.length-1].url
     const urlTree: UrlTree        = this.router.parseUrl(topUrl)
     const segments: UrlSegment[]  = urlTree.root.children.primary.segments
+
+    if (segments.length > 1) {
+      let path = ''
+
+      segments.forEach((segment, index) => {
+        path += segment + (index < segments.length-1 ? '/' : '') 
+      })
+      return path
+    }
+
     return segments[0].path
   }
 
