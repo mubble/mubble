@@ -32,7 +32,7 @@ export class DSTransaction {
     this._datastore   = datastore
     this.traceId      = 'transaction_' + Date.now() + '_' + this._kindname
     this.ack          = rc.startTraceSpan(this.traceId)
-}
+  }
 
 /*------------------------------------------------------------------------------
   - Get the datastore transaction Instance. Used in DSTQuery
@@ -92,16 +92,16 @@ export class DSTransaction {
 /*------------------------------------------------------------------------------
   - Abandon a transaction
 ------------------------------------------------------------------------------*/
-async rollback(rc : RunContextServer) {
-  const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
-        ack     = rc.startTraceSpan(traceId)
-  try {
-    await this._transaction.rollback()
-  } finally {
-    rc.endTraceSpan(traceId, ack)
-    rc.endTraceSpan(this.traceId, this.ack)
+  async rollback(rc : RunContextServer) {
+    const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
+    try {
+      await this._transaction.rollback()
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+      rc.endTraceSpan(this.traceId, this.ack)
+    }
   }
-}
 
 
 /*------------------------------------------------------------------------------
