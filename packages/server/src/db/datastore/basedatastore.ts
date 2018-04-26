@@ -271,7 +271,9 @@ private getNamespace(rc : RunContextServer) : string {
       while(models.length){
         await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
       }
+      return true
     }
+    await this.mUpdateInternal(rc , ...recs)
     return true
   }
   
