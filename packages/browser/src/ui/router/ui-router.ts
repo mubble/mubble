@@ -45,7 +45,6 @@ export type OUTLET = 'primary' | 'modal'
 
 export interface NcNavigationExtras extends NavigationExtras {
   replaceIndex  ?: number
-  paramsById    ?: boolean
   paramsId      ?: string
 }
 
@@ -140,6 +139,7 @@ export class UiRouter {
           outlet ?: OUTLET) {
 
     if (!extras) extras = {}
+    if (!extras.queryParams) extras.queryParams = {}
 
     this.lastNavMethod && this.rcBrowser.isError() && this.rcBrowser.error(this.rcBrowser.getName(this), 
       'Navigating while last navigation not complete, possibly double nav...')
@@ -168,25 +168,17 @@ export class UiRouter {
     delete extras.replaceUrl
     extras.skipLocationChange = true
 
-    if (extras.paramsById) {
-      const nc_paramsId = extras.paramsId || 'qp' + Date.now()
+    const nc_paramsId = extras.paramsId || 'qp' + Date.now()
 
-      let modalRoute: string 
-      if (extras.queryParams) {
-        modalRoute = extras.queryParams.modalRoute
-      }
-      
-      this.currentQpId    = nc_paramsId
-      this.curQueryParam  = extras.queryParams
-
-      extras.queryParams  = modalRoute ? {nc_paramsId, modalRoute: modalRoute} : {nc_paramsId}
-      delete extras.paramsById
-
-    } else {
-
-      this.currentQpId    = ''
-      this.curQueryParam  = null
+    let modalRoute: string 
+    if (extras.queryParams) {
+      modalRoute = extras.queryParams.modalRoute
     }
+    
+    this.currentQpId    = nc_paramsId
+    this.curQueryParam  = extras.queryParams
+
+    extras.queryParams  = modalRoute ? {nc_paramsId, modalRoute: modalRoute} : {nc_paramsId}
     
     this.curOutlet = outlet || PRIMARY_OUTLET
 
@@ -219,8 +211,13 @@ export class UiRouter {
 
   public getCurrentRouteName(): string {
 
-    const topUrl: string          = this.urlStack[this.urlStack.length-1].url
-    const urlTree: UrlTree        = this.router.parseUrl(topUrl)
+    const topUrl: string = this.urlStack[this.urlStack.length-1].url
+    return this.getRouteName(topUrl)
+  }
+
+  public getRouteName(url): string {
+
+    const urlTree: UrlTree        = this.router.parseUrl(url)
     const segments: UrlSegment[]  = urlTree.root.children.primary.segments
 
     if (segments.length > 1) {
@@ -235,9 +232,11 @@ export class UiRouter {
     return segments[0].path
   }
 
-  public getPathName(url): string {
+  public getModuleName(url): string {
+
     const urlTree: UrlTree        = this.router.parseUrl(url)
     const segments: UrlSegment[]  = urlTree.root.children.primary.segments
+
     return segments[0].path
   }
 
@@ -289,7 +288,7 @@ export class UiRouter {
     
     this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), `Popping up ${type} for ${compName}`)
     this.navigateByUrl([{outlets: { modal: type}}], {replaceUrl: repUrl, 
-      queryParams: queryParams, paramsById: true}, MODAL_OUTLET)
+      queryParams: queryParams}, MODAL_OUTLET)
   }
 
   public showModalPage(componentRoute: string, queryParams: any, replaceUrl?: boolean) {
@@ -298,7 +297,7 @@ export class UiRouter {
     const repUrl: boolean = replaceUrl || false
 
     this.navigateByUrl([{outlets: { modal: componentRoute}}], 
-      {replaceUrl: repUrl, queryParams: queryParams, paramsById: true}, MODAL_OUTLET)
+      {replaceUrl: repUrl, queryParams: queryParams}, MODAL_OUTLET)
   }
 
   public goBack(whereOrByHowMuch ?: string | number) {
@@ -325,7 +324,6 @@ export class UiRouter {
           ne: NcNavigationExtras  = {replaceUrl: true}
 
     if (urlStack.qpId) {
-      ne.paramsById   = true
       ne.paramsId     = urlStack.qpId
       ne.queryParams  = urlStack.queryParam
     }
