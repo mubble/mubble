@@ -555,10 +555,10 @@ isDeleted(rc: RunContextServer) : boolean {
             tEntities : {key : any, data : any}[] = lo.flatMap (uniqueConstraints as string[], (prop) => {
               
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
-              const value = (this as any)[prop]
+              const value = (model as any)[prop]
               return [{ key: model.getDatastoreKey(rc, value, true), data: ''}]
             })
-      entities = entities.concat(tEntities)    
+      entities = entities.concat(tEntities)
       const uPrefixedConstraints : any = model.getUniqueConstraintValues (rc),
             tuEntities : {key : any, data : any}[]  = lo.flatMap (uPrefixedConstraints as string[], (propValue) => {
               if (propValue === undefined || propValue === null) return []
