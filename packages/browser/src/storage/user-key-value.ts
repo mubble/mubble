@@ -37,10 +37,16 @@ export abstract class UserKeyValue {
   registerNewUser(rc: RunContextBrowser, clientId: number, 
     userLinkId: string, userName: string) {
 
-    this._clientId    = clientId
-    this._userLinkId  = userLinkId
-    this.userName     = userName
-    this.save(rc)
+    const obj = { clientId, userLinkId, userName }
+    this.users[clientId] = obj
+    localStorage.setItem(USERS, JSON.stringify(this.users))
+
+    if (this.lastClientId !== clientId) {
+      this.lastClientId = clientId
+      localStorage.setItem(LAST_USER, String(this.lastClientId))
+    }
+
+    this.deserialize(obj)
   }
 
   setWebProfilePicBase64(rc: RunContextBrowser, base64: string) {
