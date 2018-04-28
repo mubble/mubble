@@ -418,7 +418,7 @@ export class MasterMgr {
       //debug(rc , 'applyFileData', oModel.master.toLowerCase() , oModel.source)
       const master  : string              = oModel.master.toLowerCase() ,
             mDigest : string              = digestMap[master] ? digestMap[master].fileDigest  : '' ,
-            json    : object              = JSON.parse(oModel.source),
+            json    : object              = typeof(oModel.source) === 'object' ? oModel.source as any : JSON.parse(oModel.source),
             fDigest : string              = crypto.createHash('md5').update(JSON.stringify(json) /*oModel.source*/).digest('hex')
             
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
@@ -487,20 +487,31 @@ export class MasterMgr {
     MaMgrLog(rc , 'deleteSingleMaster' , 'results',results)
   }
 
-  public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , jsonFilePath : string} []) {  
+  public async applyFileDataFromPath(rc : RunContextServer , masters : {master : string , masterFilePath : string} []) {  
     
     MaMgrLog(rc , 'applyFileDataFromPath ', masters)
     const arModels : {master : string , source: string} [] = []
 
     for(let i=0 ; i<masters.length ; i++){
       const master : string   = masters[i].master,
-      jsonFile : string = masters[i].jsonFilePath
+      jsonFile : string = masters[i].masterFilePath + '.json',
+      jsFile   : string = masters[i].masterFilePath + '.js' 
 
-      assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
-      const buff : Buffer = await fs.readFileSync(jsonFile)
-      arModels.push({master : master , source : buff.toString('utf8')})
+      if(await fs.existsSync(jsFile)){
+        const buff : Buffer = await fs.readFileSync(jsFile)
+        arModels.push({master : master , source : eval(buff.toString('utf8'))})
+
+      }else{
+        assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
+        const buff : Buffer = await fs.readFileSync(jsonFile)
+        arModels.push({master : master , source : buff.toString('utf8')})
+  
+      }
     }
-
+    /*
+    for(const mod of arModels){
+      console.log('mod is',mod , typeof(mod.source))
+    }*/
     return this.applyFileData(rc , arModels)
   }
 
