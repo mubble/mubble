@@ -418,7 +418,7 @@ export class MasterMgr {
       //debug(rc , 'applyFileData', oModel.master.toLowerCase() , oModel.source)
       const master  : string              = oModel.master.toLowerCase() ,
             mDigest : string              = digestMap[master] ? digestMap[master].fileDigest  : '' ,
-            json    : object              = typeof(oModel.source) === 'object' ? oModel.source as any : JSON.parse(oModel.source),
+            json    : object              = eval(oModel.source), //typeof(oModel.source) === 'object' ? oModel.source as any : JSON.parse(oModel.source),
             fDigest : string              = crypto.createHash('md5').update(JSON.stringify(json) /*oModel.source*/).digest('hex')
             
      assert(Array.isArray(json) , 'master ',master , 'file upload is not an Array')       
@@ -494,18 +494,18 @@ export class MasterMgr {
 
     for(let i=0 ; i<masters.length ; i++){
       const master : string   = masters[i].master,
-      jsonFile : string = masters[i].masterFilePath + '.json',
-      jsFile   : string = masters[i].masterFilePath + '.js' 
+            fullFile : boolean = masters[i].masterFilePath.indexOf('.')!==-1,
+      jsonFile : string = fullFile ? masters[i].masterFilePath : masters[i].masterFilePath + '.json',
+      jsFile   : string = fullFile ? masters[i].masterFilePath : masters[i].masterFilePath + '.js' 
 
       if(await fs.existsSync(jsFile)){
         const buff : Buffer = await fs.readFileSync(jsFile)
-        arModels.push({master : master , source : eval(buff.toString('utf8'))})
+        arModels.push({master : master , source : buff.toString('utf8')})
 
       }else{
         assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
         const buff : Buffer = await fs.readFileSync(jsonFile)
         arModels.push({master : master , source : buff.toString('utf8')})
-  
       }
     }
     /*
