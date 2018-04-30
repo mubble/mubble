@@ -493,20 +493,12 @@ export class MasterMgr {
     const arModels : {master : string , source: string} [] = []
 
     for(let i=0 ; i<masters.length ; i++){
-      const master : string   = masters[i].master,
-            fullFile : boolean = masters[i].masterFilePath.indexOf('.')!==-1,
-      jsonFile : string = fullFile ? masters[i].masterFilePath : masters[i].masterFilePath + '.json',
-      jsFile   : string = fullFile ? masters[i].masterFilePath : masters[i].masterFilePath + '.js' 
-
-      if(await fs.existsSync(jsFile)){
-        const buff : Buffer = await fs.readFileSync(jsFile)
+      const master : string   = masters[i].master
+      
+        assert(await fs.existsSync(masters[i].masterFilePath) , 'file ',masters[i].masterFilePath , 'does\'not exits')
+        const buff : Buffer = await fs.readFileSync(masters[i].masterFilePath)
         arModels.push({master : master , source : buff.toString('utf8')})
-
-      }else{
-        assert(await fs.existsSync(jsonFile) , 'file ',jsonFile , 'does\'not exits')
-        const buff : Buffer = await fs.readFileSync(jsonFile)
-        arModels.push({master : master , source : buff.toString('utf8')})
-      }
+      
     }
     /*
     for(const mod of arModels){
