@@ -165,24 +165,21 @@ private getNamespace(rc : RunContextServer) : string {
     }
   }
 
-  static async mGet(rc : RunContextServer, ignoreRNF : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
-    let   result  : boolean         = true
-    const models  : BaseDatastore[] = lo.clone(recs)
-
-    if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
-      while(models.length) {
-        await this.mGet(rc, ignoreRNF, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
-      }
-      return true
+  public static async mGet(rc : RunContextServer, ignoreRNF : boolean, ...recs : BaseDatastore[] ) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mGet models invalid')
+    const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    while (models.length) {
+      await this.mGetInternal(rc, ignoreRNF, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
     }
-    
+    return true
+  }
+  
+  private static async mGetInternal(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:mget`,
           ack     = rc.startTraceSpan(traceId)
-      
+    let   result  : boolean         = true      
     try {
       const keys : any = []
-      rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mget models invalid')
-
       models.forEach((model : BaseDatastore) => {
         rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore, 'Model:', model, ', is not a valid BaseDataStore Model')
         rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc), 'model id not set', model)
@@ -219,22 +216,20 @@ private getNamespace(rc : RunContextServer) : string {
 
   static async mInsert(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
-
-    const models : BaseDatastore[] = lo.clone(recs)
-    
-    if(models.length > MAX_DS_ITEMS_AT_A_TIME) {
-      while(models.length) {
-        await this.mInsert(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
-      }
-      return true
+    const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    while (models.length) {
+      await this.mInsertInternal(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
     }
+    return true
+  }
+
+  private static async mInsertInternal(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mInsert`,
           ack         = rc.startTraceSpan(traceId),
           transaction = BaseDatastore._datastore.transaction()
   
     try {
       await BaseDatastore.mUniqueInsert(rc, transaction, ...models)
-
       const insertObjects : {key : any, data : any}[] = models.map((mod) => {
         return {
           key  : mod.getDatastoreKey(rc), 
@@ -265,15 +260,10 @@ private getNamespace(rc : RunContextServer) : string {
   public static async mUpdate(rc : RunContextServer, ...recs : BaseDatastore[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
-    let models : BaseDatastore[] = recs
-    if(recs.length > MAX_DS_ITEMS_AT_A_TIME) {
-      models = lo.clone(recs)
-      while(models.length){
-        await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
-      }
-      return true
+    const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    while (models.length) {
+      await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
     }
-    await this.mUpdateInternal(rc , ...recs)
     return true
   }
   
