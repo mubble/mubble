@@ -177,6 +177,7 @@ export abstract class MasterDb extends Dexie {
     } catch(e) {
       const data = {errorMsg: e.message}
       EventSystem.broadcast(rc, "client-error", data)
+      throw new Error(e)
     }
 
   }
