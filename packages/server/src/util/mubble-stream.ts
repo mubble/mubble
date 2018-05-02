@@ -152,7 +152,7 @@ export namespace UStream {
       }
 
       if (chunk instanceof Buffer) {
-        Buffer.concat([this.body as Buffer, chunk])
+        this.body = Buffer.concat([this.body as Buffer, chunk])
       } else {
         this.body += chunk
       }
