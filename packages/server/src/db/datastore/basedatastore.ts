@@ -24,7 +24,8 @@ import * as lo            from 'lodash'
 const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
       MAX_DS_ITEMS_AT_A_TIME : number = 450
 
-export abstract class BaseDatastore {
+export type BASEDATASTORE_PROTECTED_FIELDS  =  'createTs' | 'deleted' | 'modUid' 
+export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
 
   // Common fields in all the tables
   protected _id              : number | string
@@ -40,8 +41,8 @@ export abstract class BaseDatastore {
   private static _namespace  : string
 
   static _datastore          : any
-  static _autoFields         : Array<string> = ['createTs', 'deleted', 'modTs', 'modUid']
-  static _indexedFields      : Array<string> = ['createTs', 'deleted', 'modTs']
+  static _autoFields         : Array<keyof BaseDatastore | BASEDATASTORE_PROTECTED_FIELDS> = ['createTs', 'deleted', 'modTs', 'modUid']
+  static _indexedFields      : Array<keyof BaseDatastore | BASEDATASTORE_PROTECTED_FIELDS> = ['createTs', 'deleted', 'modTs']
 
   constructor(id ?: string | number) {
     if(id) this._id = id
@@ -57,7 +58,7 @@ export abstract class BaseDatastore {
   - Example: 
     return ['mobileNo', 'deactivated']
 ------------------------------------------------------------------------------*/                  
-  abstract getIndexedFields(rc : RunContextServer) : Array<string>
+  abstract getIndexedFields(rc : RunContextServer) : Array<keyof T | BASEDATASTORE_PROTECTED_FIELDS>
 
 /*------------------------------------------------------------------------------
   - Get a list of Fields which need to be checked for Uniqueness across the entire Entity
@@ -139,7 +140,7 @@ private getNamespace(rc : RunContextServer) : string {
   - Get by primary key
 ------------------------------------------------------------------------------*/                  
   protected async get(rc : RunContextServer, id : number | string, ignoreRNF ?: boolean) : Promise<boolean> {
-    const traceId = `${rc.getName(this)}:get`,
+    const traceId = `${rc.getName(this)}:get:${this.constructor.name}`,
           ack     = rc.startTraceSpan(traceId)
 
     try {
@@ -174,13 +175,13 @@ private getNamespace(rc : RunContextServer) : string {
     return true
   }
   
-  private static async mGetInternal(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
-    const traceId = `${rc.getName(this)}:mget`,
+  private static async mGetInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
+    const traceId = `${rc.getName(this)}:mget${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack     = rc.startTraceSpan(traceId)
     let   result  : boolean         = true      
     try {
       const keys : any = []
-      models.forEach((model : BaseDatastore) => {
+      models.forEach((model : T) => {
         rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore, 'Model:', model, ', is not a valid BaseDataStore Model')
         rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc), 'model id not set', model)
 
@@ -199,7 +200,7 @@ private getNamespace(rc : RunContextServer) : string {
         const id : string | number = BaseDatastore.getIdFromResult(rc, entityRecords[i]) 
         // missing model result  are not present as undefined
         // we have to check the matching by id
-        const model : any = models.find((mod : BaseDatastore) => {return mod.getId(rc) === id})
+        const model : any = models.find((mod : T) => {return mod.getId(rc) === id})
         rc.isAssert() && rc.assert(rc.getName(this), model, 'model not found for ', entityRecords[i][BaseDatastore._datastore.KEY])
         model.deserialize(rc , entityRecords[i])
       }
@@ -214,17 +215,17 @@ private getNamespace(rc : RunContextServer) : string {
     return result
   }
 
-  static async mInsert(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...recs : BaseDatastore[]) : Promise<boolean> {
+  static async mInsert<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...recs : T[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
-    const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
       await this.mInsertInternal(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
     }
     return true
   }
 
-  private static async mInsertInternal(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
-    const traceId     = `${rc.getName(this)}:mInsert`,
+  private static async mInsertInternal<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...models : T[]) : Promise<boolean> {
+    const traceId     = `${rc.getName(this)}:mInsert${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack         = rc.startTraceSpan(traceId),
           transaction = BaseDatastore._datastore.transaction()
   
@@ -257,18 +258,18 @@ private getNamespace(rc : RunContextServer) : string {
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   // Blind Update, Not using Transaction: Use with Care! Not checking for Constraints!
   // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  public static async mUpdate(rc : RunContextServer, ...recs : BaseDatastore[] ) : Promise<boolean> {
+  public static async mUpdate<T extends BaseDatastore>(rc : RunContextServer, ...recs : BaseDatastore<T>[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
-    const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    const models : BaseDatastore<T>[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
       await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
     }
     return true
   }
   
-  private static async mUpdateInternal (rc : RunContextServer, ...models : BaseDatastore[] ) : Promise<boolean> {
-    const traceId = `${rc.getName(this)}:mUpdate`,
+  private static async mUpdateInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[] ) : Promise<boolean> {
+    const traceId = `${rc.getName(this)}:mUpdate${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack     = rc.startTraceSpan(traceId)
     
     try {
@@ -289,7 +290,7 @@ private getNamespace(rc : RunContextServer) : string {
     }
   }
 
-  public static async mDelete(rc : RunContextServer, ...models : BaseDatastore[]) : Promise<boolean> {
+  public static async mDelete<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
 
     const traceId     = `${rc.getName(this)}:mDelete`,
@@ -320,7 +321,7 @@ private getNamespace(rc : RunContextServer) : string {
 
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
     // Re-direction to DS Transaction!
-    const traceId     = `${rc.getName(this)} : insert`,
+    const traceId     = `${rc.getName(this)}:insert:${this.constructor.name}`,
           transaction = BaseDatastore.createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
@@ -342,16 +343,16 @@ private getNamespace(rc : RunContextServer) : string {
 /*------------------------------------------------------------------------------
   - Update
 ------------------------------------------------------------------------------*/ 
-  protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore> {
+  protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore<T>> {
     // Re-direction to DS Transaction!
-    const traceId = `${rc.getName(this)}:update`,
+    const traceId = `${rc.getName(this)}:update:${this.constructor.name}`,
           transaction = BaseDatastore.createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     
     try {
       this._id = id
       await transaction.get(rc, this)
-      await transaction.update (rc, this, updRec)
+      await transaction.update (rc, this  , updRec)
       await transaction.commit (rc)
       return this
     } 
@@ -370,11 +371,11 @@ private getNamespace(rc : RunContextServer) : string {
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
   protected async softDelete(rc : RunContextServer, id : number | string, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
-    const traceId = `${rc.getName(this)}:softDelete`,
+    const traceId = `${rc.getName(this)}:softDelete:${this.constructor.name}`,
           transaction = BaseDatastore.createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     try {
-      BaseDatastore.mUniqueDelete (rc, transaction, this)
+      BaseDatastore.mUniqueDelete (rc, transaction, this as BaseDatastore<T>)
 
       // TODO: Need to add the unique Constraint Fields with undefined value to params...
       this.deleted = true
@@ -461,10 +462,10 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  static createQuery(rc : RunContextServer, transaction ?: DSTransaction) : DSQuery | DSTQuery  {
+  static createQuery<T extends BaseDatastore<T>>(rc : RunContextServer, transaction ?: DSTransaction<T>) : DSQuery<T> | DSTQuery<T>  {
     if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
 
-    const model : BaseDatastore = new (this as any)()  
+    const model : T = new (this as any)()  
     
     if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(rc), this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
@@ -473,8 +474,8 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Create Transaction 
 ------------------------------------------------------------------------------*/
-  static createTransaction(rc : RunContextServer) : DSTransaction {
-    const model : BaseDatastore =  new (this as any)()
+  static createTransaction<U extends BaseDatastore<U> = any>(rc : RunContextServer) : DSTransaction<U> {
+    const model : U =  new (this as any)()
     
     return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace(rc), this._kindName)
   }
@@ -488,7 +489,7 @@ isDeleted(rc: RunContextServer) : boolean {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  static async mUniqueInsert(rc : RunContextServer, transaction: any, ...models : BaseDatastore[]) : Promise<boolean> {
+  static async mUniqueInsert<T extends BaseDatastore<T>>(rc : RunContextServer, transaction: any, ...models : T[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Models: ZERO')
 
     const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
@@ -508,7 +509,7 @@ isDeleted(rc: RunContextServer) : boolean {
     return true
   }
 
-  static async mUniqueUpdate(rc : RunContextServer, transaction: any, model: BaseDatastore, ...recs : any[]) : Promise<boolean> {
+  static async mUniqueUpdate<T extends BaseDatastore<T>>(rc : RunContextServer, transaction: any, model: T, ...recs : any[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs) , 'mUnique: Number of Records to be Updated: ZERO')
 
     const uniqueEntities = BaseDatastore.getUniqueEntitiesForUpdate (rc, model, ...recs)
@@ -528,7 +529,7 @@ isDeleted(rc: RunContextServer) : boolean {
     return true
   }
 
-  static mUniqueDelete(rc : RunContextServer, transaction : any, ...models : BaseDatastore[]) : boolean {
+  static mUniqueDelete<T extends BaseDatastore<T>>(rc : RunContextServer, transaction : any, ...models : T[]) : boolean {
     const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
     if(!uniqueEntities || !uniqueEntities.length) return true
 
@@ -537,12 +538,13 @@ isDeleted(rc: RunContextServer) : boolean {
     return true
   }
   
-  private static getUniqueEntities(rc: RunContextServer, ...models : BaseDatastore[]) {
+  private static getUniqueEntities<T extends BaseDatastore<T>>(rc: RunContextServer, ...models : T[]) {
     let entities : {key : any, data : any}[] = []
     for(const model of models) {
-      const uniqueConstraints : any               = model.getUniqueConstraints(rc),
+      
+      const uniqueConstraints                = model.getUniqueConstraints(rc),
             kindName          : string            = (<any>model)._kindName || (model.constructor as any)._kindName,
-            tEntities : {key : any, data : any}[] = lo.flatMap (uniqueConstraints as string[], (prop) => {
+            tEntities : {key : any, data : any}[] = lo.flatMap (uniqueConstraints , (prop) => {
               
               if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
               const value = (model as any)[prop]
@@ -559,7 +561,7 @@ isDeleted(rc: RunContextServer) : boolean {
     return entities
   }
 
-  private static getUniqueEntitiesForUpdate(rc : RunContextServer, model: BaseDatastore, ...updRecs : any[]) {
+  private static getUniqueEntitiesForUpdate<T extends BaseDatastore<T>>(rc : RunContextServer, model: T , ...updRecs : any[]) {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(updRecs) , 'CheckUnique: mUnique models invalid')
     const uniqueConstraints    : any = model.getUniqueConstraints(rc)
     let entities : {key : any, data : any}[] = []
@@ -611,7 +613,7 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Deserialize: Assign the values of the object passed to the respective fields
 ------------------------------------------------------------------------------*/
-  deserialize (rc : RunContextServer, value : any) {
+  deserialize (rc : RunContextServer, value : T) {
     
     if(!this._id) this._id = BaseDatastore.getIdFromResult(rc, value)
 
@@ -619,7 +621,7 @@ isDeleted(rc: RunContextServer) : boolean {
       let val     = value[prop],
           dVal    = (<any>this)[prop]
       
-      if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
+      if (prop.substr(0, 1) === '_' || val === undefined || typeof(val) === 'function' /*val instanceof Function*/) continue
       
       if (dVal && typeof(dVal) === 'object' && dVal.deserialize instanceof Function) {
         (<any>this)[prop] = dVal.deserialize(val)
@@ -628,6 +630,13 @@ isDeleted(rc: RunContextServer) : boolean {
       }
     }
     return this
+  }
+
+  clone(rc : RunContextServer ) : T {
+    const newInstance : T = new (this.constructor as any)(rc)
+    newInstance._id = this._id
+    newInstance.deserialize(rc , this as any)
+    return newInstance
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -640,10 +649,10 @@ isDeleted(rc: RunContextServer) : boolean {
   - The whole model class along with fixed params defined in datastore is
     taken if 'insertRec' is not provided 
 ------------------------------------------------------------------------------*/
-  getInsertRec(rc : RunContextServer, insertTime ?: number, insertRec ?: any) : Array<any> {
+  getInsertRec(rc : RunContextServer, insertTime ?: number, insertRec ?: BaseDatastore<T> | BaseDatastore<T>[]) : Array<any> {
     let retArr : Array<any> = []
         
-    insertRec  = insertRec  || this
+    insertRec  = insertRec  || (this as BaseDatastore<T>)
     insertTime = insertTime || Date.now()
     
     if(Array.isArray(insertRec)) {
@@ -683,18 +692,18 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Serialize is towards Datastore. Need to convert it to Data format
 ------------------------------------------------------------------------------*/
-  private serialize(rc : RunContextServer, value : any) : Array<{name : string, value : any, excludeFromIndexes : boolean}> { 
+  private serialize(rc : RunContextServer, value : BaseDatastore<T>) : Array<{name : string, value : any, excludeFromIndexes : boolean}> { 
     const rec = []
 
     for(let prop in value) { 
-      const indexedFields = BaseDatastore._indexedFields.concat(this.getIndexedFields(rc))
-      let   val           = value[prop]
+      const indexedFields = [...BaseDatastore._indexedFields , ...this.getIndexedFields(rc)] 
+      let   val           = (value as any)[prop]
 
       if (prop.substr(0, 1) === '_' || val === undefined || val instanceof Function) continue
       if (val && typeof(val) === 'object' && val.serialize instanceof Function)
         val = val.serialize(rc)
 
-      rec.push({ name: prop, value: val, excludeFromIndexes: (indexedFields.indexOf(prop) === -1)})
+      rec.push({ name: prop, value: val, excludeFromIndexes: (indexedFields.indexOf(prop as any) === -1)})
     }
     return rec
   }

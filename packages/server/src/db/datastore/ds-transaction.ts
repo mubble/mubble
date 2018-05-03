@@ -16,7 +16,7 @@ import {BaseDatastore}                           from './basedatastore'
 import {RunContextServer}                        from '../../rc-server'
 import * as lo                                   from 'lodash'
 
-export class DSTransaction {
+export class DSTransaction<T extends BaseDatastore<T> = any> {
 
   private _transaction : any
   private _namespace   : string
@@ -44,7 +44,7 @@ export class DSTransaction {
 /*------------------------------------------------------------------------------
   - Get an id, which can be assigned to a entity before insert
 ------------------------------------------------------------------------------*/ 
-  async getIdFromTransaction(rc : RunContextServer, model : any, parentKey ?: any) : Promise<number> {
+  async getIdFromTransaction(rc : RunContextServer, model : T , parentKey ?: any) : Promise<number> {
     const datastoreKey = model.getDatastoreKey(rc, null, false, parentKey),
           key          = await this._transaction.allocateIds(datastoreKey, 1) 
 
@@ -115,11 +115,12 @@ export class DSTransaction {
 /*------------------------------------------------------------------------------
   - Get with Transaction
 ------------------------------------------------------------------------------*/
-  async get(rc : RunContextServer, model : any, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
+  async get(rc : RunContextServer, model : T , ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
     const traceId = rc.getName(this) + ':' + 'transaction_get_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
 
     try {
+      
       const mId      : string | number = model.getId(rc),
             kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
@@ -148,7 +149,7 @@ export class DSTransaction {
 
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mGet models invalid ')
 
-    models.forEach((model : BaseDatastore) => {
+    models.forEach((model : T) => {
       rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore, 'model:', model, ', is not a valid BaseDataStore Model')
       rc.isAssert() && rc.assert(rc.getName(this), model.getId(rc), 'model id not set',model)
       
@@ -167,7 +168,7 @@ export class DSTransaction {
       const id : string | number = BaseDatastore.getIdFromResult(rc , entityRecord) 
       // missing model result  are not present as undefined
       // we have to check the matching by id
-      let model : any = models.find((mod : BaseDatastore)=> {
+      let model : any = models.find((mod : T)=> {
         return mod.getId(rc) === id
       })
       rc.isAssert() && rc.assert(rc.getName(this), model, 'model not found for ', entityRecord[BaseDatastore._datastore.KEY])
@@ -179,7 +180,7 @@ export class DSTransaction {
 /*------------------------------------------------------------------------------
   - Insert with Transaction
 ------------------------------------------------------------------------------*/
-  async insert(rc : RunContextServer, model : any, parentKey ?: any, insertTime ?: number) : Promise<void> {
+  async insert(rc : RunContextServer, model : T , parentKey ?: any, insertTime ?: number) : Promise<void> {
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
     
@@ -191,7 +192,7 @@ export class DSTransaction {
 /*------------------------------------------------------------------------------
   - Update with Transaction. [Unique Check will only happen if updRec is passed]
 ------------------------------------------------------------------------------*/
-  async update(rc : RunContextServer, model : BaseDatastore, updRec ?: any, parentKey ?: any) : Promise<void> {
+  async update(rc : RunContextServer, model : T , updRec ?: any, parentKey ?: any) : Promise<void> {
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
     
@@ -223,7 +224,7 @@ export class DSTransaction {
 /*------------------------------------------------------------------------------
   - Delete with Transaction
 ------------------------------------------------------------------------------*/
-  delete(rc : RunContextServer, model : BaseDatastore, parentKey ?: any) : void {
+  delete(rc : RunContextServer, model : T , parentKey ?: any) : void {
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 

@@ -13,9 +13,10 @@ import {
         DSError
        }                  from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
-import {BaseDatastore}    from './basedatastore'
+import {BaseDatastore , 
+        BASEDATASTORE_PROTECTED_FIELDS}    from './basedatastore'
 
-export class DSQuery {
+export class DSQuery<T extends BaseDatastore<T>> {
 
   private _query    : any
   private model     : any
@@ -31,7 +32,7 @@ export class DSQuery {
     this._query    = this.datastore.createQuery(this.namespace, this.kindName)
   }
 
-  async run(rc : RunContextServer) : Promise<any> {
+  async run(rc : RunContextServer) : Promise<[T[], any] | undefined> {
     const traceId : string = rc.getName(this)+':'+ this.kindName,
           ack = rc.startTraceSpan(traceId)
     let res : any
@@ -52,7 +53,7 @@ export class DSQuery {
     return res
   }
 
-  async runCursorTillNoMoreResults<T extends BaseDatastore> (rc : RunContextServer) : Promise<T[]>{
+  async runCursorTillNoMoreResults(rc : RunContextServer) : Promise<T[]>{
 
     let items : T[] = [] ,
         results  = await this.runCursor(rc)
@@ -70,7 +71,7 @@ export class DSQuery {
     return items
   }
 
-  filter(key : string, value : any, symbol ?: string) : DSQuery {
+  filter(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , value : T[keyof T] | number| boolean , symbol ?: string) : DSQuery<T> {
     if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + key)
     if(value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD + ' Filter key:' + key)
     if(!symbol) symbol = '='
@@ -78,7 +79,7 @@ export class DSQuery {
     return this
   }
 
-  multiFilter(keyPairs : Array<{key : string, value : any, symbol ?: string}>) : DSQuery {
+  multiFilter(keyPairs : Array<{key : string, value : any, symbol ?: string}>) : DSQuery<T> {
     for(const filter of keyPairs) {
       if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + filter.key)
       if(filter.value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD+ ' Filter key:'+ filter.key)
@@ -87,14 +88,14 @@ export class DSQuery {
     return this
   }
 
-  order(key : string, descending ?: boolean) : DSQuery {
+  order(key : string, descending ?: boolean) : DSQuery<T> {
     if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + key)
     if (!descending) this._query = this._query.order(key)
     else this._query = this._query.order(key, { descending: true })
     return this
   }
 
-  multiOrder(keyPairs: Array<{key : string, descending : boolean}>) : DSQuery {
+  multiOrder(keyPairs: Array<{key : string, descending : boolean}>) : DSQuery<T> {
     for(let filter of keyPairs) {
       if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + filter.key)
       if (!filter.descending) this._query = this._query.order(filter.key)
@@ -103,32 +104,32 @@ export class DSQuery {
     return this
   }
 
-  hasAncestor(key : any) : DSQuery {
+  hasAncestor(key : any) : DSQuery<T> {
     this._query = this._query.hasAncestor(key)
     return this
   }
 
-  limit(val : number) : DSQuery {
+  limit(val : number) : DSQuery<T> {
     this._query = this._query.limit(val)
     return this
   }
   
-  groupBy(val : string) : DSQuery {
+  groupBy(val : string) : DSQuery<T> {
     if(this.indexed.indexOf(val) == -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' GroupBy key:' + val)
     this._query = this._query.groupBy(val)
     return this
   }
 
-  select(val : Array<string>) : DSQuery {
+  select(val : Array<string>) : DSQuery<T> {
     this._query = this._query.select(val)
     return this
   }
 
-  async mQueryOr(rc : RunContextServer, key : string, values : Array<any>) : Promise<BaseDatastore[]> {
+  async mQueryOr(rc : RunContextServer, key : keyof T , values : Array<any>) : Promise<T[]> {
     const traceId : string                = rc.getName(this) + ':' + 'mQueryOr',
           ack     : any                   = rc.startTraceSpan(traceId),
-          queries : Array<DSQuery>        = [],
-          models  : Array<BaseDatastore>  = []
+          queries : Array<DSQuery<T>>        = [],
+          models  : Array<T>  = []
 
     try {
       for(const value of values) {
@@ -144,7 +145,7 @@ export class DSQuery {
                 len      = entities.length
           
           for(let i = 0; i < len; i++) {
-            const model = new (BaseDatastore as any)()
+            const model : T = new (BaseDatastore as any)()
             model.deserialize(rc, entities.pop())
 
             models.push(model)
