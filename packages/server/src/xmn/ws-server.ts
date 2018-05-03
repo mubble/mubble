@@ -53,6 +53,10 @@ export class WsServer {
     this.timerPing = setInterval(this.cbTimerPing.bind(this), PING_FREQUENCY_MS)
   }
 
+  public getTimerHandler(rc : RunContextServer) {
+    return this.timerPing
+  }
+
   async onConnection(socket : any) {
 
     try {

@@ -45,7 +45,7 @@ export class DSQuery<T extends BaseDatastore<T>> {
     }
     
 
-  async runCursor(rc : RunContextServer, pageCursor ?: string) : Promise<any> {
+  async runCursor(rc : RunContextServer, pageCursor ?: string) : Promise<[T[], {moreResults ?: any , endCursor ?:any}] | null> {
     if(pageCursor) {
       this._query = this._query.start(pageCursor)
     }
@@ -63,7 +63,7 @@ export class DSQuery<T extends BaseDatastore<T>> {
       info                 = results[1]
       items = items.concat(msgs)
       
-      results = null
+      results = null as any
       if(info.moreResults !== BaseDatastore._datastore.NO_MORE_RESULTS)
         results = await this.runCursor(rc, info.endCursor)
     }    
@@ -79,7 +79,7 @@ export class DSQuery<T extends BaseDatastore<T>> {
     return this
   }
 
-  multiFilter(keyPairs : Array<{key : string, value : any, symbol ?: string}>) : DSQuery<T> {
+  multiFilter(keyPairs : Array<{key : keyof T, value : T[keyof T] | number| boolean , symbol ?: string}>) : DSQuery<T> {
     for(const filter of keyPairs) {
       if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + filter.key)
       if(filter.value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD+ ' Filter key:'+ filter.key)
@@ -88,14 +88,14 @@ export class DSQuery<T extends BaseDatastore<T>> {
     return this
   }
 
-  order(key : string, descending ?: boolean) : DSQuery<T> {
+  order(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , descending ?: boolean) : DSQuery<T> {
     if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + key)
     if (!descending) this._query = this._query.order(key)
     else this._query = this._query.order(key, { descending: true })
     return this
   }
 
-  multiOrder(keyPairs: Array<{key : string, descending : boolean}>) : DSQuery<T> {
+  multiOrder(keyPairs: Array<{key : keyof T , descending : boolean}>) : DSQuery<T> {
     for(let filter of keyPairs) {
       if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + filter.key)
       if (!filter.descending) this._query = this._query.order(filter.key)
@@ -114,18 +114,18 @@ export class DSQuery<T extends BaseDatastore<T>> {
     return this
   }
   
-  groupBy(val : string) : DSQuery<T> {
+  groupBy(val : keyof T) : DSQuery<T> {
     if(this.indexed.indexOf(val) == -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' GroupBy key:' + val)
     this._query = this._query.groupBy(val)
     return this
   }
 
-  select(val : Array<string>) : DSQuery<T> {
+  select(val : Array<keyof T>) : DSQuery<T> {
     this._query = this._query.select(val)
     return this
   }
 
-  async mQueryOr(rc : RunContextServer, key : keyof T , values : Array<any>) : Promise<T[]> {
+  async mQueryOr(rc : RunContextServer, key : keyof T , values : Array<T[keyof T]>) : Promise<T[]> {
     const traceId : string                = rc.getName(this) + ':' + 'mQueryOr',
           ack     : any                   = rc.startTraceSpan(traceId),
           queries : Array<DSQuery<T>>        = [],

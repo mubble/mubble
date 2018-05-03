@@ -26,7 +26,7 @@ export class DSTQuery<T extends BaseDatastore<T>> {
     return res
   }
 
-  async runCursor(rc : RunContextServer, pageCursor ?: string) : Promise<any> {
+  async runCursor(rc : RunContextServer, pageCursor ?: string) : Promise<[T[], {moreResults ?: any , endCursor ?:any}] | null> {
     if(pageCursor) {
       this._tQuery = this._tQuery.start(pageCursor)
     }
@@ -49,7 +49,7 @@ export class DSTQuery<T extends BaseDatastore<T>> {
     return this
   }
 
-  order(key : string, descending ?: boolean) : DSTQuery<T> {
+  order(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , descending ?: boolean) : DSTQuery<T> {
     if (!descending) this._tQuery = this._tQuery.order(key)
     else this._tQuery = this._tQuery.order(key, { descending: true })
     return this
@@ -73,12 +73,12 @@ export class DSTQuery<T extends BaseDatastore<T>> {
     return this
   }
   
-  groupBy(val : string) : DSTQuery<T> {
+  groupBy(val : keyof T) : DSTQuery<T> {
     this._tQuery = this._tQuery.groupBy(val)
     return this
   }
 
-  select(val : Array<string>) : DSTQuery<T> {
+  select(val : Array<keyof T>) : DSTQuery<T> {
     this._tQuery = this._tQuery.select(val)
     return this
   }

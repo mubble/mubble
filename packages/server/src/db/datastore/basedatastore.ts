@@ -20,12 +20,13 @@ import {DSTQuery}         from './dst-query'
 import {DSTransaction}    from './ds-transaction'
 import {RunContextServer} from '../../rc-server'
 import * as lo            from 'lodash'
+import { Mubble } from '@mubble/core';
 
 const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
       MAX_DS_ITEMS_AT_A_TIME : number = 450
 
 export type BASEDATASTORE_PROTECTED_FIELDS  =  'createTs' | 'deleted' | 'modUid' 
-export abstract class BaseDatastore<T extends BaseDatastore = any> {
+export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
 
   // Common fields in all the tables
   protected _id              : number | string
@@ -343,7 +344,7 @@ private getNamespace(rc : RunContextServer) : string {
 /*------------------------------------------------------------------------------
   - Update
 ------------------------------------------------------------------------------*/ 
-  protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore<T>> {
+  protected async update(rc : RunContextServer, id : number | string, updRec : Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<BaseDatastore<T>> {
     // Re-direction to DS Transaction!
     const traceId = `${rc.getName(this)}:update:${this.constructor.name}`,
           transaction = BaseDatastore.createTransaction(rc),
@@ -370,7 +371,7 @@ private getNamespace(rc : RunContextServer) : string {
   - The unique param is deleted, if set
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
-  protected async softDelete(rc : RunContextServer, id : number | string, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
+  protected async softDelete(rc : RunContextServer, id : number | string, params ?: Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:softDelete:${this.constructor.name}`,
           transaction = BaseDatastore.createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
