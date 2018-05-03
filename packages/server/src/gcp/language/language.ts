@@ -55,8 +55,9 @@ export class GcpLanguageBase {
   static _language   : any
   static _translate  : any
 
-  private static MAX_TRANS_LENGTH   = 600
-  private static LANG_DET_THRESHOLD = 75
+  private static MAX_TRANS_LENGTH       = 600
+  private static LANG_DET_THRESHOLD     = 75
+  private static MIN_NUM_CLASSIFY_WORDS = 20
 
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,11 +83,12 @@ export class GcpLanguageBase {
     }
   }
 
-  static async classifyText (rc: RunContextServer, text: string) {
+  static async classifyText (rc: RunContextServer, text: string, wordCount ?: number) {
     const document = { 
       content: text, 
       type: 'PLAIN_TEXT'
     }
+    if (wordCount && wordCount > 0 && wordCount < this.MIN_NUM_CLASSIFY_WORDS) return [{name: '/Other', confidence: 0.25}]
     return this.classifyInternal (rc, 'Text:' + text.length, document)
   }
 
@@ -164,14 +166,15 @@ export class GcpLanguageBase {
   
   private static async classifyInternal (rc : RunContextServer, tag: string, document: any) : Promise<Array<GcpTopicInfo>> {
     try {
-      const res   =  await this._language.classifyText ({document: document}) 
+      const res   =  await this._language.classifyText ({document: document})
       rc.isDebug() && rc.debug (rc.getName (this), 'Topics ['+ tag + ']=', JSON.stringify (res[0].categories))
       if (res[0].categories.length === 0) return [{name: '/Other', confidence: 0.95}]
       return res[0].categories
     }
     catch (e) {
-      rc.isWarn () && rc.warn (rc.getName (this), 'Error ['+ tag + ']:', e)
-      return [{name: '/Other', confidence: 0.95}]
+      if (e.toString().match(/too few tokens/)) rc.isWarn () && rc.warn (rc.getName (this), 'Error ['+ tag + ']:', 'Too Few Words for Classification')
+      else rc.isWarn () && rc.warn (rc.getName (this), 'Error ['+ tag + ']:', e)
+      return [{name: '/Other', confidence: 0.50}]
     }
   }
 
