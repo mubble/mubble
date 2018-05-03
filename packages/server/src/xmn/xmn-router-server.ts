@@ -272,25 +272,13 @@ export abstract class XmnRouterServer {
 
   upgradeClientIdentity(rc   : RunContextServer, 
                         ci   : ConnectionInfo, 
-                        data : Mubble.uObject<string|number> , invData: InvocationData) {
+                        data : Mubble.uChildObject<ClientIdentity> , invData: InvocationData) {
     
     rc.isAssert() && rc.assert(rc.getName(this), ci.clientIdentity)
-    let updated = false
-
-    for (const key in data) {
-
-      const val = (data as any)[key]
-      // This check is not rquired now
-      rc.isAssert() && rc.assert(rc.getName(this), typeof(val) === 'string' || typeof(val) === 'number')
-      const oldVal : Mubble.uObject<any> = ci.clientIdentity
-
-      if (val != oldVal[key]) {
-        oldVal[key] = val
-        updated = true
-      }
-    }
+    let updated = !lo.isEqual(data , lo.pick(ci.clientIdentity , Object.keys(data)))
 
     if (updated) {
+      lo.assign(ci.clientIdentity , data)
       this.insertIntoPiggyfrontMap(rc, 
         new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.clientIdentity), 
         invData)

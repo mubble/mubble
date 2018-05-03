@@ -25,7 +25,7 @@ const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
       MAX_DS_ITEMS_AT_A_TIME : number = 450
 
 export type BASEDATASTORE_PROTECTED_FIELDS  =  'createTs' | 'deleted' | 'modUid' 
-export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
+export abstract class BaseDatastore<T extends BaseDatastore = any> {
 
   // Common fields in all the tables
   protected _id              : number | string
@@ -67,7 +67,7 @@ export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
   - Example: 
     return ['mobileNo', 'emailId']
 ------------------------------------------------------------------------------*/                  
-  abstract getUniqueConstraints(rc : RunContextServer) : Array<string>
+  abstract getUniqueConstraints(rc : RunContextServer) : Array<keyof T>
 
 /*------------------------------------------------------------------------------
   - Get a list of Fields which need to be checked for Uniqueness. 
@@ -672,8 +672,8 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Records are to be converted to a format accepted by datastore
 ------------------------------------------------------------------------------*/
-  getUpdateRec(rc : RunContextServer, updateRec ?: any, updateTime ?: number) : Array<any> {
-    let retArr : Array<any> = []
+  getUpdateRec(rc : RunContextServer, updateRec ?: BaseDatastore<T> | BaseDatastore<T> [], updateTime ?: number) : Array<any> {
+    let retArr : Array<{name : string, value : any, excludeFromIndexes : boolean}> = []
         
     if (!updateRec) updateRec = this
     

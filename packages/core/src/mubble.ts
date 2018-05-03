@@ -11,6 +11,11 @@ export namespace Mubble {
 
   export type uObject<T> = Object & {[name: string]: T}
 
+  /* An object which has (optional) fields of the given type. 
+    Useful as datastore update Object of given type 
+  */
+  export type uChildObject<T> = {[name in keyof T] ?: T[name]}
+
   export const Lang = {
     English : 'en',
     Hindi   : 'hi',
