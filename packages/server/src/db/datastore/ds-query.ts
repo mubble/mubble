@@ -14,7 +14,8 @@ import {
        }                  from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {BaseDatastore , 
-        BASEDATASTORE_PROTECTED_FIELDS}    from './basedatastore'
+        BASEDATASTORE_PROTECTED_FIELDS , 
+        DATASTORE_COMPARISON_SYMBOL}    from './basedatastore'
 
 export class DSQuery<T extends BaseDatastore<T>> {
 
@@ -71,7 +72,7 @@ export class DSQuery<T extends BaseDatastore<T>> {
     return items
   }
 
-  filter(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , value : T[keyof T] | number| boolean , symbol ?: string) : DSQuery<T> {
+  filter(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , value : T[keyof T] | number| boolean , symbol ?: DATASTORE_COMPARISON_SYMBOL) : DSQuery<T> {
     if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + key)
     if(value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD + ' Filter key:' + key)
     if(!symbol) symbol = '='
@@ -79,7 +80,7 @@ export class DSQuery<T extends BaseDatastore<T>> {
     return this
   }
 
-  multiFilter(keyPairs : Array<{key : keyof T, value : T[keyof T] | number| boolean , symbol ?: string}>) : DSQuery<T> {
+  multiFilter(keyPairs : Array<{key : keyof T, value : T[keyof T] | number| boolean , symbol ?: DATASTORE_COMPARISON_SYMBOL}>) : DSQuery<T> {
     for(const filter of keyPairs) {
       if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + filter.key)
       if(filter.value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD+ ' Filter key:'+ filter.key)

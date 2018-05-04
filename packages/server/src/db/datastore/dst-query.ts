@@ -11,7 +11,8 @@ import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
 import {GcloudEnv}        from '../../gcp/gcloud-env'
 import { BaseDatastore , 
-  BASEDATASTORE_PROTECTED_FIELDS } from './basedatastore'
+  BASEDATASTORE_PROTECTED_FIELDS,
+  DATASTORE_COMPARISON_SYMBOL } from './basedatastore'
 
 export class DSTQuery<T extends BaseDatastore<T>> {
 
@@ -34,14 +35,14 @@ export class DSTQuery<T extends BaseDatastore<T>> {
     return res
   }
 
-  filter(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , value : T[keyof T] | number| boolean , symbol ?: string) : DSTQuery<T> {
+  filter(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , value : T[keyof T] | number| boolean , symbol ?: DATASTORE_COMPARISON_SYMBOL) : DSTQuery<T> {
     if(value === undefined) throw(ERROR_CODES.UNDEFINED_QUERY_FIELD, 'Filter key:', key)
     if(!symbol) symbol = '='
     this._tQuery = this._tQuery.filter(key, symbol, value)
     return this
   }
 
-  multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: string}}>) : DSTQuery<T> {
+  multiFilter(keyPairs: Array<{[index : string] : {key : string, value : any, symbol ?: DATASTORE_COMPARISON_SYMBOL}}>) : DSTQuery<T> {
     for(let filter of keyPairs) {
       if(filter.value === undefined) throw(ERROR_CODES.UNDEFINED_QUERY_FIELD, 'Filter key:', filter.key)
       this._tQuery = this._tQuery.filter(filter.key, filter.symbol || '=', filter.value)

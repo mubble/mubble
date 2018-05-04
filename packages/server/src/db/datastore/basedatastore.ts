@@ -26,6 +26,7 @@ const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
       MAX_DS_ITEMS_AT_A_TIME : number = 450
 
 export type BASEDATASTORE_PROTECTED_FIELDS  =  'createTs' | 'deleted' | 'modUid' 
+export type DATASTORE_COMPARISON_SYMBOL = '=' | '<' | '>' | '<=' |  '>='
 export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
 
   // Common fields in all the tables
