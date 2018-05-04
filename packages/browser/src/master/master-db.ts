@@ -158,20 +158,28 @@ export abstract class MasterDb extends Dexie {
 
   private async onMasterUpdate(rc:RunContextBrowser, eventName: string, data: any) {
 
-    const syncResponse:SyncResponse = data
+    try {
+      const syncResponse:SyncResponse = data
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'onMasterUpdate', JSON.stringify(syncResponse))
-    let updated = false
+      rc.isDebug() && rc.debug(rc.getName(this), 'onMasterUpdate', JSON.stringify(syncResponse))
+      let updated = false
 
-    for (const modelName of Object.keys(syncResponse)) {
+      for (const modelName of Object.keys(syncResponse)) {
 
-      if (!(syncResponse as object).hasOwnProperty(modelName)) continue
-      const modelData: SyncModelResponse = syncResponse[modelName]
+        if (!(syncResponse as object).hasOwnProperty(modelName)) continue
+        const modelData: SyncModelResponse = syncResponse[modelName]
 
-      if (await this.applyMasterData(rc, modelName, modelData)) updated = true
+        if (await this.applyMasterData(rc, modelName, modelData)) updated = true
+      }
+
+      if (updated) await this.afterMasterUpdate(rc)
+
+    } catch(e) {
+      const data = {errorMsg: e.message}
+      EventSystem.broadcast(rc, "client-error", data)
+      throw new Error(e)
     }
 
-    if (updated) await this.afterMasterUpdate(rc)
   }
 
   private async applyMasterData(rc: RunContextBrowser, modelName: string, modelData: SyncModelResponse): Promise<boolean> {
