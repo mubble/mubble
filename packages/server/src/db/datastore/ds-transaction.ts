@@ -96,8 +96,12 @@ export class DSTransaction {
     const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
     try {
-      await this._transaction.rollback()
-    } finally {
+      const resp = await this._transaction.rollback()
+    } 
+    catch (err) {
+      rc.isWarn() && rc.warn (rc.getName (this), 'Ignoring Rollback Error:', !!this._transaction, err)
+    } 
+    finally {
       rc.endTraceSpan(traceId, ack)
       rc.endTraceSpan(this.traceId, this.ack)
     }
@@ -184,8 +188,9 @@ export class DSTransaction {
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
     
     model.setId(id)
-    await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
-    this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
+      await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
+      this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
+    
   }
 
 /*------------------------------------------------------------------------------
