@@ -41,8 +41,9 @@ import {  query,
 import * as $                   from 'jquery'
 import { Mubble }               from '@mubble/core'
 
-const STATE             = {HALF: 'HALF', FULL: 'FULL'},
-      ROUTE_ANIM_MS     = 400,
+export const STATE      = {HALF: 'HALF', FULL: 'FULL'}
+
+const ROUTE_ANIM_MS     = 400,
       PAN_ANIM_MS       = '300ms',
       QUICK_ANIM_MS     = DomHelper.getQuickAnim(),
       COMMIT_RATIO      = 1 / 3,
@@ -157,12 +158,17 @@ export class BottomInComponent extends InjectionParentBase implements
 
     super.onRouterInit(params, this.injectAt, false)
 
-    this.title          = this.injectedComponent.getTitle()
-
+    this.title     = this.injectedComponent.getTitle()
     let halfHeight = this.injectedComponent.getHalfHeight()
 
-    if (halfHeight) {
+    if (this.injectedComponent.getDefaultState) {
+      this.state = this.injectedComponent.getDefaultState()
+    }
 
+    if (this.state === STATE.FULL) {
+      halfHeight = document.body.clientHeight
+
+    } else if (halfHeight) {
       if (halfHeight > document.body.clientHeight) {
         this.rc.isError() && this.rc.error(this.rc.getName(this), 'Half height passed is incorrect', 
           {halfHeight, clientHeight: document.body.clientHeight})
@@ -170,6 +176,7 @@ export class BottomInComponent extends InjectionParentBase implements
       }
 
       this.top = document.body.clientHeight - halfHeight
+
     } else {
       this.allowFullPage = false
     }
@@ -179,7 +186,6 @@ export class BottomInComponent extends InjectionParentBase implements
 
     // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'ngAfterViewInit')
 
-    this.state      = STATE.HALF
     this.panYMax    = document.body.clientHeight
 
     const $compCont    = $(this.compContainer.nativeElement),

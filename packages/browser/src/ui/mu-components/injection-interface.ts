@@ -6,7 +6,6 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-
 export const INJECTION_PARAM = {
   CALLER  : 'caller',
   INJECT  : 'inject'
@@ -29,8 +28,9 @@ export interface InjectedChild {
 }
 
 export interface BottomInInterface extends InjectedChild {
-  getHalfHeight()            : number
+  getHalfHeight()     : number
   getTitle()          : string
+  getDefaultState?()  : any
 }
 
 export interface ModalInterface extends InjectedChild {
