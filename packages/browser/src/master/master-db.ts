@@ -45,6 +45,8 @@ export type VersionSchema = {
   upgrade     ?: () => void
 }
 
+(Dexie as any).debug = true 
+
 export abstract class MasterDb extends Dexie {
 
   static schemaKey    : Mubble.uObject<Mubble.uObject<ModelField>> = {}
@@ -218,18 +220,50 @@ export abstract class MasterDb extends Dexie {
 
   }
 
+//   private async bulkPut(rc: RunContextBrowser, modelName: string, arMod: object[]) {
+
+//     const modelTable = this.getTable(rc, modelName)
+
+//     try {
+//       await this.transaction('rw', modelTable, async() => {
+//       for (const modelRec of arMod) {
+//         const rec = this.buildFullRec(rc, modelName, modelRec)
+//         rc.isDebug() && rc.debug(rc.getName(this), 'going to put', rec)
+//           await modelTable.put(rec)
+//       }
+//     })
+//   } catch (err) {
+//     const x = JSON.stringify(arMod)
+//     console.log('bombed while writing', x.length, 'bytes')
+//     console.log(x)
+//     console.log('Dexie error stack', err.stack)
+//     throw(err)
+//   }
+
+//   console.log('wrote', JSON.stringify(arMod).length, 'bytes successfully')
+// }
+
   private async bulkPut(rc: RunContextBrowser, modelName: string, arMod: object[]) {
 
     const modelTable = this.getTable(rc, modelName)
 
-    await this.transaction('rw', modelTable, async() => {
-      for (const modelRec of arMod) {
-        const rec = this.buildFullRec(rc, modelName, modelRec)
-        rc.isDebug() && rc.debug(rc.getName(this), 'going to put', rec)
+    for (const modelRec of arMod) {
+      const rec = this.buildFullRec(rc, modelName, modelRec)
+      rc.isDebug() && rc.debug(rc.getName(this), 'going to put with debug ', rec)
+      try {
         await modelTable.put(rec)
+      } catch (err) {
+        const x = JSON.stringify(arMod)
+        console.log('bombed while writing', x.length, 'bytes')
+        console.log(x)
+        console.log('Dexie error stack', err.stack)
+        throw(err)
       }
-    })
+    }
+    console.log('wrote', JSON.stringify(arMod).length, 'bytes successfully')
   }
+
+
 
   private buildKeyRec(rc: RunContextBrowser, modelName: string, rec: Object) {
 

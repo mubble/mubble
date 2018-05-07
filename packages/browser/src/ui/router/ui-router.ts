@@ -301,13 +301,18 @@ export class UiRouter {
   }
 
   public goBack(whereOrByHowMuch ?: string | number) {
+    if (!this.canGoBack()) return
+    return this.goBackInternal(whereOrByHowMuch)
+  }
+
+  public goBackInternal(whereOrByHowMuch ?: string | number) {
     const stackLen = this.urlStack.length
 
     let index = typeof whereOrByHowMuch === 'number' ? stackLen + whereOrByHowMuch - 1 : stackLen - 2,
         where = typeof whereOrByHowMuch === 'string' ? whereOrByHowMuch : ''
 
-    this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), index >= 0 && index < stackLen, 
-      {stackLen, whereOrByHowMuch, where, index})
+    this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), 
+      index >= 0 && index < stackLen, {stackLen, whereOrByHowMuch, where, index})
 
     if (where) {
       if (!where.startsWith('/')) where = '/' + where
@@ -315,7 +320,8 @@ export class UiRouter {
         if (this.urlStack[index].url.startsWith(where)) break
       }
       if (index === - 1) {
-        this.rcBrowser.isError() && this.rcBrowser.error(this.rcBrowser.getName(this), 'Could not find the desired url:', where, this.urlStack)
+        this.rcBrowser.isError() && this.rcBrowser.error(this.rcBrowser.getName(this), 
+          'Could not find the desired url:', where, this.urlStack)
         throw(new Error('Could not find the desired url: ' + where))
       }
     }
@@ -336,12 +342,12 @@ export class UiRouter {
     History Stack management
   --------------------------------------------------------------------------------------------------------------*/
   
-  private onPopState(e) {
+  public onPopState(e) {
 
     const index     = this.historyWrapper.getState().index,
           stackLen  = this.urlStack.length
 
-    this.rcBrowser.isDebug() && this.rcBrowser.debug('onPopState', {stackLen, index})
+    this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'onPopState', {stackLen, index})
 
     this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), typeof index === 'number' && 
       index < (stackLen - 1), {stackLen, index})
@@ -350,7 +356,8 @@ export class UiRouter {
 
       if (!this.codePop) {
         if (this.warnedUser) {
-          this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'onPopState: Exiting the app', this.historyWrapper.getLength())
+          this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
+            'onPopState: Exiting the app', this.historyWrapper.getLength())
           this.notifyAppClose()
           
           if (!this.runningInBrowser) this.notifyAppClose() 
@@ -360,12 +367,14 @@ export class UiRouter {
         } else {
           this.notifyUserBackPress()
           this.warnedUser = true
+          console.log('notified')
         }
       } else {
         this.codePop = false
       }
 
-      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'onPopState: Winding up stack on back to first item')
+      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
+        'onPopState: Winding up stack on back to first item')
 
       for (let i = 0; i < stackLen; i++) {
         this.browserStack[i] = this.urlStack[i].url
@@ -375,10 +384,35 @@ export class UiRouter {
 
     } else {
 
-      const goBackBy = index - stackLen + 1
-      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'onPopState: Going back by', {index, goBackBy})
+      if (!this.canGoBack()) {
+        const lastIdx  = this.urlStack.length - 1,
+        lastItem = this.urlStack[lastIdx]
+        this.historyWrapper.pushState({index: lastIdx}, '', '/#' + lastItem.url)
+        return
+      }
 
-      this.goBack(goBackBy)
+      const goBackBy = index - stackLen + 1
+      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
+        'onPopState: Going back by', {index, goBackBy})
+
+      this.goBackInternal(goBackBy)
+    }
+  }
+
+  private canGoBack() {
+    const lastIdx  = this.urlStack.length - 1,
+          lastItem = this.urlStack[lastIdx]
+    if (!lastItem) return true
+    const comp = this.curCompMap[lastItem.outlet]
+    if (!comp || !comp.component.canGoBack) return true
+    if (!comp.component.canGoBack()) {
+      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
+        'Skipping back as component dis-allowed back press')
+      return false
+    } else {
+      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
+        'Going back as component allowed back press')
+      return true
     }
   }
 
@@ -584,16 +618,30 @@ class HistoryWrapper {
   }
 
   pushState(state: Mubble.uObject<any>, title: string, url: string) {
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'pushState', {length: history.length, state: history.state})
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before pushState', {
+      historyLength : history.length, 
+      historyState  : history.state,
+      newState      : state
+    })
     history.pushState(state, title, url)
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'pushedState', {length: history.length, state})
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'after pushState', {
+      historyLength : history.length, 
+      historyState  : history.state
+    })
   }
 
   replaceState(state: Mubble.uObject<any>, title: string, url: string) {
 
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'replaceState', {length: history.length, state: history.state})
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before replaceState', {
+      historyLength : history.length, 
+      historyState  : history.state,
+      newState      : state
+    })
     history.replaceState(state, title, url)
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'replacedState', {length: history.length, state})
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'after replaceState', {
+      historyLength : history.length, 
+      historyState  : history.state
+    })
   }
 
   go(delta: number) {
