@@ -333,7 +333,6 @@ private getNamespace(rc : RunContextServer) : string {
     } catch(err) {
       if(err.name !== ERROR_CODES.UNIQUE_KEY_EXISTS) {
         rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-        err = new Error(ERROR_CODES.GCP_ERROR)
       }
       await transaction.rollback (rc)
       throw err

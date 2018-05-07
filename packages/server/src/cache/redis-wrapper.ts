@@ -64,6 +64,7 @@ export class RedisCmds {
   zadd      (key : string , option : string , ...scoreValuePairs : any[]) : Promise<number> { return true as any }
   zrem      (key : string , ...keys : string[]) : Promise<void> { return true as any }
   zcount    (key : string , start : string , end : string) : Promise<number> { return true as any }
+  zlexcount (key : string , start : string , end : string) : Promise<number> { return true as any }
   zcard     (key: string) : Promise<number> { return true as any }
   zrange    (key : string , start : number , end : number , withscore ?: string) : Promise<string[]> { return true as any }
   zrangebyscore (key : string , start : number , end : number, ...args: string[]) : Promise<string[]> {return true as any}

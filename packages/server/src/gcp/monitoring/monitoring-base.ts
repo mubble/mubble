@@ -70,8 +70,14 @@ export class MonitoringBase {
         }
       ]
     }
-
-    await client.createTimeSeries(request)
+    try {
+      await client.createTimeSeries(request)
+      return true
+    }
+    catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Ignoring Error in Creating Time Series Metric.`, metricName, count, err)
+      return false
+    }
   }
 
   static async sendToMetricsBulk(rc : RunContextServer, metricArr : monitoringTypes.metricFormat[]) {
