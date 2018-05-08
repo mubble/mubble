@@ -24,8 +24,6 @@ internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: Login
 
   init {
 
-    FacebookSdk.sdkInitialize(activity.applicationContext)
-
     callbackManager = CallbackManager.Factory.create()
 
     loginButton = LoginButton(activity)
