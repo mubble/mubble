@@ -105,7 +105,7 @@ export class DSTransaction {
       const resp = await this._transaction.rollback()
     } 
     catch (err) {
-      rc.isWarn && rc.warn (rc.getName (this), 'Transaction Steps before Rollback', this.committed, '/', JSON.stringify (this.tranSteps))
+      rc.isWarn() && rc.warn (rc.getName (this), 'Transaction Steps before Rollback', this.committed, '/', JSON.stringify (this.tranSteps))
       rc.isWarn() && rc.warn (rc.getName (this), 'Ignoring Rollback Error:', !!this._transaction, err)
     } 
     finally {

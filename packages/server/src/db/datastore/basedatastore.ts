@@ -293,7 +293,7 @@ private getNamespace(rc : RunContextServer) : string {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
 
     const traceId     = `${rc.getName(this)}:mDelete`,
-          transaction = BaseDatastore.createTransaction(rc),
+          transaction = this.createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
 
     try {
@@ -321,7 +321,7 @@ private getNamespace(rc : RunContextServer) : string {
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
     // Re-direction to DS Transaction!
     const traceId     = `${rc.getName(this)} : insert`,
-          transaction = BaseDatastore.createTransaction(rc),
+          transaction = (this.constructor as any).createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
       await transaction.insert(rc, this)
@@ -344,7 +344,7 @@ private getNamespace(rc : RunContextServer) : string {
   protected async update(rc : RunContextServer, id : number | string, updRec : any, ignoreRNF ?: boolean) : Promise<BaseDatastore> {
     // Re-direction to DS Transaction!
     const traceId = `${rc.getName(this)}:update`,
-          transaction = BaseDatastore.createTransaction(rc),
+          transaction = (this.constructor as any).createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     
     try {
@@ -370,7 +370,7 @@ private getNamespace(rc : RunContextServer) : string {
 ------------------------------------------------------------------------------*/ 
   protected async softDelete(rc : RunContextServer, id : number | string, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:softDelete`,
-          transaction = BaseDatastore.createTransaction(rc),
+          transaction = (this.constructor as any).createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     try {
       BaseDatastore.mUniqueDelete (rc, transaction, this)
