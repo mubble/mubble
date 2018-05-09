@@ -302,6 +302,7 @@ private getNamespace(rc : RunContextServer) : string {
       return true
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
+      await transaction.rollback(rc)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -320,7 +321,7 @@ private getNamespace(rc : RunContextServer) : string {
 
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
     // Re-direction to DS Transaction!
-    const traceId     = `${rc.getName(this)} : insert`,
+    const traceId     = `${rc.getName(this)}:insert:${this.constructor.name}`,
           transaction = (this.constructor as any).createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
@@ -344,7 +345,7 @@ private getNamespace(rc : RunContextServer) : string {
 ------------------------------------------------------------------------------*/ 
   protected async update(rc : RunContextServer, id : number | string, updRec : Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<BaseDatastore<T>> {
     // Re-direction to DS Transaction!
-    const traceId = `${rc.getName(this)}:update`,
+    const traceId = `${rc.getName(this)}:update:${this.constructor.name}`,
           transaction = (this.constructor as any).createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     
@@ -370,13 +371,14 @@ private getNamespace(rc : RunContextServer) : string {
   - The unique param is deleted, if set
   - Optional params to be modified can be provided
 ------------------------------------------------------------------------------*/ 
-  protected async softDelete(rc : RunContextServer, id : number | string, params ?: {[index : string] : any}, ignoreRNF ?: boolean) : Promise<boolean> {
-    const traceId = `${rc.getName(this)}:softDelete`,
-          transaction = (this.constructor as any).createTransaction(rc),
-          ack     = rc.startTraceSpan(traceId)
+  protected async softDelete(rc : RunContextServer, id : number | string, params ?: Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<boolean> {
+    const traceId     = `${rc.getName(this)}:softDelete:${this.constructor.name}`,
+          ack         = rc.startTraceSpan(traceId),
+          transaction = (this.constructor as any).createTransaction(rc)
+
     try {
       await transaction.start(rc)
-      BaseDatastore.mUniqueDelete (rc, transaction, this)
+      (this.constructor as any).mUniqueDelete(rc, transaction, this as BaseDatastore<T>)
 
       // TODO: Need to add the unique Constraint Fields with undefined value to params...
       this.deleted = true
@@ -463,13 +465,14 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Create Query 
 ------------------------------------------------------------------------------*/
-  static createQuery<T extends BaseDatastore<T>>(rc : RunContextServer, transaction ?: DSTransaction<T>) : DSQuery<T> | DSTQuery<T>  {
-    if (!this._kindName) rc.warn(rc.getName(this), 'KindName: ', this._kindName)
+  createQuery(rc : RunContextServer, transaction ?: DSTransaction<T>) : DSQuery<T> | DSTQuery<T>  {
+    const kindname = (this.constructor as any)._kindName
+    if (!kindname) rc.warn(rc.getName(this), 'KindName: ', kindname)
 
-    const model : T = new (this as any)()  
+    const model : T = new (this.constructor as any)()
     
-    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(rc), this._kindName)
-    return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
+    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(rc), kindname)
+    return new DSQuery<T>(rc, BaseDatastore._datastore, kindname, model)
   }
 
 /*------------------------------------------------------------------------------
@@ -477,7 +480,7 @@ isDeleted(rc: RunContextServer) : boolean {
 ------------------------------------------------------------------------------*/
   static createTransaction<T extends BaseDatastore<T> = any>(rc : RunContextServer) : DSTransaction<T> {
     const model : T = new (this as any)()
-    console.log('this._kindName : '+this._kindName)
+
     return new DSTransaction(rc, this._datastore, model.getNamespace(rc), this._kindName)
   }
 

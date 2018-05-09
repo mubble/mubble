@@ -155,11 +155,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   - Get multiple entities
   - multiple models to be passed as an array
 ------------------------------------------------------------------------------*/
-  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
-    const traceId = rc.getName(this) + ':' + 'transaction_mget_' + this._kindname,
-          ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-
+  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : T[]) : Promise<boolean> {
     const keys : any = []
 
     await this.mGetInternal(rc, ignoreRNF, ...models)
@@ -167,6 +163,10 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   }
 
   private async mGetInternal(rc : RunContextServer, ignoreRNF : boolean, ...models : T[]) : Promise<boolean> {
+    const traceId = rc.getName(this) + ':' + 'transaction_mget_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
+
+    this.tranSteps.push(traceId)
     const keys : any = []
 
     models.forEach((model : T) => {
@@ -207,7 +207,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async insert(rc : RunContextServer, model : any, parentKey ?: any, insertTime ?: number) : Promise<void> {
     const traceId = rc.getName(this) + ':' + 'transaction_insert_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
+    this.tranSteps.push(traceId)
 
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
