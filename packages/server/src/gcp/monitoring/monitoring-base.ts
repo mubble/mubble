@@ -39,11 +39,11 @@ export class MonitoringBase {
 
   static async sendToMetrics(rc : RunContextServer, metricName : string, count : number) {
     const client = MonitoringBase._monitoring.metricServiceClient()
-
+    const endTimeSecs = Date.now() / 1000
     let dataPoint = {
       interval: {
         endTime: {
-          seconds: Date.now() / 1000
+          seconds: endTimeSecs
         }
       },
       value: {
@@ -71,11 +71,42 @@ export class MonitoringBase {
       ]
     }
     try {
-      await client.createTimeSeries(request)
+      const resp = await client.createTimeSeries(request)
+      rc.isWarn() && rc.warn(rc.getName(this), `Setting Time Series Metric.`, metricName, endTimeSecs, JSON.stringify (resp))
       return true
     }
     catch(err) {
-      rc.isError() && rc.error(rc.getName(this), `Ignoring Error in Creating Time Series Metric.`, metricName, count, err)
+      rc.isError() && rc.error(rc.getName(this), `Ignoring Error in Creating Time Series Metric.`, metricName, endTimeSecs, count, err)
+      return false
+    }
+  }
+
+  static async listMetrics(rc : RunContextServer, metricName : string) {
+    const client = MonitoringBase._monitoring.metricServiceClient()
+
+    const request = {
+      name: `projects/${MonitoringBase._projectId}`,
+      filter: `metric.type="compute.googleapis.com/${metricName}"`,
+      interval: {
+        startTime: {
+          // Limit results to the last 20 minutes
+          seconds: Date.now() / 1000 - 60 * 20,
+        },
+        endTime: {
+          seconds: Date.now() / 1000,
+        },
+      },
+      // Don't return time series data, instead just return information about
+      // the metrics that match the filter
+      view: 'HEADERS',
+    };
+    try {
+      const timeSeries = await client.listTimeSeries(request)
+      rc.isWarn() && rc.warn(rc.getName(this), `Getting Time Series Metric.`, metricName, JSON.stringify (timeSeries))
+      return true
+    }
+    catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Ignoring Error in Listing Time Series Metric.`, metricName, err)
       return false
     }
   }
