@@ -229,7 +229,7 @@ private getNamespace(rc : RunContextServer) : string {
   private static async mInsertInternal<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mInsert${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = BaseDatastore.createTransaction(rc)
+          transaction = this.createTransaction(rc)
   
     try {
       await transaction.start(rc)
@@ -293,7 +293,7 @@ private getNamespace(rc : RunContextServer) : string {
   private static async mDeleteInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mDelete`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = BaseDatastore.createTransaction(rc)
+          transaction = this.createTransaction(rc)
 
     try {
       transaction.mDelete(rc, ...models)
@@ -474,7 +474,7 @@ isDeleted(rc: RunContextServer) : boolean {
 ------------------------------------------------------------------------------*/
   static createTransaction<T extends BaseDatastore<T> = any>(rc : RunContextServer) : DSTransaction<T> {
     const model : T = new (this as any)()
-    
+    console.log('this._kindName : '+this._kindName)
     return new DSTransaction(rc, this._datastore, model.getNamespace(rc), this._kindName)
   }
 
