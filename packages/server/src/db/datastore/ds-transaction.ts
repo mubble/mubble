@@ -24,6 +24,8 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   private _datastore   : any
   private traceId      : string 
   private ack          : any
+  private committed    : boolean = false
+  private tranSteps    : Array<string> = []
 
   constructor(rc : RunContextServer, datastore : any, namespace : string, kindname : string) {
     this._transaction = datastore.transaction()
@@ -59,6 +61,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async start(rc : RunContextServer) {
     const traceId = rc.getName(this) + ':' + 'transaction_start_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
     try {
       await this._transaction.run()
     } catch(err) {
@@ -77,13 +80,15 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async commit(rc : RunContextServer) {
     const traceId = rc.getName(this) + ':' + 'transaction_commit_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
     try {
       await this._transaction.commit()
     } catch(err) {
-      await this._transaction.rollback()
+      // Commit failed, Rolled back by DS.
       rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     } finally {
+      this.committed = true 
       rc.endTraceSpan(traceId, ack)
       rc.endTraceSpan(this.traceId, this.ack)
     }
@@ -95,10 +100,12 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async rollback(rc : RunContextServer) {
     const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
     try {
       const resp = await this._transaction.rollback()
     } 
     catch (err) {
+      rc.isWarn() && rc.warn (rc.getName (this), 'Transaction Steps before Rollback', this.committed, '/', JSON.stringify (this.tranSteps))
       rc.isWarn() && rc.warn (rc.getName (this), 'Ignoring Rollback Error:', !!this._transaction, err)
     } 
     finally {
@@ -122,7 +129,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async get(rc : RunContextServer, model : T , ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
     const traceId = rc.getName(this) + ':' + 'transaction_get_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-
+    this.tranSteps.push (traceId)
     try {
       
       const mId      : string | number = model.getId(rc),
@@ -148,9 +155,12 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   - Get multiple entities
   - multiple models to be passed as an array
 ------------------------------------------------------------------------------*/
-  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...recs : T[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mGet models invalid')
-    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
+    const traceId = rc.getName(this) + ':' + 'transaction_mget_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+
+    const keys : any = []
 
     await this.mGetInternal(rc, ignoreRNF, ...models)
     return true
@@ -165,38 +175,50 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
       
       keys.push(model.getDatastoreKey(rc, model.getId(rc)))
     })
-                  
-    const res           = await this._transaction.get(keys),
-          entityRecords = res[0]
-          
-    if(entityRecords.length !== models.length){
-      if(!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Keys: ${keys}`))
-      return false
-    }
+    
+    try {
+      const res           = await this._transaction.get(keys),
+            entityRecords = res[0]
+            
+      if(entityRecords.length !== models.length){
+        if(!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `Keys: ${keys}`))
+        return false
+      }
 
-    for(const entityRecord of entityRecords) {
-      const id : string | number = BaseDatastore.getIdFromResult(rc , entityRecord) 
-      // missing model result  are not present as undefined
-      // we have to check the matching by id
-      let model : any = models.find((mod : T)=> {
-        return mod.getId(rc) === id
-      })
-      rc.isAssert() && rc.assert(rc.getName(this), model, 'model not found for ', entityRecord[BaseDatastore._datastore.KEY])
-      model.deserialize(rc, entityRecord)
-    }  
-    return true
+      for(const entityRecord of entityRecords) {
+        const id : string | number = BaseDatastore.getIdFromResult(rc , entityRecord) 
+        // missing model result  are not present as undefined
+        // we have to check the matching by id
+        let model : any = models.find((mod : BaseDatastore)=> {
+          return mod.getId(rc) === id
+        })
+        rc.isAssert() && rc.assert(rc.getName(this), model, 'model not found for ', entityRecord[BaseDatastore._datastore.KEY])
+        model.deserialize(rc, entityRecord)
+      }  
+      return true
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 
 /*------------------------------------------------------------------------------
   - Insert with Transaction
 ------------------------------------------------------------------------------*/
-  async insert(rc : RunContextServer, model : T , parentKey ?: any, insertTime ?: number) : Promise<void> {
+  async insert(rc : RunContextServer, model : any, parentKey ?: any, insertTime ?: number) : Promise<void> {
+    const traceId = rc.getName(this) + ':' + 'transaction_insert_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
-    
-    model.setId(id)
-    await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
-    this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
+  
+    try {
+      model.setId(id)
+      await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
+      this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }      
   }
 
 /*------------------------------------------------------------------------------
@@ -227,41 +249,49 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
 /*------------------------------------------------------------------------------
   - Update with Transaction. [Unique Check will only happen if updRec is passed]
 ------------------------------------------------------------------------------*/
-  async update(rc : RunContextServer, model : T , updRec ?: any, parentKey ?: any) : Promise<void> {
+  async update(rc : RunContextServer, model : BaseDatastore, updRec ?: any, parentKey ?: any) : Promise<void> {
+    const traceId = rc.getName(this) + ':' + 'transaction_update_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
     
-    if (updRec) { // Check Unique Constraints!
-      await BaseDatastore.mUniqueUpdate(rc, this._transaction, model, updRec) 
-      Object.assign(model, updRec)
+    try {
+      if (updRec) { // Check Unique Constraints!
+        await BaseDatastore.mUniqueUpdate (rc, this._transaction, model, updRec) 
+        Object.assign(model, updRec)
+      }
+      rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
+      this._transaction.save({key: model.getDatastoreKey(rc, mId, false, parentKey), data: model.getUpdateRec(rc)})
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
-    rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
-    this._transaction.save({key: model.getDatastoreKey(rc, mId, false, parentKey), data: model.getUpdateRec(rc)})
   }
 
 /*------------------------------------------------------------------------------
   - Bulk Update with Transaction
 ------------------------------------------------------------------------------*/
-  mUpdate(rc : RunContextServer, ...recs : T[]) : boolean {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
-    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+  mUpdate(rc : RunContextServer, ...models : BaseDatastore[]) : void {
+    const traceId = rc.getName(this) + ':' + 'transaction_mupdate_' + this._kindname,
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
 
-    this.mUpdateInternal(rc, ...models)
-    return true
-  }
+    const entities : any [] = []
 
-  private mUpdateInternal(rc : RunContextServer, ...models : T[]) : void {
-    const entities : Array<any> = []
-
-    for(const model of models) {
-      const mId      : string | number = model.getId(rc),
-            kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+    try {
+      for(const model of models) {
+        const mId      : string | number = model.getId(rc),
+              kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+        
+        rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
+        entities.push({key: model.getDatastoreKey(rc, mId), data: model.getUpdateRec(rc)})
+      }
       
-      rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
-      entities.push({key: model.getDatastoreKey(rc, mId), data: model.getUpdateRec(rc)})
+      this._transaction.save(entities)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
-    
-    this._transaction.save(entities)
   }
 
 /*------------------------------------------------------------------------------
