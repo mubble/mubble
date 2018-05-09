@@ -297,6 +297,7 @@ private getNamespace(rc : RunContextServer) : string {
           ack         = rc.startTraceSpan(traceId)
 
     try {
+      await transaction.start(rc)
       await transaction.mDelete(rc, ...models)
       await transaction.commit(rc)
       return true
@@ -324,6 +325,7 @@ private getNamespace(rc : RunContextServer) : string {
           transaction = (this.constructor as any).createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
+      await transaction.start(rc)
       await transaction.insert(rc, this)
       await transaction.commit(rc)
       return true
@@ -349,6 +351,7 @@ private getNamespace(rc : RunContextServer) : string {
     
     try {
       this._id = id
+      await transaction.start(rc)
       await transaction.get(rc, this)
       await transaction.update (rc, this, updRec)
       await transaction.commit (rc)
@@ -373,6 +376,7 @@ private getNamespace(rc : RunContextServer) : string {
           transaction = (this.constructor as any).createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     try {
+      await transaction.start(rc)
       BaseDatastore.mUniqueDelete (rc, transaction, this)
 
       // TODO: Need to add the unique Constraint Fields with undefined value to params...
