@@ -172,7 +172,7 @@ private getNamespace(rc : RunContextServer) : string {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mGet models invalid')
     const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
-      await this.mGetInternal(rc, ignoreRNF, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
+      await this.mGetInternal(rc, ignoreRNF, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
     }
     return true
   }
@@ -221,7 +221,7 @@ private getNamespace(rc : RunContextServer) : string {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
     const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
-      await this.mInsertInternal(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
+      await this.mInsertInternal(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
     }
     return true
   }
@@ -229,28 +229,16 @@ private getNamespace(rc : RunContextServer) : string {
   private static async mInsertInternal<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mInsert${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = BaseDatastore._datastore.transaction()
+          transaction = BaseDatastore.createTransaction(rc)
   
     try {
-      await BaseDatastore.mUniqueInsert(rc, transaction, ...models)
-      const insertObjects : {key : any, data : any}[] = models.map((mod) => {
-        return {
-          key  : mod.getDatastoreKey(rc), 
-          data : mod.getInsertRec(rc, insertTime)
-        }
-      })
-
-      transaction.save(insertObjects)
-      
-      for(let i = 0; i < models.length; i++) {
-        const datastoreKey = insertObjects[i].key
-        models[i].setIdFromKey(rc, datastoreKey)
-      }
-      await transaction.commit ()
+      await transaction.start(rc)
+      await transaction.mInsert(rc, insertTime, ...models)
+      await transaction.commit(rc)
       return true
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
-      await transaction.rollback ()
+      await transaction.rollback(rc)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -265,7 +253,7 @@ private getNamespace(rc : RunContextServer) : string {
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
     const models : BaseDatastore<T>[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
-      await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME - 1))
+      await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
     }
     return true
   }
@@ -292,24 +280,32 @@ private getNamespace(rc : RunContextServer) : string {
     }
   }
 
-  public static async mDelete<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models), 'mDelete models invalid')
+  public static async mDelete<T extends BaseDatastore<T>>(rc : RunContextServer, ...recs : T[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mDelete models invalid')
 
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    while (models.length) {
+      await this.mDeleteInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
+    }
+    return true
+  }
+
+  private static async mDeleteInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mDelete`,
-          transaction = BaseDatastore.createTransaction(rc),
-          ack         = rc.startTraceSpan(traceId)
+          ack         = rc.startTraceSpan(traceId),
+          transaction = BaseDatastore.createTransaction(rc)
 
     try {
-      await transaction.mDelete(rc, ...models)
+      transaction.mDelete(rc, ...models)
       await transaction.commit(rc)
       return true
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
-      await transaction.rollback(rc)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
+          
   }
 
 /*------------------------------------------------------------------------------
@@ -327,6 +323,7 @@ private getNamespace(rc : RunContextServer) : string {
           transaction = BaseDatastore.createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
+      await transaction.start(rc)
       await transaction.insert(rc, this)
       await transaction.commit(rc)
       return true
@@ -475,10 +472,10 @@ isDeleted(rc: RunContextServer) : boolean {
 /*------------------------------------------------------------------------------
   - Create Transaction 
 ------------------------------------------------------------------------------*/
-  static createTransaction<U extends BaseDatastore<U> = any>(rc : RunContextServer) : DSTransaction<U> {
-    const model : U =  new (this as any)()
+  static createTransaction<T extends BaseDatastore<T> = any>(rc : RunContextServer) : DSTransaction<T> {
+    const model : T = new (this as any)()
     
-    return new DSTransaction(rc, BaseDatastore._datastore, model.getNamespace(rc), this._kindName)
+    return new DSTransaction(rc, this._datastore, model.getNamespace(rc), this._kindName)
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -531,7 +528,9 @@ isDeleted(rc: RunContextServer) : boolean {
   }
 
   static mUniqueDelete<T extends BaseDatastore<T>>(rc : RunContextServer, transaction : any, ...models : T[]) : boolean {
-    const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Records to be Updated: ZERO')
+
+    const uniqueEntities = BaseDatastore.getUniqueEntities<T>(rc, ...models)
     if(!uniqueEntities || !uniqueEntities.length) return true
 
     const delKeys : any[] = uniqueEntities.map((entity) => entity.key)
@@ -543,13 +542,12 @@ isDeleted(rc: RunContextServer) : boolean {
     let entities : {key : any, data : any}[] = []
     for(const model of models) {
       
-      const uniqueConstraints                = model.getUniqueConstraints(rc),
+      const uniqueConstraints                     = model.getUniqueConstraints(rc),
             kindName          : string            = (<any>model)._kindName || (model.constructor as any)._kindName,
             tEntities : {key : any, data : any}[] = lo.flatMap (uniqueConstraints , (prop) => {
-              
-              if ((model as any)[prop] === undefined || (model as any)[prop] === null) return []
+              if((model as any)[prop] === undefined || (model as any)[prop] === null) return []
               const value = (model as any)[prop]
-              return [{ key: model.getDatastoreKey(rc, value, true), data: ''}]
+              return[{ key: model.getDatastoreKey(rc, value, true), data: ''}]
             })
       entities = entities.concat(tEntities)
       const uPrefixedConstraints : any = model.getUniqueConstraintValues (rc),
@@ -595,6 +593,7 @@ isDeleted(rc: RunContextServer) : boolean {
   getDatastoreKey(rc : RunContextServer, id ?: number | string | null , unique ?: boolean, parentKey ?: any) {
     let datastoreKey
     if(!id) id = this._id
+    // if(!id) throw new DSError(ERROR_CODES.ID_NOT_FOUND, `${id}`) // TODO : Investigate
     let kindName = (<any>this)._kindName || (this.constructor as any)._kindName
     if(unique) kindName += '_unique'
     if(!parentKey) {

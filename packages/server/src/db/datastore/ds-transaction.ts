@@ -148,10 +148,16 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   - Get multiple entities
   - multiple models to be passed as an array
 ------------------------------------------------------------------------------*/
-  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
-    const keys : any = []
+  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...recs : T[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mGet models invalid')
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
 
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mGet models invalid ')
+    await this.mGetInternal(rc, ignoreRNF, ...models)
+    return true
+  }
+
+  private async mGetInternal(rc : RunContextServer, ignoreRNF : boolean, ...models : T[]) : Promise<boolean> {
+    const keys : any = []
 
     models.forEach((model : T) => {
       rc.isAssert() && rc.assert(rc.getName(this), model instanceof BaseDatastore, 'model:', model, ', is not a valid BaseDataStore Model')
@@ -189,10 +195,34 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
     
     model.setId(id)
-      await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
-      this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
-    
+    await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
+    this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
   }
+
+/*------------------------------------------------------------------------------
+  - Bulk Insert with Transaction
+------------------------------------------------------------------------------*/
+  async mInsert(rc : RunContextServer, insertTime : number | undefined, ...recs : T[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+
+    await this.mInsertInternal(rc, insertTime, ...models)
+    return true
+  }
+
+  async mInsertInternal(rc : RunContextServer, insertTime : number | undefined, ...models : T[]) : Promise<void> {
+    const entities : Array<any> = []
+
+    for(const model of models) {
+      const mid = (<BaseDatastore>model).getId(rc) || await this.getIdFromTransaction(rc, model)
+      model.setId(mid)
+      entities.push({key : model.getDatastoreKey(rc, mid, false), data : model.getInsertRec(rc, insertTime)})
+    }
+
+    await BaseDatastore.mUniqueInsert(rc, this._transaction, ...models)
+    this._transaction.save(entities)
+  }
+
 
 /*------------------------------------------------------------------------------
   - Update with Transaction. [Unique Check will only happen if updRec is passed]
@@ -202,7 +232,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
     
     if (updRec) { // Check Unique Constraints!
-      await BaseDatastore.mUniqueUpdate (rc, this._transaction, model, updRec) 
+      await BaseDatastore.mUniqueUpdate(rc, this._transaction, model, updRec) 
       Object.assign(model, updRec)
     }
     rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
@@ -212,8 +242,16 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
 /*------------------------------------------------------------------------------
   - Bulk Update with Transaction
 ------------------------------------------------------------------------------*/
-  mUpdate(rc : RunContextServer, ...models : BaseDatastore[]) : void {
-    const entities : any [] = []
+  mUpdate(rc : RunContextServer, ...recs : T[]) : boolean {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+
+    this.mUpdateInternal(rc, ...models)
+    return true
+  }
+
+  private mUpdateInternal(rc : RunContextServer, ...models : T[]) : void {
+    const entities : Array<any> = []
 
     for(const model of models) {
       const mId      : string | number = model.getId(rc),
@@ -234,14 +272,13 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
     rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
-    BaseDatastore.mUniqueDelete(rc, this._transaction, model) 
     this._transaction.delete(model.getDatastoreKey(rc, mId, false, parentKey))
   }
 
 /*------------------------------------------------------------------------------
   - Bulk Delete with Transaction
 ------------------------------------------------------------------------------*/
-  mDelete(rc : RunContextServer, ...models : BaseDatastore[]) : void {
+  mDelete(rc : RunContextServer, ...models : T[]) : void {
     const keys : Array<any> = []
 
     for(const model of models) {
