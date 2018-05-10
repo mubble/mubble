@@ -162,7 +162,6 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
     const traceId = rc.getName(this) + ':' + 'transaction_mget_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
 
-    this.tranSteps.push(traceId)
     const keys : any = []
 
     models.forEach((model : T) => {
