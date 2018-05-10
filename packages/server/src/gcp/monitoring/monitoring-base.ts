@@ -71,8 +71,7 @@ export class MonitoringBase {
       ]
     }
     try {
-      const resp = await client.createTimeSeries(request)
-      rc.isWarn() && rc.warn(rc.getName(this), `Setting Time Series Metric.`, metricName, endTimeSecs, JSON.stringify (resp))
+      await client.createTimeSeries(request)
       return true
     }
     catch(err) {
