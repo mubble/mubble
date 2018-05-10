@@ -245,9 +245,9 @@ public getNamespace(rc : RunContextServer) : string {
     }
   }
   
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-  // Blind Update, Not using Transaction: Use with Care! Not checking for Constraints!
-  // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+  Blind Update, Use with Care! Not checking for Constraints!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
   public static async mUpdate<T extends BaseDatastore>(rc : RunContextServer, ...recs : BaseDatastore<T>[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
@@ -259,21 +259,18 @@ public getNamespace(rc : RunContextServer) : string {
   }
   
   private static async mUpdateInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[] ) : Promise<boolean> {
-    const traceId = `${rc.getName(this)}:mUpdate${models.length?':'+(models[0] as any).constructor.name :''}`,
-          ack     = rc.startTraceSpan(traceId)
+    const traceId     = `${rc.getName(this)}:mUpdate${models.length?':'+(models[0] as any).constructor.name :''}`,
+          ack         = rc.startTraceSpan(traceId),
+          transaction = this.createTransaction(rc)
     
     try {
-      const updateObjects : {key : any, data : any}[] = models.map((mod) => {
-        return {
-          key  : mod.getDatastoreKey(rc), 
-          data : mod.getUpdateRec(rc)
-        }
-      })
-      await BaseDatastore._datastore.save(updateObjects)
+      await transaction.start(rc)
+      await transaction.mUpdate(rc, ...models)
+      await transaction.commit(rc)
       return true
-    } 
-    catch(err) {
+    } catch(err) {
       rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
+      await transaction.rollback(rc)
       throw(new Error(ERROR_CODES.GCP_ERROR))
     } finally {
       rc.endTraceSpan(traceId,ack)
@@ -292,8 +289,8 @@ public getNamespace(rc : RunContextServer) : string {
 
   private static async mDeleteInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mDelete`,
-          transaction = this.createTransaction(rc),
-          ack         = rc.startTraceSpan(traceId)
+          ack         = rc.startTraceSpan(traceId),
+          transaction = this.createTransaction(rc)
 
     try {
       await transaction.start(rc)
@@ -353,8 +350,8 @@ public getNamespace(rc : RunContextServer) : string {
       this._id = id
       await transaction.start(rc)
       await transaction.get(rc, this)
-      await transaction.update (rc, this  , updRec)
-      await transaction.commit (rc)
+      await transaction.update(rc, this, updRec)
+      await transaction.commit(rc)
       return this
     } 
     catch(err) {
@@ -377,12 +374,14 @@ public getNamespace(rc : RunContextServer) : string {
           transaction = (this.constructor as any).createTransaction(rc)
 
     try {
+      this._id = id
       await transaction.start(rc)
-      (this.constructor as any).mUniqueDelete(rc, transaction, this as BaseDatastore<T>)
+      await transaction.get(rc, this)
+      await transaction.mUniqueDelete(rc, this)
 
       // TODO: Need to add the unique Constraint Fields with undefined value to params...
       this.deleted = true
-      if (params) Object.assign (this, params)
+      if(params) Object.assign(this, params)
       await transaction.update(rc, this) // Dont Check Constraints. mUniqueDelete Done...
       await transaction.commit (rc)
       return true
@@ -494,58 +493,7 @@ isDeleted(rc: RunContextServer) : boolean {
     collection to avoid duplication
   - Unique params are defined in the model
 ------------------------------------------------------------------------------*/
-  static async mUniqueInsert<T extends BaseDatastore<T>>(rc : RunContextServer, transaction: any, ...models : T[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Models: ZERO')
-
-    const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
-    if(!uniqueEntities || !uniqueEntities.length) return true
-    
-    const keys          = uniqueEntities.map((entity) => entity.key),
-          res           = await transaction.get(keys),
-          entityRecords = res[0],
-          resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
-          
-    if(entityRecords.length !== 0) { // Not Unique!
-      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist [INS] : ${JSON.stringify(resKeys)}`)
-      throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Insert, One or more Unique Keys Exist')) 
-    }
-    
-    transaction.save(uniqueEntities)
-    return true
-  }
-
-  static async mUniqueUpdate<T extends BaseDatastore<T>>(rc : RunContextServer, transaction: any, model: T, ...recs : any[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs) , 'mUnique: Number of Records to be Updated: ZERO')
-
-    const uniqueEntities = BaseDatastore.getUniqueEntitiesForUpdate (rc, model, ...recs)
-    if(!uniqueEntities || !uniqueEntities.length) return true
-    
-    const keys          = uniqueEntities.map((entity) => entity.key),
-          res           = await transaction.get(keys),
-          entityRecords = res[0],
-          resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
-          
-    if(entityRecords.length !== 0) { // Not Unique!
-      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist [UPD] : ${JSON.stringify(resKeys)}`)
-      throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Update, One or more Unique Keys Exist')) 
-    }
-    
-    transaction.save(uniqueEntities)
-    return true
-  }
-
-  static mUniqueDelete<T extends BaseDatastore<T>>(rc : RunContextServer, transaction : any, ...models : T[]) : boolean {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Records to be Updated: ZERO')
-
-    const uniqueEntities = BaseDatastore.getUniqueEntities<T>(rc, ...models)
-    if(!uniqueEntities || !uniqueEntities.length) return true
-
-    const delKeys : any[] = uniqueEntities.map((entity) => entity.key)
-    transaction.delete(delKeys)
-    return true
-  }
-  
-  private static getUniqueEntities<T extends BaseDatastore<T>>(rc: RunContextServer, ...models : T[]) {
+  static getUniqueEntities<T extends BaseDatastore<T>>(rc: RunContextServer, ...models : T[]) {
     let entities : {key : any, data : any}[] = []
     for(const model of models) {
       
@@ -567,7 +515,7 @@ isDeleted(rc: RunContextServer) : boolean {
     return entities
   }
 
-  private static getUniqueEntitiesForUpdate<T extends BaseDatastore<T>>(rc : RunContextServer, model: T , ...updRecs : any[]) {
+  static getUniqueEntitiesForUpdate<T extends BaseDatastore<T>>(rc : RunContextServer, model: T , ...updRecs : any[]) {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(updRecs) , 'CheckUnique: mUnique models invalid')
     const uniqueConstraints    : any = model.getUniqueConstraints(rc)
     let entities : {key : any, data : any}[] = []

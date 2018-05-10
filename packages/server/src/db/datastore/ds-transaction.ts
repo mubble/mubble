@@ -127,13 +127,12 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
 /*------------------------------------------------------------------------------
   - Get with Transaction
 ------------------------------------------------------------------------------*/
-  async get(rc : RunContextServer, model : any, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
+  async get(rc : RunContextServer, model : T, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
     const traceId = this.tranId + '_get',
           ack     = rc.startTraceSpan(traceId)
     this.tranSteps.push (traceId)
     rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
     try {
-      
       const mId      : string | number = model.getId(rc),
             kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
@@ -157,7 +156,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   - Get multiple entities
   - multiple models to be passed as an array
 ------------------------------------------------------------------------------*/
-  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
+  async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : T[]) : Promise<boolean> {
     const traceId = this.tranId + '_mget',
           ack     = rc.startTraceSpan(traceId)
     this.tranSteps.push (traceId)
@@ -200,7 +199,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
 /*------------------------------------------------------------------------------
   - Insert with Transaction
 ------------------------------------------------------------------------------*/
-  async insert(rc : RunContextServer, model : any, parentKey ?: any, insertTime ?: number) : Promise<void> {
+  async insert(rc : RunContextServer, model : T, parentKey ?: any, insertTime ?: number) : Promise<void> {
     const traceId = this.tranId + '_insert',
           ack     = rc.startTraceSpan(traceId)
     this.tranSteps.push (traceId)
@@ -211,7 +210,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   
     try {
       model.setId(id)
-      await BaseDatastore.mUniqueInsert(rc, this._transaction, model)
+      await this.mUniqueInsert(rc, model)
       this._transaction.save({key: datastoreKey, data: model.getInsertRec(rc, insertTime)})
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -222,7 +221,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   - Bulk Insert with Transaction
 ------------------------------------------------------------------------------*/
   async mInsert(rc : RunContextServer, insertTime : number | undefined, ...recs : T[]) : Promise<boolean> {
-    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
     const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
 
     await this.mInsertInternal(rc, insertTime, ...models)
@@ -233,12 +232,16 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
     const entities : Array<any> = []
 
     for(const model of models) {
-      const mid = (<BaseDatastore>model).getId(rc) || await this.getIdFromTransaction(rc, model)
-      model.setId(mid)
-      entities.push({key : model.getDatastoreKey(rc, mid, false), data : model.getInsertRec(rc, insertTime)})
+      const mId      : string | number = (<BaseDatastore>model).getId(rc) || await this.getIdFromTransaction(rc, model),
+            kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+
+      model.setId(mId)
+
+      rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
+      entities.push({key : model.getDatastoreKey(rc, mId, false), data : model.getInsertRec(rc, insertTime)})
     }
 
-    await BaseDatastore.mUniqueInsert(rc, this._transaction, ...models)
+    await this.mUniqueInsert(rc, ...models)
     this._transaction.save(entities)
   }
 
@@ -246,7 +249,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
 /*------------------------------------------------------------------------------
   - Update with Transaction. [Unique Check will only happen if updRec is passed]
 ------------------------------------------------------------------------------*/
-  async update(rc : RunContextServer, model : BaseDatastore, updRec ?: any, parentKey ?: any) : Promise<void> {
+  async update(rc : RunContextServer, model : T, updRec ?: any, parentKey ?: any) : Promise<void> {
     const traceId = this.tranId + '_update',
           ack     = rc.startTraceSpan(traceId)
     this.tranSteps.push (traceId)
@@ -257,7 +260,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
     
     try {
       if (updRec) { // Check Unique Constraints!
-        await BaseDatastore.mUniqueUpdate (rc, this._transaction, model, updRec) 
+        await this.mUniqueUpdate(rc, model, updRec) 
         Object.assign(model, updRec)
       }
       rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
@@ -270,7 +273,15 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
 /*------------------------------------------------------------------------------
   - Bulk Update with Transaction
 ------------------------------------------------------------------------------*/
-  mUpdate(rc : RunContextServer, ...models : BaseDatastore[]) : void {
+  mUpdate(rc : RunContextServer, ...recs : T[]) : boolean {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+
+    this.mUpdateInternal(rc, ...models)
+    return true
+  }
+
+  mUpdateInternal(rc : RunContextServer, ...models : T[]) : void {
     const traceId = this.tranId + '_mupdate',
           ack     = rc.startTraceSpan(traceId)
     this.tranSteps.push (traceId)
@@ -284,7 +295,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
               kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
         
         rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
-        entities.push({key: model.getDatastoreKey(rc, mId), data: model.getUpdateRec(rc)})
+        entities.push({key : model.getDatastoreKey(rc, mId), data : model.getUpdateRec(rc)})
       }
       
       this._transaction.save(entities)
@@ -301,6 +312,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
     rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
+    this.mUniqueDelete(rc, model)
     this._transaction.delete(model.getDatastoreKey(rc, mId, false, parentKey))
   }
 
@@ -317,7 +329,65 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
       rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
       keys.push(model.getDatastoreKey(rc, mId, false))
     }
-    BaseDatastore.mUniqueDelete(rc, this._transaction, ...models)
+    this.mUniqueDelete(rc, ...models)
     this._transaction.delete(keys)
+  }
+/*------------------------------------------------------------------------------
+  - Bulk Unique with Transaction
+------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------------
+  - Unique params are identified and set as a primary key in a different
+    collection to avoid duplication
+  - Unique params are defined in the model
+------------------------------------------------------------------------------*/
+  async mUniqueInsert(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Models to be Inserted: ZERO')
+
+    const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
+    if(!uniqueEntities || !uniqueEntities.length) return true
+    
+    const keys          = uniqueEntities.map((entity) => entity.key),
+          res           = await this._transaction.get(keys),
+          entityRecords = res[0],
+          resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
+          
+    if(entityRecords.length !== 0) { // Not Unique!
+      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist [INS] : ${JSON.stringify(resKeys)}`)
+      throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Insert, One or more Unique Keys Exist')) 
+    }
+    
+    this._transaction.save(uniqueEntities)
+    return true
+  }
+
+  async mUniqueUpdate(rc : RunContextServer, model : T, ...recs : any[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs) , 'mUnique: Number of Records to be Updated: ZERO')
+
+    const uniqueEntities = BaseDatastore.getUniqueEntitiesForUpdate(rc, model, ...recs)
+    if(!uniqueEntities || !uniqueEntities.length) return true
+    
+    const keys          = uniqueEntities.map((entity) => entity.key),
+          res           = await this._transaction.get(keys),
+          entityRecords = res[0],
+          resKeys       = entityRecords.map((entity : any) => BaseDatastore.getIdFromResult(rc, entity))
+          
+    if(entityRecords.length !== 0) { // Not Unique!
+      rc.isWarn() && rc.warn(rc.getName(this), `One or more Unique Keys Exist [UPD] : ${JSON.stringify(resKeys)}`)
+      throw(new DSError(ERROR_CODES.UNIQUE_KEY_EXISTS, 'Unable to Update, One or more Unique Keys Exist')) 
+    }
+    
+    this._transaction.save(uniqueEntities)
+    return true
+  }
+
+  mUniqueDelete(rc : RunContextServer, ...models : T[]) : boolean {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(models) , 'mUnique: Number of Records to be Deleted: ZERO')
+
+    const uniqueEntities = BaseDatastore.getUniqueEntities(rc, ...models)
+    if(!uniqueEntities || !uniqueEntities.length) return true
+
+    const delKeys = uniqueEntities.map((entity) => entity.key)
+    this._transaction.delete(delKeys)
+    return true
   }
 }
