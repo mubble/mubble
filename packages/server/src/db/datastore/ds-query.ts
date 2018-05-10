@@ -20,8 +20,8 @@ import {BaseDatastore ,
 export class DSQuery<T extends BaseDatastore<T>> {
 
   private _query    : any
-  private model     : any
-  private namespace : any
+  private model     : T
+  private namespace : string
   private kindName  : string
   private indexed   : string[]
 
@@ -54,15 +54,19 @@ export class DSQuery<T extends BaseDatastore<T>> {
     return res
   }
 
-  async runCursorTillNoMoreResults(rc : RunContextServer) : Promise<T[]>{
+  async runCursorTillNoMoreResults(rc : RunContextServer , filter ?: (item:T)=>boolean) : Promise<T[]>{
 
     let items : T[] = [] ,
-        results  = await this.runCursor(rc)
+        results  = await this.runCursor(rc),
+        constructor : new()=>T = (this.model as any).constructor 
 
     while(results){
       const msgs : T[]     = results[0],
       info                 = results[1]
-      items = items.concat(msgs)
+
+      let serializedMsges  = msgs.map(msg=>new constructor().deserialize(rc , msg))
+      if(filter) serializedMsges =  serializedMsges.filter(msg=>filter(msg))
+      items = items.concat(serializedMsges)
       
       results = null as any
       if(info.moreResults !== BaseDatastore._datastore.NO_MORE_RESULTS)
