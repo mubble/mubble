@@ -22,16 +22,17 @@ export class DSTransaction {
   private _namespace   : string
   private _kindname    : string
   private _datastore   : any
-  private traceId      : string 
+  private tranId       : string
   private ack          : any
+  private tranSteps    : Array<string> = []
 
   constructor(rc : RunContextServer, datastore : any, namespace : string, kindname : string) {
     this._transaction = datastore.transaction()
     this._namespace   = namespace
     this._kindname    = kindname
     this._datastore   = datastore
-    this.traceId      = 'transaction_' + Date.now() + '_' + this._kindname
-    this.ack          = rc.startTraceSpan(this.traceId)
+    this.tranId      = 'transaction_' + this._kindname + '_' + Date.now()
+    this.ack          = rc.startTraceSpan(this.tranId)
   }
 
 /*------------------------------------------------------------------------------
@@ -57,14 +58,15 @@ export class DSTransaction {
   - Needed only if we use a transaction outside models.
 ------------------------------------------------------------------------------*/
   async start(rc : RunContextServer) {
-    const traceId = rc.getName(this) + ':' + 'transaction_start_' + this._kindname,
+    const traceId = this.tranId + '_start',
           ack     = rc.startTraceSpan(traceId)
-    
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
     try {
       await this._transaction.run()
     } catch(err) {
-      if(err.code) rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      else rc.isError() && rc.error(rc.getName(this), 'Unable to start transaction', err)
+      if(err.code) rc.isError() && rc.error(rc.getName(this), traceId + '[Error Code:' + err.code + '], Error Message:', err.message)
+      else rc.isError() && rc.error(rc.getName(this), traceId + '=> Unable to start transaction', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -76,18 +78,19 @@ export class DSTransaction {
   - Needed only if we use a transaction outside models.
 ------------------------------------------------------------------------------*/
   async commit(rc : RunContextServer) {
-    const traceId = rc.getName(this) + ':' + 'transaction_commit_' + this._kindname,
+    const traceId = this.tranId + '_commit',
           ack     = rc.startTraceSpan(traceId)
-    
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
     try {
       await this._transaction.commit()
     } catch(err) {
       // Commit failed, Rolled back by DS.
-      rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
+      rc.isError() && rc.error(rc.getName(this), traceId + '=> Commit Failed', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     } finally {
       rc.endTraceSpan(traceId, ack)
-      rc.endTraceSpan(this.traceId, this.ack)
+      rc.endTraceSpan(this.tranId, this.ack)
     }
   }
 
@@ -95,18 +98,20 @@ export class DSTransaction {
   - Abandon a transaction
 ------------------------------------------------------------------------------*/
   async rollback(rc : RunContextServer) {
-    const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
+    const traceId = this.tranId + '_rollback',
           ack     = rc.startTraceSpan(traceId)
-    
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
     try {
       const resp = await this._transaction.rollback()
     } 
     catch (err) {
-      rc.isWarn() && rc.warn (rc.getName (this), 'Ignoring Rollback Error:', !!this._transaction, err)
+      rc.isWarn() && rc.warn (rc.getName (this), 'Transaction Steps before Rollback', JSON.stringify (this.tranSteps))
+      rc.isWarn() && rc.warn (rc.getName (this), traceId + '=> Ignoring Rollback Error:', !!this._transaction, err)
     } 
     finally {
       rc.endTraceSpan(traceId, ack)
-      rc.endTraceSpan(this.traceId, this.ack)
+      rc.endTraceSpan(this.tranId, this.ack)
     }
   }
 
@@ -123,14 +128,15 @@ export class DSTransaction {
   - Get with Transaction
 ------------------------------------------------------------------------------*/
   async get(rc : RunContextServer, model : any, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
-    const traceId = rc.getName(this) + ':' + 'transaction_get_' + this._kindname,
+    const traceId = this.tranId + '_get',
           ack     = rc.startTraceSpan(traceId)
-    
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
     try {
       const mId      : string | number = model.getId(rc),
             kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
-      rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
+      rc.assert (rc.getName(this), !!mId, traceId + '=> ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
       const key       = model.getDatastoreKey(rc, mId, false, parentKey),
             entityRec = await this._transaction.get(key)
 
@@ -151,8 +157,10 @@ export class DSTransaction {
   - multiple models to be passed as an array
 ------------------------------------------------------------------------------*/
   async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
-    const traceId = rc.getName(this) + ':' + 'transaction_mget_' + this._kindname,
+    const traceId = this.tranId + '_mget',
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
 
     const keys : any = []
 
@@ -194,8 +202,10 @@ export class DSTransaction {
   - Insert with Transaction
 ------------------------------------------------------------------------------*/
   async insert(rc : RunContextServer, model : any, parentKey ?: any, insertTime ?: number) : Promise<void> {
-    const traceId = rc.getName(this) + ':' + 'transaction_insert_' + this._kindname,
+    const traceId = this.tranId + '_insert',
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
 
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
@@ -213,8 +223,10 @@ export class DSTransaction {
   - Update with Transaction. [Unique Check will only happen if updRec is passed]
 ------------------------------------------------------------------------------*/
   async update(rc : RunContextServer, model : BaseDatastore, updRec ?: any, parentKey ?: any) : Promise<void> {
-    const traceId = rc.getName(this) + ':' + 'transaction_update_' + this._kindname,
+    const traceId = this.tranId + '_update',
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
 
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
@@ -235,8 +247,10 @@ export class DSTransaction {
   - Bulk Update with Transaction
 ------------------------------------------------------------------------------*/
   mUpdate(rc : RunContextServer, ...models : BaseDatastore[]) : void {
-    const traceId = rc.getName(this) + ':' + 'transaction_mupdate_' + this._kindname,
+    const traceId = this.tranId + '_mupdate',
           ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push (traceId)
+    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
 
     const entities : any [] = []
 
