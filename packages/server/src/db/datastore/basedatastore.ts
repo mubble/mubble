@@ -22,8 +22,10 @@ import {RunContextServer} from '../../rc-server'
 import * as lo            from 'lodash'
 import { Mubble } from '@mubble/core';
 
-const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
-      MAX_DS_ITEMS_AT_A_TIME : number = 450
+const GLOBAL_NAMESPACE              : string = '--GLOBAL--',
+      MAX_DS_ITEMS_AT_A_TIME        : number = 450,
+      MAX_DS_TRANSACTIONS_AT_A_TIME : number = 5              // Depends on the size of the data
+
 
 export type BASEDATASTORE_PROTECTED_FIELDS  =  'createTs' | 'deleted' | 'modUid' 
 export type DATASTORE_COMPARISON_SYMBOL = '=' | '<' | '>' | '<=' |  '>='
@@ -221,7 +223,7 @@ public getNamespace(rc : RunContextServer) : string {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
     const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
-      await this.mInsertInternal(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
+      await this.mInsertInternal(rc, insertTime, allowDupRec, ...models.splice(0, MAX_DS_TRANSACTIONS_AT_A_TIME))
     }
     return true
   }
@@ -253,7 +255,7 @@ public getNamespace(rc : RunContextServer) : string {
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
     const models : BaseDatastore<T>[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
-      await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
+      await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_TRANSACTIONS_AT_A_TIME))
     }
     return true
   }
@@ -282,7 +284,7 @@ public getNamespace(rc : RunContextServer) : string {
 
     const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
-      await this.mDeleteInternal(rc, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
+      await this.mDeleteInternal(rc, ...models.splice(0, MAX_DS_TRANSACTIONS_AT_A_TIME))
     }
     return true
   }
