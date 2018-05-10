@@ -422,6 +422,7 @@ isDeleted(rc: RunContextServer) : boolean {
   - ID is not returned while getting object or while querying
 ------------------------------------------------------------------------------*/
   static getIdFromResult(rc : RunContextServer, res : any) : number | string {
+    if(res instanceof BaseDatastore && res._id) return res._id
     const key = res[BaseDatastore._datastore.KEY]
 
     if(key.id) return Number(key.id)
