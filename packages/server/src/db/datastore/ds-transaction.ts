@@ -24,8 +24,6 @@ export class DSTransaction {
   private _datastore   : any
   private traceId      : string 
   private ack          : any
-  private committed    : boolean = false
-  private tranSteps    : Array<string> = []
 
   constructor(rc : RunContextServer, datastore : any, namespace : string, kindname : string) {
     this._transaction = datastore.transaction()
@@ -61,7 +59,7 @@ export class DSTransaction {
   async start(rc : RunContextServer) {
     const traceId = rc.getName(this) + ':' + 'transaction_start_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
+    
     try {
       await this._transaction.run()
     } catch(err) {
@@ -80,7 +78,7 @@ export class DSTransaction {
   async commit(rc : RunContextServer) {
     const traceId = rc.getName(this) + ':' + 'transaction_commit_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
+    
     try {
       await this._transaction.commit()
     } catch(err) {
@@ -88,7 +86,6 @@ export class DSTransaction {
       rc.isError() && rc.error(rc.getName(this), 'Transaction rolled back', err)
       throw(new DSError(ERROR_CODES.TRANSACTION_ERROR, err.message))
     } finally {
-      this.committed = true 
       rc.endTraceSpan(traceId, ack)
       rc.endTraceSpan(this.traceId, this.ack)
     }
@@ -100,12 +97,11 @@ export class DSTransaction {
   async rollback(rc : RunContextServer) {
     const traceId = rc.getName(this) + ':' + 'transaction_rollback_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
+    
     try {
       const resp = await this._transaction.rollback()
     } 
     catch (err) {
-      rc.isWarn() && rc.warn (rc.getName (this), 'Transaction Steps before Rollback', this.committed, '/', JSON.stringify (this.tranSteps))
       rc.isWarn() && rc.warn (rc.getName (this), 'Ignoring Rollback Error:', !!this._transaction, err)
     } 
     finally {
@@ -129,7 +125,7 @@ export class DSTransaction {
   async get(rc : RunContextServer, model : any, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
     const traceId = rc.getName(this) + ':' + 'transaction_get_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
+    
     try {
       const mId      : string | number = model.getId(rc),
             kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
@@ -157,7 +153,6 @@ export class DSTransaction {
   async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
     const traceId = rc.getName(this) + ':' + 'transaction_mget_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
 
     const keys : any = []
 
@@ -201,7 +196,6 @@ export class DSTransaction {
   async insert(rc : RunContextServer, model : any, parentKey ?: any, insertTime ?: number) : Promise<void> {
     const traceId = rc.getName(this) + ':' + 'transaction_insert_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
 
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
@@ -221,7 +215,6 @@ export class DSTransaction {
   async update(rc : RunContextServer, model : BaseDatastore, updRec ?: any, parentKey ?: any) : Promise<void> {
     const traceId = rc.getName(this) + ':' + 'transaction_update_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
 
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
@@ -244,7 +237,6 @@ export class DSTransaction {
   mUpdate(rc : RunContextServer, ...models : BaseDatastore[]) : void {
     const traceId = rc.getName(this) + ':' + 'transaction_mupdate_' + this._kindname,
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
 
     const entities : any [] = []
 
