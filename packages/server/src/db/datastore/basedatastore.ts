@@ -129,7 +129,7 @@ public isGlobalNamespace(rc : RunContextServer) : boolean {
   - Get the namespace string depending upon whether namespace is global or local
 ------------------------------------------------------------------------------*/ 
 
-private getNamespace(rc : RunContextServer) : string {
+public getNamespace(rc : RunContextServer) : string {
   return this.isGlobalNamespace(rc) ? GLOBAL_NAMESPACE : BaseDatastore._namespace
 }
 
@@ -471,7 +471,7 @@ isDeleted(rc: RunContextServer) : boolean {
 
     const model : T = new (this.constructor as any)()
     
-    if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(rc), kindname)
+    if(transaction) return new DSTQuery<T>(rc, transaction.getTransaction(rc), model.getNamespace(rc), kindname)
     return new DSQuery<T>(rc, BaseDatastore._datastore, kindname, model)
   }
 

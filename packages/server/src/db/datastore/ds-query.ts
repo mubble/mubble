@@ -25,7 +25,7 @@ export class DSQuery<T extends BaseDatastore<T>> {
   private kindName  : string
   private indexed   : string[]
 
-  constructor(rc : RunContextServer, private datastore : any, kindName : string, model : any) {
+  constructor(rc : RunContextServer, private datastore : any, kindName : string, model : T) {
     this.model     = model
     this.namespace = model.getNamespace(rc)
     this.kindName  = kindName
