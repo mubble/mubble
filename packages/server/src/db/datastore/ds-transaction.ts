@@ -60,8 +60,9 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async start(rc : RunContextServer) {
     const traceId = this.tranId + '_start',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+
     try {
       await this._transaction.run()
     } catch(err) {
@@ -80,8 +81,9 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async commit(rc : RunContextServer) {
     const traceId = this.tranId + '_commit',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+
     try {
       await this._transaction.commit()
     } catch(err) {
@@ -100,14 +102,15 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async rollback(rc : RunContextServer) {
     const traceId = this.tranId + '_rollback',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+    
     try {
       const resp = await this._transaction.rollback()
     } 
     catch (err) {
-      rc.isWarn() && rc.warn (rc.getName (this), 'Transaction Steps before Rollback', JSON.stringify (this.tranSteps))
-      rc.isWarn() && rc.warn (rc.getName (this), traceId + '=> Ignoring Rollback Error:', !!this._transaction, err)
+      rc.isWarn() && rc.warn(rc.getName (this), 'Transaction Steps before Rollback', JSON.stringify (this.tranSteps))
+      rc.isWarn() && rc.warn(rc.getName (this), traceId + '=> Ignoring Rollback Error:', !!this._transaction, err)
     } 
     finally {
       rc.endTraceSpan(traceId, ack)
@@ -130,13 +133,14 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async get(rc : RunContextServer, model : T, ignoreRNF ?: boolean, parentKey ?: any) : Promise<boolean> {
     const traceId = this.tranId + '_get',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+
     try {
       const mId      : string | number = model.getId(rc),
             kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
-      rc.assert (rc.getName(this), !!mId, traceId + '=> ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
+      rc.isAssert() && rc.assert(rc.getName(this), !!mId, traceId + '=> ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
       const key       = model.getDatastoreKey(rc, mId, false, parentKey),
             entityRec = await this._transaction.get(key)
 
@@ -159,8 +163,8 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async mGet(rc : RunContextServer, ignoreRNF : boolean, ...models : T[]) : Promise<boolean> {
     const traceId = this.tranId + '_mget',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
 
     const keys : any = []
 
@@ -202,8 +206,8 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async insert(rc : RunContextServer, model : T, parentKey ?: any, insertTime ?: number) : Promise<void> {
     const traceId = this.tranId + '_insert',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
 
     const id           = model.getId(rc) || await this.getIdFromTransaction(rc, model, parentKey),
           datastoreKey = model.getDatastoreKey(rc, id, false, parentKey)
@@ -229,20 +233,29 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   }
 
   async mInsertInternal(rc : RunContextServer, insertTime : number | undefined, ...models : T[]) : Promise<void> {
+    const traceId = this.tranId + '_minsert',
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+
     const entities : Array<any> = []
 
-    for(const model of models) {
-      const mId      : string | number = (<BaseDatastore>model).getId(rc) || await this.getIdFromTransaction(rc, model),
-            kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
-
-      model.setId(mId)
-
-      rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
-      entities.push({key : model.getDatastoreKey(rc, mId, false), data : model.getInsertRec(rc, insertTime)})
+    try {
+      for(const model of models) {
+        const mId      : string | number = (<BaseDatastore>model).getId(rc) || await this.getIdFromTransaction(rc, model),
+              kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+  
+        model.setId(mId)
+  
+        rc.isAssert() && rc.assert(rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
+        entities.push({key : model.getDatastoreKey(rc, mId, false), data : model.getInsertRec(rc, insertTime)})
+      }
+  
+      await this.mUniqueInsert(rc, ...models)
+      this._transaction.save(entities)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
-
-    await this.mUniqueInsert(rc, ...models)
-    this._transaction.save(entities)
   }
 
 
@@ -252,19 +265,19 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   async update(rc : RunContextServer, model : T, updRec ?: any, parentKey ?: any) : Promise<void> {
     const traceId = this.tranId + '_update',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
 
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
-    
+
     try {
       if (updRec) { // Check Unique Constraints!
         await this.mUniqueUpdate(rc, model, updRec) 
         Object.assign(model, updRec)
       }
-      rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
-      this._transaction.save({key: model.getDatastoreKey(rc, mId, false, parentKey), data: model.getUpdateRec(rc)})
+      rc.isAssert() && rc.assert(rc.getName(this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
+      this._transaction.save({key : model.getDatastoreKey(rc, mId, false, parentKey), data : model.getUpdateRec(rc)})
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -284,8 +297,8 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   mUpdateInternal(rc : RunContextServer, ...models : T[]) : void {
     const traceId = this.tranId + '_mupdate',
           ack     = rc.startTraceSpan(traceId)
-    this.tranSteps.push (traceId)
-    rc.isDebug() && rc.debug (rc.getName (this), traceId + '=> Transaction Step Started')
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
 
     const entities : any [] = []
 
@@ -294,7 +307,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
         const mId      : string | number = model.getId(rc),
               kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
         
-        rc.assert (rc.getName (this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
+        rc.isAssert() && rc.assert(rc.getName(this), !!mId, `ID Cannot be Null/Undefined [Kind: ${kindName}]`)
         entities.push({key : model.getDatastoreKey(rc, mId), data : model.getUpdateRec(rc)})
       }
       
@@ -308,29 +321,47 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
   - Delete with Transaction
 ------------------------------------------------------------------------------*/
   delete(rc : RunContextServer, model : T , parentKey ?: any) : void {
+    const traceId = this.tranId + '_delete',
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+
     const mId      : string | number = model.getId(rc),
           kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
 
-    rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
-    this.mUniqueDelete(rc, model)
-    this._transaction.delete(model.getDatastoreKey(rc, mId, false, parentKey))
+    try {
+      rc.isAssert() && rc.assert(rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
+      this.mUniqueDelete(rc, model)
+      this._transaction.delete(model.getDatastoreKey(rc, mId, false, parentKey))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 
 /*------------------------------------------------------------------------------
   - Bulk Delete with Transaction
 ------------------------------------------------------------------------------*/
   mDelete(rc : RunContextServer, ...models : T[]) : void {
+    const traceId = this.tranId + '_mdelete',
+          ack     = rc.startTraceSpan(traceId)
+    this.tranSteps.push(traceId)
+    rc.isDebug() && rc.debug(rc.getName(this), traceId + '=> Transaction Step Started')
+
     const keys : Array<any> = []
 
-    for(const model of models) {
-      const mId      : string | number = model.getId(rc),
-            kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
-
-      rc.assert (rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
-      keys.push(model.getDatastoreKey(rc, mId, false))
+    try {
+      for(const model of models) {
+        const mId      : string | number = model.getId(rc),
+              kindName : string          = (<any>model)._kindName || (model.constructor as any)._kindName
+  
+        rc.isAssert() && rc.assert(rc.getName(this), !!mId, 'ID Cannot be Null/Undefined [Kind = ' + kindName + ']')
+        keys.push(model.getDatastoreKey(rc, mId, false))
+      }
+      this.mUniqueDelete(rc, ...models)
+      this._transaction.delete(keys)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
     }
-    this.mUniqueDelete(rc, ...models)
-    this._transaction.delete(keys)
   }
 /*------------------------------------------------------------------------------
   - Bulk Unique with Transaction
