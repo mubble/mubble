@@ -31,7 +31,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
     this._namespace   = namespace
     this._kindname    = kindname
     this._datastore   = datastore
-    this.tranId      = 'transaction_' + this._kindname + '_' + Date.now()
+    this.tranId       = 'transaction_' + this._kindname + '_' + Date.now()
     this.ack          = rc.startTraceSpan(this.tranId)
   }
 
