@@ -131,10 +131,10 @@ export class GcpLanguageBase {
     })
     rc.isDebug() && this.findDuplicates (rc, entities)
     // NOTE: There are duplicates in name with different salience value.. We take the first..
-    const uniqueEntities = lo.uniqBy (entities, 'name') as Array<GcpEntityInfo>
+    const uniqueEntities = lo.uniqBy (entities, 'name')
     rc.isDebug() && rc.debug (rc.getName (this), 'Entity Analysis [' + tag + '] => Language:', res[0].language, 
           '/', res[0].entities.length, 'entries, Unique Entries:', uniqueEntities.length)
-    return uniqueEntities
+    return uniqueEntities as any
   }
 
   static findDuplicates (rc: RunContextServer, entities: Array<GcpEntityInfo>) {
@@ -194,7 +194,7 @@ export class GcpLanguageBase {
           rc.isWarn () && rc.warn (rc.getName (this), 'Error Detecting Language:', error)
           return resolve ('en')
         }
-        if (response.languages.length == 0) {
+        if (!response.languages.length) {
           rc.isWarn () && rc.warn (rc.getName (this), 'No Language Detected, Assuming English')
           return resolve ('en')
         }
