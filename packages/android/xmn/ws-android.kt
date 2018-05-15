@@ -36,7 +36,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   private var ephemeralEvents   : MutableList<WireEphEvent> = mutableListOf()
 
   init {
-    //timerPing = AdhocTimer("ws-ping", { cbTimerPing() } ) // Being created in the main thread
+    timerPing = AdhocTimer("ws-ping", { cbTimerPing() } ) // Being created in the main thread
   }
 
   fun sendEphemeralEvent(event: WireEphEvent) {
@@ -107,12 +107,14 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       this.ws!!.send(body)
     }
 
+    this.lastMessageTs = System.currentTimeMillis()
+
     info { "Sent message: \n" +
             "msgLen   : $msgBodyLen, \n" +
             "messages : ${data.size}, \n" +
             "firstMsg : ${data[0].name}" }
 
-    //this.setupTimer()
+    this.setupTimer()
     this.sending = false
   }
 
@@ -186,8 +188,8 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       this.msPingInterval = msPing
       assert(msPing > 0)
 
-      if (config.syncKey != null) {
-        this.encProvider!!.setNewKey(config.syncKey)
+      if (!config.syncKey.isNullOrBlank()) {
+        this.encProvider!!.setNewKey(config.syncKey!!)
       }
 
       info { "First message in ${System.currentTimeMillis() - socketCreateTs} ms" }
@@ -214,7 +216,6 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   private fun setupTimer() {
 
-    this.lastMessageTs = System.currentTimeMillis()
     this.timerPing!!.tickAfter(this.msPingInterval, true)
   }
 
@@ -239,7 +240,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     if (this.ci.provider == null) return
 
     try {
-      //this.timerPing!!.remove()
+      this.timerPing!!.remove()
 
       this.encProvider  = null
       this.ci.provider  = null

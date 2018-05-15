@@ -28,13 +28,14 @@ TODO ????
  * timerName : name of the timer, used for logging
  * callback  : callback function, returns re-run after ms (0 stops the timer)
  */
-class AdhocTimer (timerName : String, callback  : () -> Long) : MubbleLogger {
+class AdhocTimer(timerName: String, callback: () -> Long): MubbleLogger {
 
   override val customTag: String = "$timerName:AdhocTimer"
   private var scheduledAt: Long = 0L
 
-  private val looper    : Looper = Looper.myLooper()
-  private val runnable: Runnable = Runnable {
+  private val looper    : Looper    = Looper.myLooper()
+
+  private val runnable  : Runnable  = Runnable {
 
     // Before we run the scheduled task, we mark the old schedule done
     scheduledAt = 0L
@@ -43,6 +44,7 @@ class AdhocTimer (timerName : String, callback  : () -> Long) : MubbleLogger {
     val msAfter = callback()
 
     info { "Callback returned $msAfter" }
+
     if (msAfter != 0L && scheduledAt == 0L) reSchedule(msAfter)
   }
 
@@ -75,6 +77,5 @@ class AdhocTimer (timerName : String, callback  : () -> Long) : MubbleLogger {
       0
     }
   }
-
 
 }

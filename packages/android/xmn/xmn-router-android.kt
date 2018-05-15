@@ -1,6 +1,7 @@
 package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
+import `in`.mubble.android.util.AdhocTimer
 import `in`.mubble.newschat.utils.AndroidBase
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -29,9 +30,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   private var lastEventTs      = 0
   private var lastEventSendTs  = 0
 
-  //private var timerReqResend    : AdhocTimer?  = null
-  //private var timerReqTimeout   : AdhocTimer?  = null
-  //private var timerEventTimeout : AdhocTimer?  = null
+  private var timerReqResend    : AdhocTimer?  = null
+  private var timerReqTimeout   : AdhocTimer?  = null
+  private var timerEventTimeout : AdhocTimer?  = null
 
   abstract fun upgradeClientIdentity(wo: WireObject)
   abstract fun getNetworkType(): String
@@ -55,9 +56,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     this.ci.port          = if (url.port != -1) url.port else (if (url.protocol == "https:") 443 else 80)
     this.ci.useEncryption = syncKey != null
 
-    //timerReqResend    = AdhocTimer("router-resend", { cbTimerReqResend() })
-    //timerReqTimeout   = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
-    //timerEventTimeout = AdhocTimer("router-event-timeout", { cbTimerEventTimeout() })
+    timerReqResend    = AdhocTimer("router-resend", { cbTimerReqResend() })
+    timerReqTimeout   = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
+    timerEventTimeout = AdhocTimer("router-event-timeout", { cbTimerEventTimeout() })
   }
 
   fun setNetwork(netType: String) {
@@ -77,10 +78,11 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider!!.send(arrayOf(wr)) == null) {
       wr.isSent = true
       info { "Sent request ${wr.toJsonObject()}" }
-      //syncExecuteInMainThread { timerReqTimeout!!.tickAfter(TIMEOUT_MS) }
+      timerReqTimeout!!.tickAfter(TIMEOUT_MS)
+
     } else {
       info { "Send to be retried ${wr.toJsonObject()}" }
-      //syncExecuteInMainThread { timerReqResend!!.tickAfter(SEND_RETRY_MS) }
+      timerReqResend!!.tickAfter(SEND_RETRY_MS)
     }
   }
 
@@ -208,13 +210,12 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   private fun cbTimerReqResend(): Long {
 
     val wr = this.ongoingRequests.find { !it.wr.isSent }
-
     if (wr == null || this.ci.provider == null) return 0
 
     when {
       this.ci.provider!!.send(arrayOf(wr.wr)) == null -> {
         wr.wr.isSent = true
-        //syncExecuteInMainThread { this.timerReqTimeout!!.tickAfter(TIMEOUT_MS) }
+        this.timerReqTimeout!!.tickAfter(TIMEOUT_MS)
       }
 
       (System.currentTimeMillis() - wr.wr.ts) > SEND_TIMEOUT -> {
