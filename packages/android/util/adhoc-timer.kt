@@ -30,30 +30,23 @@ TODO ????
  */
 class AdhocTimer(timerName: String, callback: () -> Long): MubbleLogger {
 
-  override val customTag: String = "$timerName:AdhocTimer"
-  private var scheduledAt: Long = 0L
+  override val customTag   : String  = "$timerName:AdhocTimer"
+  private  var scheduledAt : Long    = 0L
+  private  val looper      : Looper  = Looper.myLooper()
 
-  private val looper    : Looper    = Looper.myLooper()
+  private val runnable : Runnable = Runnable {
 
-  private val runnable  : Runnable  = Runnable {
-
-    // Before we run the scheduled task, we mark the old schedule done
-    scheduledAt = 0L
-
-    // If callback has return next schedule time and it did not call tickAfter
-    val msAfter = callback()
+    scheduledAt = 0L          // Before we run the scheduled task, we mark the old schedule done
+    val msAfter = callback()  // If callback has return next schedule time and it did not call tickAfter
 
     info { "Callback returned $msAfter" }
-
-    if (msAfter != 0L && scheduledAt == 0L) reSchedule(msAfter)
+    //if (msAfter != 0L && scheduledAt == 0L) reSchedule(msAfter)
   }
 
   fun tickAfter(ms: Long, overwrite : Boolean = false) {
 
     check(looper === Looper.myLooper())
-
-    // Already scheduled and not supposed to overwrite
-    if (!overwrite && scheduledAt > 0L) return
+    if (!overwrite && scheduledAt > 0L) return // Already scheduled and not supposed to overwrite
     reSchedule(ms)
   }
 
@@ -68,14 +61,12 @@ class AdhocTimer(timerName: String, callback: () -> Long): MubbleLogger {
     if (scheduledAt > 0L) handler.removeCallbacks(runnable)
 
     scheduledAt = if (ms > 0) {
-
-      val now   = System.currentTimeMillis()
       handler.postDelayed(runnable, ms)
-      now + ms
-
+      System.currentTimeMillis() + ms
     } else {
       0
     }
+
   }
 
 }
