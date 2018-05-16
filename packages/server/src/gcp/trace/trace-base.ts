@@ -73,6 +73,7 @@ export class TraceBase {
                 spanId    : "1",
                 kind      : 'RPC_SERVER',
                 name      : apiName,
+                // Take care of 0 trace span
                 startTime : format(new Date(logger.startTs), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
                 endTime   : format(new Date(), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0),
                 labels    : labels
@@ -80,6 +81,12 @@ export class TraceBase {
             ]
           }
 
+
+    if(trace.spans[0].startTime===trace.spans[0].endTime){
+      // 0 milisecond trace is not shown on tracelist. 
+      // Hack to make the tracespan 1 milisecond ,so that it is shown on tracelist
+      trace.spans[0].endTime = format(new Date(logger.startTs+1), '%yyyy%-%mm%-%dd%T%hh%:%MM%:%ss%.%ms%000000Z', 0)
+    }      
     let spanIdCount : number = 1
     // We expect trace spans to be non-empty when error occurred. Label != null => error
     if(!lo.isEmpty(logger.traceSpans) && !labels){
