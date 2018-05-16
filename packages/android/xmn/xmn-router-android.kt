@@ -61,6 +61,14 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     timerEventTimeout = AdhocTimer("router-event-timeout", { cbTimerEventTimeout() })
   }
 
+  fun cleanup() {
+
+    if (this.ci.provider != null) this.ci.provider!!.cleanup()
+    this.timerReqResend!!.remove()
+    this.timerReqTimeout!!.remove()
+    this.timerEventTimeout!!.remove()
+  }
+
   fun setNetwork(netType: String) {
 
     if (netType != AndroidBase.NetworkType.ABSENT.value) {
