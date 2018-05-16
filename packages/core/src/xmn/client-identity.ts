@@ -27,7 +27,6 @@ export interface ClientIdentity {
   userLinkId    : string
   userName      : string
 
-  // master data hash
-  syncReq       : SyncRequest
+  syncReq      ?: SyncRequest
 }
 
