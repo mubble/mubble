@@ -135,6 +135,10 @@ public getNamespace(rc : RunContextServer) : string {
   return this.isGlobalNamespace(rc) ? GLOBAL_NAMESPACE : BaseDatastore._namespace
 }
 
+static setNamespace(rc : RunContextServer, namespace : string) {
+  BaseDatastore._namespace = namespace
+}
+
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             BASIC DB OPERATIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
