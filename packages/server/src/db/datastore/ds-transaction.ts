@@ -114,7 +114,7 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
     } 
     finally {
       rc.endTraceSpan(traceId, ack)
-      rc.endTraceSpan(this.tranId, this.ack)
+      //rc.endTraceSpan(this.tranId, this.ack) // This is already done in commit
     }
   }
 
@@ -143,7 +143,6 @@ export class DSTransaction<T extends BaseDatastore<T> = any> {
       rc.isAssert() && rc.assert(rc.getName(this), !!mId, traceId + '=> ID Cannot be Null/Undefined [Kind = ' + kindName + ']') 
       const key       = model.getDatastoreKey(rc, mId, false, parentKey),
             entityRec = await this._transaction.get(key)
-
       if(!entityRec[0]) {
         if(!ignoreRNF) throw(new DSError(ERROR_CODES.RECORD_NOT_FOUND, `[Kind: ${kindName}, Id: ${mId}]`))
         return false

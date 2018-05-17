@@ -231,7 +231,7 @@ public getNamespace(rc : RunContextServer) : string {
   private static async mInsertInternal<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mInsert${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = this.createTransaction(rc)
+          transaction : DSTransaction<T> = this.createTransaction(rc)
   
     try {
       await transaction.start(rc)
@@ -263,7 +263,7 @@ public getNamespace(rc : RunContextServer) : string {
   private static async mUpdateInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[] ) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mUpdate${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = this.createTransaction(rc)
+          transaction : DSTransaction<T> = this.createTransaction(rc)
     
     try {
       await transaction.start(rc)
@@ -292,7 +292,7 @@ public getNamespace(rc : RunContextServer) : string {
   private static async mDeleteInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mDelete`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = this.createTransaction(rc)
+          transaction : DSTransaction<T> = this.createTransaction(rc)
 
     try {
       await transaction.start(rc)
@@ -321,7 +321,7 @@ public getNamespace(rc : RunContextServer) : string {
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
     // Re-direction to DS Transaction!
     const traceId     = `${rc.getName(this)}:insert:${this.constructor.name}`,
-          transaction = (this.constructor as any).createTransaction(rc),
+          transaction : DSTransaction<BaseDatastore<T>> = (this.constructor as any).createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
       await transaction.start(rc)
@@ -345,7 +345,7 @@ public getNamespace(rc : RunContextServer) : string {
   protected async update(rc : RunContextServer, id : number | string, updRec : Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<BaseDatastore<T>> {
     // Re-direction to DS Transaction!
     const traceId = `${rc.getName(this)}:update:${this.constructor.name}`,
-          transaction = (this.constructor as any).createTransaction(rc),
+          transaction : DSTransaction<BaseDatastore<T>> = (this.constructor as any).createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     
     try {
@@ -373,7 +373,7 @@ public getNamespace(rc : RunContextServer) : string {
   protected async softDelete(rc : RunContextServer, id : number | string, params ?: Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:softDelete:${this.constructor.name}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction = (this.constructor as any).createTransaction(rc)
+          transaction : DSTransaction<BaseDatastore<T>> = (this.constructor as any).createTransaction(rc)
 
     try {
       this._id = id
