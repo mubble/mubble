@@ -30,40 +30,56 @@ TODO ????
  */
 class AdhocTimer(timerName: String, callback: () -> Long): MubbleLogger {
 
-  override val customTag   : String  = "$timerName:AdhocTimer"
+  override val customTag   : String  = "$timerName:Adhoc:${this.hashCode()}"
   private  var scheduledAt : Long    = 0L
+  private  val logging     : Boolean = false
   private  val looper      : Looper  = Looper.myLooper()
+  private  val handler     : Handler = Handler(looper)
 
   private val runnable : Runnable = Runnable {
+
+    check(looper === Looper.myLooper())
 
     scheduledAt = 0L          // Before we run the scheduled task, we mark the old schedule done
     val msAfter = callback()  // If callback has return next schedule time and it did not call tickAfter
 
-    info { "Callback returned $msAfter" }
-    //if (msAfter != 0L && scheduledAt == 0L) reSchedule(msAfter)
+    if (logging) info { "Callback returned $msAfter" }
+
+    // We will honor the return value only when callback has not explicitly set the timer again
+    if (scheduledAt == 0L) reSchedule(msAfter)
   }
 
   fun tickAfter(ms: Long, overwrite : Boolean = false) {
 
+    if (logging) info { "Came to tickAfter $ms" }
+
     check(looper === Looper.myLooper())
-    if (!overwrite && scheduledAt > 0L) return // Already scheduled and not supposed to overwrite
+
+    val newScheduledAt = System.currentTimeMillis() + ms
+
+    // Already scheduled at a earlier time and not supposed to overwrite
+    if (!overwrite && scheduledAt < newScheduledAt) return
+
     reSchedule(ms)
   }
 
   fun remove() {
     check(looper === Looper.myLooper())
+    if (logging) info { "Came to remove" }
     reSchedule(0)
   }
 
   private fun reSchedule(ms: Long) {
 
-    val handler = Handler(looper)
     if (scheduledAt > 0L) handler.removeCallbacks(runnable)
 
     scheduledAt = if (ms > 0) {
+
+      if (logging) info { "Rescheduled timer after ${ms/1000} sec. Removed old: ${scheduledAt != 0L}" }
       handler.postDelayed(runnable, ms)
       System.currentTimeMillis() + ms
     } else {
+      if (logging) info { "Not rescheduling timer. Removed old: ${scheduledAt != 0L}" }
       0
     }
 
