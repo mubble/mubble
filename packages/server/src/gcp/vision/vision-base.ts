@@ -7,7 +7,9 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-const gVision   = require('@google-cloud/vision')
+const gVision         = require('@google-cloud/vision'),
+      imagemin        = require('imagemin'),
+      imageminMozjpeg = require('imagemin-mozjpeg')
 
 import {
         VISION_ERROR_CODES,
@@ -18,12 +20,18 @@ import {
         GcsUUIDFileInfo
        }                            from '../cloudstorage/cloudstorage-base'
 import {
+        BlobStorageBase,
+        AbsFileInfo
+       }                            from '../../azure/blobstorage/blobstorage-base'
+import {
         VisionParameters,
         ProcessedReturn,
         ProcessOptions,
         ProcessGcsReturn,
+        ProcessAbsReturn,
         SmartCropProcessReturn,
-        ImageMeta
+        ImageMeta,
+        ImageInfo
        }                            from './types'
 import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
@@ -41,7 +49,7 @@ import * as sharp                   from 'sharp'
 export class VisionBase {
 
   static _vision : any
-  static MODEL   : string = 'SC' // 'SC'
+  static MODEL   : string = 'SC' // 'VB'
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -89,7 +97,26 @@ export class VisionBase {
 
     const func = (this.MODEL === 'VB') ? this.processDataToGcsVB : this.processDataToGcsSC
     return func (rc, imageData, imageOptions, fileInfo)
-  }                        
+  }
+
+  static async processDataToAbs(rc           : RunContextServer,
+                                imageData    : Buffer,
+                                imageOptions : VisionParameters,
+                                fileInfo     : AbsFileInfo) : Promise<ProcessAbsReturn> {
+
+    return this.processDataToAbsSC(rc, imageData, imageOptions, fileInfo)
+  }
+
+  static async getImageInfo(rc        : RunContextServer,
+                            imageData : Buffer) : Promise<ImageInfo> {
+
+    const imageMeta : ImageMeta = await this.getImageMeta(rc, imageData),
+          imageInfo : ImageInfo = {
+            size : imageMeta
+          }
+
+    return imageInfo
+  }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                                GM & SMARTCROP FUNCTIONS
@@ -130,9 +157,9 @@ export class VisionBase {
                       
     const retVal = {} as ProcessGcsReturn
     
-    rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
+    rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
 
-    const processedReturnVal = await VisionBase.smartcropProcess(rc, imageData, imageOptions, fileInfo)
+    const processedReturnVal = await VisionBase.smartcropProcess(rc, imageData, imageOptions)
 
     Object.assign(retVal, processedReturnVal)
     fileInfo.mimeVal = processedReturnVal.mime
@@ -141,7 +168,25 @@ export class VisionBase {
     return retVal
   }
 
-  private static async smartcropProcess(rc : RunContextServer, imageData : Buffer, imageOptions : VisionParameters, fileInfo ?: GcsUUIDFileInfo) {
+  private static async processDataToAbsSC(rc           : RunContextServer,
+                                          imageData    : Buffer,
+                                          imageOptions : VisionParameters,
+                                          fileInfo     : AbsFileInfo) : Promise<ProcessAbsReturn> {
+
+    const retVal = {} as ProcessAbsReturn
+
+    rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
+
+    const processedReturnVal = await VisionBase.smartcropProcess(rc, imageData, imageOptions)
+
+    Object.assign(retVal, processedReturnVal)
+    fileInfo.mimeVal = processedReturnVal.mime
+    retVal.url = await BlobStorageBase.uploadDataToBlobStorage(rc, processedReturnVal.gmImage.stream(), fileInfo)
+
+    return retVal
+  }
+
+  private static async smartcropProcess(rc : RunContextServer, imageData : Buffer, imageOptions : VisionParameters) : Promise<SmartCropProcessReturn> {
     const traceId = rc.getName(this) + '_smartcropProcess',
           ack     = rc.startTraceSpan(traceId),
           retVal  = {} as SmartCropProcessReturn
@@ -161,11 +206,12 @@ export class VisionBase {
         })
       }) as Buffer
 
-      const ratio = (imageOptions.ratio) ? imageOptions.ratio : 0
+      const ratio    = (imageOptions.ratio) ? imageOptions.ratio : 0,
+            newImage = await this.changeImageFormat(rc, bufferImage)
             
-      let gmImage = await gm(bufferImage)
+      let gmImage = await gm(newImage)
 
-      if(ratio != 0) {
+      if(ratio) {
         let w    : number = 0, 
             h    : number = 0,
             maxW : number = 0,
@@ -187,20 +233,20 @@ export class VisionBase {
           })
         })
 
-        const result = await SmartCropGM.crop(bufferImage, {width : 100, height : 100}),
+        const result = await SmartCropGM.crop(newImage, {width : 100, height : 100}),
               crop   = result.topCrop,
               x      = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
               y      = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
 
-        if(w / h <= 1.05 && w / h >= 0.7) {
+        if(w / h <= 1.05 && w / h >= 0.7) {                                   // Portrait Image
           const desiredW = h * ratio
           let finalImage = new Buffer('')
 
-          const logoColors = await this.checkLogoBorders(rc, bufferImage, w, h)
+          const logoColors = await this.checkLogoBorders(rc, newImage, w, h)
 
-          if(logoColors.length > 1) {
+          if(logoColors.length > 1) {                                         // Image is a logo
             const bgbuffer = await new Promise((resolve, reject) => {
-              gm(bufferImage)
+              gm(newImage)
               .resize(Math.round(desiredW), h, '!')
               .stroke(logoColors[0], 0)
               .fill(logoColors[0])
@@ -219,25 +265,25 @@ export class VisionBase {
     
             finalImage = await new Promise((resolve, reject) => {
               sharp(bgbuffer)
-              .overlayWith(bufferImage)
+              .overlayWith(newImage)
               .toBuffer((err : any, buff : Buffer) => {
                 if(err) {
-                  rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                  rc.isError() && rc.error(rc.getName(this), `Error in converting overlay image to buffer : ${err.message}`)
                   reject(err)
                 }
                 resolve(buff)
               })
             }) as Buffer
-          } else {
-            if(h <= 200) {
+          } else {                                                            // Image is not a logo
+            if(h <= 200) {                                                    // Less blur for smaller images
               const bgbuffer = await new Promise((resolve, reject) => {
-                gm(bufferImage)
+                gm(newImage)
                 .crop(maxW, maxH, x, y)
                 .resize(desiredW, h, '!')
                 .blur(0, 10)
                 .toBuffer((err : any, buff : any) => {
                   if(err) {
-                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting blurred image to buffer : ${err.message}`)
                     reject(err)
                   }
                   resolve(buff)
@@ -246,24 +292,24 @@ export class VisionBase {
               
               finalImage = await new Promise((resolve, reject) => {
                 sharp(bgbuffer)
-                .overlayWith(bufferImage)
+                .overlayWith(newImage)
                 .toBuffer((err : any, buff : Buffer) => {
                   if(err) {
-                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting overlay image to buffer : ${err.message}`)
                     reject(err)
                   }
                   resolve(buff)
                 })
               }) as Buffer
-            } else {
+            } else {                                                          // More blur for larger images
               const bgbuffer = await new Promise((resolve, reject) => {
-                gm(bufferImage)
+                gm(newImage)
                 .crop(maxW, maxH, x, y)
                 .resize(desiredW, h, '!')
                 .blur(0, 15)
                 .toBuffer((err : any, buff : any) => {
                   if(err) {
-                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting blurred image to buffer : ${err.message}`)
                     reject(err)
                   }
                   resolve(buff)
@@ -272,10 +318,10 @@ export class VisionBase {
               
               finalImage = await new Promise((resolve, reject) => {
                 sharp(bgbuffer)
-                .overlayWith(bufferImage)
+                .overlayWith(newImage)
                 .toBuffer((err : any, buff : Buffer) => {
                   if(err) {
-                    rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+                    rc.isError() && rc.error(rc.getName(this), `Error in converting overlay image to buffer : ${err.message}`)
                     reject(err)
                   }
                   resolve(buff)
@@ -284,15 +330,31 @@ export class VisionBase {
             }
           }
           gmImage = await gm(finalImage)
-        } else {
+        } else {                                                              // Landscape Image
           gmImage.crop(maxW, maxH, x, y)
         }
         retVal.width  = (imageOptions.shrink) ? imageOptions.shrink.w : maxW
         retVal.height = (imageOptions.shrink) ? imageOptions.shrink.h : maxH
       }
 
+      const progressive = imageOptions.progressive ? true : false,
+            quality     = imageOptions.quality ? imageOptions.quality : 100
+
       if(imageOptions.shrink) gmImage.resize(imageOptions.shrink.w, imageOptions.shrink.h, '!')
-      if(imageOptions.quality && retVal.width > 400) gmImage.quality(imageOptions.quality)
+      if(imageOptions.quality || imageOptions.progressive) {
+        const gmImageBuffer = await new Promise((resolve, reject) => {
+          gmImage.toBuffer((err : Error, buff : Buffer) => {
+            if(err) {
+              rc.isError() && rc.error(rc.getName(this), `Error in converting final gmImage to buffer : ${err.message}`)
+              reject(err)
+            }
+            resolve(buff)
+          })
+        }) as Buffer
+
+        const progressiveBuffer = await imagemin.buffer(gmImageBuffer, {use : [imageminMozjpeg({quality : quality, progressive : progressive})]})
+        gmImage = await gm(progressiveBuffer)
+      }
 
       const palette = await this.getTopColors(lo.cloneDeep(gmImage)),
             mime    = await this.getGmMime(gmImage)
@@ -309,13 +371,29 @@ export class VisionBase {
     }
   }
 
+  private static async changeImageFormat(rc : RunContextServer, image : Buffer) : Promise<Buffer> {
+    const finalImage = await new Promise((resolve, reject) => {
+      gm(image)
+      .setFormat('jpeg')
+      .toBuffer((err : Error, buff : Buffer) => {
+        if(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in converting change format image to buffer : ${err.message}`)
+          reject(err)
+        }
+        resolve(buff)
+      })
+    }) as Buffer
+
+    return finalImage
+  }
+
   private static async checkLogoBorders(rc : RunContextServer, image : Buffer, w : number, h : number) {
     const leftBorderTrue = await new Promise((resolve, reject) => {
       gm(image)
       .crop(3, h, 0, 0)
       .toBuffer((err : any, buff : any) => {
         if(err) {
-          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          rc.isError() && rc.error(rc.getName(this), `Error in converting left border to buffer : ${err.message}`)
           reject(err)
         }
         resolve(buff)
@@ -328,7 +406,7 @@ export class VisionBase {
       .crop(3, h, 0, 0)
       .toBuffer((err : any, buff : any) => {
         if(err) {
-          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          rc.isError() && rc.error(rc.getName(this), `Error in converting gray left border to buffer : ${err.message}`)
           reject(err)
         }
         resolve(buff)
@@ -365,7 +443,7 @@ export class VisionBase {
       .crop(3, h, w - 3, 0)
       .toBuffer((err : any, buff : any) => {
         if(err) {
-          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          rc.isError() && rc.error(rc.getName(this), `Error in converting right border to buffer : ${err.message}`)
           reject(err)
         }
         resolve(buff)
@@ -378,7 +456,7 @@ export class VisionBase {
       .crop(3, h, w - 3, 0)
       .toBuffer((err : any, buff : any) => {
         if(err) {
-          rc.isError() && rc.error(rc.getName(this), `Error in converting image to buffer : ${err.message}`)
+          rc.isError() && rc.error(rc.getName(this), `Error in converting gray right border to buffer : ${err.message}`)
           reject(err)
         }
         resolve(buff)
