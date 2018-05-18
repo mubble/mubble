@@ -367,7 +367,6 @@ export class UiRouter {
         } else {
           this.notifyUserBackPress()
           this.warnedUser = true
-          console.log('notified')
         }
       } else {
         this.codePop = false

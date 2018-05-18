@@ -8,6 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import { RunContextBrowser } from '../rc-browser'
+import { StorageProvider } from '.'
 
 const LAST_USER = 'lastUser'
 const USERS     = 'users'
@@ -22,28 +23,27 @@ export abstract class UserKeyValue {
   private users         : {[key: string]: object} = {}
   private lastClientId  : number
 
-  constructor(private rc: RunContextBrowser, private storage) {
+  constructor(private rc: RunContextBrowser, private storage: StorageProvider) {
 
-    const users = storage.getItem(USERS)
+    const users = storage.getUserKeyValue(rc, USERS)
     if (!users) return
 
     this.users = JSON.parse(users)
-    this.lastClientId = Number(storage.getItem(LAST_USER))
+    this.lastClientId = Number(storage.getUserKeyValue(rc, LAST_USER))
 
     if (!this.lastClientId) return
     this.deserialize(this.users[this.lastClientId])
   }
 
-  registerNewUser(rc: RunContextBrowser, clientId: number, 
-    userLinkId: string, userName: string) {
+  registerNewUser(clientId: number, userLinkId: string, userName: string) {
 
     const obj = { clientId, userLinkId, userName }
     this.users[clientId] = obj
-    localStorage.setItem(USERS, JSON.stringify(this.users))
+    this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
 
     if (this.lastClientId !== clientId) {
       this.lastClientId = clientId
-      localStorage.setItem(LAST_USER, String(this.lastClientId))
+      this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
     }
 
     this.deserialize(obj)
@@ -62,13 +62,13 @@ export abstract class UserKeyValue {
     const userLinkId = this._userLinkId
     
     delete this.users[this._clientId]
-    this.storage.setItem(USERS, JSON.stringify(this.users))
+    this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
     
     if (Object.keys(this.users).length > 0) {
       const lastClientId = Number(Object.keys(this.users)[0])
       this.switchUserOnCurrRun(lastClientId)
     } else {
-      this.storage.setItem(LAST_USER, null)
+      this.storage.setUserKeyValue(this.rc, LAST_USER, null)
     }
 
     return userLinkId
@@ -76,18 +76,18 @@ export abstract class UserKeyValue {
 
   switchUserOnCurrRun(clientId: number) {
     this.lastClientId = clientId
-    this.storage.setItem(LAST_USER, String(this.lastClientId))
+    this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
     this.deserialize(this.users[this.lastClientId])
   }
 
   save(rc: RunContextBrowser): void {
 
     this.users[this._clientId] = this.serialize()
-    this.storage.setItem(USERS, JSON.stringify(this.users))
+    this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
 
     if (this.lastClientId !== this._clientId) {
       this.lastClientId = this._clientId
-      this.storage.setItem(LAST_USER, String(this.lastClientId))
+      this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
     }
   }
 

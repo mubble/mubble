@@ -55,7 +55,7 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
 
   protected fun <T> bindPreference(): PreferenceLoader<T> = PreferenceLoader()
 
-  private val spInstance: SharedPreferences = App.instance.getSharedPreferences(spName,
+  val spInstance: SharedPreferences = App.instance.getSharedPreferences(spName,
   Context.MODE_PRIVATE)
 
   // Remember the creating thread. Only creating thread is allowed to access the preferences

@@ -38,9 +38,9 @@ Design
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
 import { RunContextBrowser } from '..'
+import { StorageProvider } from '.'
 
-const PREFIX      = 'global',
-      META_KEY    = 'autoStore',
+const META_KEY    = 'autoStore',
       VALID_TYPES = [String, Number, Boolean, Object]
 
 type fieldMapType = { [key: string]:  {
@@ -60,7 +60,7 @@ export abstract class GlobalKeyValue {
 
     return function(target: any, propertyKey: string) {
 
-      // console.log('autoStore', propertyKey, target)
+      console.log('autoStore', propertyKey, target)
       Reflect.defineMetadata(META_KEY, true, target, propertyKey)
 
       return {
@@ -76,13 +76,17 @@ export abstract class GlobalKeyValue {
 
         set: function(value: any) {
 
+          console.log(target)
+
           const fieldType = Reflect.getMetadata('design:type', target, propertyKey),
                 rc        = this['rc']
 
-          rc.isDebug() && rc.debug(rc.getName(this), 'autoStore.set', propertyKey, value)
+          rc.isDebug() && rc.debug(rc.getName(this), 
+            `autoStore.set: propertyKey: ${propertyKey}, value: ${value}, fieldType: ${fieldType}`)
 
           rc.isAssert() && rc.assert(rc.getName(this), value !== undefined)
-          rc.isAssert() && rc.assert(rc.getName(this), VALID_TYPES.indexOf(fieldType) !== -1)
+          rc.isAssert() && rc.assert(rc.getName(this), VALID_TYPES.indexOf(fieldType) !== -1, 
+            `Not a valid propertyKey: ${propertyKey}, fieldType: ${fieldType}`)
 
           rc.isAssert() && rc.assert(rc.getName(this), 
             value === null ? fieldType === Object : value.constructor === fieldType,
@@ -101,13 +105,13 @@ export abstract class GlobalKeyValue {
           }
 
           const strOldValue = this['_$' + propertyKey],
-                key         = PREFIX + '.' + propertyKey
+                key         = propertyKey
 
           if (strOldValue === strValue) return
           
           this['_' + propertyKey]  = value
           this['_$' + propertyKey] = strValue
-          this.storage.setItem(key, strValue)
+          this.storage.setGlobalKeyValue(rc, key, strValue)
 
           if (rc && rc.isDebug) {
             rc.isDebug() && rc.debug('GlobalKeyValue', `Saved key ${key}=${strValue}`)
@@ -119,20 +123,21 @@ export abstract class GlobalKeyValue {
   
   private static fieldMap: fieldMapType = {}
 
-  constructor(private rc: RunContextBrowser, private storage) {
+  constructor(private rc: RunContextBrowser, private storage: StorageProvider) {
+    console.log('sid raghu')
   }
 
   init() {
 
     const rc = this.rc
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'GlobalKeyValue::Constructor')
     this.extractFields(this, GlobalKeyValue.fieldMap)
+    rc.isDebug() && rc.debug(rc.getName(this), 'GlobalKeyValue::init', GlobalKeyValue.fieldMap)
 
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
       const field           = GlobalKeyValue.fieldMap[name],
-            strSavedValue   = this.storage.getItem(PREFIX + '.' + name),
+            strSavedValue   = this.storage.getGlobalKeyValue(rc, name),
             strDefaultValue = field.strValue,
             strValue        = strSavedValue || strDefaultValue
 
@@ -196,12 +201,15 @@ export abstract class GlobalKeyValue {
 
   $dump() {
 
+    console.log('keys', Object.keys(GlobalKeyValue.fieldMap))
+    console.log(GlobalKeyValue)
+
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
       const field   = GlobalKeyValue.fieldMap[name],
             type    = (field.type as any).name,
             memory  = this[name],
-            store   = this.storage.getItem(PREFIX + '.' + name)
+            store   = this.storage.getGlobalKeyValue(this.rc, name)
 
       console.info({name, type, memory, store})
     }
