@@ -28,18 +28,18 @@ import * as http                    from 'http'
 
 const Credentials = {
   AUTH_KEY   : {
-    type                        : 'service_account',
-    project_id                  : 'mubble-playground',
-    private_key_id              : '6f590e2b09fd8e38160547f5fcdb758862079dbf',
-    private_key                 : '-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQC3DG9z2cV8mKNv\ne0joQxQMhoEUm9cF8bFZxOKWMpeEc/X0MjQ5kqjVNp1F5ltLfTtvP0UvXlPHUBRv\noRWdgI1CivluuuCRiJqW0XsJZf9aLqJT5g3U5ZEWS9xMn0MtlJRj5UAV1GB0Rpdi\nf/SBHZE1kTyLsToOw9OXpoCe10vhs6wHaVAqmmPFzzTtP4b5uiSELr5fhqv02BS3\nvWgOr3i4qmxB5DvKgDtvW4mYB+HeHtl/3Etx3TuQLwGam7mAKPqqJwB1eXXXph/3\nIURVh9CuemNS3hi1tAswwdmBdLC2yXYczBOA7w7fYt/LG9BriJ9Pgeq0wJvucRWk\ncXuEQ231AgMBAAECggEAV7xKH0kd8x5mF6ULyOd90JMXg30+jsbNrq1DvaH6Ja4/\nERCPH5k/+xH2R+6li4U225eD3bRki3/Ci861wYxAKMjbzUsdICRNlERLqLGOtvbr\nLzNxJb3y0LEDomYjmNFCXq8fDFeC87hyDvAtjUVSuE4oqvwDS9horqNLutaOtFrN\nUKFqKXlpCtbhDSTGSmVz/n796Qv8RunJSqr8ikLqRso7yjTmTMJhzs0H0hPePGOo\nsx0w0aqxeuKzKJEYOfS50yPgphE3IudiEao9JPVV1vb6GaT/0/xhNdKM15Ybkdin\n2kgy9/Wr0LsstuVaIWGv72Jovv6GMmw70khXr1lOAQKBgQDwRiQ5fJXATqUDTOeC\ngp0TnUl3QJivcygMFWBqvA9HGdmaCrnZuOgyOAwqqDbGn4cTPiw9d3w0gCJV6xe1\nL+KCxtnlSQqejE+nBdqdj6TS1kG9RONcfuAptyLDM0goP7+ZdIvDcVVY8LAcbAT8\nJyoZ0JgNJ0bsu8v7Dqnf/UM/lQKBgQDDB3dEr55z5sjSToFj46uaHI/VHyzLOdKW\nRfFapL9BnNKw3PVfetm8E8EFsB7zRql3geRxFp0dUKBs35CHRYKEeOJYm1op1YEi\n+Gmj0CKaHy7DMWwBN95/j/QmGTWJiofokITLBenO6pEC7DGE9sj6pdmppMHIngny\nZxBilFNc4QKBgGA5VuyGzlozpLYLqHOF524hgXh2sC8jiRg9v10/b0bkPVcJkKB3\nAtaJx6WVtEobPTchoQoEvgMwhY+vFNGFGcuR41WFyPDx9DxJheGv0yx0jeNEoWE7\nln5eT1epQ+6KiSrll8tvqeRyj7TyNZTeAmhQN3SdFDReiTREDRgdDz95AoGANAMb\ntb+4XGSiDiRNsZwYOcOAQHBN++zx0o3Yrjndn9v4/J4Q+mPDCbui8Kdlua+QpoSH\nrfk/8X99KUv+OXU6N6Ydh0/3Hc0I4ZCqa7uoXr4ONJRLn4+M0SxNCpQSiRne4REZ\nuSNclYhNICBpnHJMazwr7mg4Hg63zGPcJM415UECgYAXJ9U+4K5dW1DXp+qUr+BL\nNH2fV5efeInZn+fxLOJcYfopENCJR5Sgh+wvmuoINO/UyhdiQp78ochkjwn2m2SQ\ncye+AG33B+QM5kgnO0lNatA7ptqoQ0hlSOauV9u9mw2wf9qzGkfYDbYD/tDToJ00\nxscmnUwVL9DFWd5N7NB1+w==\n-----END PRIVATE KEY-----\n',
-    client_email                : 'mubble@mubble-playground.iam.gserviceaccount.com',
-    client_id                   : '114134441150157527260',
-    auth_uri                    : 'https://accounts.google.com/o/oauth2/auth',
-    token_uri                   : 'https://accounts.google.com/o/oauth2/token',
-    auth_provider_x509_cert_url : 'https://www.googleapis.com/oauth2/v1/certs',
-    client_x509_cert_url        : 'https://www.googleapis.com/robot/v1/metadata/x509/mubble%40mubble-playground.iam.gserviceaccount.com'
-  }, 
-  PROJECT_ID : 'mubble-playground'
+  type                        : "service_account",
+  project_id                  : "playground-india",
+  private_key_id              : "039b1746245f883caf08953476d48d57fd59f301",
+  private_key                 : "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQDJLoNczvvImnpX\nIve1ILnluQgWkfzjrlvq2hJiltpiFuhbVSOmg/IkyKJ51+MseVQSvF5iAGIsJo3U\niGPUO8l90POcQOlfUWIEN9Z+RzfoFRosCkmQhgFxMdAuiqZXF0El76lu/rp4aDj7\nIEw/1jwRUo6WAMsPYHc2OrG1KzKI5hzC5YDOLi5AenxIkOjSEkEvlb5OQp73IU+g\nZdhN4foN4gWUQrPODC+e2kAW1Cewml3q+QuV1xhKMOY0hQNHpRm9uUzvgh0FfN2y\nWUdREw5JE3faFJJg+/mmln3cBaWblE4b8KaWdRbl/DbjDLLQBaZPbbLVxABl3J2B\nmAX9HarlAgMBAAECggEARFZJ5d0jNrWOiAnHNZ37t3Y+Mph9XAOOknxn0VhnrvkU\nDW4isX3RY0BJvHSiZKmD7udQch6qOlAQTljT/DQg0d2H2pRMEYYt8rva3sMnUOzW\nGo6WBYMXe1FN43lSXnP2O8Iofh0Fzz+r11XVwLtvZPzzlS2IzFzasa+HTMBzJn/V\nLx3563yzKg6SHjM1AAx0dsrYf5zHXdUPJPPp9s3XP7mdAghqIr4jvEZg6eLzicpx\nu/2kWJG+lYuSFkuRmYNarBnyylKpZiqkSUFkZK0gxc5MxXpLT4kE9CoufrVP/pf6\ne7wpLDJ2WuGxu4g/GLZ3N7Ley0wN46hIHhJ+tyi7UwKBgQD1fYyjLvAxkJeS+oMb\nA93gqw+JbydIqa6CnB1j2xJaOjExgz+YaIbbrw6mJyJ2o2oHefC1CPwtP+I+EohQ\nCK7+1NRDh+zHUwpE5G3fbuCcuLQfX5MSMUx2nvRNSbIThh5KzkAUk15y2XPH0zKf\nYts3R199i3dOy+FBTVJ6k39WwwKBgQDRy1zMVSveGci/YTVpiXFcEfjw8YO7PVmJ\nTP6rDVt+h2LgCqvD2n4JjstUMwDVTqUpndYzjeUTie3JqV74y4c0tDsD6olTmDdn\nIflwfv02UvsId2OBmkoejJ63Cd4moE7xHrqpkh6tsXdpuq4E5x58gdd/oMGBW6Dw\n2cSW9NttNwKBgQDsS17Vq9aTPuRHG06a8Evfd4hK92zOqlVJbs9zUGkH5D95syXB\no8s7JfNpxv2LSJxEegFRoEZrn7Q7n0cKEnGu5Fk0b19gNPQLf/yqNmWJNNhb4nkD\n5+P7weDRjAAWfuAljQVtSLR+xASH8Sgm9tafDNpDU70RYXl+i9i6F8NYVQKBgQCr\n1pa8B0dXNGdp2oWVXC6t60qskCYGR8n+3EH8eYRnrx0dxZ/LXDvAOGXzIZOdJD3E\nSLQapi7sQh2zADf6MTsdwEJWgtTY0+UNZJabvmhJBs73sFKg5W+wdh3Kbxq3KLeA\naFscacMXIjVdNLs06Nnfwbpxn4rgGd1JahXMT+MrIQKBgQCJSAiKFZGWLhbi1u0R\nNJ1xvQ9ma7Kl/6+6wgfXugZIFxDmT4Y+Cx5FKFg2sjenD6kuVqNA0gPS6zb5kdYw\nFXo/9itjMGmgxf0opS0xbKbafcB9f3T17mgHe1QV9HJcKmCq7lSuJwsEgEJRIGCe\nKpG1dyQGZOlQylruuWKj6uYY6g==\n-----END PRIVATE KEY-----\n",
+  client_email                : "full-access@playground-india.iam.gserviceaccount.com",
+  client_id                   : "111361654706931424939",
+  auth_uri                    : "https://accounts.google.com/o/oauth2/auth",
+  token_uri                   : "https://accounts.google.com/o/oauth2/token",
+  auth_provider_x509_cert_url : "https://www.googleapis.com/oauth2/v1/certs",
+  client_x509_cert_url        : "https://www.googleapis.com/robot/v1/metadata/x509/full-access%40playground-india.iam.gserviceaccount.com"
+}, 
+  PROJECT_ID : 'playground-india'
 }
 
 const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/v1/',
@@ -47,6 +47,8 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
       metadataHostNameCmd    = 'instance/hostname',
       metadataInstanceEnvCmd = 'instance/attributes/NC_ENV',
       metadataProjectEnvCmd  = 'project/attributes/NC_PROJECT_ENV',
+      metadataBqEnvCmd       = 'project/attributes/NC_BQ_ENV',
+      azureCdnCmd            = 'project/attributes/AZURE_CDN',
       metadataOptions : http.RequestOptions   = {
         host: 'metadata.google.internal',
         port: 80,
@@ -59,18 +61,20 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
 
 export class GcloudEnv {
 
-  static async init(rc : RunContextServer, bqEnv ?: any): Promise<GcloudEnv> {
+  static async init(rc : RunContextServer): Promise<GcloudEnv> {
     
     const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
     let   gCloudEnv   = null
 
     if(rc.getRunMode() === RUN_MODE.LOAD) {
-      const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
+      const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
+            bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
+            azureCdn    = await this.getMetadata(rc, azureCdnCmd)
 
-      if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD])
-      else gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, RUN_MODE[RUN_MODE.LOAD], Credentials.AUTH_KEY)
+      if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD], JSON.parse(bqAuthKey), azureCdn)
+      else gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, RUN_MODE[RUN_MODE.LOAD], Credentials.AUTH_KEY, azureCdn, Credentials.AUTH_KEY)
 
-      await this.initGcpComponents(rc, gCloudEnv, bqEnv)
+      await this.initGcpComponents(rc, gCloudEnv)
       return gCloudEnv
     }
 
@@ -78,39 +82,46 @@ export class GcloudEnv {
       if (instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
       if (await this.getMetadata(rc, metadataProjectEnvCmd) !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
 
-      const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
-      gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
+      const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
+            bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
+            azureCdn    = await this.getMetadata(rc, azureCdnCmd)
+
+      gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], JSON.parse(bqAuthKey), azureCdn)
 
     } else {
 
       if (instanceEnv) { // running at google
 
-        const projectName = await this.getMetadata(rc, metadataProjectIdCmd)
+        const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
+              bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
+              azureCdn    = await this.getMetadata(rc, azureCdnCmd)
 
         if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
-          gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD])
+          gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], bqAuthKey, azureCdn)
         } else {
           const hostname = await this.getMetadata(rc, metadataHostNameCmd)
-          gCloudEnv = new GcloudEnv(projectName, hostname.split('.')[0])
+          gCloudEnv = new GcloudEnv(projectName, hostname.split('.')[0], JSON.parse(bqAuthKey), azureCdn)
         }
 
       } else {
         gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, 
-                             getDatastoreNamespace().toUpperCase(),
-                             Credentials.AUTH_KEY)
+                                  getDatastoreNamespace().toUpperCase(),
+                                  Credentials.AUTH_KEY,
+                                  undefined,
+                                  Credentials.AUTH_KEY)
       }
     }
-    await this.initGcpComponents(rc, gCloudEnv, bqEnv)
+    await this.initGcpComponents(rc, gCloudEnv)
     return gCloudEnv
   }
 
-  private static async initGcpComponents(rc: RunContextServer, gcloudEnv : any, bqEnv ?: any) {
+  private static async initGcpComponents(rc: RunContextServer, gcloudEnv : any) {
     // TODO: Take a list of components to initialize...
     await BaseDatastore.init (rc, gcloudEnv)
     await CloudStorageBase.init(rc, gcloudEnv)
     await MonitoringBase.init(rc, gcloudEnv)
     await VisionBase.init(rc, gcloudEnv)
-    await BigQueryBase.init(rc, gcloudEnv, bqEnv)
+    await BigQueryBase.init(rc, gcloudEnv)
     await PubSubBase.init(rc, gcloudEnv)
     await GcpLanguageBase.init(rc, gcloudEnv)
     await TraceBase.init(rc, gcloudEnv)
@@ -125,6 +136,8 @@ export class GcloudEnv {
 
   constructor(public projectId  : string,
               public namespace  : string,
+              public bqAuthKey  : object,
+              public azureCdn  ?: string,
               public authKey   ?: object) {
   }
 

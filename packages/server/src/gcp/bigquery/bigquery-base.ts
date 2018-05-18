@@ -19,12 +19,12 @@ export class BigQueryBase {
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
-  static init(rc : RunContextServer, gcloudEnv : GcloudEnv, bqEnv ?: any) {
+  static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     if(gcloudEnv.authKey) {
-      if(bqEnv && bqEnv.STRICT) {
+      if(gcloudEnv.bqAuthKey) {
         gcloudEnv.bigQuery = BigQuery ({
-          projectId   : bqEnv.PROJECT_ID,
-          credentials : bqEnv.CREDENTIALS
+          projectId   : (gcloudEnv.bqAuthKey as any).project_id,
+          credentials : gcloudEnv.bqAuthKey
         })
       } else {
         gcloudEnv.bigQuery = BigQuery ({
@@ -33,10 +33,10 @@ export class BigQueryBase {
         })
       }
     } else {
-      if(bqEnv) {
+      if(gcloudEnv.bqAuthKey) {
         gcloudEnv.bigQuery = BigQuery ({
-          projectId   : bqEnv.PROJECT_ID,
-          credentials : bqEnv.CREDENTIALS
+          projectId   : (gcloudEnv.bqAuthKey as any).project_id,
+          credentials : gcloudEnv.bqAuthKey
         })
       } else {
         gcloudEnv.bigQuery = BigQuery ({
