@@ -118,7 +118,6 @@ export class GcloudEnv {
   private static async initGcpComponents(rc: RunContextServer, gcloudEnv : any) {
     // TODO: Take a list of components to initialize...
     await BaseDatastore.init (rc, gcloudEnv)
-    await CloudStorageBase.init(rc, gcloudEnv)
     await MonitoringBase.init(rc, gcloudEnv)
     await VisionBase.init(rc, gcloudEnv)
     await BigQueryBase.init(rc, gcloudEnv)

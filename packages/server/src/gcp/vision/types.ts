@@ -30,15 +30,7 @@ export type ProcessOptions = {
   quality      ?: number 
 }
 
-export type ProcessGcsReturn = {
-  url           : string
-  mime          : string
-  width         : number
-  height        : number
-  palette       : rgb[]
-}
-
-export type ProcessAbsReturn = {
+export type ProcessedUrlReturn = {
   url           : string
   mime          : string
   width         : number

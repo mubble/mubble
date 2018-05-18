@@ -14,10 +14,7 @@ import * as stream          from 'stream'
 
 export type AbsFileInfo = { // Pattern => ${Prefix}${UUID}${Suffix}.${Extension}
   container   : string
-  folder      : string
-  namePrefix  : string
-  blobId      : string   // Optional. Will be generated (if missing)
-  nameSuffix  : string
+  path        : string   // Optional. Will be generated (if missing)
   mimeVal     : string   // Used to determine the File Extension
 }
 
@@ -36,7 +33,7 @@ export class BlobStorageBase {
                             FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
   static async uploadDataToBlobStorage(rc : RunContextServer, dataStream : stream.PassThrough, fileInfo : AbsFileInfo) {
-    const fileName = this.getFilePath(rc, fileInfo),
+    const fileName = this.getFileName(rc, fileInfo.path, fileInfo.mimeVal),
           traceId  = `uploadDataToBlobStorage : ${fileName}`,
           ack      = rc.startTraceSpan(traceId)
 
@@ -58,19 +55,15 @@ export class BlobStorageBase {
       rc.endTraceSpan(traceId, ack)
     }
 
-    return this.getFileName(rc, fileInfo)
+    return this.getFileName(rc, fileInfo.path, fileInfo.mimeVal)
   }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                         INTERNAL FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-  private static getFilePath(rc : RunContextServer, fileInfo : AbsFileInfo) {
-    return fileInfo.folder + '/' + this.getFileName(rc, fileInfo)
-  }
-  private static getFileName(rc : RunContextServer, fileInfo : AbsFileInfo) {
-    const extension = mime.extension(fileInfo.mimeVal),
-          basename  = `${fileInfo.namePrefix || ''}${fileInfo.blobId}${fileInfo.nameSuffix || ''}`
+  private static getFileName(rc : RunContextServer, path : string, mimeVal : string) {
+    const extension = mime.extension(mimeVal)
 
-    return (extension ? (basename + '.' + extension) : basename)
+    return (extension ? (name + '.' + extension) : name)
   }
 }

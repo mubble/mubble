@@ -27,8 +27,7 @@ import {
         VisionParameters,
         ProcessedReturn,
         ProcessOptions,
-        ProcessGcsReturn,
-        ProcessAbsReturn,
+        ProcessedUrlReturn,
         SmartCropProcessReturn,
         ImageMeta,
         ImageInfo
@@ -93,7 +92,7 @@ export class VisionBase {
   static async processDataToGcs(rc           : RunContextServer,
                                 imageData    : Buffer,
                                 imageOptions : VisionParameters,
-                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
+                                fileInfo     : GcsUUIDFileInfo) : Promise<ProcessedUrlReturn> {
 
     const func = (this.MODEL === 'VB') ? this.processDataToGcsVB : this.processDataToGcsSC
     return func (rc, imageData, imageOptions, fileInfo)
@@ -102,7 +101,7 @@ export class VisionBase {
   static async processDataToAbs(rc           : RunContextServer,
                                 imageData    : Buffer,
                                 imageOptions : VisionParameters,
-                                fileInfo     : AbsFileInfo) : Promise<ProcessAbsReturn> {
+                                fileInfo     : AbsFileInfo) : Promise<ProcessedUrlReturn> {
 
     return this.processDataToAbsSC(rc, imageData, imageOptions, fileInfo)
   }
@@ -153,9 +152,9 @@ export class VisionBase {
   private static async processDataToGcsSC(rc           : RunContextServer,
                                           imageData    : Buffer,
                                           imageOptions : VisionParameters,
-                                          fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
+                                          fileInfo     : GcsUUIDFileInfo) : Promise<ProcessedUrlReturn> {
                       
-    const retVal = {} as ProcessGcsReturn
+    const retVal = {} as ProcessedUrlReturn
     
     rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
 
@@ -171,9 +170,9 @@ export class VisionBase {
   private static async processDataToAbsSC(rc           : RunContextServer,
                                           imageData    : Buffer,
                                           imageOptions : VisionParameters,
-                                          fileInfo     : AbsFileInfo) : Promise<ProcessAbsReturn> {
+                                          fileInfo     : AbsFileInfo) : Promise<ProcessedUrlReturn> {
 
-    const retVal = {} as ProcessAbsReturn
+    const retVal = {} as ProcessedUrlReturn
 
     rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
 
@@ -546,7 +545,7 @@ export class VisionBase {
   private static async processDataToGcsVB(rc           : RunContextServer,
                                           imageData    : Buffer,
                                           imageOptions : VisionParameters,
-                                          fileInfo     : GcsUUIDFileInfo) : Promise<ProcessGcsReturn> {
+                                          fileInfo     : GcsUUIDFileInfo) : Promise<ProcessedUrlReturn> {
     
     rc.isDebug() && rc.debug(rc.getName(this), `Detecting Crops: Image Data: ${imageData.length} bytes`)
     const crops : any = imageOptions.ratio
@@ -639,7 +638,7 @@ export class VisionBase {
 
   private static async processAndUpload(rc : RunContextServer, imageData : Buffer, options : ProcessOptions, fileInfo : GcsUUIDFileInfo) {
     const gmImage   = await gm(imageData),
-          retVal    = {} as ProcessGcsReturn,
+          retVal    = {} as ProcessedUrlReturn,
           mime      = await this.getGmMime(gmImage),
           palette   = await this.getTopColors(lo.cloneDeep(gmImage))
 
