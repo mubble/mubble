@@ -12,3 +12,5 @@ export *                      from './datastore/ds-query'
 export *                      from './datastore/dst-query'
 export *                      from './datastore/ds-transaction'
 export *                      from './datastore/error-codes'
+
+export *                      from './muds/muds'
