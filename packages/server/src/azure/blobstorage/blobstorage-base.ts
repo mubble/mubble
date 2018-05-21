@@ -64,6 +64,6 @@ export class BlobStorageBase {
   private static getFileName(rc : RunContextServer, path : string, mimeVal : string) {
     const extension = mime.extension(mimeVal)
 
-    return (extension ? (name + '.' + extension) : name)
+    return (extension ? (path + '.' + extension) : path)
   }
 }
