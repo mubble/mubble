@@ -5,14 +5,13 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublish": "tsc"
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Raghvendra Varma",
   "license": "ISC",
   "devDependencies": {
     "@types/gm": "^1.17.33",
-    "@types/lodash": "^4.14.61",
+    "@types/lodash": "4.14.61",
     "@types/mime-types": "^2.1.0",
     "@types/mkdirp": "^0.3.29",
     "@types/node": "^8.5.9",
@@ -41,7 +40,7 @@
     "googleapis": "^20.1.0",
     "imagemin": "^5.3.1",
     "imagemin-mozjpeg": "^6.0.0",
-    "lodash": "^4.17.4",
+    "lodash": "4.17.4",
     "mammoth": "github:christygeorgemubble/mammoth.js",
     "mkdirp": "^0.5.1",
     "posix": "^4.1.1",

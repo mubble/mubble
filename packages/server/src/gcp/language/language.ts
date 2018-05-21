@@ -36,18 +36,18 @@ export type GcpTranslationInfo = {
 
 type CldLanguageInfo = {
   textBytes: number,
-  languages: [{
+  languages: {
     name   : string,
     code   : string,
     percent: number,
     score  : number
-  }],
-  chunks: [{
+  }[],
+  chunks: {
     name   : string,
     code   : string,
     offset : number,
     bytes  : number
-  }]
+  }[]
 }
 
 export class GcpLanguageBase {
@@ -194,7 +194,7 @@ export class GcpLanguageBase {
           rc.isWarn () && rc.warn (rc.getName (this), 'Error Detecting Language:', error)
           return resolve ('en')
         }
-        if (response.languages.length == 0) {
+        if (!response.languages.length) {
           rc.isWarn () && rc.warn (rc.getName (this), 'No Language Detected, Assuming English')
           return resolve ('en')
         }
