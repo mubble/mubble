@@ -60,7 +60,6 @@ export abstract class GlobalKeyValue {
 
     return function(target: any, propertyKey: string) {
 
-      console.log('autoStore', propertyKey, target)
       Reflect.defineMetadata(META_KEY, true, target, propertyKey)
 
       return {
@@ -75,8 +74,6 @@ export abstract class GlobalKeyValue {
         },
 
         set: function(value: any) {
-
-          console.log(target)
 
           const fieldType = Reflect.getMetadata('design:type', target, propertyKey),
                 rc        = this['rc']
@@ -124,7 +121,6 @@ export abstract class GlobalKeyValue {
   private static fieldMap: fieldMapType = {}
 
   constructor(private rc: RunContextBrowser, private storage: StorageProvider) {
-    console.log('sid raghu')
   }
 
   init() {
@@ -200,9 +196,6 @@ export abstract class GlobalKeyValue {
   }
 
   $dump() {
-
-    console.log('keys', Object.keys(GlobalKeyValue.fieldMap))
-    console.log(GlobalKeyValue)
 
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
