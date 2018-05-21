@@ -18,8 +18,23 @@ export abstract class MudsBaseEntity {
 
   private editing     : boolean  // indicates editing is undergoing for this entity
   private savePending : boolean  // indicates that entity is pending to be saved
-  private isFromDs    : boolean  // indicates that entity has either been fetched from db Or was created new and then inserted into db
-  
+  private fromDs      : boolean  
 
+  // Has been queued up for saving. Another edit would not be permitted on this
+  public isSavePending() {
+    return this.savePending
+  }
+
+  // Is under editing
+  public isEditing() {
+    return this.editing
+  }
+
+  // indicates that entity was either fetched from db Or 
+  // was created new and then inserted into db
+  public isFromDs() {
+    return this.fromDs
+  }
+  
 }
 
