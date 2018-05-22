@@ -174,16 +174,16 @@ static setNamespace(rc : RunContextServer, namespace : string) {
     }
   }
 
-  public static async mGet(rc : RunContextServer, ignoreRNF : boolean, ...recs : BaseDatastore[] ) : Promise<boolean> {
+  public static async mGet<T extends BaseDatastore<T>>(rc : RunContextServer, ignoreRNF : boolean, ...recs : T[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mGet models invalid')
-    const models : BaseDatastore[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
       await this.mGetInternal(rc, ignoreRNF, ...models.splice(0, MAX_DS_ITEMS_AT_A_TIME))
     }
     return true
   }
   
-  private static async mGetInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ignoreRNF : boolean, ...models : BaseDatastore[]) : Promise<boolean> {
+  private static async mGetInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ignoreRNF : boolean, ...models : T[]) : Promise<boolean> {
     const traceId = `${rc.getName(this)}:mget${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack     = rc.startTraceSpan(traceId)
     let   result  : boolean         = true      
@@ -254,10 +254,10 @@ static setNamespace(rc : RunContextServer, namespace : string) {
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
   Blind Update, Use with Care! Not checking for Constraints!
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-  public static async mUpdate<T extends BaseDatastore>(rc : RunContextServer, ...recs : BaseDatastore<T>[] ) : Promise<boolean> {
+  public static async mUpdate<T extends BaseDatastore>(rc : RunContextServer, ...recs : T[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mUpdate models invalid')
     // this.hasUniqueChanged (rc, recs)  // TODO: [CG] Dont allow changing of unique keys!   
-    const models : BaseDatastore<T>[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
       await this.mUpdateInternal(rc, ...models.splice(0, MAX_DS_TRANSACTIONS_AT_A_TIME))
     }
