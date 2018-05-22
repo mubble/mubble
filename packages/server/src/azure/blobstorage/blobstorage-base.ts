@@ -30,15 +30,14 @@ export class BlobStorageBase {
   static async uploadDataToBlobStorage(rc : RunContextServer, dataStream : stream.Readable, 
                                        fullPath: string, fileName: string, mimeType: string) {
 
-    const traceId  = `uploadDataToBlobStorage : ${fileName}`,
-          ack      = rc.startTraceSpan(traceId)
+    const traceId   = `uploadDataToBlobStorage : ${fileName}`,
+          ack       = rc.startTraceSpan(traceId),
+          pathArr   = fullPath.split('/'),
+          container = pathArr.shift() as string,
+          filePath  = `${pathArr.join('/')}/${fileName}`
 
     try {
       await new Promise((resolve, reject) => {
-        const pathArr   = fullPath.split('/'),
-              container = pathArr.shift() as string,
-              filePath  = `${pathArr.join('/')}/${fileName}`
-
         dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, (error : Error, result : any, response : storage.ServiceResponse) => {
           if(error) {
             rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Block Service write stream (${fileName}) : ${error.message}.`)
@@ -55,7 +54,7 @@ export class BlobStorageBase {
       rc.endTraceSpan(traceId, ack)
     }
 
-    return path.join(fullPath, fileName)
+    return path.join(filePath, fileName)
   }
 
 }
