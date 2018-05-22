@@ -2,7 +2,7 @@
    About      : Azure Blob Storage Base
    
    Created on : Wed May 16 2018
-   Author     : Akash Dathan
+   Author     : Vishal Sinha
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
@@ -12,9 +12,9 @@ import * as storage         from 'azure-storage'
 import * as mime            from 'mime-types'
 import * as stream          from 'stream'
 
-export type AbsFileInfo = { // Pattern => ${Prefix}${UUID}${Suffix}.${Extension}
+export type AbsFileInfo = { // Pattern => ${FilePath}.${Extension}
   container   : string
-  path        : string   // Optional. Will be generated (if missing)
+  path        : string
   mimeVal     : string   // Used to determine the File Extension
 }
 
