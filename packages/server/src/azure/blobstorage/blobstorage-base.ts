@@ -2,7 +2,7 @@
    About      : Azure Blob Storage Base
    
    Created on : Wed May 16 2018
-   Author     : Akash Dathan
+   Author     : Vishal Sinha
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
