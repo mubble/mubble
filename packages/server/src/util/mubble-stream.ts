@@ -33,7 +33,8 @@ export namespace UStream {
             lastStream  = streams[len - 1],
             firstStream = streams[0]
 
-      if (this instanceof ReadStreams) (firstStream as stream.Readable).pause()
+      // Needed for Readable and PipedWriteStream
+      if (firstStream instanceof stream.Readable) (firstStream as stream.Readable).pause()
 
       this.subscribe(lastStream) 
       lastStream.on('error', this.fnError)
@@ -171,6 +172,38 @@ export namespace UStream {
 
       const result = this.encoding === Encoding.json ? JSON.parse(this.body as string || '{}') : this.body
       this.promise.resolve(result)
+    }
+  }
+
+  export class PipedWriterStreams extends BaseStreams {
+
+    private fnFinish: () => void
+
+    constructor(rc: RunContextServer, streams: (stream.Writable | stream.Readable) [], 
+                promise ?: Mubble.uPromise<any>) {
+      super(rc, streams, promise)
+      const firstStream = this.streams[0]
+      rc.isAssert() && rc.assert(rc.getName(this), firstStream instanceof stream.Readable)
+    }
+
+    public async start() {
+      const firstStream = this.streams[0] as stream.Readable
+      firstStream.resume()
+      await this.promise
+    }
+
+    subscribe(stream: stream.Writable | stream.Readable) {
+      if (!this.fnFinish) this.fnFinish = this.onFinish.bind(this)
+      stream.on('finish', this.fnFinish)
+    }
+
+    unsubscribe(stream: stream.Writable | stream.Readable) {
+      if (this.fnFinish) stream.removeListener('finish', this.fnFinish)
+    }
+
+    private onFinish() {
+      this.cleanup()
+      this.promise.resolve(null)
     }
   }
 }

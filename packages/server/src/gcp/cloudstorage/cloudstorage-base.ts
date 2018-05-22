@@ -51,7 +51,7 @@ export class CloudStorageBase {
                                 FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
 
-  static async uploadDataToCloudStorage(rc : RunContextServer, dataStream : stream.PassThrough, fileInfo : GcsUUIDFileInfo) : Promise<string> {
+  static async uploadDataToCloudStorage(rc : RunContextServer, dataStream : stream.Readable, fileInfo : GcsUUIDFileInfo) : Promise<string> {
     const filename = await this.getUUIDFileName(rc, fileInfo),
           gcFile   = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket).file(filename),
           traceId  = `UploadDataToCloudStorage : ${filename}`,

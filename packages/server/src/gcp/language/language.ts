@@ -36,18 +36,18 @@ export type GcpTranslationInfo = {
 
 type CldLanguageInfo = {
   textBytes: number,
-  languages: [{
+  languages: {
     name   : string,
     code   : string,
     percent: number,
     score  : number
-  }],
-  chunks: [{
+  }[],
+  chunks: {
     name   : string,
     code   : string,
     offset : number,
     bytes  : number
-  }]
+  }[]
 }
 
 export class GcpLanguageBase {

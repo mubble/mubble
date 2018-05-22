@@ -572,6 +572,19 @@ isDeleted(rc: RunContextServer) : boolean {
   }
 
 /*------------------------------------------------------------------------------
+  - Allocate Id
+------------------------------------------------------------------------------*/
+  async allocateId(rc : RunContextServer) {
+    const incompleteKey = this.getDatastoreKey(rc),
+          keys          = await BaseDatastore._datastore.allocateIds(incompleteKey, 1),
+          newKey        = keys[0][0],
+          id            = Number(newKey.id)
+
+    this._id = id
+    return id
+  }
+
+/*------------------------------------------------------------------------------
   - Deserialize: Assign the values of the object passed to the respective fields
 ------------------------------------------------------------------------------*/
   deserialize (rc : RunContextServer, value : T) {
