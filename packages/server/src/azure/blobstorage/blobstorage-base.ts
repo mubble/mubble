@@ -35,7 +35,7 @@ export class BlobStorageBase {
 
     try {
       await new Promise((resolve, reject) => {
-        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(fullPath, fileName, (error : Error, result : any, response : storage.ServiceResponse) => {
+        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(fullPath.split('/').shift() as string, fileName, (error : Error, result : any, response : storage.ServiceResponse) => {
           if(error) {
             rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Block Service write stream (${fileName}) : ${error.message}.`)
             reject(error)
