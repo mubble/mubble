@@ -54,7 +54,7 @@ export class BlobStorageBase {
       rc.endTraceSpan(traceId, ack)
     }
 
-    return path.join(filePath, fileName)
+    return filePath
   }
 
 }
