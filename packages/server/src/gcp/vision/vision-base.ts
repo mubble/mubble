@@ -98,12 +98,13 @@ export class VisionBase {
     return func (rc, imageData, imageOptions, fileInfo)
   }
 
-  static async processDataToAbs(rc           : RunContextServer,
-                                imageData    : Buffer,
-                                imageOptions : VisionParameters,
-                                fileInfo     : AbsFileInfo) : Promise<ProcessedUrlReturn> {
+  static async processBufferData(rc           : RunContextServer,
+                                 imageData    : Buffer,
+                                 imageOptions : VisionParameters) : Promise<SmartCropProcessReturn> {
 
-    return this.processDataToAbsSC(rc, imageData, imageOptions, fileInfo)
+    rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
+
+    return VisionBase.smartcropProcess(rc, imageData, imageOptions)
   }
 
   static async getImageInfo(rc        : RunContextServer,
@@ -163,24 +164,6 @@ export class VisionBase {
     Object.assign(retVal, processedReturnVal)
     fileInfo.mimeVal = processedReturnVal.mime
     retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, processedReturnVal.gmImage.stream(), fileInfo)
-
-    return retVal
-  }
-
-  private static async processDataToAbsSC(rc           : RunContextServer,
-                                          imageData    : Buffer,
-                                          imageOptions : VisionParameters,
-                                          fileInfo     : AbsFileInfo) : Promise<ProcessedUrlReturn> {
-
-    const retVal = {} as ProcessedUrlReturn
-
-    rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
-
-    const processedReturnVal = await VisionBase.smartcropProcess(rc, imageData, imageOptions)
-
-    Object.assign(retVal, processedReturnVal)
-    fileInfo.mimeVal = processedReturnVal.mime
-    retVal.url = await BlobStorageBase.uploadDataToBlobStorage(rc, processedReturnVal.gmImage.stream(), fileInfo)
 
     return retVal
   }
