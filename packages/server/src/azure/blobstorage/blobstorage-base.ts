@@ -11,12 +11,7 @@ import {RunContextServer}   from '../../rc-server'
 import * as storage         from 'azure-storage'
 import * as mime            from 'mime-types'
 import * as stream          from 'stream'
-
-export type AbsFileInfo = { // Pattern => ${Prefix}${UUID}${Suffix}.${Extension}
-  container   : string
-  path        : string   // Optional. Will be generated (if missing)
-  mimeVal     : string   // Used to determine the File Extension
-}
+import * as path            from 'path'   
 
 export class BlobStorageBase {
   static _blobstorage : storage.BlobService
@@ -32,20 +27,21 @@ export class BlobStorageBase {
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-  static async uploadDataToBlobStorage(rc : RunContextServer, dataStream : stream.PassThrough, fileInfo : AbsFileInfo) {
-    const fileName = this.getFileName(rc, fileInfo.path, fileInfo.mimeVal),
-          traceId  = `uploadDataToBlobStorage : ${fileName}`,
+  static async uploadDataToBlobStorage(rc : RunContextServer, dataStream : stream.Readable, 
+                                       fullPath: string, fileName: string, mimeType: string) {
+
+    const traceId  = `uploadDataToBlobStorage : ${fileName}`,
           ack      = rc.startTraceSpan(traceId)
 
     try {
       await new Promise((resolve, reject) => {
-        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(fileInfo.container, fileName, (error : Error, result : any, response : storage.ServiceResponse) => {
+        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(fullPath, fileName, (error : Error, result : any, response : storage.ServiceResponse) => {
           if(error) {
             rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Block Service write stream (${fileName}) : ${error.message}.`)
             reject(error)
           }
           if(response.isSuccessful) {
-            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage.`)
+            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage`, result, response)
             resolve(true)
           }
           resolve(false)
@@ -55,15 +51,7 @@ export class BlobStorageBase {
       rc.endTraceSpan(traceId, ack)
     }
 
-    return this.getFileName(rc, fileInfo.path, fileInfo.mimeVal)
+    return path.join(fullPath, fileName)
   }
 
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-                        INTERNAL FUNCTIONS
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
-  private static getFileName(rc : RunContextServer, path : string, mimeVal : string) {
-    const extension = mime.extension(mimeVal)
-
-    return (extension ? (path + '.' + extension) : path)
-  }
 }

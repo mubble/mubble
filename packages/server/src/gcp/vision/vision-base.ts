@@ -20,8 +20,7 @@ import {
         GcsUUIDFileInfo
        }                            from '../cloudstorage/cloudstorage-base'
 import {
-        BlobStorageBase,
-        AbsFileInfo
+        BlobStorageBase
        }                            from '../../azure/blobstorage/blobstorage-base'
 import {
         VisionParameters,
@@ -44,6 +43,7 @@ import * as mime                    from 'mime-types'
 import * as stream                  from 'stream'
 import * as lo                      from 'lodash'
 import * as sharp                   from 'sharp'
+import { UStream } from '../..';
 
 export class VisionBase {
 
@@ -130,8 +130,10 @@ export class VisionBase {
           retVal              = {} as ProcessedReturn
 
     Object.assign(retVal, processedReturnVal)
-    retVal.data = resBase64 ? (await VisionBase.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await VisionBase.getGmBuffer(processedReturnVal.gmImage)
+    const uStream = new UStream.ReadStreams(rc, [processedReturnVal.stream]),
+          buffer  = await uStream.read(UStream.Encoding.bin) as Buffer
 
+    retVal.data = resBase64 ? buffer.toString('base64') : buffer
     return retVal
   }
 
@@ -145,8 +147,11 @@ export class VisionBase {
           retVal              = {} as ProcessedReturn
 
     Object.assign(retVal, processedReturnVal)
-    retVal.data = resBase64 ? (await VisionBase.getGmBuffer(processedReturnVal.gmImage)).toString('base64') : await VisionBase.getGmBuffer(processedReturnVal.gmImage)
 
+    const uStream = new UStream.ReadStreams(rc, [processedReturnVal.stream]),
+          buffer  = await uStream.read(UStream.Encoding.bin) as Buffer
+          
+    retVal.data = resBase64 ? buffer.toString('base64') : buffer
     return retVal
   }
 
@@ -163,7 +168,7 @@ export class VisionBase {
 
     Object.assign(retVal, processedReturnVal)
     fileInfo.mimeVal = processedReturnVal.mime
-    retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, processedReturnVal.gmImage.stream(), fileInfo)
+    retVal.url = await CloudStorageBase.uploadDataToCloudStorage(rc, processedReturnVal.stream, fileInfo)
 
     return retVal
   }
@@ -343,7 +348,7 @@ export class VisionBase {
             
       retVal.mime    = mime
       retVal.palette = palette as any
-      retVal.gmImage = gmImage
+      retVal.stream  = gmImage.stream()
       return retVal
     } catch(error) {
       rc.isError() && rc.error(rc.getName(this), `Error is ${error.message}`)

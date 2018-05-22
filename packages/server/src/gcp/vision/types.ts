@@ -7,6 +7,9 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import * as stream from 'stream'
+
+
 export type VisionParameters = {
   ratio        ?: number
   quality      ?: number
@@ -43,7 +46,7 @@ export type SmartCropProcessReturn = {
   height        : number
   width         : number
   palette       : rgb[]
-  gmImage       : any
+  stream        : stream.Readable
 }
 
 export type ImageMeta = {
