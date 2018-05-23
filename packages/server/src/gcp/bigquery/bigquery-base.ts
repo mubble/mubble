@@ -15,6 +15,7 @@ import {GcloudEnv}                  from '../gcloud-env'
 export class BigQueryBase {
 
   static _bigQuery : any
+  static _active   : boolean
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -45,6 +46,7 @@ export class BigQueryBase {
       }
     }
 
+    this._active   = gcloudEnv.projectId ? true : false
     this._bigQuery = gcloudEnv.bigQuery
   }
 

@@ -101,16 +101,17 @@ export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
                       INITIALIZATION FUNCTION
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
   static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
-    if (gcloudEnv.authKey) {
-      gcloudEnv.datastore = datastore ({
-        projectId   : gcloudEnv.projectId,
-        credentials : gcloudEnv.authKey
-      })
-    } else {
-      gcloudEnv.datastore = datastore ({
-        projectId   : gcloudEnv.projectId
-      })
-    }
+      if (gcloudEnv.authKey) {
+        gcloudEnv.datastore = datastore({
+          projectId   : gcloudEnv.projectId,
+          credentials : gcloudEnv.authKey
+        })
+      } else {
+        gcloudEnv.datastore = datastore({
+          projectId   : gcloudEnv.projectId
+        })
+      }
+      
     this._namespace = gcloudEnv.namespace
     this._datastore = gcloudEnv.datastore
 }

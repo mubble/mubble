@@ -52,8 +52,9 @@ type CldLanguageInfo = {
 
 export class GcpLanguageBase {
 
-  static _language   : any
-  static _translate  : any
+  static _language  : any
+  static _translate : any
+  static _active    : boolean
 
   private static MAX_TRANS_LENGTH       = 600
   private static LANG_DET_THRESHOLD     = 75
@@ -81,9 +82,16 @@ export class GcpLanguageBase {
         projectId   : gcloudEnv.projectId
       });    
     }
+
+    this._active   = gcloudEnv.projectId ? true : false
   }
 
   static async classifyText (rc: RunContextServer, text: string, wordCount ?: number) {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     const document = { 
       content: text, 
       type: 'PLAIN_TEXT'
@@ -93,6 +101,11 @@ export class GcpLanguageBase {
   }
 
   static async classifyGcsFile (rc: RunContextServer, bucketName : string, fileName : string) {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     const document = {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
       type: 'PLAIN_TEXT' 
@@ -101,6 +114,11 @@ export class GcpLanguageBase {
   }
       
   static async analyzeEntitiesInText (rc : RunContextServer, text: string) {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     const document = { 
       content: text, 
       type: 'PLAIN_TEXT' 
@@ -109,6 +127,11 @@ export class GcpLanguageBase {
   }
 
   static async analyzeEntitiesInGcs (rc : RunContextServer, bucketName : string, fileName : string) {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     const document = {
       gcsContentUri: `gs://${bucketName}/${fileName}`,
       type: 'PLAIN_TEXT'
@@ -153,6 +176,11 @@ export class GcpLanguageBase {
   }
 
   static getTopNTags (rc: RunContextServer, entities: Array<GcpEntityInfo>, count: number) {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     const allTags = lo(entities).orderBy(['occurences', 'salience'], ['desc', 'desc'])
     .flatMap((v : any) => {
       if(v.occurences == 1) return []
@@ -179,6 +207,11 @@ export class GcpLanguageBase {
   }
 
   static async detectLanguage(rc: RunContextServer, text: string) : Promise<any> {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     if(!text) return 'en'
     
     const cldOptions = {
@@ -213,7 +246,12 @@ export class GcpLanguageBase {
     return cldres
   }
 
-  static async translateToEnglish (rc: RunContextServer, text: string) : Promise<GcpTranslationInfo | null> {
+  static async translateToEnglish (rc: RunContextServer, text: string) : Promise<GcpTranslationInfo | undefined> {
+    if(!GcpLanguageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'LanguageServiceClient Disabled')
+      return
+    }
+
     try {
       const textForTranslation = (text.length <= this.MAX_TRANS_LENGTH) ? text
                                : text.substr (0, this.MAX_TRANS_LENGTH)
@@ -222,7 +260,7 @@ export class GcpLanguageBase {
     }
     catch (e) {
       rc.isWarn () && rc.warn (rc.getName (this), 'Error:', e)
-      return null
+      return
     }
   }
 

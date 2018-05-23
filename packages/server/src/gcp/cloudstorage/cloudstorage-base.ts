@@ -28,6 +28,7 @@ export type GcsUUIDFileInfo = { // Pattern => ${Prefix}${UUID}${Suffix}.${Extens
 export class CloudStorageBase {
 
   static _cloudStorage : any
+  static _active       : boolean
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -45,6 +46,7 @@ export class CloudStorageBase {
     }
 
     this._cloudStorage = gcloudEnv.cloudStorage
+    this._active       = gcloudEnv.projectId ? true : false
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -52,6 +54,10 @@ export class CloudStorageBase {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */  
 
   static async uploadDataToCloudStorage(rc : RunContextServer, dataStream : stream.Readable, fileInfo : GcsUUIDFileInfo) : Promise<string> {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return 'CloudStorage Disabled'
+    }
     const filename = await this.getUUIDFileName(rc, fileInfo),
           gcFile   = CloudStorageBase._cloudStorage.bucket(fileInfo.bucket).file(filename),
           traceId  = `UploadDataToCloudStorage : ${filename}`,
@@ -81,6 +87,11 @@ export class CloudStorageBase {
   }
 
   static async getUUIDFileId(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return
+    }
+
     if(fileInfo.fileId) return fileInfo
 
     const traceId = rc.getName(this) + ':' + 'getUUIDFileId',
@@ -101,6 +112,11 @@ export class CloudStorageBase {
   }
 
   private static async getUUIDFileName(rc : RunContextServer, fileInfo: GcsUUIDFileInfo) {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return
+    }
+
     if(fileInfo.fileId) return this.getFilePathFromInfo (rc, fileInfo)
 
     const traceId = rc.getName(this) + ':' + 'getUUIDFileName',
@@ -132,6 +148,11 @@ export class CloudStorageBase {
   }
     
   static async upload(rc : RunContextServer, bucketName : string, filePath : string, destination : string) : Promise<string> {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return 'CloudStorage Disabled'
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           traceId : string = rc.getName(this) + ':' + 'upload',
           ack              = rc.startTraceSpan(traceId)
@@ -148,6 +169,11 @@ export class CloudStorageBase {
   }
 
   static async download(rc : RunContextServer, bucketName : string, filePath : string) : Promise<any> {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return []
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           file    : any    = bucket.file(filePath),
           traceId : string = rc.getName(this) + ':' + 'download',
@@ -175,6 +201,11 @@ export class CloudStorageBase {
   }
 
   static async bucketExists(rc : RunContextServer, bucketName : string) {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return []
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           traceId : string = rc.getName(this) + ':' + 'bucketExists',
           ack              = rc.startTraceSpan(traceId)
@@ -188,6 +219,11 @@ export class CloudStorageBase {
   }
 
   static async fileExists(rc : RunContextServer, bucketName: string, filePath : string) {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return []
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           file    : any    = bucket.file(filePath),
           traceId : string = rc.getName(this) + ':' + 'fileExists',
@@ -202,6 +238,11 @@ export class CloudStorageBase {
   }
 
   static async getFileList(rc : RunContextServer, bucketName : string, prefix ?: string, delimiter ?: string) {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return []
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           options : any    = {},
           traceId : string = rc.getName(this) + ':' + 'getFiles',
@@ -229,6 +270,11 @@ export class CloudStorageBase {
   }
 
   static async getFileBuffer(rc: RunContextServer, bucketName : string, filename : string) : Promise<Buffer> {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return 'CloudStorage Disabled' as any
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           gcFile  : any    = bucket.file (filename),
           traceId  = `UploadDataToCloudStorage : ${filename}`,
@@ -257,6 +303,11 @@ export class CloudStorageBase {
   }
 
   static async setMetadata(rc: RunContextServer, bucketName: string, filename: string, metaKey: string, metaValue: string) {
+    if(!CloudStorageBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'CloudStorage Disabled')
+      return
+    }
+
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           gcFile  : any    = bucket.file (filename)
     if (gcFile) {

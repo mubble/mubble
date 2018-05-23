@@ -25,11 +25,13 @@ export class TraceBase {
 
   public static authClient : any 
   public static cloudTrace : any
-  public static projectId  : string  
+  public static projectId  : string
+  public static _active    : boolean 
   
   public static async init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     this.cloudTrace = googleApis.cloudtrace('v1')
-    this.projectId  = gcloudEnv.projectId
+    if(gcloudEnv.projectId)
+      this.projectId  = gcloudEnv.projectId
     this.authClient = await new Promise((resolve, reject) => {
       // This method looks for the GCLOUD_PROJECT and GOOGLE_APPLICATION_CREDENTIALS in environment variables.
       googleApis.auth.getApplicationDefault((err: any, authClient: any) => {
@@ -44,10 +46,13 @@ export class TraceBase {
         resolve(authClient)
       })
     })
+
+    this._active = gcloudEnv.projectId ? true : false
   } 
 
   public static sendTrace(rc : RunContextServer, apiName : string , labels ?: Mubble.uObject<string>) {
-    if(!rc.isTraceEnabled()) return
+    if(!this._active) rc.isDebug() && rc.debug(rc.getName(this), 'Trace Disabled')
+    if(!rc.isTraceEnabled() || !this._active) return
     const trace   = this.createTrace(rc, apiName, labels),
           request = {
             projectId : TraceBase.projectId,

@@ -51,6 +51,10 @@ export abstract class BaseBigQuery {
   protected static options : BigQueryTableOptions
 
   public static async init(rc : RunContextServer) {
+    if(!BigQueryBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+      return
+    }
     
     rc.isDebug() && rc.debug(rc.getName(this), 'init')
     
@@ -106,7 +110,11 @@ export abstract class BaseBigQuery {
   }
 
   private static async takeTableBackup(rc : RunContextServer , tableName : string , tableSchema : any) {
-    
+    if(!BigQueryBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+      return
+    }
+
     const bigQuery : any = BigQueryBase._bigQuery ,
           overwrite = false ,
           backup_table_name : string = this.options._tableName + '_' + format(new Date() , '%yy%%mm%%dd%%hh%%nn%%ss%') 
@@ -186,7 +194,11 @@ export abstract class BaseBigQuery {
   }
 
   public static async getDataStoreTable(rc : RunContextServer , day_timestamp ?: string) {
-    
+    if(!BigQueryBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+      return
+    }
+
     const clazz : any                    = this as any ,
     options : BigQueryTableOptions       = clazz.options ,
     dataset : any                        = BigQueryBase._bigQuery.dataset(options.DATA_STORE_NAME),
@@ -211,6 +223,11 @@ export abstract class BaseBigQuery {
   }
 
   async insert(rc : RunContextServer , day_timestamp ?: string) {
+    if(!BigQueryBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+      return
+    }
+    
     let err = this.fieldsError(rc)  
     if(err) {
       rc.isWarn() && rc.warn(rc.getName(this), 'Data Sanity Failed. Not inserting the model.',err)
@@ -238,6 +255,11 @@ export abstract class BaseBigQuery {
   }
 
 static async getTableData (rc : RunContextServer, query: any, useLegacySql:boolean) {
+  if(!BigQueryBase._active) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+    return
+  }
+
   const options = {
     query : query,
     useLegacySql: useLegacySql // Use standard SQL syntax for queries.
@@ -281,6 +303,11 @@ static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_tim
   }
 
   static async listTables(rc : RunContextServer, dsName : string) {
+    if(!BigQueryBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+      return []
+    }
+
     const traceId = `BqListTables:${Date.now()}`,
           ack     = rc.startTraceSpan(traceId)
 
@@ -301,6 +328,11 @@ static async bulkInsert(rc : RunContextServer , items : BaseBigQuery[] , day_tim
   }
 
   static async deleteTable(rc : RunContextServer, id : string, dsName : string) {
+    if(!BigQueryBase._active) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'BigQuery Disabled')
+      return
+    }
+
     const traceId = `BqDeleteTable:${Date.now()}`,
           ack     = rc.startTraceSpan(traceId)
 

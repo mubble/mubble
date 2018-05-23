@@ -17,6 +17,7 @@ export class MonitoringBase {
 
   static _monitoring : any
   static _projectId  : string
+  static _active     : boolean
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                       INITIALIZATION FUNCTION
@@ -34,10 +35,17 @@ export class MonitoringBase {
     }
 
     this._monitoring = gcloudEnv.monitoring
-    this._projectId  = gcloudEnv.projectId
+    if(gcloudEnv.projectId) {
+      this._projectId  = gcloudEnv.projectId
+      this._active     = true
+    } else {
+      this._active = false
+    }
   }
 
   static async sendToMetrics(rc : RunContextServer, metricName : string, count : number) {
+    if(!this._active) return 'Trace Disabled'
+
     const client = MonitoringBase._monitoring.metricServiceClient()
     const endTimeSecs = Date.now() / 1000
     let dataPoint = {
@@ -81,6 +89,8 @@ export class MonitoringBase {
   }
 
   static async listMetrics(rc : RunContextServer, metricName : string) {
+    if(!this._active) return 'Trace Disabled'
+
     const client = MonitoringBase._monitoring.metricServiceClient()
 
     const request = {
@@ -111,6 +121,8 @@ export class MonitoringBase {
   }
 
   static async sendToMetricsBulk(rc : RunContextServer, metricArr : monitoringTypes.metricFormat[]) {
+    if(!this._active) return 'Trace Disabled'
+    
     const client  = MonitoringBase._monitoring.metricServiceClient(),
           request = {
             name       : `projects/${MonitoringBase._projectId}`,
