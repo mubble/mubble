@@ -16,7 +16,7 @@ export *                      from './async-req-mgr'
 export *                      from './nudi-convert'
 export *                      from './mammoth'
 export *                      from './mubble-stream'
-
+export *                      from './misc'
 /* TODO:
 
 - Can add color support for logging. We will need to test it on linux to see it working
