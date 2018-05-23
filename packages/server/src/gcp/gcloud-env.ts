@@ -87,7 +87,7 @@ export class GcloudEnv {
           gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.PROD], projectName, bqAuthKey, azureCdn)
         } else {
           const hostname = await this.getMetadata(rc, metadataHostNameCmd)
-          gCloudEnv = new GcloudEnv(hostname.split('.')[0], projectName, parsedBqKey, azureCdn)
+          gCloudEnv = new GcloudEnv(hostname.split('.')[0].toUpperCase(), projectName, parsedBqKey, azureCdn)
         }
 
       } else {
