@@ -37,7 +37,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   abstract fun upgradeClientIdentity(wo: WireObject)
   abstract fun getNetworkType(): String
   abstract fun getLocation(): String
-  abstract fun getClientIdentity(): ClientIdentity
+  abstract fun getClientIdentity(): ClientIdentity?
   abstract fun handleEphEvent(wo: WireObject)
 
   companion object {
