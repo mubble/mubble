@@ -296,7 +296,7 @@ class PakoWorkerClient {
   private reqMap: Mubble.uObject<AsyncRequest> = {}
 
   constructor(private rc: RunContextBrowser) {
-    const worker = this.worker = new Worker('assets/js/pwc.js')
+    const worker = this.worker = new Worker('js/pwc.js')
     worker.onmessage = this.onMessage.bind(this)
   }
 
