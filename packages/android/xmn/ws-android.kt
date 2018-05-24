@@ -240,7 +240,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     if (this.ci.provider == null) return
 
     try {
-      //this.timerPing!!.remove()
+      this.timerPing!!.remove()
 
       this.encProvider  = null
       this.ci.provider  = null
