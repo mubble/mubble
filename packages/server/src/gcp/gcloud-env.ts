@@ -69,9 +69,10 @@ export class GcloudEnv {
     if(rc.getRunMode() === RUN_MODE.LOAD) {
       const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
             bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
-            azureCdn    = await this.getMetadata(rc, azureCdnCmd)
+            azureCdn    = await this.getMetadata(rc, azureCdnCmd),
+            parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
-      if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD], JSON.parse(bqAuthKey), azureCdn)
+      if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD], parsedBqKey, azureCdn)
       else gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, RUN_MODE[RUN_MODE.LOAD], Credentials.AUTH_KEY, azureCdn, Credentials.AUTH_KEY)
 
       await this.initGcpComponents(rc, gCloudEnv)
@@ -84,9 +85,10 @@ export class GcloudEnv {
 
       const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
             bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
-            azureCdn    = await this.getMetadata(rc, azureCdnCmd)
+            azureCdn    = await this.getMetadata(rc, azureCdnCmd),
+            parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
-      gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], JSON.parse(bqAuthKey), azureCdn)
+      gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], parsedBqKey, azureCdn)
 
     } else {
 
@@ -94,13 +96,14 @@ export class GcloudEnv {
 
         const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
               bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
-              azureCdn    = await this.getMetadata(rc, azureCdnCmd)
+              azureCdn    = await this.getMetadata(rc, azureCdnCmd),
+              parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
         if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
-          gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], bqAuthKey, azureCdn)
+          gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], parsedBqKey, azureCdn)
         } else {
           const hostname = await this.getMetadata(rc, metadataHostNameCmd)
-          gCloudEnv = new GcloudEnv(projectName, hostname.split('.')[0], JSON.parse(bqAuthKey), azureCdn)
+          gCloudEnv = new GcloudEnv(projectName, hostname.split('.')[0], parsedBqKey, azureCdn)
         }
 
       } else {
