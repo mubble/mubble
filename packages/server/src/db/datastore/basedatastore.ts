@@ -175,6 +175,9 @@ static setNamespace(rc : RunContextServer, namespace : string) {
     }
   }
 
+/*------------------------------------------------------------------------------
+  - Multi Get
+------------------------------------------------------------------------------*/
   public static async mGet<T extends BaseDatastore<T>>(rc : RunContextServer, ignoreRNF : boolean, ...recs : T[] ) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mGet models invalid')
     const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
@@ -224,7 +227,10 @@ static setNamespace(rc : RunContextServer, namespace : string) {
     return result
   }
 
-  static async mInsert<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...recs : T[]) : Promise<boolean> {
+/*------------------------------------------------------------------------------
+  - Multi Insert
+------------------------------------------------------------------------------*/
+  public static async mInsert<T extends BaseDatastore<T>>(rc : RunContextServer, insertTime : number | undefined, allowDupRec : boolean, ...recs : T[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mInsert models invalid')
     const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
     while (models.length) {
@@ -272,6 +278,7 @@ static setNamespace(rc : RunContextServer, namespace : string) {
     
     try {
       await transaction.start(rc)
+      await transaction.mGet(rc, true, ...models)
       await transaction.mUpdate(rc, ...models)
       await transaction.commit(rc)
       return true
@@ -284,6 +291,9 @@ static setNamespace(rc : RunContextServer, namespace : string) {
     }
   }
 
+/*------------------------------------------------------------------------------
+  - Multi Delete
+------------------------------------------------------------------------------*/
   public static async mDelete<T extends BaseDatastore<T>>(rc : RunContextServer, ...recs : T[]) : Promise<boolean> {
     rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mDelete models invalid')
 
@@ -311,7 +321,43 @@ static setNamespace(rc : RunContextServer, namespace : string) {
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
-          
+  }
+
+/*------------------------------------------------------------------------------
+  - Multi Soft Delete
+------------------------------------------------------------------------------*/
+  public static async mSoftDelete<T extends BaseDatastore<T>>(rc : RunContextServer, ...recs : T[]) : Promise<boolean> {
+    rc.isAssert() && rc.assert(rc.getName(this), !lo.isEmpty(recs), 'mSoftDelete models invalid')
+
+    const models : T[] = lo.clone(recs) // Clone to ensure that the recs array is not spliced!
+    while (models.length) {
+      await this.mSoftDeleteInternal(rc, ...models.splice(0, MAX_DS_TRANSACTIONS_AT_A_TIME))
+    }
+    return true
+  }
+
+  private static async mSoftDeleteInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[]) : Promise<boolean> {
+    const traceId     = `${rc.getName(this)}:mDelete`,
+          ack         = rc.startTraceSpan(traceId),
+          transaction : DSTransaction<T> = this.createTransaction(rc)
+
+    try {
+      await transaction.start(rc)
+      await transaction.mGet(rc, false, ...models)
+      await transaction.mUniqueDelete(rc, ...models)
+      for(const model of models) {
+        model.deleted = true
+      }
+      await transaction.mUpdate(rc, ...models)
+      await transaction.commit(rc)
+      return true
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), (err.code) ? '[Error Code:' + err.code + ']' : '', 'Error Message:', err.message)
+      await transaction.rollback(rc)
+      throw(new Error(ERROR_CODES.GCP_ERROR))
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 
 /*------------------------------------------------------------------------------
