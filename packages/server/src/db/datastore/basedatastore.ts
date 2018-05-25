@@ -629,7 +629,7 @@ isDeleted(rc: RunContextServer) : boolean {
 ------------------------------------------------------------------------------*/
   deserialize (rc : RunContextServer, value : any) {
     
-    if(!this._id) this._id = BaseDatastore.getIdFromResult(rc, value)
+    this._id = BaseDatastore.getIdFromResult(rc, value)
 
     for (let prop in value) { 
       let val     = value[prop],
