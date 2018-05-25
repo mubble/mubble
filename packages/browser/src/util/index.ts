@@ -9,3 +9,4 @@
 
 export * from './event-broadcast'
 export * from './dom-helper'
+export * from './hashid-converter'

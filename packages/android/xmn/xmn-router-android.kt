@@ -61,7 +61,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     timerEventTimeout = AdhocTimer("router-event-timeout", { cbTimerEventTimeout() })
   }
 
-  fun cleanup() {
+  open fun cleanup() {
 
     if (this.ci.provider != null) this.ci.provider!!.cleanup()
     this.timerReqResend!!.remove()
@@ -275,7 +275,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     return TIMEOUT_MS
   }
 
-  private fun finishRequest(index: Int, errorCode: String? = null, dataObj: JSONObject? = null) {
+  private fun finishRequest(index: Int, errorCode: String? = null, dataObj: Any? = null) {
 
     val routerReq = this.ongoingRequests.removeAt(index)
     val now       = System.currentTimeMillis()
