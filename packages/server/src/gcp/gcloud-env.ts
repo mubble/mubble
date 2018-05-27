@@ -47,7 +47,11 @@ export class GcloudEnv {
 
   static async init(rc : RunContextServer): Promise<GcloudEnv> {
     
-    const instanceEnv = await this.getMetadata(rc, metadataInstanceEnvCmd)
+    console.log('1')
+    const instanceEnv = process.env.MUBBLE_LOCAL_SERVER === 'true' ? undefined  :  
+                        await this.getMetadata(rc, metadataInstanceEnvCmd)
+                        console.log('2')
+
     let   gCloudEnv   = null
 
     if(rc.getRunMode() === RUN_MODE.LOAD) {

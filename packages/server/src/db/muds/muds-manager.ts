@@ -10,27 +10,37 @@ import 'reflect-metadata'
 import * as Datastore       from '@google-cloud/datastore'
 
 import { Muds   }           from "./muds"
-import { MudsBaseEntity }   from "./muds-base-entity"
+import { MudsBaseEntity, 
+         FieldAccessor  }   from "./muds-base-entity"
 import { Mubble }           from '@mubble/core'
 import { GcloudEnv }        from '../../gcp/gcloud-env'
 import { RunContextServer } from '../..'
 
-class MeField {
+export class MeField {
+  accessor: FieldAccessor
   constructor(readonly fieldName    : string,
-              readonly fieldType    : String | Number | Boolean | Object,
-              readonly isMandatory  : boolean,
-              readonly isIndexed    : boolean,
-              readonly isUnique     : boolean) {
 
-    if (isUnique && !isIndexed) throw('Field cannot be unique without being indexed')            
+              // Basic Type + other custom type are also allowed
+              readonly fieldType    : StringConstructor | 
+                                      NumberConstructor | 
+                                      BooleanConstructor | 
+                                      ObjectConstructor | 
+                                      ArrayConstructor, 
+
+              readonly mandatory    : boolean,
+              readonly indexed      : boolean,
+              readonly unique       : boolean
+  ) {
+    if (unique && !indexed) throw('Field cannot be unique without being indexed')            
   }
 }
 
-class MudsEntityInfo {
+export class MudsEntityInfo {
   
   readonly entityName  : string
-  readonly ancestors   : MudsEntityInfo[]
+  readonly ancestors   : MudsEntityInfo[] = []
   readonly fieldMap    : Mubble.uObject<MeField> = {}
+  readonly fieldNames  : string[] = []
 
   constructor(readonly cons        : {new(): MudsBaseEntity},
               readonly version     : number,
@@ -41,51 +51,132 @@ class MudsEntityInfo {
 
 export class MudsManager {
 
-  private entityInfoMap: Mubble.uObject<MudsEntityInfo>
+  private entityInfoMap       : Mubble.uObject<MudsEntityInfo> = {}
+  private datastore           : Datastore
+  private entityNames         : string[]
 
-  registerEntity(version: number, pkType: Muds.Pk, cons: {new(): MudsBaseEntity}) {
+  // Temporary members while store schema is built
+  private tempAncestorMap     : Mubble.uObject<{new(): Muds.BaseEntity}[]> | null = {}
+  private tempEntityFieldsMap : Mubble.uObject<Mubble.uObject<MeField>> | null = {}
+
+  registerEntity <T extends Muds.BaseEntity> (version: number, 
+                pkType: Muds.Pk, cons: {new(): T}) {
+
+    if (!this.tempAncestorMap) throw(`Trying to register entity ${cons.name
+      } after Muds.init(). Forgot to add to entities collection?`)
+
+    const entityName = cons.name  
+
+    const old = this.entityInfoMap[entityName]
+    if (old) throw(`Double annotation of entity for ${entityName}?`)
+                                
     const info = new MudsEntityInfo(cons, version, pkType)
     this.entityInfoMap[info.entityName] = info
   }
 
-  registerAncestors(ancestors: string[], cons: {new(): MudsBaseEntity}) {
-    const info = this.getEntityInfo(cons)
-    if (!info) throw(`Did not annotate entity, ${cons.name}?`)
+  registerAncestors <T extends Muds.BaseEntity> (ancestors: {new(): Muds.BaseEntity}[], 
+                    cons: {new(): T}) {
 
-    for (const ancestor of ancestors) {
-      info.ancestors.push(this.getEntityInfo(cons) || ancestor)
-    }
+    if (!this.tempAncestorMap) throw(`Trying to register entity ${cons.name
+      } after Muds.init(). Forgot to add to entities collection?`)
+
+    const info = this.tempAncestorMap[cons.name]
+    if (info) throw(`Double annotation of ancestors for ${cons.name}?`)
+
+    Object.freeze(ancestors)
+    this.tempAncestorMap[cons.name] = ancestors
   }
 
   registerField({mandatory = false, indexed = false, unique = false}, target: any, fieldName: string) {
 
-    const fieldType = Reflect.getMetadata('design:type', target.constructor, fieldName),
-          field     = new MeField(fieldName, fieldType, mandatory, indexed, unique),
-          info      = this.getEntityInfo(target)
+    const cons          = target.constructor,
+          entityName    = cons.name,
+          fieldType     = Reflect.getMetadata('design:type', target, fieldName),
+          field         = new MeField(fieldName, fieldType, mandatory, indexed, unique)
 
-    if (!info) throw(`Did not annotate entity, ${target.name}?`)
-    if (info.fieldMap[fieldName]) throw(`Double annotation on field, ${target.name}/${fieldName}?`)
-    
-    info.fieldMap[fieldName] = field
-  }
+    if (!this.tempAncestorMap) throw(`Trying to register entity ${entityName
+      } after Muds.init(). Forgot to add to entities collection?`)
 
-  private getEntityInfo(cons: {new(): MudsBaseEntity}) {
-    const name = cons.name,
-          info = this.entityInfoMap[name]
+    if (!fieldType) throw(`Null and undefined type fields are not allowed ${entityName}/${fieldName}`)      
+    if (!this.tempEntityFieldsMap) throw('Code bug')
 
-    return info
-  }
-
-  init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
-    if (gcloudEnv.authKey) {
-      gcloudEnv.datastore = new Datastore({
-        projectId   : gcloudEnv.projectId,
-        credentials : gcloudEnv.authKey
-      })
-    } else {
-      gcloudEnv.datastore = new Datastore({
-        projectId   : gcloudEnv.projectId
-      })
+    if (indexed || unique) {
+      if ([Number, String].indexOf(fieldType) === -1) throw(`Invalid type for indexed/unique field  ${
+        entityName}/${fieldName}`)
     }
+
+    let efm = this.tempEntityFieldsMap[entityName]
+    if (!efm) this.tempEntityFieldsMap[entityName] = efm = {}
+
+    if (efm[fieldName]) throw(`Double annotation on field, ${entityName}/${fieldName}?`)
+    field.accessor = new FieldAccessor(entityName, fieldName, field)
+    efm[fieldName] = Object.freeze(field)
+    return field.accessor.getAccessor()
   }
+
+  public init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
+
+    if (!this.tempAncestorMap) throw(`Second attempt at Muds.init()?`)
+
+    // All the entities must have been registered before
+    let entities = Object.keys(this.tempAncestorMap)
+    for (const entityName of entities) {
+      const entityInfo = this.entityInfoMap[entityName],
+            ancestors  = this.tempAncestorMap[entityName]
+
+      rc.isAssert() && rc.assert(rc.getName(this), entityInfo, 
+        `Missing entity annotation on ${entityName}?`)
+              
+      for (const ancestor of ancestors) {
+        const ancestorInfo = this.entityInfoMap[ancestor.name]
+        rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo, 
+          `Missing entity annotation on ${ancestor.name}?`)
+        entityInfo.ancestors.push(ancestorInfo)
+      }
+    }
+
+    if (!this.tempEntityFieldsMap) throw(`Code bug`)
+    entities = Object.keys(this.tempEntityFieldsMap)
+    for (const entityName of entities) {
+      const entityInfo = this.entityInfoMap[entityName],
+            fieldsMap  = this.tempEntityFieldsMap[entityName]
+
+      rc.isAssert() && rc.assert(rc.getName(this), entityInfo, 
+        `Missing entity annotation on ${entityName}?`)
+
+      Object.assign(entityInfo.fieldMap, fieldsMap)
+      entityInfo.fieldNames.push(...Object.keys(entityInfo.fieldMap))
+    }
+
+    this.datastore = new Datastore({
+      projectId   : gcloudEnv.projectId,
+      credentials : gcloudEnv.authKey || undefined
+    })
+
+    rc.isDebug() && rc.debug(rc.getName(this), `Muds initialized with ${
+      Object.keys(this.entityInfoMap).length} entities`)
+
+    this.finalizeDataStructures()
+  }
+
+  getInfo(entityClass: Function | {new (): MudsBaseEntity}): MudsEntityInfo {
+    return this.entityInfoMap[entityClass.name]
+  }
+
+  private finalizeDataStructures() {
+
+    this.tempEntityFieldsMap  = null
+    this.tempAncestorMap      = null
+    this.entityNames          = Object.keys(this.entityInfoMap)
+
+    Object.freeze(this.entityInfoMap)
+    Object.freeze(this)
+  }
+
+  getDatastore() {
+    return this.datastore
+  }
+
+
+
 }

@@ -10,7 +10,6 @@
 export * from './co'
 export * from './core'
 export * from './date'
-export * from './promise'
 export * from './regex'
 export * from './timer'
 export * from './performance-metrics'
