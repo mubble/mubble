@@ -38,13 +38,16 @@ export class BlobStorageBase {
 
     try {
       await new Promise((resolve, reject) => {
+
+        rc.isDebug() && rc.debug(rc.getName(this), `createWriteStreamToBlockBlob ${container}/${filePath}`)
+    
         dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, (error : Error, result : any, response : storage.ServiceResponse) => {
           if(error) {
-            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Block Service write stream (${fileName}) : ${error.message}.`)
+            rc.isError() && rc.error(rc.getName(this), `Error in createWriteStreamToBlockBlob ${container}/${filePath}`, error)
             reject(error)
           }
           if(response.isSuccessful) {
-            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage`, result, response)
+            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${container}/${filePath}`, result, response)
             resolve(true)
           }
           resolve(false)
