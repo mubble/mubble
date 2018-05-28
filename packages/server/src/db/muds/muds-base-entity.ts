@@ -6,17 +6,17 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as Datastore           from '@google-cloud/datastore'
-import * as DsEntity            from '@google-cloud/datastore/entity'
-import {  GcloudEnv }           from '../../gcp/gcloud-env'
-
-import {  RunContextServer  }   from '../../rc-server'
-import * as lo                  from 'lodash'
-import { Mubble }               from '@mubble/core'
-import {  MeField, 
-          MudsManager, 
-          MudsEntityInfo }      from './muds-manager'
-import { Muds }                 from '..'
+import * as Datastore                   from '@google-cloud/datastore'
+import * as DsEntity                    from '@google-cloud/datastore/entity'
+import {  GcloudEnv }                   from '../../gcp/gcloud-env'
+        
+import {  RunContextServer  }           from '../../rc-server'
+import * as lo                          from 'lodash'
+import { Mubble }                       from '@mubble/core'
+import {  MeField,         
+          MudsManager,         
+          MudsEntityInfo }              from './muds-manager'
+import { Muds, DatastoreInt }           from '..'
 
 export type DsRec = Object & {
   [name: string]: string | number | boolean | Object | Array<any>
@@ -28,19 +28,18 @@ export type DatastorePayload = {
   excludeFromIndexes  : string[]
 }
 
-export type DatastoreInt = DsEntity.DatastoreInt
-
 export class MudsBaseEntity {
 
-  private ancestorKeys  : (string | number) []
-  private selfKey       : string | number | undefined
+  private ancestorKeys  : (string | DatastoreInt) []
+  private selfKey       : string | DatastoreInt | undefined
 
   private editing       : boolean  // indicates editing is undergoing for this entity
   private savePending   : boolean  // indicates that entity is pending to be saved
   private fromDs        : boolean
   private entityInfo    : MudsEntityInfo
 
-  constructor(private rc: RunContextServer, private manager: MudsManager) {
+  constructor(private rc: RunContextServer, 
+              private manager: MudsManager) {
     this.entityInfo  = this.manager.getInfo(this.constructor)
   }
 
@@ -52,8 +51,6 @@ export class MudsBaseEntity {
   public edit() {
     if (this.editing) throw('Cannot enter the editing mode while already editing')
     this.editing = true
-
-    
   }
 
   public discardEditing() {
@@ -93,7 +90,7 @@ export class MudsBaseEntity {
    * Is internally called to set key for insert record. 
    * Get also uses this function via a separate function to align key format
    */
-  setKey(keys: (string | number) [] ) {
+  setKey(keys: (string | DatastoreInt) [] ) {
 
     const ancestorsInfo = this.entityInfo.ancestors
 
@@ -113,28 +110,25 @@ export class MudsBaseEntity {
     }
   }
 
-  private checkKeyType(key: number | string, info: MudsEntityInfo) {
+  private checkKeyType(key: DatastoreInt | string, info: MudsEntityInfo) {
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), typeof(key) === 
-      (info.keyType === Muds.Pk.String ? 'string' : 'number'))
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), key.constructor === 
+      (info.keyType === Muds.Pk.String ? String : DatastoreInt))
 
     return key
   }
 
-  getRecordForDs() {
+  getRecordForUpsert() {
 
-    const fieldNames   = this.entityInfo.fieldNames,
-          dsRec        : DatastorePayload = {
-            key: this.manager.getDatastore().key(this.buildKey()),
-            data: {},
-            excludeFromIndexes: []
+    const fieldNames : string[]         = this.entityInfo.fieldNames,
+          dsRec      : DatastorePayload = {
+            key                 : this.manager.getDatastore().key(this.buildKey() as any),
+            data                : {},
+            excludeFromIndexes  : []
           }
 
     for (const fieldName of fieldNames) {
-
-      const meField  = this.entityInfo.fieldMap[fieldName],
-            accessor = meField.accessor
-
+      const accessor  = this.entityInfo.fieldMap[fieldName].accessor
       accessor.setForDs(this.rc, this, dsRec)
     }
     return dsRec
@@ -142,7 +136,7 @@ export class MudsBaseEntity {
 
   private buildKey() {
 
-    const keyPath: (string | number)[] = []
+    const keyPath: (string | DatastoreInt)[] = []
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.ancestorKeys && 
       (this.entityInfo.keyType === Muds.Pk.Auto ? true : this.selfKey), 
       'Key has not been set')

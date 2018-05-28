@@ -7,6 +7,8 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import * as DsEntity            from '@google-cloud/datastore/entity'
+
 import { MudsBaseEntity }       from './muds-base-entity'
 import { MudsManager }          from './muds-manager'
 import { RunContextServer }     from '../..'
@@ -82,6 +84,14 @@ export class Muds {
     const tran = new MudsTransaction(rc, this.manager)
   }
 
+  /**
+   * * Creates a numeric key that can be inserted into db
+   * * As JS integer cannot handle full range of DS Integers, we only use 
+   * * This api is given for consistency in handling keys
+   */
+  static makeNumericKey(id: number): DatastoreInt {
+    return new DatastoreInt(id)
+  }
 }
 
 export namespace Muds {
@@ -107,3 +117,16 @@ export namespace Muds {
 
 }
 
+export class DatastoreInt {
+
+  private value: string
+
+  constructor(intStruct: DsEntity.DatastoreInt | number) {
+
+    if (typeof(intStruct) === 'number') {
+      intStruct = { value: String(intStruct) }
+    }
+      
+    this.value = intStruct.value
+  }
+}

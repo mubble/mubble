@@ -59,6 +59,21 @@ export class MudsManager {
   private tempAncestorMap     : Mubble.uObject<{new(): Muds.BaseEntity}[]> | null = {}
   private tempEntityFieldsMap : Mubble.uObject<Mubble.uObject<MeField>> | null = {}
 
+
+  public getInfo(entityClass: Function | {new (): MudsBaseEntity}): MudsEntityInfo {
+    return this.entityInfoMap[entityClass.name]
+  }
+
+
+  /* ---------------------------------------------------------------------------
+   P R I V A T E    C O D E    S E C T I O N     B E L O W
+
+   D O   N O T   A C C E S S   D I R E C T L Y
+  -----------------------------------------------------------------------------*/
+  getDatastore() {
+    return this.datastore
+  }
+
   registerEntity <T extends Muds.BaseEntity> (version: number, 
                 pkType: Muds.Pk, cons: {new(): T}) {
 
@@ -114,7 +129,7 @@ export class MudsManager {
     return field.accessor.getAccessor()
   }
 
-  public init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
+  init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
 
     if (!this.tempAncestorMap) throw(`Second attempt at Muds.init()?`)
 
@@ -159,10 +174,6 @@ export class MudsManager {
     this.finalizeDataStructures()
   }
 
-  getInfo(entityClass: Function | {new (): MudsBaseEntity}): MudsEntityInfo {
-    return this.entityInfoMap[entityClass.name]
-  }
-
   private finalizeDataStructures() {
 
     this.tempEntityFieldsMap  = null
@@ -173,9 +184,6 @@ export class MudsManager {
     Object.freeze(this)
   }
 
-  getDatastore() {
-    return this.datastore
-  }
 
 
 
