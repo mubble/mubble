@@ -8,25 +8,17 @@
 ------------------------------------------------------------------------------*/
 import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
+
 import {  GcloudEnv }                   from '../../gcp/gcloud-env'
         
 import {  RunContextServer  }           from '../../rc-server'
 import * as lo                          from 'lodash'
 import { Mubble }                       from '@mubble/core'
 import {  MeField,         
-          MudsManager,         
+          MudsManager,
+          DatastorePayload,         
           MudsEntityInfo }              from './muds-manager'
-import { Muds, DatastoreInt }           from '..'
-
-export type DsRec = Object & {
-  [name: string]: string | number | boolean | Object | Array<any>
-}
-
-export type DatastorePayload = {
-  key                 : DsEntity.DatastoreKey
-  data                : DsRec
-  excludeFromIndexes  : string[]
-}
+import { Muds, DatastoreInt, DsRec }           from '..'
 
 export class MudsBaseEntity {
 
@@ -38,9 +30,13 @@ export class MudsBaseEntity {
   private fromDs        : boolean
   private entityInfo    : MudsEntityInfo
 
-  constructor(private rc: RunContextServer, 
-              private manager: MudsManager) {
+  constructor(private rc: RunContextServer, private manager: MudsManager,
+              keys ?: (string | DatastoreInt)[], recObj ?: Mubble.uObject<any>) {
     this.entityInfo  = this.manager.getInfo(this.constructor)
+    if (keys) {
+      this.setKey(keys)
+      if (recObj) this.constructFromRecord(recObj)
+    }
   }
 
   /// Is under editing
@@ -92,63 +88,26 @@ export class MudsBaseEntity {
    */
   setKey(keys: (string | DatastoreInt) [] ) {
 
-    const ancestorsInfo = this.entityInfo.ancestors
-
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      keys.length >= ancestorsInfo.length && !this.ancestorKeys && !this.selfKey)
-    this.ancestorKeys = []
+      !this.ancestorKeys && !this.selfKey)
 
-    for (const [index, info] of ancestorsInfo.entries()) {
-      this.ancestorKeys.push(this.checkKeyType(keys[index], info))
-    }
+    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, 
+      this.entityInfo, this.entityInfo.ancestors, keys)
 
-    if (keys.length === ancestorsInfo.length) {
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.entityInfo.keyType !== Muds.Pk.String)
-      this.selfKey = undefined
-    } else {
-      this.selfKey = this.checkKeyType(keys[keys.length - 1], this.entityInfo)
-    }
+    this.ancestorKeys = ancestorKeys
+    this.selfKey = selfKey    
   }
 
-  private checkKeyType(key: DatastoreInt | string, info: MudsEntityInfo) {
+  constructFromRecord(recObj: DsRec) {
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), key.constructor === 
-      (info.keyType === Muds.Pk.String ? String : DatastoreInt))
-
-    return key
-  }
-
-  getRecordForUpsert() {
-
-    const fieldNames : string[]         = this.entityInfo.fieldNames,
-          dsRec      : DatastorePayload = {
-            key                 : this.manager.getDatastore().key(this.buildKey() as any),
-            data                : {},
-            excludeFromIndexes  : []
-          }
-
+    const fieldNames = this.entityInfo.fieldNames
     for (const fieldName of fieldNames) {
       const accessor  = this.entityInfo.fieldMap[fieldName].accessor
-      accessor.setForDs(this.rc, this, dsRec)
+      //accessor.setForDs(this.rc, this, dsRec)
     }
-    return dsRec
+    
   }
 
-  private buildKey() {
-
-    const keyPath: (string | DatastoreInt)[] = []
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.ancestorKeys && 
-      (this.entityInfo.keyType === Muds.Pk.Auto ? true : this.selfKey), 
-      'Key has not been set')
-
-    for (const [index, ancestor] of this.entityInfo.ancestors.entries()) {
-      keyPath.push(ancestor.entityName, this.ancestorKeys[index])
-    }
-
-    keyPath.push(this.entityInfo.entityName)
-    if (this.selfKey !== undefined) keyPath.push(this.selfKey)
-    return keyPath
-  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -242,19 +201,36 @@ export class FieldAccessor {
     return true
   }
 
-  loadFromDs(rc: RunContextServer, entity: any, dsRec: DatastorePayload) {
+  loadFromDs(rc: RunContextServer, entity: any, newValue: any) {
 
-    this.checkMandatory(rc, entity)
+    const meField = this.meField
+    if (!entity.editing) throw('${this.getId()}: You cannot edit an entity without calling edit() on it first')
 
-    const value = entity[this.cvFieldName]
-    if (value === undefined) return
-
-    dsRec.data[this.fieldName] = value
-
-    if (this.meField.indexed || this.meField.unique) {
-      dsRec.excludeFromIndexes.push(this.fieldName)
+    if (newValue === undefined) {
+      if (meField.mandatory) throw(`${this.getId()}: Mandatory field cannot be set to undefined`)
+    } else {
+      // basic data type
+      if ([Number, String, Boolean].indexOf(meField.fieldType as any) !== -1) {
+        if (newValue === null) throw(`${this.getId()}: Base data types cannot be set to null`)
+        if (newValue.constructor !== meField.fieldType) {
+          throw(`${this.getId()}: ${meField.fieldType.name} field cannot be set to ${newValue}/${typeof newValue}`)
+        }
+      // object data type 
+      } else if (newValue !== null && !(
+                 meField.fieldType.prototype.isPrototypeOf(newValue) ||
+                 meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
+        throw(`${this.getId()}: cannot be set to incompatible type ${
+          newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+      }
     }
+
+    if (!entity[this.ovFieldName]) entity[this.ovFieldName] = {original: entity[this.cvFieldName]}
+    console.log(`${this.getId()}: setter called with ${newValue}`)
+    entity[this.cvFieldName] = newValue
   }
+  
+
+
   
 
 

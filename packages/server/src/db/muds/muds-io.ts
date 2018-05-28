@@ -10,7 +10,8 @@ import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
 import { DatastoreTransaction }         from '@google-cloud/datastore/transaction'
 
-import { Muds, DatastoreInt }           from './muds'
+import { Muds, DatastoreInt, 
+         DatastoreKey }                 from './muds'
 import { MudsBaseEntity }               from './muds-base-entity'
 import { RunContextServer }             from '../..'
 import { MudsManager, MudsEntityInfo }  from './muds-manager';
@@ -32,7 +33,9 @@ import { MudsManager, MudsEntityInfo }  from './muds-manager';
  */
 export abstract class MudsIo {
 
+  protected datastore: Datastore
   constructor(protected rc: RunContextServer, protected manager: MudsManager) {
+    this.datastore = manager.getDatastore()
   }
 
 
@@ -40,23 +43,24 @@ export abstract class MudsIo {
   async getExistingEntity<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                  ...keys : (string | DatastoreInt)[]): Promise<T> {
 
-    const dsKey = this.getDsKey(entityClass, keys),
-          exec  = this.getExec()
-
-    //await exec.get(dsKey)
-    
-
-
-                  
-    const ds = this.manager.getDatastore()     
-                   
-    throw('Entity not found')
+    const entity = await this.getEntityIfExists(entityClass, ...keys)
+    if (!entity) throw(Muds.Error.RNF)
+    return entity
   }
 
   // Call this api to get entity from ds if it exists
   async getEntityIfExists<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                  ...keys : (string | DatastoreInt)[]): Promise<T | undefined> {
-    return undefined
+
+    const dsKey   = this.manager.prepareKeyForDs(this.rc, entityClass, keys),
+          exec    = this.getExec(),
+          [rec]   = await exec.get(dsKey)
+
+    if (!rec) return undefined
+    const key = (rec as any)[this.datastore.KEY] as DatastoreKey
+    
+    return new entityClass(this.rc, this.manager, 
+      this.extractKeyFromDs(entityClass, key), rec as any)
   }
 
   // Call this api to get editable entity either from ds or blank insertable copy
@@ -89,61 +93,46 @@ export abstract class MudsIo {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  getDsKey<T extends Muds.BaseEntity>(entityClass : Muds.IBaseEntity<T>, keys: (string | DatastoreInt) []) {
+  extractKeyFromDs<T extends Muds.BaseEntity>(entityClass : Muds.IBaseEntity<T>, 
+          key: DsEntity.DatastoreKey) : (string | DatastoreInt)[] {
 
     const entityInfo    = this.manager.getInfo(entityClass),
-          ancestorsInfo = entityInfo.ancestors
+          ancestorsInfo = entityInfo.ancestors,
+          arKey         = [] as (string | DatastoreInt)[]
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      keys.length >= ancestorsInfo.length)
-    const ancestorKeys = []
+      key.kind === entityInfo.entityName)
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      entityInfo.keyType === Muds.Pk.String ? key.name : key.id)
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      ancestorsInfo.length === (key.path.length / 2))
 
-    for (const [index, info] of ancestorsInfo.entries()) {
-      ancestorKeys.push(this.checkKeyType(keys[index], info))
+    for (let index = 0; index < key.path.length; index = index + 2) {
+      const kind = key.path[index],
+            subk = key.path[index + 1],
+            anc  = ancestorsInfo[index / 2]
+
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+          kind === anc.entityName)
+      if (anc.keyType === Muds.Pk.String) {
+        this.rc.isAssert() && this.rc.assert(this.rc.getName(this), typeof(subk) === 'string')
+        arKey.push(subk as string)
+      } else if (typeof(subk) === 'string') {
+        arKey.push(Muds.makeNumericKey(subk))
+      } else {
+        this.rc.isAssert() && this.rc.assert(this.rc.getName(this), typeof(subk) === 'object' && subk.value)
+        arKey.push(subk as DatastoreInt)
+      }
     }
-
-    let selfKey
-    if (keys.length === ancestorsInfo.length) {
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entityInfo.keyType !== Muds.Pk.String)
-      selfKey = undefined
-    } else {
-      selfKey = this.checkKeyType(keys[keys.length - 1], entityInfo)
-    }
-
-    return this.buildKey(entityInfo, ancestorKeys, selfKey)
+    arKey.push(entityInfo.keyType === Muds.Pk.String ? key.name as string : 
+      Muds.makeNumericKey(key.id as string))
+    return arKey
   }
-
-  private checkKeyType(key: DatastoreInt | string, info: MudsEntityInfo) {
-
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), key.constructor === 
-      (info.keyType === Muds.Pk.String ? String : DatastoreInt))
-
-    return key
-  }
-
-  private buildKey(entityInfo: MudsEntityInfo, 
-                   ancestorKeys: (string | DatastoreInt) [], 
-                   selfKey: string | DatastoreInt | undefined) {
-
-    const keyPath: (string | DatastoreInt)[] = []
-
-    for (const [index, ancestor] of entityInfo.ancestors.entries()) {
-      keyPath.push(ancestor.entityName, ancestorKeys[index])
-    }
-
-    keyPath.push(entityInfo.entityName)
-    if (selfKey !== undefined) keyPath.push(selfKey)
-    return keyPath
-  }
-  
-
-
-
 }
 
 export class MudsDirectIo extends MudsIo {
   protected getExec(): DsCommandExecuter {
-    return this.manager.getDatastore()
+    return this.datastore
   }
 }
 

@@ -7,14 +7,16 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
-import * as Datastore       from '@google-cloud/datastore'
+import * as Datastore                   from '@google-cloud/datastore'
+import * as DsEntity                    from '@google-cloud/datastore/entity'
 
-import { Muds   }           from "./muds"
+import { Muds, DatastoreInt, 
+         DatastoreKey, DsRec }          from "./muds"
 import { MudsBaseEntity, 
-         FieldAccessor  }   from "./muds-base-entity"
-import { Mubble }           from '@mubble/core'
-import { GcloudEnv }        from '../../gcp/gcloud-env'
-import { RunContextServer } from '../..'
+         FieldAccessor  }               from "./muds-base-entity"
+import { Mubble }                       from '@mubble/core'
+import { GcloudEnv }                    from '../../gcp/gcloud-env'
+import { RunContextServer }             from '../..'
 
 export class MeField {
   accessor: FieldAccessor
@@ -47,6 +49,12 @@ export class MudsEntityInfo {
               readonly keyType     : Muds.Pk) {
     this.entityName = cons.name        
   }
+}
+
+export type DatastorePayload = {
+  key                 : DsEntity.DatastoreKey
+  data                : DsRec
+  excludeFromIndexes  : string[]
 }
 
 export class MudsManager {
@@ -184,7 +192,82 @@ export class MudsManager {
     Object.freeze(this)
   }
 
+  
+  /* ---------------------------------------------------------------------------
+     I N T E R N A L   U T I L I T Y    F U N C T I O N S
+  -----------------------------------------------------------------------------*/
+  prepareKeyForDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                  entityClass : Muds.IBaseEntity<T>, 
+                  keys        : (string | DatastoreInt) []): DatastoreKey {
 
+    const entityInfo    = this.getInfo(entityClass),
+          ancestorsInfo = entityInfo.ancestors
 
+    const {ancestorKeys, selfKey} = this.separateKeys(rc, entityInfo, ancestorsInfo, keys)
+    return this.buildKey(rc, entityInfo, ancestorKeys, selfKey)
+  }
 
+  separateKeys(rc: RunContextServer, entityInfo: MudsEntityInfo, 
+               ancestorsInfo: MudsEntityInfo[], keys: (string | DatastoreInt) []) {
+
+    rc.isAssert() && rc.assert(rc.getName(this), keys.length >= ancestorsInfo.length)
+    const ancestorKeys = []
+
+    for (const [index, info] of ancestorsInfo.entries()) {
+      ancestorKeys.push(this.checkKeyType(rc, keys[index], info))
+    }
+
+    let selfKey
+    if (keys.length === ancestorsInfo.length) {
+      rc.isAssert() && rc.assert(rc.getName(this), entityInfo.keyType !== Muds.Pk.String)
+      selfKey = undefined
+    } else {
+      selfKey = this.checkKeyType(rc, keys[keys.length - 1], entityInfo)
+    }
+
+    return {ancestorKeys, selfKey}
+  }
+
+  private checkKeyType(rc: RunContextServer, key: DatastoreInt | string, info: MudsEntityInfo) {
+
+    if (info.keyType !== Muds.Pk.String) key = (key as DatastoreInt).value 
+    rc.isAssert() && rc.assert(rc.getName(this), key && 
+      typeof(key) === 'string')
+    return key
+  }
+
+  private buildKey(rc: RunContextServer, entityInfo: MudsEntityInfo, 
+                   ancestorKeys: (string | DatastoreInt) [], 
+                   selfKey: string | DatastoreInt | undefined) {
+
+    const keyPath: (string | DatastoreInt)[] = []
+
+    for (const [index, ancestor] of entityInfo.ancestors.entries()) {
+      keyPath.push(ancestor.entityName, ancestorKeys[index])
+    }
+
+    keyPath.push(entityInfo.entityName)
+    if (selfKey !== undefined) keyPath.push(selfKey)
+    return this.datastore.key(keyPath)
+  }
+
+  getRecordForUpsert(rc: RunContextServer, entityInfo: MudsEntityInfo,
+                    ancestorKeys: (string | DatastoreInt) [], 
+                    selfKey: string | DatastoreInt | undefined) {
+
+    const fieldNames : string[]         = entityInfo.fieldNames,
+          dsRec      : DatastorePayload = {
+            key                 : this.buildKey(rc, entityInfo, ancestorKeys, selfKey),
+            data                : {},
+            excludeFromIndexes  : []
+          }
+
+    for (const fieldName of fieldNames) {
+      const accessor  = entityInfo.fieldMap[fieldName].accessor
+      accessor.setForDs(rc, this, dsRec)
+    }
+    return dsRec
+  }
+
+  
 }

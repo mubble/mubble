@@ -14,6 +14,15 @@ import { MudsManager }          from './muds-manager'
 import { RunContextServer }     from '../..'
 import { GcloudEnv }            from '../../gcp/gcloud-env'
 import { MudsTransaction }      from './muds-io'
+import { Mubble }               from '@mubble/core'
+
+export type DatastoreInt = DsEntity.DatastoreInt
+export type DatastoreKey = DsEntity.DatastoreKey
+
+export type DsRec = Object & {
+  [name: string]: string | number | boolean | Object | Array<any>
+}
+
 
 export class Muds {
 
@@ -89,8 +98,8 @@ export class Muds {
    * * As JS integer cannot handle full range of DS Integers, we only use 
    * * This api is given for consistency in handling keys
    */
-  static makeNumericKey(id: number): DatastoreInt {
-    return new DatastoreInt(id)
+  static makeNumericKey(id: number | string): DatastoreInt {
+    return { value: String(id) }
   }
 }
 
@@ -112,21 +121,13 @@ export namespace Muds {
   }
 
   export interface IBaseEntity<T extends Muds.BaseEntity> {
-    new(rc: RunContextServer, manager: MudsManager): T
+    new(rc: RunContextServer, manager: MudsManager, 
+        key ?: (string | DatastoreInt)[], recObj ?: DsRec): T
+  }
+
+  export const Error = {
+    RNF: 'Record_Not_Found'
   }
 
 }
 
-export class DatastoreInt {
-
-  private value: string
-
-  constructor(intStruct: DsEntity.DatastoreInt | number) {
-
-    if (typeof(intStruct) === 'number') {
-      intStruct = { value: String(intStruct) }
-    }
-      
-    this.value = intStruct.value
-  }
-}

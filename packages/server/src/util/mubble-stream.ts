@@ -34,7 +34,7 @@ export namespace UStream {
             firstStream = streams[0]
 
       // Needed for Readable and PipedWriteStream
-      if (firstStream instanceof stream.Readable) (firstStream as stream.Readable).pause()
+      if (this.isReadable(firstStream)) (firstStream as stream.Readable).pause()
 
       this.subscribe(lastStream) 
       lastStream.on('error', this.fnError)
@@ -71,6 +71,14 @@ export namespace UStream {
       this.rc.isError() && this.rc.error(this.rc.getName(this), 'Error on streams', err)
       this.cleanup()
       this.promise.reject(err)
+    }
+
+    protected isReadable(stream: any) {
+      return !!stream.read
+    }
+
+    protected isWritable(stream: any) {
+      return !!stream.write
     }
 
     // Data / end / finish subscriptions on the streams
@@ -183,7 +191,7 @@ export namespace UStream {
                 promise ?: Mubble.uPromise<any>) {
       super(rc, streams, promise)
       const firstStream = this.streams[0]
-      rc.isAssert() && rc.assert(rc.getName(this), firstStream instanceof stream.Readable)
+      rc.isAssert() && rc.assert(rc.getName(this), this.isReadable(firstStream))
     }
 
     public async start() {
