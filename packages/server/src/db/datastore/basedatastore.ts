@@ -274,12 +274,16 @@ static setNamespace(rc : RunContextServer, namespace : string) {
   private static async mUpdateInternal<T extends BaseDatastore<T>>(rc : RunContextServer, ...models : T[] ) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:mUpdate${models.length?':'+(models[0] as any).constructor.name :''}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction : DSTransaction<T> = this.createTransaction(rc)
+          transaction : DSTransaction<T> = this.createTransaction(rc) ,
+          clones = models.map(m=>m.clone(rc , true))
     
     try {
       await transaction.start(rc)
-      await transaction.mGet(rc, true, ...models)
-      await transaction.mUpdate(rc, ...models)
+      await transaction.mGet(rc, true, ...clones)
+      for(const i in models){
+        Object.assign(clones[i] , models[i])
+      }
+      await transaction.mUpdate(rc, ...clones)
       await transaction.commit(rc)
       return true
     } catch(err) {
@@ -653,10 +657,10 @@ isDeleted(rc: RunContextServer) : boolean {
     return this
   }
 
-  clone(rc : RunContextServer ) : T {
+  clone(rc : RunContextServer , onlyId ?: boolean  ) : T {
     const newInstance : T = new (this.constructor as any)(rc)
     newInstance._id = this._id
-    newInstance.deserialize(rc , this as any)
+    if(!onlyId)newInstance.deserialize(rc , this as any)
     return newInstance
   }
 
