@@ -117,4 +117,35 @@ export class BlobStorageBase {
       rc.endTraceSpan(traceId, ack)
     }
   }
+
+  static async getFileBuffer(rc : RunContextServer, container : string, fileName : string) {
+    const traceId   = `downloadDataFromBlobStorage : ${fileName}`,
+          ack       = rc.startTraceSpan(traceId)
+
+    try {
+      const chunks : Array<any> = []
+      const response = await new Promise((resolve, reject) => {
+        this._blobstorage.createReadStream(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+          if(error) {
+            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${fileName}) : ${error.message}.`)
+            reject(error) 
+          }
+        })
+        .on('error', (error : Error) => { 
+          rc.isError() && rc.error (rc.getName(this), `ABS Read Stream : ${container}/${fileName}, Error : ${error.message}.`)
+          reject(error) 
+        })
+        .on('data', (chunk : any) => {
+            chunks.push(chunk)
+        })
+        .on('finish', () => { 
+          rc.isStatus() && rc.status(rc.getName(this), `Downloaded ${fileName} from Azure Blob Storage.`)
+          resolve(Buffer.concat(chunks))
+        })
+      }) as Buffer
+      return response
+    } finally { 
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
 }
