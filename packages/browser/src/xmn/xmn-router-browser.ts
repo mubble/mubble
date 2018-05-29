@@ -25,8 +25,7 @@ import {  Mubble,
           WireSysEvent,
           ClientIdentity,
           TimerInstance,
-          SYS_EVENT,
-          UPromise       } from '@mubble/core'
+          SYS_EVENT }         from '@mubble/core'
 
 import {  WsBrowser }         from './ws-browser'
 import {  EventSystem }       from '../util'
@@ -210,7 +209,7 @@ export abstract class XmnRouterBrowser {
       this.lastEventTs      = wireEvent.ts
       this.lastEventSendTs  = Date.now()
       this.timerEventTimeout.tickAfter(TIMEOUT_MS, true)
-      await UPromise.delayedPromise(EVENT_SEND_DELAY)
+      await Mubble.uPromise.delayedPromise(EVENT_SEND_DELAY)
     }
   }
 

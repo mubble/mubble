@@ -149,7 +149,7 @@ class ConnectionError(data: JSONObject) {
   val msg   : String  = data.optString("msg", "")
 }
 
-class RouterResponse(val errorCode: String?, val data: JSONObject? = null): JsonSerializable {
+class RouterResponse(val errorCode: String?, val data: Any? = null): JsonSerializable {
 
   private var events : MutableList<WireObject> = mutableListOf()
 

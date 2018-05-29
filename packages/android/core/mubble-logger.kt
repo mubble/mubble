@@ -24,7 +24,6 @@ interface MubbleLogger : AnkoLogger {
   override val loggerTag: String
     get() = computeTag(javaClass)
 
-
   private fun computeTag(clazz: Class<*>): String {
     val tag = if (customTag === "") clazz.simpleName else customTag
     return if (tag.length <= tagLength) {

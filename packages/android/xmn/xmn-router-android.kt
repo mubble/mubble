@@ -61,7 +61,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     timerEventTimeout = AdhocTimer("router-event-timeout", { cbTimerEventTimeout() })
   }
 
-  fun cleanup() {
+  open fun cleanup() {
 
     if (this.ci.provider != null) this.ci.provider!!.cleanup()
     this.timerReqResend!!.remove()
@@ -76,17 +76,18 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     }
   }
 
-  open fun sendRequest(apiName: String, data: JSONObject, cb:((RouterResponse) -> Unit)?) {
+  open fun sendRequest(apiName: String, data: JSONObject, cb:((RouterResponse) -> Unit)?,
+                       timeout: Long = TIMEOUT_MS) {
 
     val wr = WireRequest(apiName, data, System.currentTimeMillis())
-    this.ongoingRequests.add(RouterRequest(wr, cb))
+    this.ongoingRequests.add(RouterRequest(wr, cb, timeout))
 
     if (this.ci.provider == null) this.prepareConnection()
 
     if (this.ci.provider!!.send(arrayOf(wr)) == null) {
       wr.isSent = true
       info { "Sent request ${wr.toJsonObject()}" }
-      timerReqTimeout!!.tickAfter(TIMEOUT_MS)
+      timerReqTimeout!!.tickAfter(timeout)
 
     } else {
       info { "Send to be retried ${wr.toJsonObject()}" }
@@ -223,7 +224,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     when {
       this.ci.provider!!.send(arrayOf(wr.wr)) == null -> {
         wr.wr.isSent = true
-        this.timerReqTimeout!!.tickAfter(TIMEOUT_MS)
+        this.timerReqTimeout!!.tickAfter(wr.timeout)
       }
 
       (System.currentTimeMillis() - wr.wr.ts) > SEND_TIMEOUT -> {
@@ -245,7 +246,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     var i = 0
     while (i < this.ongoingRequests.size) {
       val wr        = this.ongoingRequests[i].wr
-      val timeoutAt = wr.ts + TIMEOUT_MS
+      val timeoutAt = wr.ts + this.ongoingRequests[i].timeout
 
       if (wr.isSent) {
         if (now >= timeoutAt) {
@@ -275,7 +276,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     return TIMEOUT_MS
   }
 
-  private fun finishRequest(index: Int, errorCode: String? = null, dataObj: JSONObject? = null) {
+  private fun finishRequest(index: Int, errorCode: String? = null, dataObj: Any? = null) {
 
     val routerReq = this.ongoingRequests.removeAt(index)
     val now       = System.currentTimeMillis()
@@ -311,4 +312,4 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
 }
 
-class RouterRequest(val wr: WireRequest, var cb: ((RouterResponse) -> Unit)?)
+class RouterRequest(val wr: WireRequest, var cb: ((RouterResponse) -> Unit)?, val timeout: Long)
