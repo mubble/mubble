@@ -112,6 +112,7 @@ export class BlobStorageBase {
       })
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), `Error in setMetadata : ${err}.`)
+      return null
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
