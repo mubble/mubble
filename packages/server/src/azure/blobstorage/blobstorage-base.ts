@@ -8,11 +8,10 @@
 ------------------------------------------------------------------------------*/
 
 import {RunContextServer}   from '../../rc-server'
+import {Mubble}             from '@mubble/core' 
 import * as storage         from 'azure-storage'
 import * as mime            from 'mime-types'
 import * as stream          from 'stream'
-import * as path            from 'path'   
-import { Mubble }           from '@mubble/core' 
 
 export class BlobStorageBase {
   static _blobstorage : storage.BlobService
@@ -42,18 +41,20 @@ export class BlobStorageBase {
 
     try {
       await new Promise((resolve, reject) => {
-        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, (error : Error, result : any, response : storage.ServiceResponse) => {
+        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
           if(error) {
-            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Block Service write stream (${fileName}) : ${error.message}.`)
+            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${filePath}) : ${error.message}.`)
             reject(error)
           }
           if(response.isSuccessful) {
-            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage`, result, response)
+            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage.`)
             resolve(true)
           }
           resolve(false)
         }))
       })
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Error in uploading file (${filePath}) to Azure Blob Storage : ${err}.`)
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -87,5 +88,32 @@ export class BlobStorageBase {
     })
     list.push(...result.entries.map((item: any) => item.name))
     return result.continuationToken
+  }
+
+  static async setMetadata(rc : RunContextServer, container : string, fileName : string, metaKey : string, metaValue : string) {
+    const traceId                                = `setMetadata : ${fileName} | ${metaKey} : ${metaValue}`,
+          ack                                    = rc.startTraceSpan(traceId),
+          metadata : {[index : string] : string} = {}
+
+    metadata[metaKey] = metaValue
+
+    try {
+      return await new Promise((resolve, reject) => {
+        this._blobstorage.setBlobMetadata(container, fileName, metadata, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+          if(error) {
+            rc.isError() && rc.error(rc.getName(this), `Error in setting blob ${fileName} metadata (${metaKey} : ${metaValue}) : ${error.message}.`)
+            reject(error)
+          }
+  
+          if(response.isSuccessful) rc.isStatus() && rc.status(rc.getName(this), `Succesfully set blob ${fileName} metadata.`)
+  
+          resolve(result.metadata)
+        })
+      })
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Error in setMetadata : ${err}.`)
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
   }
 }
