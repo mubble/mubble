@@ -62,7 +62,14 @@ export class BlobStorageBase {
   }
 
   static getWriteStream(rc: RunContextServer, container: string, file: string) {
-    return this._blobstorage.createWriteStreamToBlockBlob(container, file)
+    return this._blobstorage.createWriteStreamToBlockBlob(container, file, 
+      (err : Error, result : any, response : storage.ServiceResponse) => {
+        if(err) {
+          rc.isDebug() && rc.debug(rc.getName(this), 'Error response', response)
+          rc.isError() && rc.error(rc.getName(this), `Error in Azure write stream (${file})`, err)
+        }
+      }
+    )
   }
 
   static async listFiles(rc: RunContextServer, container: string, prefix ?: string) {

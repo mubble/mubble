@@ -22,7 +22,7 @@ export class MeField {
   accessor: FieldAccessor
   constructor(readonly fieldName    : string,
 
-              // Basic Type + other custom type are also allowed
+              // Basic Type + other custom type can be allowed on need basis
               readonly fieldType    : StringConstructor | 
                                       NumberConstructor | 
                                       BooleanConstructor | 
@@ -124,14 +124,14 @@ export class MudsManager {
     if (!this.tempEntityFieldsMap) throw('Code bug')
 
     if (indexed || unique) {
-      if ([Number, String].indexOf(fieldType) === -1) throw(`Invalid type for indexed/unique field  ${
-        entityName}/${fieldName}`)
+      if ([Number, String].indexOf(fieldType) === -1) throw(`${entityName}/${fieldName
+        }: indexed/unique fields cannot be of type '${fieldType.name}'`)
     }
 
     let efm = this.tempEntityFieldsMap[entityName]
     if (!efm) this.tempEntityFieldsMap[entityName] = efm = {}
 
-    if (efm[fieldName]) throw(`Double annotation on field, ${entityName}/${fieldName}?`)
+    if (efm[fieldName]) throw(`${entityName}/${fieldName}: has been annotated twice?`)
     field.accessor = new FieldAccessor(entityName, fieldName, field)
     efm[fieldName] = Object.freeze(field)
     return field.accessor.getAccessor()
@@ -230,9 +230,9 @@ export class MudsManager {
 
   private checkKeyType(rc: RunContextServer, key: DatastoreInt | string, info: MudsEntityInfo) {
 
-    if (info.keyType !== Muds.Pk.String) key = (key as DatastoreInt).value 
-    rc.isAssert() && rc.assert(rc.getName(this), key && 
-      typeof(key) === 'string')
+    const strKey = info.keyType === Muds.Pk.String ? key : (key as DatastoreInt).value 
+    rc.isAssert() && rc.assert(rc.getName(this), strKey && 
+      typeof(strKey) === 'string')
     return key
   }
 
@@ -251,9 +251,16 @@ export class MudsManager {
     return this.datastore.key(keyPath)
   }
 
-  getRecordForUpsert(rc: RunContextServer, entityInfo: MudsEntityInfo,
-                    ancestorKeys: (string | DatastoreInt) [], 
-                    selfKey: string | DatastoreInt | undefined) {
+  getRecordForUpsert(rc: RunContextServer, entity: MudsBaseEntity) {
+
+    const entityInfo    = entity.getInfo(),
+          ancestorKeys  = entity.getAncestorKey(), 
+          selfKey       = entity.getSelfKey(),
+          ancCount      = entityInfo.ancestors.length
+
+    // Entity does not allow wrong types to be inserted      
+    rc.isAssert() && rc.assert(rc.getName(this), ancCount ? ancCount === ancestorKeys.length : 
+          !ancestorKeys || ancestorKeys.length === 0)
 
     const fieldNames : string[]         = entityInfo.fieldNames,
           dsRec      : DatastorePayload = {
@@ -263,8 +270,8 @@ export class MudsManager {
           }
 
     for (const fieldName of fieldNames) {
-      const accessor  = entityInfo.fieldMap[fieldName].accessor
-      accessor.setForDs(rc, this, dsRec)
+      const accessor  = entity.getInfo().fieldMap[fieldName].accessor
+      accessor.setForDs(rc, entity, dsRec)
     }
     return dsRec
   }

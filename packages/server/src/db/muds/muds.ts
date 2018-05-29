@@ -13,7 +13,8 @@ import { MudsBaseEntity }       from './muds-base-entity'
 import { MudsManager }          from './muds-manager'
 import { RunContextServer }     from '../..'
 import { GcloudEnv }            from '../../gcp/gcloud-env'
-import { MudsTransaction }      from './muds-io'
+import { MudsTransaction, 
+         MudsDirectIo }         from './muds-io'
 import { Mubble }               from '@mubble/core'
 
 export type DatastoreInt = DsEntity.DatastoreInt
@@ -54,8 +55,9 @@ export class Muds {
    * * Optional=false (mandatory) field cannot be 'undefined' for update / insert. Muds would throw error
    * * Level: property declaration
    */
-  static field(optional: boolean): (target: any, propertyKey: string) => void {
-    return this.manager.registerField.bind(this.manager, {mandatory: !optional})
+  static field(fieldType:Muds.FieldType = Muds.Man): (target: any, propertyKey: string) => void {
+    return this.manager.registerField.bind(this.manager, {
+              mandatory: fieldType === Muds.Man})
   }
 
   /**
@@ -63,8 +65,9 @@ export class Muds {
    * * For an indexed field, when optional is changed to 'false': we will need to run data migration
    * * Level: property declaration
    */
-  static indexed(optional: boolean): (target: any, propertyKey: string) => void {
-    return this.manager.registerField.bind(this.manager, {mandatory: !optional, indexed: true})
+  static indexed(fieldType:Muds.FieldType = Muds.Man): (target: any, propertyKey: string) => void {
+    return this.manager.registerField.bind(this.manager, {
+              mandatory: fieldType === Muds.Man, indexed: true})
   }
 
   /**
@@ -72,8 +75,9 @@ export class Muds {
    * * For a unique field, optional value cannot become true, if it was false earlier
    * * Level: property declaration
    */
-  static unique(optional: boolean): (target: any, propertyKey: string) => void {
-    return this.manager.registerField.bind(this.manager, {mandatory: !optional, indexed: true, unique: true})
+  static unique(fieldType:Muds.FieldType = Muds.Man): (target: any, propertyKey: string) => void {
+    return this.manager.registerField.bind(this.manager, {
+              mandatory: fieldType === Muds.Man, indexed: true, unique: true})
   }
 
   static getManager() {
@@ -90,7 +94,11 @@ export class Muds {
   }
 
   static transaction(rc: RunContextServer, callback: (transaction: Muds.Transaction, now: number) => Promise<boolean>): void {
-    const tran = new MudsTransaction(rc, this.manager)
+    new MudsTransaction(rc, this.manager, callback)
+  }
+
+  static direct(rc: RunContextServer, callback ?: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
+    new MudsDirectIo(rc, this.manager)
   }
 
   /**
@@ -98,7 +106,7 @@ export class Muds {
    * * As JS integer cannot handle full range of DS Integers, we only use 
    * * This api is given for consistency in handling keys
    */
-  static makeNumericKey(id: number | string): DatastoreInt {
+  static getIntKey(id: number | string): DatastoreInt {
     return { value: String(id) }
   }
 }
@@ -109,6 +117,8 @@ export namespace Muds {
   export type  BaseEntity  = MudsBaseEntity
   export const Transaction = MudsTransaction
   export type  Transaction = MudsTransaction
+  export const DirectIo = MudsDirectIo
+  export type  DirectIo = MudsDirectIo
 
   export enum Pk {
     Auto,
@@ -120,13 +130,20 @@ export namespace Muds {
     String
   }
 
+  export type Man = 'mandatory'
+  export type Opt = 'optional'
+  export const Man = 'mandatory'
+  export const Opt = 'optional'
+
+  export type FieldType = Muds.Man | Muds.Opt
+
   export interface IBaseEntity<T extends Muds.BaseEntity> {
     new(rc: RunContextServer, manager: MudsManager, 
         key ?: (string | DatastoreInt)[], recObj ?: DsRec): T
   }
 
   export const Error = {
-    RNF: 'Record_Not_Found'
+    RNF: 'RECORD_NOT_FOUND'
   }
 
 }

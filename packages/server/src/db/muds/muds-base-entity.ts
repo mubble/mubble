@@ -35,11 +35,13 @@ export class MudsBaseEntity {
     this.entityInfo  = this.manager.getInfo(this.constructor)
     if (keys) {
       this.setKey(keys)
-      if (recObj) this.constructFromRecord(recObj)
+      if (recObj) {
+        this.constructFromRecord(recObj)
+        this.fromDs = true
+      }
     }
   }
 
-  /// Is under editing
   public isEditing() {
     return this.editing
   }
@@ -47,6 +49,15 @@ export class MudsBaseEntity {
   public edit() {
     if (this.editing) throw('Cannot enter the editing mode while already editing')
     this.editing = true
+  }
+
+  public isModified() {
+    const fieldNames = this.entityInfo.fieldNames
+    for (const fieldName of fieldNames) {
+      const accessor  = this.entityInfo.fieldMap[fieldName].accessor
+      if (accessor.isModified(this)) return true
+    }
+    return false
   }
 
   public discardEditing() {
@@ -76,6 +87,10 @@ export class MudsBaseEntity {
     return this.savePending
   }
 
+  public getLogId(): string {
+    return `${this.entityInfo.entityName}:${this.ancestorKeys}/${this.selfKey}`
+  }
+
   /* ---------------------------------------------------------------------------
    P R I V A T E    C O D E    S E C T I O N     B E L O W
 
@@ -94,6 +109,7 @@ export class MudsBaseEntity {
     const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, 
       this.entityInfo, this.entityInfo.ancestors, keys)
 
+    console.log(ancestorKeys, selfKey)
     this.ancestorKeys = ancestorKeys
     this.selfKey = selfKey    
   }
@@ -103,11 +119,54 @@ export class MudsBaseEntity {
     const fieldNames = this.entityInfo.fieldNames
     for (const fieldName of fieldNames) {
       const accessor  = this.entityInfo.fieldMap[fieldName].accessor
-      //accessor.setForDs(this.rc, this, dsRec)
+      accessor.loadFromDs(this.rc, this, recObj[fieldName])
     }
-    
   }
 
+  getInfo() {
+    return this.entityInfo
+  }
+
+  getAncestorKey() {
+    return this.ancestorKeys
+  }
+
+  getSelfKey() {
+    return this.selfKey
+  }
+
+  $dump() {
+
+    const entityInfo = this.entityInfo,
+          aks        = this.ancestorKeys, 
+          RIGHT      = 20,
+          LEFT       = 2
+
+    let str = `------ ${entityInfo.entityName} -------\n`
+
+    if (aks && aks.length) {
+      const ancestorsInfo = entityInfo.ancestors
+      str += lo.padEnd(lo.padStart('ancestors', LEFT), RIGHT) + ' =>'
+      for (const [index, info] of ancestorsInfo.entries()) {
+        str += this.$printKey(info, aks[index])
+      }
+      str += '\n'
+    }
+    str += lo.padEnd(lo.padStart('key', LEFT), RIGHT) + ' =>' + 
+           `${this.$printKey(entityInfo, this.selfKey)}\n`
+
+    for (const fieldName of entityInfo.fieldNames) {
+      const meField = entityInfo.fieldMap[fieldName]
+      str += lo.padEnd(lo.padStart(`${fieldName} (${meField.fieldType.name})`, LEFT), RIGHT) + ' => ' + 
+        `[${ meField.accessor.$printField(this)}]\n`
+    }
+    console.log(str)
+  }
+
+  private $printKey(info: MudsEntityInfo, key: undefined | string | DatastoreInt) {
+    return ` ${info.entityName} (${key ? (info.keyType === Muds.Pk.String ? `"${key}"` : 
+      ('Int: ' + (key as DatastoreInt).value)) : key })`
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -119,32 +178,38 @@ export class FieldAccessor {
 
   readonly ovFieldName : string // original value field name
   readonly cvFieldName : string // current  value field name
+  readonly basicType   : boolean
 
   constructor(private entityName: string, private fieldName: string, private meField: MeField) {
     this.ovFieldName = '$$' + fieldName
     this.cvFieldName  = '$' + fieldName
+    this.basicType = [Number, String, Boolean].indexOf(meField.fieldType as any) !== -1
   }
 
-  private getter(entity: any) {
+  private getter(inEntity: MudsBaseEntity) {
     console.log(`${this.getId()}: getter`)
-    return entity[this.cvFieldName]
+    return (inEntity as any)[this.cvFieldName]
   }
 
   private getId() {
     return `${this.entityName}/${this.fieldName}`
   }
 
-  setter(entity: any, newValue: any) {
+  setter(inEntity: MudsBaseEntity, newValue: any) {
+
+    const entity = inEntity as any
+    if (!entity.editing) throw(this.getId() + ' You cannot edit an entity without calling edit() on it first')
+
+    // when there is no change
+    if (entity[this.cvFieldName] === newValue) return
 
     const meField = this.meField
-    if (!entity.editing) throw('${this.getId()}: You cannot edit an entity without calling edit() on it first')
-
     if (newValue === undefined) {
-      if (meField.mandatory) throw(`${this.getId()}: Mandatory field cannot be set to undefined`)
+      if (meField.mandatory) throw(this.getId() + ' Mandatory field cannot be set to undefined')
     } else {
       // basic data type
-      if ([Number, String, Boolean].indexOf(meField.fieldType as any) !== -1) {
-        if (newValue === null) throw(`${this.getId()}: Base data types cannot be set to null`)
+      if (this.basicType) {
+        if (newValue === null) throw(this.getId() + ' Base data types cannot be set to null')
         if (newValue.constructor !== meField.fieldType) {
           throw(`${this.getId()}: ${meField.fieldType.name} field cannot be set to ${newValue}/${typeof newValue}`)
         }
@@ -152,8 +217,8 @@ export class FieldAccessor {
       } else if (newValue !== null && !(
                  meField.fieldType.prototype.isPrototypeOf(newValue) ||
                  meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-        throw(`${this.getId()}: cannot be set to incompatible type ${
-          newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+        throw(`${this.getId()}: cannot be set to incompatible type '${
+          newValue.constructor.name}'. Type does not extend '${meField.fieldType.name}'`)
       }
     }
 
@@ -162,8 +227,11 @@ export class FieldAccessor {
     entity[this.cvFieldName] = newValue
   }
 
-  resetter(entity: any) {
-    var originalValueObj = entity[this.ovFieldName]
+  resetter(inEntity: MudsBaseEntity) {
+
+    const entity            = inEntity as any,
+          originalValueObj  = entity[this.ovFieldName]
+
     if (originalValueObj) {
       entity[this.cvFieldName] = originalValueObj.original
       entity[this.ovFieldName] = undefined
@@ -178,61 +246,89 @@ export class FieldAccessor {
     }
   }
 
-  setForDs(rc: RunContextServer, entity: any, dsRec: DatastorePayload) {
+  setForDs(rc: RunContextServer, inEntity: MudsBaseEntity, dsRec: DatastorePayload) {
 
-    this.checkMandatory(rc, entity)
+    this.checkMandatory(rc, inEntity)
+
+    const entity = inEntity as any
 
     const value = entity[this.cvFieldName]
     if (value === undefined) return
 
     dsRec.data[this.fieldName] = value
 
-    if (this.meField.indexed || this.meField.unique) {
+    if (!(this.meField.indexed || this.meField.unique)) {
       dsRec.excludeFromIndexes.push(this.fieldName)
     }
   }
 
-  checkMandatory(rc: RunContextServer, entity: any) {
+  isModified(inEntity: MudsBaseEntity) {
+    return !!(inEntity as any)[this.ovFieldName]
+  }
+
+  checkMandatory(rc: RunContextServer, inEntity: MudsBaseEntity) {
 
     if (!this.meField.mandatory) return true
+
+    const entity = inEntity as any
     rc.isAssert() && rc.assert(rc.getName(this), 
       entity[this.cvFieldName] === undefined, 
       `${this.getId()}: mandatory field must not be undefined`)
     return true
   }
 
-  loadFromDs(rc: RunContextServer, entity: any, newValue: any) {
+  loadFromDs(rc: RunContextServer, inEntity: MudsBaseEntity, newValue: any) {
 
-    const meField = this.meField
-    if (!entity.editing) throw('${this.getId()}: You cannot edit an entity without calling edit() on it first')
+    const entity  = inEntity as any,
+          meField = this.meField
 
     if (newValue === undefined) {
-      if (meField.mandatory) throw(`${this.getId()}: Mandatory field cannot be set to undefined`)
-    } else {
-      // basic data type
-      if ([Number, String, Boolean].indexOf(meField.fieldType as any) !== -1) {
-        if (newValue === null) throw(`${this.getId()}: Base data types cannot be set to null`)
-        if (newValue.constructor !== meField.fieldType) {
-          throw(`${this.getId()}: ${meField.fieldType.name} field cannot be set to ${newValue}/${typeof newValue}`)
-        }
-      // object data type 
-      } else if (newValue !== null && !(
-                 meField.fieldType.prototype.isPrototypeOf(newValue) ||
-                 meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-        throw(`${this.getId()}: cannot be set to incompatible type ${
-          newValue.constructor.name} does not extend ${meField.fieldType.name}`)
-      }
+      if (meField.mandatory) rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
+        }: Db returned undefined for mandatory field. Ignoring...`)
+      return
     }
 
-    if (!entity[this.ovFieldName]) entity[this.ovFieldName] = {original: entity[this.cvFieldName]}
-    console.log(`${this.getId()}: setter called with ${newValue}`)
+    // basic data type
+    if (this.basicType) {
+      if (newValue === null) {
+        return rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
+          }: Db returned null value for base data type. Ignoring...`)
+      }
+      if (newValue.constructor !== meField.fieldType) {
+        rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: ${meField.fieldType.name
+          } came as ${newValue}/${typeof newValue} from db. Converting...`)
+
+        if (meField.fieldType === String) newValue = String(newValue)    
+        else if (meField.fieldType === Boolean) newValue = !!newValue
+        else { // Number
+          newValue = Number(newValue)
+          if (isNaN(newValue)) newValue = 0
+        }
+      }
+    // object data type 
+    } else if (newValue !== null && !(
+                meField.fieldType.prototype.isPrototypeOf(newValue) ||
+                meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
+      throw(`${this.getId()}: cannot be set to incompatible type ${
+        newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+    }
     entity[this.cvFieldName] = newValue
   }
-  
 
+  $printField(inEntity: MudsBaseEntity) {
 
-  
+    const entity = inEntity as any
 
+    let cv = entity[this.cvFieldName],
+        ov = entity[this.ovFieldName]
+
+    let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
+    if (ov && ov.original !== cv) {
+      ov = ov.original
+      s += ` (Original: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
+    }
+    return s
+  }
 
 }
 
