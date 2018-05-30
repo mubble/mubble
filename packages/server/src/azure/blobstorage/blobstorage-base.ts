@@ -89,7 +89,7 @@ export class BlobStorageBase {
     const BS = this._blobstorage,
           fn = prefix ? BS.listBlobsSegmentedWithPrefix.bind(BS, container, prefix)
                       : BS.listBlobsSegmented.bind(BS, container),
-          list: string[] = []
+          list: Array<storage.BlobService.BlobResult> = []
     
     let token = null
     do  {
@@ -100,11 +100,11 @@ export class BlobStorageBase {
     return list
   }
 
-  private static async listFilesInternal(fn: any, list: string[], token : any) {
+  private static async listFilesInternal(fn: any, list: Array<storage.BlobService.BlobResult>, token : any) {
     const result = await Mubble.uPromise.execFn(fn, null, token, {
       maxResults: 5000
     })
-    list.push(...result.entries.map((item: any) => item.name))
+    list.push(...result.entries)
     return result.continuationToken
   }
 
