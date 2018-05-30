@@ -116,7 +116,7 @@ export class BlobStorageBase {
     metadata[metaKey] = metaValue
 
     try {
-      return await new Promise((resolve, reject) => {
+      const newMetadata = await new Promise((resolve, reject) => {
         this._blobstorage.setBlobMetadata(container, fileName, metadata, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
           if(error) {
             rc.isError() && rc.error(rc.getName(this), `Error in setting blob ${fileName} metadata (${metaKey} : ${metaValue}) : ${error.message}.`)
@@ -128,9 +128,36 @@ export class BlobStorageBase {
           resolve(result.metadata)
         })
       })
+
+      return newMetadata
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), `Error in setMetadata : ${err}.`)
       return null
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
+
+  static async getMetadata(rc : RunContextServer, container : string, fileName : string) {
+    const traceId = `getMetadata : ${fileName}`,
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
+      const metadata = await new Promise((resolve, reject) => {
+        this._blobstorage.getBlobMetadata(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+          if(error) {
+            rc.isError() && rc.error(rc.getName(this), `Error in getting blob ${fileName} metadata : ${error.message}.`)
+            reject(error)
+          }
+
+          resolve(result.metadata)
+        })
+      })
+
+      return metadata
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Error in getMetadata : ${err}.`)
+      return {}
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -141,14 +168,16 @@ export class BlobStorageBase {
           ack       = rc.startTraceSpan(traceId)
 
     try {
-      const chunks : Array<any> = []
-      const response = await new Promise((resolve, reject) => {
-        this._blobstorage.createReadStream(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
-          if(error) {
-            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${fileName}) : ${error.message}.`)
-            reject(error) 
-          }
-        })
+      const readableStream = this._blobstorage.createReadStream(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+        if(error) {
+          rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${fileName}) : ${error.message}.`)
+          throw(error) 
+        }
+      })
+
+      const chunks   : Array<any> = [],
+            response : Buffer     = await new Promise((resolve, reject) => {
+        readableStream
         .on('error', (error : Error) => { 
           rc.isError() && rc.error (rc.getName(this), `ABS Read Stream : ${container}/${fileName}, Error : ${error.message}.`)
           reject(error) 
@@ -156,11 +185,12 @@ export class BlobStorageBase {
         .on('data', (chunk : any) => {
             chunks.push(chunk)
         })
-        .on('finish', () => { 
+        .on('end', () => { 
           rc.isStatus() && rc.status(rc.getName(this), `Downloaded ${fileName} from Azure Blob Storage.`)
           resolve(Buffer.concat(chunks))
         })
       }) as Buffer
+
       return response
     } finally { 
       rc.endTraceSpan(traceId, ack)
