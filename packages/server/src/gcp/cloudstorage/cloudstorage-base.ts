@@ -256,6 +256,15 @@ export class CloudStorageBase {
     }
   }
 
+  static getReadStream(rc: RunContextServer, bucketName : string, 
+    filename : string) {
+
+    const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
+    gcFile  : any    = bucket.file (filename)
+
+    return gcFile.createReadStream()
+  }
+
   static async setMetadata(rc: RunContextServer, bucketName: string, filename: string, metaKey: string, metaValue: string) {
     const bucket  : any    = CloudStorageBase._cloudStorage.bucket(bucketName),
           gcFile  : any    = bucket.file (filename)
