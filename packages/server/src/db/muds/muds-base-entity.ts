@@ -109,7 +109,6 @@ export class MudsBaseEntity {
     const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, 
       this.entityInfo, this.entityInfo.ancestors, keys)
 
-    console.log(ancestorKeys, selfKey)
     this.ancestorKeys = ancestorKeys
     this.selfKey = selfKey    
   }
@@ -135,37 +134,73 @@ export class MudsBaseEntity {
     return this.selfKey
   }
 
+  // The path may be of multiple undocumented form, handling all of them here
+  commitUpsert(path: any) {
+
+    this.editing = false
+    this.fromDs  = true
+
+    const fieldNames = this.entityInfo.fieldNames,
+          keyType    = this.entityInfo.keyType,
+          entityName = this.entityInfo.entityName
+
+    for (const fieldName of fieldNames) {
+      const accessor  = this.entityInfo.fieldMap[fieldName].accessor
+      accessor.commitUpsert(this)
+    }
+
+    !this.selfKey && this.rc.isAssert() && this.rc.assert(this.rc.getName(this), path)
+    
+    if (path.length) path = path[path.length - 1]
+    if (typeof(path) === 'string') {
+      this.selfKey = keyType === Muds.Pk.String ? path : Muds.getIntKey(path)
+    } else if (path.id && keyType !== Muds.Pk.String) {
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entityName === path.kind, path)
+      this.selfKey = Muds.getIntKey(path.id)
+    } else if (path.name && keyType === Muds.Pk.String) {
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entityName === path.kind, path)
+      this.selfKey = path.name
+    }
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.selfKey, path)
+  }
+
   $dump() {
 
     const entityInfo = this.entityInfo,
-          aks        = this.ancestorKeys, 
-          RIGHT      = 20,
-          LEFT       = 2
+          aks        = this.ancestorKeys
 
     let str = `------ ${entityInfo.entityName} -------\n`
 
     if (aks && aks.length) {
       const ancestorsInfo = entityInfo.ancestors
-      str += lo.padEnd(lo.padStart('ancestors', LEFT), RIGHT) + ' =>'
+      str += this.$rowHead('ancestors')
       for (const [index, info] of ancestorsInfo.entries()) {
-        str += this.$printKey(info, aks[index])
+        str += this.$key(info, aks[index])
       }
       str += '\n'
     }
-    str += lo.padEnd(lo.padStart('key', LEFT), RIGHT) + ' =>' + 
-           `${this.$printKey(entityInfo, this.selfKey)}\n`
+    str += this.$rowHead('key') + 
+           `${this.$key(entityInfo, this.selfKey)}\n`
 
     for (const fieldName of entityInfo.fieldNames) {
-      const meField = entityInfo.fieldMap[fieldName]
-      str += lo.padEnd(lo.padStart(`${fieldName} (${meField.fieldType.name})`, LEFT), RIGHT) + ' => ' + 
+      const meField = entityInfo.fieldMap[fieldName],
+            headEntry = (meField.mandatory ? '*' : ' ') + 
+                        (meField.unique ? 'u' : (meField.indexed ? 'i' : ' ')) +
+                        ` ${fieldName} (${meField.fieldType.name})` 
+                        
+      str += this.$rowHead(headEntry) + 
         `[${ meField.accessor.$printField(this)}]\n`
     }
     console.log(str)
   }
 
-  private $printKey(info: MudsEntityInfo, key: undefined | string | DatastoreInt) {
+  private $key(info: MudsEntityInfo, key: undefined | string | DatastoreInt) {
     return ` ${info.entityName} (${key ? (info.keyType === Muds.Pk.String ? `"${key}"` : 
       ('Int: ' + (key as DatastoreInt).value)) : key })`
+  }
+
+  private $rowHead(str: string) {
+    return lo.padEnd(lo.padStart(str, 2), 20) + ' => '
   }
 }
 
@@ -181,13 +216,12 @@ export class FieldAccessor {
   readonly basicType   : boolean
 
   constructor(private entityName: string, private fieldName: string, private meField: MeField) {
-    this.ovFieldName = '$$' + fieldName
-    this.cvFieldName  = '$' + fieldName
+    this.ovFieldName = '_$$_' + fieldName
+    this.cvFieldName  = '_$_' + fieldName
     this.basicType = [Number, String, Boolean].indexOf(meField.fieldType as any) !== -1
   }
 
   private getter(inEntity: MudsBaseEntity) {
-    console.log(`${this.getId()}: getter`)
     return (inEntity as any)[this.cvFieldName]
   }
 
@@ -223,7 +257,6 @@ export class FieldAccessor {
     }
 
     if (!entity[this.ovFieldName]) entity[this.ovFieldName] = {original: entity[this.cvFieldName]}
-    console.log(`${this.getId()}: setter called with ${newValue}`)
     entity[this.cvFieldName] = newValue
   }
 
@@ -272,7 +305,7 @@ export class FieldAccessor {
 
     const entity = inEntity as any
     rc.isAssert() && rc.assert(rc.getName(this), 
-      entity[this.cvFieldName] === undefined, 
+      entity[this.cvFieldName] !== undefined, 
       `${this.getId()}: mandatory field must not be undefined`)
     return true
   }
@@ -313,6 +346,11 @@ export class FieldAccessor {
         newValue.constructor.name} does not extend ${meField.fieldType.name}`)
     }
     entity[this.cvFieldName] = newValue
+  }
+
+  commitUpsert(inEntity: MudsBaseEntity) {
+    const entity = inEntity as any
+    if (entity[this.ovFieldName]) entity[this.ovFieldName] = undefined
   }
 
   $printField(inEntity: MudsBaseEntity) {

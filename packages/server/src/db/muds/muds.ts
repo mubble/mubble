@@ -7,6 +7,7 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import * as Datastore           from '@google-cloud/datastore'
 import * as DsEntity            from '@google-cloud/datastore/entity'
 
 import { MudsBaseEntity }       from './muds-base-entity'
@@ -16,6 +17,7 @@ import { GcloudEnv }            from '../../gcp/gcloud-env'
 import { MudsTransaction, 
          MudsDirectIo }         from './muds-io'
 import { Mubble }               from '@mubble/core'
+import { DatastoreRequest }     from '@google-cloud/datastore/request';
 
 export type DatastoreInt = DsEntity.DatastoreInt
 export type DatastoreKey = DsEntity.DatastoreKey
@@ -107,7 +109,7 @@ export class Muds {
    * * This api is given for consistency in handling keys
    */
   static getIntKey(id: number | string): DatastoreInt {
-    return { value: String(id) }
+    return this.manager.getDatastore().int(id)
   }
 }
 

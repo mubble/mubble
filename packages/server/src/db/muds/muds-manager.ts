@@ -248,6 +248,8 @@ export class MudsManager {
 
     keyPath.push(entityInfo.entityName)
     if (selfKey !== undefined) keyPath.push(selfKey)
+
+    // console.log(`keyPath ${JSON.stringify(keyPath)}`)
     return this.datastore.key(keyPath)
   }
 
