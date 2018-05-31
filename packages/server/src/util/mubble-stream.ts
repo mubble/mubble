@@ -100,7 +100,7 @@ export namespace UStream {
     public async write(data : Buffer | string) {
       const writeStream = this.streams[0] as stream.Writable
       data ? writeStream.end(data) : writeStream.end()
-      await this.promise
+      await this.promise.promise
     }
 
     subscribe(stream: stream.Writable | stream.Readable) {

@@ -36,10 +36,8 @@ export namespace Mubble {
     }
   
     static delayedPromise<X>(ms: number, fulfillWith ?: X): Promise<X> {
-      return new Promise( function(resolve : any, reject : any) {
-        setTimeout(ms, function() {
-          resolve(fulfillWith)
-        })
+      return new Promise((resolve : any, reject : any) => {
+        setTimeout(() => resolve(fulfillWith), ms)
       })
     }
 
