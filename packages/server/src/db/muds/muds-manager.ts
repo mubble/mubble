@@ -68,8 +68,10 @@ export class MudsManager {
   private tempEntityFieldsMap : Mubble.uObject<Mubble.uObject<MeField>> | null = {}
 
 
-  public getInfo(entityClass: Function | {new (): MudsBaseEntity}): MudsEntityInfo {
-    return this.entityInfoMap[entityClass.name]
+  public getInfo(entityClass: Function | {new (): MudsBaseEntity} | string): MudsEntityInfo {
+
+    const entityName = typeof entityClass === 'string' ? entityClass : entityClass.name
+    return this.entityInfoMap[entityName]
   }
 
 
@@ -196,19 +198,24 @@ export class MudsManager {
   /* ---------------------------------------------------------------------------
      I N T E R N A L   U T I L I T Y    F U N C T I O N S
   -----------------------------------------------------------------------------*/
-  prepareKeyForDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+  separateKeys<T extends Muds.BaseEntity>(rc: RunContextServer, 
+    entityClass : Muds.IBaseEntity<T>, 
+    keys        : (string | DatastoreInt) []) {
+
+    const {ancestorKeys, selfKey} = this.separateKeysForInsert(rc, entityClass, keys)
+    if (selfKey === undefined) {
+      throw('Self key is not set')
+    } else {
+      return {ancestorKeys, selfKey}
+    }
+  }
+
+  separateKeysForInsert<T extends Muds.BaseEntity>(rc: RunContextServer, 
                   entityClass : Muds.IBaseEntity<T>, 
-                  keys        : (string | DatastoreInt) []): DatastoreKey {
+                  keys        : (string | DatastoreInt) []) {
 
     const entityInfo    = this.getInfo(entityClass),
           ancestorsInfo = entityInfo.ancestors
-
-    const {ancestorKeys, selfKey} = this.separateKeys(rc, entityInfo, ancestorsInfo, keys)
-    return this.buildKey(rc, entityInfo, ancestorKeys, selfKey)
-  }
-
-  separateKeys(rc: RunContextServer, entityInfo: MudsEntityInfo, 
-               ancestorsInfo: MudsEntityInfo[], keys: (string | DatastoreInt) []) {
 
     rc.isAssert() && rc.assert(rc.getName(this), keys.length >= ancestorsInfo.length)
     const ancestorKeys = []
@@ -225,6 +232,7 @@ export class MudsManager {
       selfKey = this.checkKeyType(rc, keys[keys.length - 1], entityInfo)
     }
 
+    Object.freeze(ancestorKeys)
     return {ancestorKeys, selfKey}
   }
 
@@ -236,11 +244,13 @@ export class MudsManager {
     return key
   }
 
-  private buildKey(rc: RunContextServer, entityInfo: MudsEntityInfo, 
-                   ancestorKeys: (string | DatastoreInt) [], 
-                   selfKey: string | DatastoreInt | undefined) {
+  buildKey<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                                      entityClass : Muds.IBaseEntity<T>, 
+                                      ancestorKeys: (string | DatastoreInt) [], 
+                                      selfKey: string | DatastoreInt | undefined) {
 
-    const keyPath: (string | DatastoreInt)[] = []
+    const keyPath: (string | DatastoreInt)[] = [],
+          entityInfo = this.getInfo(entityClass)
 
     for (const [index, ancestor] of entityInfo.ancestors.entries()) {
       keyPath.push(ancestor.entityName, ancestorKeys[index])
@@ -266,7 +276,7 @@ export class MudsManager {
 
     const fieldNames : string[]         = entityInfo.fieldNames,
           dsRec      : DatastorePayload = {
-            key                 : this.buildKey(rc, entityInfo, ancestorKeys, selfKey),
+            key                 : this.buildKey(rc, entityInfo.cons, ancestorKeys, selfKey),
             data                : {},
             excludeFromIndexes  : []
           }

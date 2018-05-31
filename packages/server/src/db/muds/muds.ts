@@ -11,6 +11,7 @@ import * as Datastore           from '@google-cloud/datastore'
 import * as DsEntity            from '@google-cloud/datastore/entity'
 
 import { MudsBaseEntity }       from './muds-base-entity'
+import { MudsQuery }            from './muds-query'
 import { MudsManager }          from './muds-manager'
 import { RunContextServer }     from '../..'
 import { GcloudEnv }            from '../../gcp/gcloud-env'
@@ -109,18 +110,21 @@ export class Muds {
    * * This api is given for consistency in handling keys
    */
   static getIntKey(id: number | string): DatastoreInt {
+    if (id === 0 || id === '0') throw('Zero is an invalid int key')
     return this.manager.getDatastore().int(id)
   }
 }
 
 export namespace Muds {
 
-  export const BaseEntity  = MudsBaseEntity
-  export type  BaseEntity  = MudsBaseEntity
-  export const Transaction = MudsTransaction
-  export type  Transaction = MudsTransaction
-  export const DirectIo = MudsDirectIo
-  export type  DirectIo = MudsDirectIo
+  export const BaseEntity   = MudsBaseEntity
+  export type  BaseEntity   = MudsBaseEntity
+  export const Transaction  = MudsTransaction
+  export type  Transaction  = MudsTransaction
+  export const DirectIo     = MudsDirectIo
+  export type  DirectIo     = MudsDirectIo
+  export const Query        = MudsQuery
+  export type  Query        = MudsQuery<MudsBaseEntity>
 
   export enum Pk {
     Auto,
