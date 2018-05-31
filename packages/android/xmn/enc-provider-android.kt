@@ -87,7 +87,7 @@ class EncProviderAndroid(private val syncKey : ByteArray,
 
     val encKey = if (!this.ci.useEncryption) ByteArray(0) else encryptKey()
 
-    val obj = this.ci.clientIdentity!!.toJsonObject()
+    val obj = if (this.ci.clientIdentity != null) this.ci.clientIdentity!!.toJsonObject() else JSONObject()
     obj.put("networkType", this.ci.networkType)
     obj.put("location", this.ci.location)
     obj.put("now", System.currentTimeMillis())

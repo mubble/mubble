@@ -25,6 +25,7 @@ export namespace UStream {
 
              cleaned = false
     readonly fnError = this.onError.bind(this)
+             logging = false
 
     constructor(readonly rc: RunContextServer, readonly streams: (stream.Writable | stream.Readable) [], 
                 readonly promise : Mubble.uPromise<any> = new Mubble.uPromise()) {
@@ -134,6 +135,10 @@ export namespace UStream {
       if (encoding) this.encoding = encoding
       stream.resume()
       const result = await this.promise.promise
+
+      this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+        'ReadStreams: result', Buffer.isBuffer(this.body) ? 'Buffer' : 'String', result.length)
+
       return result
     }
 
@@ -166,12 +171,20 @@ export namespace UStream {
       } else {
         this.body += chunk
       }
+
+      this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+        'ReadStreams: onData', 'body', Buffer.isBuffer(this.body) ? 'Buffer' : 'String', this.body.length)
     }
 
     onEnd() {
 
       if (this.cleaned) return
       this.cleanup()
+
+      if (this.body === undefined) {
+        this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'You have tried reading an empty file')
+        this.body = new Buffer('')
+      }
 
       if (this.body instanceof Buffer) {
         if (this.encoding === Encoding.json || this.encoding === Encoding.text) {
@@ -180,6 +193,10 @@ export namespace UStream {
       }
 
       const result = this.encoding === Encoding.json ? JSON.parse(this.body as string || '{}') : this.body
+
+      this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+        'ReadStreams: onEnd', 'body', Buffer.isBuffer(result) ? 'Buffer' : 'String', result.length)
+
       this.promise.resolve(result)
     }
   }
@@ -198,7 +215,7 @@ export namespace UStream {
     public async start() {
       const firstStream = this.streams[0] as stream.Readable
       firstStream.resume()
-      await this.promise
+      await this.promise.promise
     }
 
     subscribe(stream: stream.Writable | stream.Readable) {
@@ -212,6 +229,10 @@ export namespace UStream {
 
     private onFinish() {
       this.cleanup()
+      
+      this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+        'PipedWriterStreams: onFinish')
+
       this.promise.resolve(null)
     }
   }

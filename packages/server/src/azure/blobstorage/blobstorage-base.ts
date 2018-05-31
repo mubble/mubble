@@ -62,7 +62,7 @@ export class BlobStorageBase {
     return filePath
   }
 
-  static getWriteStream(rc: RunContextServer, container: string, file: string) {
+  static async getWriteStream(rc: RunContextServer, container: string, file: string) {
     return this._blobstorage.createWriteStreamToBlockBlob(container, file)
     //   (err : Error, result : any, response : storage.ServiceResponse) => {
     //     if(err) {
@@ -73,7 +73,7 @@ export class BlobStorageBase {
     // )
   }
 
-  static getReadStream(rc: RunContextServer, container: string, file: string) {
+  static async getReadStream(rc: RunContextServer, container: string, file: string) {
     return this._blobstorage.createReadStream(container, file, {}, 
       (err : Error, result : any, response : storage.ServiceResponse) => {
         if(err) {

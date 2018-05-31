@@ -60,6 +60,11 @@ export class RedisCmds {
 
   rpush     (key : string , field : string) : Promise<number> { return true as any }
   
+  // set apis
+  sadd      (key : string , option : string , ...scoreValuePairs : any[]) : Promise<number> { return true as any }
+  sunion    (key : string , ...keys : string[]) : Promise<{[key:string] : string}> { return true as any }
+  smembers  (key : string) : Promise<string []> { return true as any }
+
   // z sorted set apis 
   zadd      (key : string , option : string , ...scoreValuePairs : any[]) : Promise<number> { return true as any }
   zrem      (key : string , ...keys : string[]) : Promise<void> { return true as any }

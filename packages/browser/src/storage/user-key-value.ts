@@ -23,7 +23,7 @@ export abstract class UserKeyValue {
   private users         : {[key: string]: object} = {}
   private lastClientId  : number
 
-  constructor(private rc: RunContextBrowser, private storage: StorageProvider) {
+  constructor(protected rc: RunContextBrowser, private storage: StorageProvider) {
 
     const users = storage.getUserKeyValue(rc, USERS)
     if (!users) return
