@@ -72,6 +72,7 @@ export class GcloudEnv {
             azureCdn    = await this.getMetadata(rc, azureCdnCmd),
             parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
+      if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
       if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD], parsedBqKey, azureCdn)
       else gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, RUN_MODE[RUN_MODE.LOAD], Credentials.AUTH_KEY, azureCdn, Credentials.AUTH_KEY)
 
@@ -88,6 +89,7 @@ export class GcloudEnv {
             azureCdn    = await this.getMetadata(rc, azureCdnCmd),
             parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
+      if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
       gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], parsedBqKey, azureCdn)
 
     } else {
@@ -99,6 +101,7 @@ export class GcloudEnv {
               azureCdn    = await this.getMetadata(rc, azureCdnCmd),
               parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
+        if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
         if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
           gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], parsedBqKey, azureCdn)
         } else {
