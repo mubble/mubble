@@ -21,7 +21,7 @@ import {DSTransaction}    from './ds-transaction'
 import {RunContextServer} from '../../rc-server'
 import * as lo            from 'lodash'
 
-const GLOBAL_NAMESPACE       : string = '--GLOBAL--',
+const GLOBAL_NAMESPACE       : any    = undefined,
       MAX_DS_ITEMS_AT_A_TIME : number = 450
 
 export abstract class BaseDatastore {
@@ -120,7 +120,7 @@ export abstract class BaseDatastore {
 ------------------------------------------------------------------------------*/ 
 public isGlobalNamespace(rc : RunContextServer) : boolean {
   return false
-} 
+}
 
 /*------------------------------------------------------------------------------
   - Get the namespace string depending upon whether namespace is global or local
@@ -474,6 +474,12 @@ isDeleted(rc: RunContextServer) : boolean {
     
     if(transaction) return new DSTQuery(rc, transaction.getTransaction(rc), model.getNamespace(rc), this._kindName)
     return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model)
+  }
+
+  static createQueryWithNamespace(rc : RunContextServer, namespace : string) : DSQuery  {
+    const model : BaseDatastore = new (this as any)()
+    
+    return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model, namespace)
   }
 
 /*------------------------------------------------------------------------------
