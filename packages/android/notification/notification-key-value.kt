@@ -46,7 +46,7 @@ object NotificationKeyValue : SharedPreferenceBase("notification-key-value") {
   fun createOrReplace(msgId: String, dismissOnOpen: Boolean, nxId: Int? = null): Int {
 
     val notificationId = if (nxId === null) {
-      if (nextId === 0) nextId = getMaxId()
+      if (nextId == 0) nextId = getMaxId()
       ++nextId
     } else nxId
 

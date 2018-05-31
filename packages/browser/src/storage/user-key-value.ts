@@ -82,6 +82,9 @@ export abstract class UserKeyValue {
 
   save(rc: RunContextBrowser): void {
 
+    rc.isAssert() && rc.assert(rc.getName(this), this._clientId, 
+      'Came to save userKeyVal before clientId')
+
     this.users[this._clientId] = this.serialize()
     this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
 

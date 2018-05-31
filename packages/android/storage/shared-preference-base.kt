@@ -73,7 +73,7 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
     check(spName != "")
 
     synchronized(lock) {
-      check(prefNames.contains(spName) === false)
+      check(!prefNames.contains(spName))
       prefNames.add(spName)
     }
 
@@ -94,7 +94,7 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
     check(creatorsLooper === Looper.myLooper())
     check(initMap !== null)
 
-    if (initMap!!.size !== 0) {
+    if (initMap!!.isNotEmpty()) {
 
       val editor = spInstance.edit()
       for (kv in initMap!!) {
@@ -190,7 +190,7 @@ abstract class SharedPreferenceBase(spName: String): MubbleLogger {
     }
   }
 
-  protected class PreferenceLoader<T>() {
+  protected class PreferenceLoader<T> {
 
     operator fun provideDelegate(
     thisRef: SharedPreferenceBase,
