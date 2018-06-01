@@ -197,4 +197,29 @@ export class BlobStorageBase {
     }
   }
 
+  static async deleteFile(rc : RunContextServer, container : string, fileName : string) {
+    const traceId   = `deleteDataFromBlobStorage : ${fileName}`,
+          ack       = rc.startTraceSpan(traceId),
+          options   = {deleteSnapshots : 'BLOB_AND_SNAPSHOTS'} as storage.BlobService.DeleteBlobRequestOptions
+
+    try {
+      const response = await new Promise<boolean>((resolve, reject) => {
+        this._blobstorage.deleteBlobIfExists(container, fileName, options, (error : Error, result : boolean, response : storage.ServiceResponse) => {
+          if(error) {
+            rc.isError() && rc.error(rc.getName(this), `Error in deleting blob ${fileName} : ${error}.`)
+            reject(error)
+          }
+          if(result) rc.isStatus() && rc.status(rc.getName(this), `Blob ${fileName} deleted succesfully from container ${container}.`)
+          else rc.isStatus() && rc.status(rc.getName(this), `Blob ${fileName} doesnot exist in container ${container}.`)
+          resolve(result)
+        })
+      })
+      return response
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Error in deleteFile : ${err}.`)
+      return false
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
 }
