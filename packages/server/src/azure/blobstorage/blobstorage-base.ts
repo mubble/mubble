@@ -90,7 +90,7 @@ export class BlobStorageBase {
     const BS = this._blobstorage,
           fn = prefix ? BS.listBlobsSegmentedWithPrefix.bind(BS, container, prefix)
                       : BS.listBlobsSegmented.bind(BS, container),
-          list: string[] = []
+          list: Array<storage.BlobService.BlobResult> = []
     
     let token = null
     do  {
@@ -101,11 +101,11 @@ export class BlobStorageBase {
     return list
   }
 
-  private static async listFilesInternal(fn: any, list: string[], token : any) {
+  private static async listFilesInternal(fn: any, list: Array<storage.BlobService.BlobResult>, token : any) {
     const result = await Mubble.uPromise.execFn(fn, null, token, {
       maxResults: 5000
     })
-    list.push(...result.entries.map((item: any) => item.name))
+    list.push(...result.entries)
     return result.continuationToken
   }
 
@@ -117,7 +117,7 @@ export class BlobStorageBase {
     metadata[metaKey] = metaValue
 
     try {
-      return await new Promise((resolve, reject) => {
+      const newMetadata = await new Promise((resolve, reject) => {
         this._blobstorage.setBlobMetadata(container, fileName, metadata, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
           if(error) {
             rc.isError() && rc.error(rc.getName(this), `Error in setting blob ${fileName} metadata (${metaKey} : ${metaValue}) : ${error.message}.`)
@@ -129,9 +129,36 @@ export class BlobStorageBase {
           resolve(result.metadata)
         })
       })
+
+      return newMetadata
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), `Error in setMetadata : ${err}.`)
       return null
+    } finally {
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
+
+  static async getMetadata(rc : RunContextServer, container : string, fileName : string) {
+    const traceId = `getMetadata : ${fileName}`,
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
+      const metadata = await new Promise((resolve, reject) => {
+        this._blobstorage.getBlobMetadata(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+          if(error) {
+            rc.isError() && rc.error(rc.getName(this), `Error in getting blob ${fileName} metadata : ${error.message}.`)
+            reject(error)
+          }
+
+          resolve(result.metadata)
+        })
+      })
+
+      return metadata
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Error in getMetadata : ${err}.`)
+      return {}
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
@@ -142,14 +169,16 @@ export class BlobStorageBase {
           ack       = rc.startTraceSpan(traceId)
 
     try {
-      const chunks : Array<any> = []
-      const response = await new Promise((resolve, reject) => {
-        this._blobstorage.createReadStream(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
-          if(error) {
-            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${fileName}) : ${error.message}.`)
-            reject(error) 
-          }
-        })
+      const readableStream = this._blobstorage.createReadStream(container, fileName, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+        if(error) {
+          rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${fileName}) : ${error.message}.`)
+          throw(error) 
+        }
+      })
+
+      const chunks   : Array<any> = [],
+            response : Buffer     = await new Promise((resolve, reject) => {
+        readableStream
         .on('error', (error : Error) => { 
           rc.isError() && rc.error (rc.getName(this), `ABS Read Stream : ${container}/${fileName}, Error : ${error.message}.`)
           reject(error) 
@@ -157,13 +186,39 @@ export class BlobStorageBase {
         .on('data', (chunk : any) => {
             chunks.push(chunk)
         })
-        .on('finish', () => { 
+        .on('end', () => { 
           rc.isStatus() && rc.status(rc.getName(this), `Downloaded ${fileName} from Azure Blob Storage.`)
           resolve(Buffer.concat(chunks))
         })
       }) as Buffer
       return response
     } finally { 
+      rc.endTraceSpan(traceId, ack)
+    }
+  }
+
+  static async deleteFile(rc : RunContextServer, container : string, fileName : string) {
+    const traceId   = `deleteDataFromBlobStorage : ${fileName}`,
+          ack       = rc.startTraceSpan(traceId),
+          options   = {deleteSnapshots : 'BLOB_AND_SNAPSHOTS'} as storage.BlobService.DeleteBlobRequestOptions
+
+    try {
+      const response = await new Promise<boolean>((resolve, reject) => {
+        this._blobstorage.deleteBlobIfExists(container, fileName, options, (error : Error, result : boolean, response : storage.ServiceResponse) => {
+          if(error) {
+            rc.isError() && rc.error(rc.getName(this), `Error in deleting blob ${fileName} : ${error}.`)
+            reject(error)
+          }
+          if(result) rc.isStatus() && rc.status(rc.getName(this), `Blob ${fileName} deleted succesfully from container ${container}.`)
+          else rc.isStatus() && rc.status(rc.getName(this), `Blob ${fileName} doesnot exist in container ${container}.`)
+          resolve(result)
+        })
+      })
+      return response
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), `Error in deleteFile : ${err}.`)
+      return false
+    } finally {
       rc.endTraceSpan(traceId, ack)
     }
   }

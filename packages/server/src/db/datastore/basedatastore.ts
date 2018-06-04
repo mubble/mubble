@@ -22,9 +22,9 @@ import {RunContextServer} from '../../rc-server'
 import * as lo            from 'lodash'
 import { Mubble } from '@mubble/core';
 
-const GLOBAL_NAMESPACE              : string = '--GLOBAL--',
+const GLOBAL_NAMESPACE              : any    = undefined,
       MAX_DS_ITEMS_AT_A_TIME        : number = 450,
-      MAX_DS_TRANSACTIONS_AT_A_TIME : number = 5              // Depends on the size of the data
+      MAX_DS_TRANSACTIONS_AT_A_TIME : number = 5
 
 
 export type BASEDATASTORE_PROTECTED_FIELDS  =  'createTs' | 'deleted' | 'modUid' 
@@ -126,7 +126,7 @@ export abstract class BaseDatastore<T extends BaseDatastore<T> = any> {
 ------------------------------------------------------------------------------*/ 
 public isGlobalNamespace(rc : RunContextServer) : boolean {
   return false
-} 
+}
 
 /*------------------------------------------------------------------------------
   - Get the namespace string depending upon whether namespace is global or local
@@ -136,10 +136,9 @@ public getNamespace(rc : RunContextServer) : string {
   return this.isGlobalNamespace(rc) ? GLOBAL_NAMESPACE : BaseDatastore._namespace
 }
 
-static setNamespace(rc : RunContextServer, namespace : string) {
+setNamespace(rc : RunContextServer, namespace : string) {
   BaseDatastore._namespace = namespace
 }
-
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                             BASIC DB OPERATIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ */   
@@ -530,6 +529,12 @@ isDeleted(rc: RunContextServer) : boolean {
     
     if(transaction) return new DSTQuery<T>(rc, transaction.getTransaction(rc), model.getNamespace(rc), kindname)
     return new DSQuery<T>(rc, BaseDatastore._datastore, kindname, model)
+  }
+
+  static createQueryWithNamespace(rc : RunContextServer, namespace : string) : DSQuery  {
+    const model : BaseDatastore = new (this as any)()
+    
+    return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model, namespace)
   }
 
 /*------------------------------------------------------------------------------
