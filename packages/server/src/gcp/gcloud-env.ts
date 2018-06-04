@@ -59,8 +59,8 @@ export class GcloudEnv {
             parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
       if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
-      if(instanceEnv) gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.LOAD], parsedBqKey, azureCdn)
-      else gCloudEnv = new GcloudEnv(Credentials.PROJECT_ID, RUN_MODE[RUN_MODE.LOAD], Credentials.AUTH_KEY, azureCdn, Credentials.AUTH_KEY)
+      if(instanceEnv) gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.LOAD], projectName, parsedBqKey, azureCdn)
+      else gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.LOAD], projectName, parsedBqKey, azureCdn)
 
       await this.initGcpComponents(rc, gCloudEnv)
       return gCloudEnv
@@ -76,7 +76,7 @@ export class GcloudEnv {
             parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
 
       if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
-      gCloudEnv = new GcloudEnv(projectName, RUN_MODE[RUN_MODE.PROD], parsedBqKey, azureCdn)
+      gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.PROD], projectName, parsedBqKey, azureCdn)
 
     } else {
 
@@ -96,7 +96,7 @@ export class GcloudEnv {
         }
 
       } else {
-        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV])
+        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV], 'playground-india')
       }
     }
     await this.initGcpComponents(rc, gCloudEnv)
