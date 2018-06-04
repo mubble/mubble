@@ -32,7 +32,6 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
   private var timerReqResend    : AdhocTimer?  = null
   private var timerReqTimeout   : AdhocTimer?  = null
-  private var timerEventTimeout : AdhocTimer?  = null
 
   abstract fun upgradeClientIdentity(wo: WireObject)
   abstract fun getNetworkType(): String
@@ -56,9 +55,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     this.ci.port          = if (url.port != -1) url.port else (if (url.protocol == "https:") 443 else 80)
     this.ci.useEncryption = syncKey != null
 
-    timerReqResend    = AdhocTimer("router-resend", { cbTimerReqResend() })
-    timerReqTimeout   = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
-    timerEventTimeout = AdhocTimer("router-event-timeout", { cbTimerEventTimeout() })
+    timerReqResend  = AdhocTimer("router-resend", { cbTimerReqResend() })
+    timerReqTimeout = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
   }
 
   open fun cleanup() {
@@ -66,7 +64,6 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider != null) this.ci.provider!!.cleanup()
     this.timerReqResend!!.remove()
     this.timerReqTimeout!!.remove()
-    this.timerEventTimeout!!.remove()
   }
 
   fun setNetwork(netType: String) {
@@ -142,12 +139,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.ci.provider = WsAndroid(this.ci, this)
   }
 
-  fun providerCleanup() {
-    this.ci.provider?.cleanup()
-  }
-
   fun providerReady() {
-
     cbTimerReqResend()
   }
 
@@ -260,20 +252,6 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     }
 
     return if (nextTimeout == Long.MAX_VALUE) 0 else nextTimeout - now
-  }
-
-  private fun cbTimerEventTimeout(): Long {
-
-    if (this.lastEventSendTs == 0) return 0
-
-    val diff = this.lastEventSendTs + TIMEOUT_MS - System.currentTimeMillis()
-    if (diff > 0) return diff
-
-    this.lastEventTs      = 0
-    this.lastEventSendTs  = 0
-
-    //this.trySendingEvents()
-    return TIMEOUT_MS
   }
 
   private fun finishRequest(index: Int, errorCode: String? = null, dataObj: Any? = null) {

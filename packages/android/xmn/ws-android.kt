@@ -29,6 +29,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   private var socketCreateTs    : Long    = 0
   private var lastMessageTs     : Long    = 0
   private var msPingInterval    : Long    = 29000 // Must be a valid number
+
   private var sending           : Boolean = false
   private var configured        : Boolean = false
   private var preConfigQueue    : MutableList<ByteBuffer> = mutableListOf()
@@ -85,7 +86,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       }
 
       val dest    = if (this.ci.publicRequest) WebSocketUrl.PLAIN_PUBLIC else WebSocketUrl.PLAIN_PRIVATE
-      val url     =  "${if (this.ci.port == 443) "wss" else "ws"}://${this.ci.host}:${this.ci.port}/$dest/"
+      val url     = "${if (this.ci.port == 443) "wss" else "ws"}://${this.ci.host}:${this.ci.port}/$dest/"
       val header  = this.encProvider!!.encodeHeader()
       val body    = this.encProvider!!.encodeBody(data)
 
@@ -160,7 +161,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   override fun onClose(code: Int, reason: String?) {
 
-    info { "onClose $code $reason" }
+    info { "onClose" }
     if (this.ci.provider != null) {
       this.cleanup()
       this.router.providerFailed()
@@ -186,6 +187,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       val msPing  = config.msPingInterval
 
       this.msPingInterval = msPing
+
       assert(msPing > 0)
 
       if (!config.syncKey.isNullOrBlank()) {
