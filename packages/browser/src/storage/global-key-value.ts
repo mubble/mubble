@@ -51,8 +51,6 @@ type fieldMapType = { [key: string]:  {
 
 export abstract class GlobalKeyValue {
 
-  @GlobalKeyValue.autoStore() appVersion    : string
-  @GlobalKeyValue.autoStore() jsVersion     : string
   @GlobalKeyValue.autoStore() syncSegments  : object
   @GlobalKeyValue.autoStore() logLevel      : number
   
