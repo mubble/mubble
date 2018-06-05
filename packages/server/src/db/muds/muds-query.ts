@@ -93,7 +93,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
   private readonly orders       : OrderOps[]      = []
   private readonly selects      : string[]        = []
   private readonly groupBys     : string[]        = []
-  private result: Result<T>
+  private result: MudsQueryResult<T>
 
   constructor(private rc            : RunContextServer, 
               private manager       : MudsManager,
@@ -228,13 +228,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
       order.ascending ? undefined : {descending: true})
 
     dsQuery.limit(limit)
-    this.result = new Result(rc, this.manager, this.entityClass, 
+    this.result = new MudsQueryResult(rc, this.manager, this.entityClass, 
                     dsQuery, await dsQuery.run())
     return this.result          
   }
 }
 
-export class Result<T extends MudsBaseEntity> implements AsyncIterable<T> {
+/* ---------------------------------------------------------------------------
+  Result
+-----------------------------------------------------------------------------*/
+export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<T> {
 
   private records   : object[]
   private endCursor : string
@@ -252,10 +255,23 @@ export class Result<T extends MudsBaseEntity> implements AsyncIterable<T> {
   }
 
   private init(result: DsQueryResult) {
+
     const [ar, info]  = result
     this.records      = ar
-    this.endCursor    = info.endCursor || ''
-    this.hasMore      = (info.moreResults === 'NO_MORE_RESULTS')
+
+    if (ar.length) {
+      this.endCursor    = info.endCursor || ''
+      this.hasMore      = (info.moreResults !== 'NO_MORE_RESULTS')
+    } else {
+      this.endCursor    = ''
+      this.hasMore      = false
+    }
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Got query result', {
+      count: this.records.length, hasMore: this.hasMore, moreResults: info.moreResults
+    })
+
+    console.log('endCursor', this.endCursor)
   }
 
   public getCurrentRecs(): T[] {
@@ -274,8 +290,10 @@ export class Result<T extends MudsBaseEntity> implements AsyncIterable<T> {
       next: async (val: T) => {
         if (ptr === this.records.length) {
           if (this.hasMore) {
+            this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Fetching more data')
             this.dsQuery.start(this.endCursor)
             this.init(await this.dsQuery.run())
+            ptr = 0
           }
         }
         const done = !this.hasMore && ptr === this.records.length
@@ -296,6 +314,13 @@ export class Result<T extends MudsBaseEntity> implements AsyncIterable<T> {
       return
     }
     return result.value
+  }
+
+  async $dump() {
+    let entity 
+    while(entity = await this.getNext()) {
+      entity.$dump()
+    }
   }
 
 }

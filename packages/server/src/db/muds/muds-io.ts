@@ -187,11 +187,14 @@ export abstract class MudsIo {
 
     const results = await exec.upsert(dsRecs)
 
+    // TODO: ???? Remove
+    this.rc.initConfig.x = results
+
     for (const [index, result] of results.entries()) {
 
       const entity           = entities[index],
             [mutationResult] = result.mutationResults
-
+            
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
         !mutationResult.conflictDetected, `${entity.getLogId()} had conflict`)
 
@@ -253,6 +256,9 @@ export class MudsDirectIo extends MudsIo {
   
 }
 
+/* ---------------------------------------------------------------------------
+  MudsTransaction
+-----------------------------------------------------------------------------*/
 export class MudsTransaction extends MudsIo {
 
   private readonly transaction: DSTransaction
@@ -282,6 +288,9 @@ export class MudsTransaction extends MudsIo {
   }
 }
 
+/* ---------------------------------------------------------------------------
+  QueueBuilder
+-----------------------------------------------------------------------------*/
 export interface IEntityKey<T extends MudsBaseEntity> {
   entityClass   : Muds.IBaseEntity<T>
   ancestorKeys  : (string | DatastoreInt)[]

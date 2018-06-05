@@ -154,6 +154,7 @@ export class MudsBaseEntity {
     }
 
     !this.selfKey && this.rc.isAssert() && this.rc.assert(this.rc.getName(this), path)
+    if (!path) return
 
     if (path.length) path = path[path.length - 1]
     if (typeof(path) === 'string') {
@@ -169,6 +170,10 @@ export class MudsBaseEntity {
   }
 
   $dump() {
+    console.log(this.toString())
+  }
+
+  public toString() {
 
     const entityInfo = this.entityInfo,
           aks        = this.ancestorKeys
@@ -188,14 +193,14 @@ export class MudsBaseEntity {
 
     for (const fieldName of entityInfo.fieldNames) {
       const meField = entityInfo.fieldMap[fieldName],
-            headEntry = (meField.mandatory ? '*' : ' ') + fieldName + 
-                        (meField.unique ? '+' : (meField.indexed ? '@' : '')) +
-                        ` ${fieldName} (${meField.fieldType.name})` 
+            headEntry = (meField.mandatory ? '*' : '') + `${fieldName}/${meField.fieldType.name}` + 
+                        (meField.unique ? '+' : (meField.indexed ? '@' : '')) 
+                        
                         
       str += this.$rowHead(headEntry) + 
         `[${ meField.accessor.$printField(this)}]\n`
     }
-    console.log(str)
+    return str
   }
 
   private $key(info: MudsEntityInfo, key: undefined | string | DatastoreInt) {
@@ -204,7 +209,7 @@ export class MudsBaseEntity {
   }
 
   private $rowHead(str: string) {
-    return lo.padEnd(lo.padStart(str, 2), 30) + ' => '
+    return lo.padEnd(lo.padStart(str, 2), 24) + ' => '
   }
 }
 
@@ -372,7 +377,7 @@ export class FieldAccessor {
     let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
     if (ov && ov.original !== cv) {
       ov = ov.original
-      s += ` (Original: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
+      s += ` (was: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
     }
     return s
   }
