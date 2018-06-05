@@ -44,7 +44,7 @@
     "lodash": "4.17.4",
     "mammoth": "github:christygeorgemubble/mammoth.js",
     "mkdirp": "^0.5.1",
-    "posix": "^4.1.1",
+    "posix": "^4.1.2",
     "redis": "^2.7.1",
     "reflect-metadata": "^0.1.10",
     "repl.history": "^0.1.4",

@@ -96,7 +96,7 @@ export class GcloudEnv {
         }
 
       } else {
-        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV], 'playground-india')
+        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV])
       }
     }
     await this.initGcpComponents(rc, gCloudEnv)

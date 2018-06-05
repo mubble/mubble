@@ -16,7 +16,7 @@ import { MudsBaseEntity,
          FieldAccessor  }               from "./muds-base-entity"
 import { Mubble }                       from '@mubble/core'
 import { GcloudEnv }                    from '../../gcp/gcloud-env'
-import { RunContextServer }             from '../..'
+import { RunContextServer, dummyTrace }             from '../..'
 
 export class MeField {
   accessor: FieldAccessor
@@ -39,10 +39,13 @@ export class MeField {
 
 export class MudsEntityInfo {
   
-  readonly entityName  : string
-  readonly ancestors   : MudsEntityInfo[] = []
-  readonly fieldMap    : Mubble.uObject<MeField> = {}
-  readonly fieldNames  : string[] = []
+  readonly entityName       : string
+  readonly ancestors        : MudsEntityInfo[] = []
+  readonly fieldMap         : Mubble.uObject<MeField> = {}
+  readonly fieldNames       : string[] = []
+  readonly compositeIndices : Mubble.uObject<Muds.Asc | Muds.Dsc>[] = []
+  
+  dummy : boolean = false // not a real db entity
 
   constructor(readonly cons        : {new(): MudsBaseEntity},
               readonly version     : number,
@@ -66,7 +69,7 @@ export class MudsManager {
   // Temporary members while store schema is built
   private tempAncestorMap     : Mubble.uObject<{new(): Muds.BaseEntity}[]> | null = {}
   private tempEntityFieldsMap : Mubble.uObject<Mubble.uObject<MeField>> | null = {}
-
+  private tempCompIndices     : Mubble.uObject<Mubble.uObject<Muds.Asc | Muds.Dsc>[]> | null = {}
 
   public getInfo(entityClass: Function | {new (): MudsBaseEntity} | string): MudsEntityInfo {
 
@@ -85,7 +88,7 @@ export class MudsManager {
   }
 
   registerEntity <T extends Muds.BaseEntity> (version: number, 
-                pkType: Muds.Pk, cons: {new(): T}) {
+                pkType: Muds.Pk, dummy: boolean, cons: {new(): T}) {
 
     if (!this.tempAncestorMap) throw(`Trying to register entity ${cons.name
       } after Muds.init(). Forgot to add to entities collection?`)
@@ -96,6 +99,7 @@ export class MudsManager {
     if (old) throw(`Double annotation of entity for ${entityName}?`)
                                 
     const info = new MudsEntityInfo(cons, version, pkType)
+    if (dummy) info.dummy = true
     this.entityInfoMap[info.entityName] = info
   }
 
@@ -110,6 +114,19 @@ export class MudsManager {
 
     Object.freeze(ancestors)
     this.tempAncestorMap[cons.name] = ancestors
+  }
+
+  registerCompositeIndex <T extends Muds.BaseEntity> (idxObj: Mubble.uObject<Muds.Asc | Muds.Dsc>, 
+                    cons: {new(): T}) {
+
+    if (!this.tempCompIndices) throw(`Trying to register entity ${cons.name
+      } after Muds.init(). Forgot to add to entities collection?`)
+
+    if (!this.tempCompIndices[cons.name]) this.tempCompIndices[cons.name] = []
+
+    const ci = this.tempCompIndices[cons.name]
+    ci.push(idxObj)
+    Object.freeze(idxObj)
   }
 
   registerField({mandatory = false, indexed = false, unique = false}, target: any, fieldName: string) {
@@ -141,36 +158,32 @@ export class MudsManager {
 
   init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
 
-    if (!this.tempAncestorMap) throw(`Second attempt at Muds.init()?`)
+    if (this.entityNames || 
+        !this.tempAncestorMap ||
+        !this.tempEntityFieldsMap ||
+        !this.tempCompIndices) throw(`Second attempt at Muds.init()?`)
 
-    // All the entities must have been registered before
-    let entities = Object.keys(this.tempAncestorMap)
-    for (const entityName of entities) {
-      const entityInfo = this.entityInfoMap[entityName],
-            ancestors  = this.tempAncestorMap[entityName]
+    this.entityNames = Object.keys(this.entityInfoMap)
 
-      rc.isAssert() && rc.assert(rc.getName(this), entityInfo, 
-        `Missing entity annotation on ${entityName}?`)
-              
-      for (const ancestor of ancestors) {
-        const ancestorInfo = this.entityInfoMap[ancestor.name]
-        rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo, 
-          `Missing entity annotation on ${ancestor.name}?`)
-        entityInfo.ancestors.push(ancestorInfo)
-      }
-    }
+    for (const entityName of this.entityNames) {
 
-    if (!this.tempEntityFieldsMap) throw(`Code bug`)
-    entities = Object.keys(this.tempEntityFieldsMap)
-    for (const entityName of entities) {
-      const entityInfo = this.entityInfoMap[entityName],
-            fieldsMap  = this.tempEntityFieldsMap[entityName]
+      const ancestors   = this.extractFromMap(this.tempAncestorMap, entityName),
+            fieldsMap   = this.extractFromMap(this.tempEntityFieldsMap, entityName),
+            compIndices = this.extractFromMap(this.tempCompIndices, entityName),
+            entityInfo  = this.entityInfoMap[entityName]
 
-      rc.isAssert() && rc.assert(rc.getName(this), entityInfo, 
-        `Missing entity annotation on ${entityName}?`)
+      if (ancestors || fieldsMap || compIndices) rc.isAssert() && rc.assert(rc.getName(this), 
+        !entityInfo.dummy,  `dummy cannot have any other annotation ${entityName}?`)
+
+      !entityInfo.dummy && rc.isAssert() && rc.assert(rc.getName(this), fieldsMap, 
+        `no fields found for ${entityName}?`)
+
+      if (ancestors) this.valAndProvisionAncestors(rc, ancestors, entityInfo)
 
       Object.assign(entityInfo.fieldMap, fieldsMap)
       entityInfo.fieldNames.push(...Object.keys(entityInfo.fieldMap))
+
+      if (compIndices) this.valAndProvisionCompIndices(rc, compIndices, entityInfo)
     }
 
     this.datastore = new Datastore({
@@ -181,19 +194,66 @@ export class MudsManager {
     rc.isDebug() && rc.debug(rc.getName(this), `Muds initialized with ${
       Object.keys(this.entityInfoMap).length} entities`)
 
-    this.finalizeDataStructures()
+    this.finalizeDataStructures(rc)
   }
 
-  private finalizeDataStructures() {
+  private extractFromMap(obj: Mubble.uObject<any>, prop: string) {
+    const val = obj[prop]
+    delete obj[prop]
+    return val
+  }
 
-    this.tempEntityFieldsMap  = null
-    this.tempAncestorMap      = null
-    this.entityNames          = Object.keys(this.entityInfoMap)
+  private valAndProvisionAncestors( rc : RunContextServer, 
+                                    ancestors: {new(): Muds.BaseEntity}[], 
+                                    entityInfo: MudsEntityInfo) {
+
+    for (const ancestor of ancestors) {
+      const ancestorInfo = this.entityInfoMap[ancestor.name]
+      rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo, 
+        `Missing entity annotation on ${ancestor.name}?`)
+      entityInfo.ancestors.push(ancestorInfo)
+    }
+  }
+
+  private valAndProvisionCompIndices( rc : RunContextServer, 
+                                      compIndices: Mubble.uObject<Muds.Asc | Muds.Dsc>[], 
+                                      entityInfo: MudsEntityInfo) {
+
+    for (const compIdx of compIndices) {
+      const fields = Object.keys(compIdx)
+      for (const field of fields) {
+        const me = entityInfo.fieldMap[field]
+        rc.isAssert() && rc.assert(rc.getName(this), me && me.indexed,
+          `Invalid field or field not indexed ${entityInfo.entityName}/${field}`)
+      }
+      entityInfo.compositeIndices.push(compIdx)
+    }
+    Object.freeze(entityInfo.compositeIndices)
+  }
+
+  private finalizeDataStructures(rc: RunContextServer) {
+
+    this.dealloc(rc, 'tempEntityFieldsMap')
+    this.dealloc(rc, 'tempAncestorMap')
+    this.dealloc(rc, 'tempCompIndices')
 
     Object.freeze(this.entityInfoMap)
     Object.freeze(this)
   }
 
+  private dealloc(rc    : RunContextServer, 
+                  elem  : 'tempEntityFieldsMap' | 'tempAncestorMap' | 'tempCompIndices') {
+
+    const obj   = this[elem],
+          keys  = Object.keys(obj as any)
+
+    rc.isAssert() && rc.assert(rc.getName(this), !keys.length,
+      ` ${elem} is not empty. Has: ${keys}`)
+
+    this[elem] = null  
+  }
+
+  
   
   /* ---------------------------------------------------------------------------
      I N T E R N A L   U T I L I T Y    F U N C T I O N S
@@ -263,6 +323,54 @@ export class MudsManager {
     return this.datastore.key(keyPath)
   }
 
+  extractKeyFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                  entityClass : Muds.IBaseEntity<T>, 
+                  rec         : Mubble.uObject<any>) : (string | DatastoreInt)[] {
+
+    const entityInfo    = this.getInfo(entityClass),
+          ancestorsInfo = entityInfo.ancestors,
+          arKey         = [] as (string | DatastoreInt)[],
+          key           = rec[this.datastore.KEY] as DatastoreKey,
+          keyPath       = key.path
+
+    console.log('keyPath', keyPath)
+    rc.isAssert() && rc.assert(rc.getName(this), 
+      key.kind === entityInfo.entityName)
+    rc.isAssert() && rc.assert(rc.getName(this), 
+      entityInfo.keyType === Muds.Pk.String ? key.name : key.id)
+    rc.isAssert() && rc.assert(rc.getName(this), 
+      ancestorsInfo.length === (keyPath.length / 2) - 1)
+
+    for (let index = 0; index < keyPath.length - 2; index = index + 2) {
+      const kind = keyPath[index],
+            subk = keyPath[index + 1],
+            anc  = ancestorsInfo[index / 2]
+
+      rc.isAssert() && rc.assert(rc.getName(this), 
+          kind === anc.entityName)
+      if (anc.keyType === Muds.Pk.String) {
+        rc.isAssert() && rc.assert(rc.getName(this), typeof(subk) === 'string')
+        arKey.push(subk as string)
+      } else if (typeof(subk) === 'string') {
+        arKey.push(Muds.getIntKey(subk))
+      } else {
+        rc.isAssert() && rc.assert(rc.getName(this), typeof(subk) === 'object' && subk.value)
+        arKey.push(subk as DatastoreInt)
+      }
+    }
+    arKey.push(entityInfo.keyType === Muds.Pk.String ? key.name as string : 
+      Muds.getIntKey(key.id as string))
+    return arKey
+  }
+
+  getRecordFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                    entityClass : Muds.IBaseEntity<T>, 
+                    record: Mubble.uObject<any>): T {
+
+    const keys = this.extractKeyFromDs(rc, entityClass, record)
+    return new entityClass(rc, this, keys, record)
+  }
+
   getRecordForUpsert(rc: RunContextServer, entity: MudsBaseEntity) {
 
     const entityInfo    = entity.getInfo(),
@@ -288,5 +396,21 @@ export class MudsManager {
     return dsRec
   }
 
-  
+  verifyAncestorKeys<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                      entityClass : Muds.IBaseEntity<T>, 
+                      ancestorKeys: (string | DatastoreInt) []) {
+
+    const entityInfo    = this.getInfo(entityClass),
+          ancestorsInfo = entityInfo.ancestors,
+          dsKeys        = []
+
+    rc.isAssert() && rc.assert(rc.getName(this), ancestorsInfo.length, 
+      'It is mandatory to have ancestorKeys for querying with-in transaction')
+
+    for (const [index, info] of ancestorsInfo.entries()) {
+      dsKeys.push(info.entityName, this.checkKeyType(rc, ancestorKeys[index], info))
+    }
+
+    return this.datastore.key(dsKeys)
+  }
 }

@@ -96,13 +96,13 @@ export abstract class MudsIo {
           [results] = await exec.get(dsKeys),
           resultObj = {} as Mubble.uObject<object>
 
-    for (const [index, result] of results.entries()) {
+    for (const result of results) {
       const rawKeys     = (result as any)[this.datastore.KEY] as DatastoreKey,
             entityClass = this.manager.getInfo(rawKeys.kind).cons,
-            keysFromDs  = this.extractKeyFromDs(entityClass, rawKeys),
+            keysFromDs  = this.manager.extractKeyFromDs(this.rc, entityClass, result),
             strKey      = JSON.stringify(keysFromDs)
 
-      console.log(strKey)      
+      console.log(strKey)
       resultObj[strKey] = result
     }
 
@@ -123,7 +123,6 @@ export abstract class MudsIo {
     }
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), lo.isEmpty(resultObj))
-    
     return arResp
   }
   
@@ -229,10 +228,6 @@ export abstract class MudsIo {
     return
   }
 
-  public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>): MudsQuery<T> {
-    return new MudsQuery(this.rc, this.manager, this, entityClass)
-  }
- 
   /* ---------------------------------------------------------------------------
     Abstract functions
   -----------------------------------------------------------------------------*/
@@ -244,57 +239,18 @@ export abstract class MudsIo {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  protected extractKeyFromDs<T extends Muds.BaseEntity>(entityClass : Muds.IBaseEntity<T>, 
-          key: DsEntity.DatastoreKey) : (string | DatastoreInt)[] {
 
-    const entityInfo    = this.manager.getInfo(entityClass),
-          ancestorsInfo = entityInfo.ancestors,
-          arKey         = [] as (string | DatastoreInt)[],
-          keyPath       = key.path
-
-    console.log('keyPath', keyPath)
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      key.kind === entityInfo.entityName)
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      entityInfo.keyType === Muds.Pk.String ? key.name : key.id)
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      ancestorsInfo.length === (keyPath.length / 2) - 1)
-
-    for (let index = 0; index < keyPath.length - 2; index = index + 2) {
-      const kind = keyPath[index],
-            subk = keyPath[index + 1],
-            anc  = ancestorsInfo[index / 2]
-
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-          kind === anc.entityName)
-      if (anc.keyType === Muds.Pk.String) {
-        this.rc.isAssert() && this.rc.assert(this.rc.getName(this), typeof(subk) === 'string')
-        arKey.push(subk as string)
-      } else if (typeof(subk) === 'string') {
-        arKey.push(Muds.getIntKey(subk))
-      } else {
-        this.rc.isAssert() && this.rc.assert(this.rc.getName(this), typeof(subk) === 'object' && subk.value)
-        arKey.push(subk as DatastoreInt)
-      }
-    }
-    arKey.push(entityInfo.keyType === Muds.Pk.String ? key.name as string : 
-      Muds.getIntKey(key.id as string))
-    return arKey
-  }
-
-  getQuery(entityName: string) {
-    return this.getExec().createQuery(entityName)
-  }
-
-  runQuery() {
-
-  }
 }
 
 export class MudsDirectIo extends MudsIo {
   protected getExec(): Datastore | DSTransaction {
     return this.datastore
   }
+
+  public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>): MudsQuery<T> {
+    return new MudsQuery(this.rc, this.manager, this.getExec(), null, entityClass)
+  }
+  
 }
 
 export class MudsTransaction extends MudsIo {
@@ -308,6 +264,13 @@ export class MudsTransaction extends MudsIo {
     super(rc, manager)
     this.transaction = this.datastore.transaction()
     this.doCallback()
+  }
+
+  public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
+          ...ancestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
+    return new MudsQuery(this.rc, this.manager, this.getExec(), 
+      this.manager.verifyAncestorKeys(this.rc, entityClass, ancestorKeys),
+      entityClass)
   }
 
   protected getExec(): Datastore | DSTransaction {

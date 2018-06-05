@@ -38,7 +38,15 @@ export class Muds {
    * * Level: Class declaration
    */
   static entity(version: number, pkType: Muds.Pk): (target: any) => void {
-    return this.manager.registerEntity.bind(this.manager, version, pkType)
+    return this.manager.registerEntity.bind(this.manager, version, pkType, false)
+  }
+  
+  /**
+   * * A dummy entity that is kept just to build the hierarchical ancestor chain
+   * * Level: Class declaration
+   */
+  static dummy(pkType: Muds.Pk): (target: any) => void {
+    return this.manager.registerEntity.bind(this.manager, 0, pkType, true)
   }
   
   /**
@@ -46,11 +54,21 @@ export class Muds {
    * * You should list them in same order as in the key. Example => grandfather, father
    * * Level: Class declaration
    */
-
   static ancestors(...modelNames: 
           (Function | {new (): Muds.BaseEntity})[]): (target: any) => void {
     return this.manager.registerAncestors.bind(this.manager, modelNames)
   }
+
+  /**
+   * * Optional annotation to provide composite indexes of an entity
+   * * You should have a real good reason why you need this as composite indexes
+   * * are sparingly available (total 200 for a project)
+   * * Level: Class declaration
+   */
+  static compositeIndex(idxObj: Mubble.uObject<Muds.Asc | Muds.Dsc>): (target: any) => void {
+    return this.manager.registerCompositeIndex.bind(this.manager, idxObj)
+  }
+  
 
   /**
    * * Marks a property for persistence in datastore.
@@ -141,6 +159,11 @@ export namespace Muds {
   export const Man = 'mandatory'
   export const Opt = 'optional'
 
+  export type Asc = 'ascending'
+  export type Dsc = 'descending'
+  export const Asc = 'ascending'
+  export const Dsc = 'descending'
+  
   export type FieldType = Muds.Man | Muds.Opt
 
   export interface IBaseEntity<T extends Muds.BaseEntity> {

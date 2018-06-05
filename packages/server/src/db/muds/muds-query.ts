@@ -9,7 +9,9 @@
 
 import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
-import { Query as DsQuery }             from '@google-cloud/datastore/query'
+import { Query as DsQuery, 
+  QueryResult as DsQueryResult
+  }                        from '@google-cloud/datastore/query'
 
 import {  GcloudEnv }                   from '../../gcp/gcloud-env'
         
@@ -20,8 +22,13 @@ import {  MeField,
           MudsManager,
           DatastorePayload,         
           MudsEntityInfo }              from './muds-manager'
-import { Muds, DatastoreInt, DsRec }    from '..'
-import { MudsBaseEntity }               from './muds-base-entity';
+import { Muds, DatastoreInt, 
+         DsRec }                        from '..'
+
+import { DatastoreTransaction 
+           as DSTransaction }           from '@google-cloud/datastore/transaction'
+         
+import { MudsBaseEntity }               from './muds-base-entity'
 import { MudsIo }                       from './muds-io'
 
 export type Comparator = '=' | '>' | '>=' | '<' | '<='
@@ -32,7 +39,7 @@ interface FilterOps {
   value       : any
 }
 
-interface SortOps {
+interface OrderOps {
   fieldName   : string
   ascending   : boolean
 }
@@ -80,47 +87,79 @@ before one with the floating-point value 37.5.
 */
 export class MudsQuery<T extends MudsBaseEntity> {
 
-  private readonly validFields  : string[]        = []
   private readonly entityInfo   : MudsEntityInfo
+  private readonly validFields  : string[]        = []
   private readonly filters      : FilterOps[]     = []
-  private readonly sorts        : SortOps[]       = []
+  private readonly orders       : OrderOps[]      = []
   private readonly selects      : string[]        = []
+  private readonly groupBys     : string[]        = []
+  private result: Result<T>
 
-  constructor(protected rc      : RunContextServer, 
-              protected manager : MudsManager,
-              protected io      : MudsIo,
-              entityClass       : Muds.IBaseEntity<T>
+  constructor(private rc            : RunContextServer, 
+              private manager       : MudsManager,
+              private io            : Datastore | DSTransaction,
+              private ancestorKeys  : DsEntity.DatastoreKey | null,
+              private entityClass   : Muds.IBaseEntity<T>
             ) {
 
     const entityInfo = this.entityInfo = manager.getInfo(entityClass)
+    
     for (const fieldName of entityInfo.fieldNames) {
       const meField = entityInfo.fieldMap[fieldName]
       if (meField.indexed) this.validFields.push(fieldName)
     }
   }
 
-  select(fieldName: keyof T | KEY) {
+  public select(fieldName: keyof T | KEY) {
 
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
+
+    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
 
     if (fieldName !== KEY) {
       rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
         `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
     }
 
-    rc.isAssert() && rc.assert(rc.getName(this), !this.filter.length && !this.sort.length, 
-      `${entityName}/${fieldName} add select clause before sort and filter`)
+    rc.isAssert() && rc.assert(rc.getName(this), !this.filters.length && !this.orders.length, 
+      `${entityName}/${fieldName} add select clause before order and filter`)
+
+    rc.isAssert() && rc.assert(rc.getName(this), !this.groupBys.length, 
+    `${entityName}/${fieldName} you cannt use select when group-by is given`)
 
     this.selects.push(fieldName)
     return this
   }
 
-  filter(fieldName: keyof T | KEY, comparator: Comparator, value: any): MudsQuery<T> {
+  public groupBy(fieldName: keyof T | KEY) {
 
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
+    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
+
+    if (fieldName !== KEY) {
+      rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
+        `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
+    }
+
+    rc.isAssert() && rc.assert(rc.getName(this), !this.filters.length && !this.orders.length, 
+      `${entityName}/${fieldName} add select clause before order and filter`)
+
+    rc.isAssert() && rc.assert(rc.getName(this), !this.selects.length, 
+      `${entityName}/${fieldName} you cannt use group when select clause is given`)
+
+    this.groupBys.push(fieldName)
+    return this
+  }
+
+  public filter(fieldName: keyof T | KEY, comparator: Comparator, value: any): MudsQuery<T> {
+
+    const rc          = this.rc,
+          entityName  = this.entityInfo.entityName
+
+    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
     if (fieldName !== KEY) {
       rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
         `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
@@ -129,8 +168,8 @@ export class MudsQuery<T extends MudsBaseEntity> {
     this.selects.indexOf(fieldName) !== -1 && rc.isAssert() && rc.assert(rc.getName(this), 
       comparator !== '=', `A 'select'ed field ${entityName}/${fieldName} cannot be filtered for equality`)
 
-    rc.isAssert() && rc.assert(rc.getName(this), !this.sort.length, 
-      `${entityName}/${fieldName} add filter clause before sort`)
+    rc.isAssert() && rc.assert(rc.getName(this), !this.orders.length, 
+      `${entityName}/${fieldName} add filter clause before order`)
 
     for (const filter of this.filters) {
       rc.isAssert() && rc.assert(rc.getName(this), 
@@ -147,15 +186,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
     return this
   }
 
-  sort(fieldName: keyof T | KEY, ascending: boolean = true) {
+  public order(fieldName: keyof T | KEY, ascending: boolean = true) {
 
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    if (!this.sorts.length) {
+    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
+    if (!this.orders.length) {
       const ineqFilter = this.filters.find(item => item.comparator !== '=')
       ineqFilter && rc.isAssert() && rc.assert(rc.getName(this), ineqFilter.fieldName === fieldName,
-      `${entityName}/${fieldName} first sort field must be with ineq filter: (${ineqFilter.fieldName})`)
+      `${entityName}/${fieldName} first order field must be with ineq filter: (${ineqFilter.fieldName})`)
     }
 
     if (fieldName !== KEY) {
@@ -166,21 +206,96 @@ export class MudsQuery<T extends MudsBaseEntity> {
     for (const filter of this.filters) {
       rc.isAssert() && rc.assert(rc.getName(this), 
         filter.fieldName === fieldName && filter.comparator === '=', 
-        `${entityName}/${fieldName} cannot sort on field with equality filter`)
+        `${entityName}/${fieldName} cannot order on field with equality filter`)
     }
 
-    this.sorts.push({fieldName, ascending})
+    this.orders.push({fieldName, ascending})
     return this
   }
 
-  run(limit ?: number) {
-    const dsQuery = this.io.getQuery(this.entityInfo.entityName)
-    for (const fieldName of this.selects) dsQuery.select(fieldName)
-    for (const filter of this.filters) dsQuery.filter(filter.fieldName, 
+  public async run(limit: number) {
+    const rc = this.rc
+    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query cannot run again')
+    const dsQuery = this.io.createQuery(this.entityInfo.entityName)
+    if (this.ancestorKeys) dsQuery.hasAncestor(this.ancestorKeys)
+
+    for (const fieldName of this.selects)   dsQuery.select(fieldName)
+    for (const fieldName of this.groupBys)  dsQuery.groupBy(fieldName)
+
+    for (const filter of this.filters)      dsQuery.filter(filter.fieldName, 
       filter.comparator, filter.value)
-    for (const sort of this.sorts) dsQuery.order(sort.fieldName, 
-      sort.ascending ? undefined : {descending: true})
-    if (limit) dsQuery.limit(limit)
+    for (const order of this.orders)        dsQuery.order(order.fieldName, 
+      order.ascending ? undefined : {descending: true})
+
+    dsQuery.limit(limit)
+    this.result = new Result(rc, this.manager, this.entityClass, 
+                    dsQuery, await dsQuery.run())
+    return this.result          
+  }
+}
+
+export class Result<T extends MudsBaseEntity> implements AsyncIterable<T> {
+
+  private records   : object[]
+  private endCursor : string
+  private hasMore   : boolean
+
+  // This is short term till we get upgrade to 'for await' 
+  private iterator  : { next : (val ?: T) => Promise<{value ?: T, done: boolean}> } | null
+
+  constructor(private rc  : RunContextServer, 
+    private manager       : MudsManager,
+    private entityClass   : Muds.IBaseEntity<T>,
+    private dsQuery       : DsQuery,
+            result        : DsQueryResult) {
+    this.init(result)
+  }
+
+  private init(result: DsQueryResult) {
+    const [ar, info]  = result
+    this.records      = ar
+    this.endCursor    = info.endCursor || ''
+    this.hasMore      = (info.moreResults === 'NO_MORE_RESULTS')
+  }
+
+  public getCurrentRecs(): T[] {
+
+    const entities = []
+    for (const rec of this.records) {
+      entities.push(this.manager.getRecordFromDs(this.rc, this.entityClass, rec))
+    }
+    return entities
+  }
+
+  // for future when we move to v8 6.3
+  public [Symbol.asyncIterator]() {
+    let ptr = 0 
+    return {
+      next: async (val: T) => {
+        if (ptr === this.records.length) {
+          if (this.hasMore) {
+            this.dsQuery.start(this.endCursor)
+            this.init(await this.dsQuery.run())
+          }
+        }
+        const done = !this.hasMore && ptr === this.records.length
+        return {
+            done,
+            value: done ? val : this.manager.getRecordFromDs(this.rc, this.entityClass, this.records[ptr++])
+        }
+      }
+    }
+  }
+
+  // Delete this function when 'for await' is available
+  public async getNext() {
+    if (!this.iterator) this.iterator = await this[Symbol.asyncIterator]()
+    const result = await this.iterator.next()
+    if (result.done) {
+      this.iterator = null
+      return
+    }
+    return result.value
   }
 
 }

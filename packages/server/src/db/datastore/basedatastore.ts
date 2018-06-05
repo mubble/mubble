@@ -531,7 +531,7 @@ isDeleted(rc: RunContextServer) : boolean {
     return new DSQuery<T>(rc, BaseDatastore._datastore, kindname, model)
   }
 
-  static createQueryWithNamespace(rc : RunContextServer, namespace : string) : DSQuery  {
+  static createQueryWithNamespace<T extends BaseDatastore>(rc : RunContextServer, namespace : string) : DSQuery<T>  {
     const model : BaseDatastore = new (this as any)()
     
     return new DSQuery(rc, BaseDatastore._datastore, this._kindName, model, namespace)
