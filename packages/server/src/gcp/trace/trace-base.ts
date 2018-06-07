@@ -29,6 +29,10 @@ export class TraceBase {
   public static _active    : boolean 
   
   public static async init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
+    this._active = gcloudEnv.projectId ? true : false
+
+    if(!this._active) return 'Trace Disabled'
+    
     this.cloudTrace = googleApis.cloudtrace('v1')
     if(gcloudEnv.projectId)
       this.projectId  = gcloudEnv.projectId
@@ -46,8 +50,6 @@ export class TraceBase {
         resolve(authClient)
       })
     })
-
-    this._active = gcloudEnv.projectId ? true : false
   } 
 
   public static sendTrace(rc : RunContextServer, apiName : string , labels ?: Mubble.uObject<string>) {
