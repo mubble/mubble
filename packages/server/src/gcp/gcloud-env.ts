@@ -45,7 +45,7 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
 
 export class GcloudEnv {
 
-  static async init(rc : RunContextServer): Promise<GcloudEnv> {
+  static async init(rc : RunContextServer, authKey ?: Object): Promise<GcloudEnv> {
     
     const instanceEnv = process.env.MUBBLE_LOCAL_SERVER === 'true' ? undefined  :  
                         await this.getMetadata(rc, metadataInstanceEnvCmd)
@@ -96,7 +96,10 @@ export class GcloudEnv {
         }
 
       } else {
-        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV])
+        const projectId = authKey && (authKey as any).project_id
+
+        if(!projectId && authKey) rc.isError() && rc.error(rc.getName(this), 'Invalid Auth Key Provided')
+        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV], projectId, authKey)
       }
     }
     await this.initGcpComponents(rc, gCloudEnv)
