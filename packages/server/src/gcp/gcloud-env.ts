@@ -96,10 +96,7 @@ export class GcloudEnv {
         }
 
       } else {
-        const projectId = authKey && (authKey as any).project_id
-
-        if(!projectId && authKey) rc.isError() && rc.error(rc.getName(this), 'Invalid Auth Key Provided')
-        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV], projectId, authKey)
+        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV], undefined, authKey)
       }
     }
     await this.initGcpComponents(rc, gCloudEnv)
