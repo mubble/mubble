@@ -131,6 +131,10 @@ export class UiRouter {
     return this.lastGoingBack
   }
 
+  public isModalActive() {
+    return Object.keys(this.curCompMap).length !== 1
+  }
+
   public isShowingPopup() {
     return this.curOutlet !== PRIMARY_OUTLET
   }
@@ -353,7 +357,7 @@ export class UiRouter {
       index < (stackLen - 1), {stackLen, index})
 
     if (index === -1) {
-
+      
       if (!this.codePop) {
         if (this.warnedUser) {
           this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
@@ -401,6 +405,7 @@ export class UiRouter {
   private canGoBack() {
     const lastIdx  = this.urlStack.length - 1,
           lastItem = this.urlStack[lastIdx]
+   
     if (!lastItem) return true
     const comp = this.curCompMap[lastItem.outlet]
     if (!comp || !comp.component.canGoBack) return true
@@ -542,7 +547,6 @@ export class UiRouter {
     //   {fromIndex, stackLen, browserStackLen: browserStack.length})
 
     if (fromIndex === -1) {
-
       if (urlStack.length !== browserStack.length) this.browserGotoRoot()
 
     } else if (fromIndex === (stackLen - 1)) {
@@ -571,6 +575,7 @@ export class UiRouter {
       stackLen        : this.urlStack.length, 
       browserStackLen : this.browserStack.length
     })
+
     this.codePop = true
     this.historyWrapper.go(distanceFromRoot)
   }
