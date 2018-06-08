@@ -11,10 +11,7 @@ import {
         format,
         Mubble
        }                            from '@mubble/core'
-import {
-        RunContextServer,
-        RCServerLogger
-       }                            from '../../rc-server'
+import {RunContextServer}           from '../../rc-server'
 import {GcloudEnv}                  from '../gcloud-env'
 import * as lo                      from 'lodash'
 
