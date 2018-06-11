@@ -35,9 +35,21 @@ import { extension } from 'mime-types';
  * Basics: https://cloud.google.com/datastore/docs/concepts/entities
  * Limits: https://cloud.google.com/datastore/docs/concepts/limits
  * Project: https://github.com/googleapis/nodejs-datastore/
- * Node docs: https://cloud.google.com/nodejs/docs/reference/datastore/1.4.x/ (notice version in the url)
+ * Node datastore ver 1.4: https://cloud.google.com/nodejs/docs/reference/datastore/1.4.x/Datastore
+ * All Node docs: https://cloud.google.com/nodejs/docs/reference/libraries
+ * Entity modelling: https://cloud.google.com/appengine/articles/modeling
  * 
  */
+
+/**
+ * 
+ * Test cases:
+ * - See if we are able to selectively index arrays
+ * - Unique either needs to be implemented for array or disallowed
+ * - A field that has multiple basic types, can it be indexed properly (will query work?)
+ */
+
+
 export abstract class MudsIo {
 
   protected datastore: Datastore
@@ -73,7 +85,7 @@ export abstract class MudsIo {
     return entity
   }
 
-  public queueKeys(): QueueBuilder {
+  public getQueueBuilder(): QueueBuilder {
     return new QueueBuilder(this.rc, this.manager)
   }
 
@@ -148,11 +160,10 @@ export abstract class MudsIo {
   getForInsert<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                 ...keys : (string | DatastoreInt)[]): T {
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), keys.length)
-    const entity = new entityClass(this.rc, this.manager, keys)
+    const entity = new entityClass(this.rc, this.manager, keys.length ? keys : undefined)
     entity.edit()
     return entity
-  }
+    }
 
   enqueueForUpsert(...entities: MudsBaseEntity[]) {
 
@@ -186,10 +197,6 @@ export abstract class MudsIo {
      */
 
     const results = await exec.upsert(dsRecs)
-
-    // TODO: ???? Remove
-    this.rc.initConfig.x = results
-
     for (const [index, result] of results.entries()) {
 
       const entity           = entities[index],
@@ -226,8 +233,11 @@ export abstract class MudsIo {
     for (const {entityClass, ancestorKeys, selfKey} of reqs) {
       dsRecs.push(this.manager.buildKey(this.rc, entityClass, ancestorKeys, selfKey))
     }
-    const result = await exec.upsert(dsRecs)
-    console.log('delete result', result)
+    const result = await exec.delete(dsRecs)
+    /*
+     [ { mutationResults: [ [Object], [Object], [Object], [Object], [Object] ],
+    indexUpdates: 19 } ]
+    */
     return
   }
 
@@ -273,9 +283,12 @@ export class MudsTransaction extends MudsIo {
   }
 
   public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
-          ...ancestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
+          firstAncestorKey      : string | DatastoreInt,
+          ...otherAncestorKeys  : (string | DatastoreInt)[]): MudsQuery<T> {
+
+    otherAncestorKeys.unshift(firstAncestorKey) 
     return new MudsQuery(this.rc, this.manager, this.getExec(), 
-      this.manager.verifyAncestorKeys(this.rc, entityClass, ancestorKeys),
+      this.manager.verifyAncestorKeys(this.rc, entityClass, otherAncestorKeys),
       entityClass)
   }
 
@@ -300,6 +313,7 @@ export interface IEntityKey<T extends MudsBaseEntity> {
 export class QueueBuilder {
 
   private arReq: IEntityKey<any>[] = []
+  private reqObj: Mubble.uObject<string> = {}
 
   constructor(protected rc: RunContextServer, 
               protected manager: MudsManager) {}
@@ -307,9 +321,15 @@ export class QueueBuilder {
   add<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
     ...keys : (string | DatastoreInt)[]) {
 
-    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, entityClass, keys)
+    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, entityClass, keys),
+          req: IEntityKey<T>      = {entityClass, ancestorKeys, selfKey},
+          reqStr                  = JSON.stringify(req)
       
-    this.arReq.push({entityClass, ancestorKeys, selfKey} as any)
+    this.arReq.push(req)
+    
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), !this.reqObj[reqStr],
+      'Duplicate key in queue')
+    this.reqObj[reqStr] = reqStr
     return this
   }
 

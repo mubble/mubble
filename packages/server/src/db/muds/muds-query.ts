@@ -93,6 +93,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
   private readonly orders       : OrderOps[]      = []
   private readonly selects      : string[]        = []
   private readonly groupBys     : string[]        = []
+
   private result: MudsQueryResult<T>
 
   constructor(private rc            : RunContextServer, 
@@ -172,15 +173,28 @@ export class MudsQuery<T extends MudsBaseEntity> {
       `${entityName}/${fieldName} add filter clause before order`)
 
     for (const filter of this.filters) {
-      rc.isAssert() && rc.assert(rc.getName(this), 
-        filter.fieldName === fieldName && filter.comparator === comparator, 
-        `${entityName}/${fieldName} is being filtered twice with same comparator`)
+      if (filter.fieldName === fieldName) {
 
-      if (comparator !== '=' && filter.fieldName !== fieldName) {
+        rc.isAssert() && rc.assert(rc.getName(this), comparator !== '=' && filter.comparator !== '=', 
+          `${entityName}/${fieldName} is being filtered twice with equality`)
+
+        if (comparator === '>' || comparator === '>=')  rc.isAssert() && 
+          rc.assert(rc.getName(this), (filter.comparator === '<' || filter.comparator === '<=')  , 
+          `${entityName}/${fieldName} mismatched comparators ${filter.comparator} and ${comparator}`)
+
+        if (comparator === '<' || comparator === '<=')  rc.isAssert() && 
+          rc.assert(rc.getName(this), (filter.comparator === '>' || filter.comparator === '>=')  , 
+          `${entityName}/${fieldName} mismatched comparators ${filter.comparator} and ${comparator}`)
+
+      } else if (comparator !== '=') {
         rc.isAssert() && rc.assert(rc.getName(this), filter.comparator === '=', 
-        `${entityName}/${fieldName} only one field with inequality filter. You also have it on ${filter.fieldName}`)
+        `${entityName}/${fieldName} only one field with inequality filter. 
+          You also have it on ${filter.fieldName}`)
       }
     }
+
+    const accessor = this.entityInfo.fieldMap[fieldName].accessor
+    accessor.validateType(value)
 
     this.filters.push({fieldName, comparator, value})
     return this
@@ -235,7 +249,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
 }
 
 /* ---------------------------------------------------------------------------
-  Result
+  MudsQueryResult
 -----------------------------------------------------------------------------*/
 export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<T> {
 

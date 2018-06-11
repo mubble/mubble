@@ -8,17 +8,19 @@
 ------------------------------------------------------------------------------*/
 import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
+import * as lo                          from 'lodash'
 
 import {  GcloudEnv }                   from '../../gcp/gcloud-env'
         
 import {  RunContextServer  }           from '../../rc-server'
-import * as lo                          from 'lodash'
-import { Mubble }                       from '@mubble/core'
+import {  Mubble }                       from '@mubble/core'
 import {  MeField,         
           MudsManager,
           DatastorePayload,         
           MudsEntityInfo }              from './muds-manager'
-import { Muds, DatastoreInt, DsRec }           from '..'
+import {  Muds, 
+          DatastoreInt, 
+          DsRec }                       from '..'
 
 export class MudsBaseEntity {
 
@@ -31,11 +33,12 @@ export class MudsBaseEntity {
   private entityInfo    : MudsEntityInfo
 
   constructor(private rc: RunContextServer, private manager: MudsManager,
-              keys ?: (string | DatastoreInt)[], recObj ?: Mubble.uObject<any>) {
+              keys: (string | DatastoreInt)[], recObj: Mubble.uObject<any>, 
+              fullRec: boolean) {
     this.entityInfo  = this.manager.getInfo(this.constructor)
     if (keys) {
       if (recObj) {
-        this.constructFromRecord(keys, recObj)
+        this.constructFromRecord(keys, recObj, fullRec)
         this.fromDs = true
       } else {
         const {ancestorKeys, selfKey} = this.manager.separateKeysForInsert(this.rc, 
@@ -43,6 +46,10 @@ export class MudsBaseEntity {
         this.ancestorKeys = ancestorKeys
         this.selfKey      = selfKey
       }
+    }
+
+    if (!(this.entityInfo.keyType === Muds.Pk.Auto || this.entityInfo.keyType === Muds.Pk.None)) {
+      rc.isAssert() && rc.assert(rc.getName(this), this.selfKey, `Cannot create entity without keys`)
     }
   }
 
@@ -111,18 +118,22 @@ export class MudsBaseEntity {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  constructFromRecord(keys: (string | DatastoreInt)[], recObj: DsRec) {
+  constructFromRecord(keys: (string | DatastoreInt)[], recObj: DsRec, fullRec: boolean) {
 
-    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, this.entityInfo.cons, keys)
-    this.ancestorKeys = ancestorKeys
-    this.selfKey      = selfKey
+    if (this.entityInfo.keyType !== Muds.Pk.None) {
+      const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, this.entityInfo.cons, keys)
+      this.ancestorKeys = ancestorKeys
+      this.selfKey      = selfKey
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.selfKey)
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.selfKey)
+    }
 
     const fieldNames  = this.entityInfo.fieldNames
     for (const fieldName of fieldNames) {
-      const accessor  = this.entityInfo.fieldMap[fieldName].accessor
-      accessor.loadFromDs(this.rc, this, recObj[fieldName])
+      const meField   = this.entityInfo.fieldMap[fieldName],
+            accessor  = meField.accessor
+
+      accessor.loadFromDs(this.rc, this, recObj[fieldName], fullRec)
     }
   }
 
@@ -150,10 +161,11 @@ export class MudsBaseEntity {
 
     for (const fieldName of fieldNames) {
       const accessor  = this.entityInfo.fieldMap[fieldName].accessor
-      accessor.commitUpsert(this)
+      accessor.commitUpsert(this) // erase old values as the record is committed to ds now
     }
 
-    !this.selfKey && this.rc.isAssert() && this.rc.assert(this.rc.getName(this), path)
+    !this.selfKey && this.entityInfo.keyType !== Muds.Pk.None && 
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), path)
     if (!path) return
 
     if (path.length) path = path[path.length - 1]
@@ -193,9 +205,9 @@ export class MudsBaseEntity {
 
     for (const fieldName of entityInfo.fieldNames) {
       const meField = entityInfo.fieldMap[fieldName],
-            headEntry = (meField.mandatory ? '*' : '') + `${fieldName}/${meField.fieldType.name}` + 
+            headEntry = (meField.mandatory ? '*' : '') + 
+                        `${fieldName}/${meField.accessor.$getSubtype()}` + 
                         (meField.unique ? '+' : (meField.indexed ? '@' : '')) 
-                        
                         
       str += this.$rowHead(headEntry) + 
         `[${ meField.accessor.$printField(this)}]\n`
@@ -222,12 +234,10 @@ export class FieldAccessor {
 
   readonly ovFieldName : string // original value field name
   readonly cvFieldName : string // current  value field name
-  readonly basicType   : boolean
 
   constructor(private entityName: string, private fieldName: string, private meField: MeField) {
     this.ovFieldName = '_$$_' + fieldName
     this.cvFieldName  = '_$_' + fieldName
-    this.basicType = [Number, String, Boolean].indexOf(meField.fieldType as any) !== -1
   }
 
   private getter(inEntity: MudsBaseEntity) {
@@ -258,6 +268,15 @@ export class FieldAccessor {
   }
 
   validateType(newValue: any) {
+
+    if (this.meField.isArray) {
+      if (!Array.isArray(newValue)) throw(this.getId() + ' is not an array')
+    }
+
+
+
+
+
     // basic data type
     const meField = this.meField
     if (this.basicType) {
@@ -303,9 +322,23 @@ export class FieldAccessor {
     if (value === undefined) return
 
     dsRec.data[this.fieldName] = value
+    this.buildExclusions(value, '', dsRec.excludeFromIndexes)
+  }
 
-    if (!(this.meField.indexed || this.meField.unique)) {
-      dsRec.excludeFromIndexes.push(this.fieldName)
+  private buildExclusions(value: any, prefix: string, arExclude: string[]) {
+
+    if (value instanceof MudsBaseEntity) {
+
+      const embedInfo = value.getInfo()
+
+      for (const cfName of embedInfo.fieldNames) {
+        const cAccessor = embedInfo.fieldMap[cfName].accessor,
+              cValue    = (value as any)[this.fieldName]
+        cAccessor.buildExclusions(cValue, (prefix ? prefix + '.' : '') + cfName, arExclude)
+      }
+
+    } else if (!(this.meField.indexed || this.meField.unique)) {
+      arExclude.push((prefix ? prefix + '.' : '') + this.fieldName)
     }
   }
 
@@ -324,13 +357,13 @@ export class FieldAccessor {
     return true
   }
 
-  loadFromDs(rc: RunContextServer, inEntity: MudsBaseEntity, newValue: any) {
+  loadFromDs(rc: RunContextServer, inEntity: MudsBaseEntity, newValue: any, fullRec: boolean) {
 
     const entity  = inEntity as any,
           meField = this.meField
 
     if (newValue === undefined) {
-      if (meField.mandatory) rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
+      if (meField.mandatory && fullRec) rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
         }: Db returned undefined for mandatory field. Ignoring...`)
       return
     }
@@ -365,6 +398,16 @@ export class FieldAccessor {
   commitUpsert(inEntity: MudsBaseEntity) {
     const entity = inEntity as any
     if (entity[this.ovFieldName]) entity[this.ovFieldName] = undefined
+  }
+
+  $getSubtype() {
+    let subtype = 'mult'
+    if (this.meField.subtype === Muds.Subtype.embedded) subtype = 'embedded'
+    else if (this.meField.subtype === Muds.Subtype.string) subtype = 'string'
+    else if (this.meField.subtype === Muds.Subtype.number) subtype = 'number'
+    else if (this.meField.subtype === Muds.Subtype.boolean) subtype = 'boolean'
+    if (this.meField.isArray) subtype += '[]'
+    return subtype
   }
 
   $printField(inEntity: MudsBaseEntity) {

@@ -27,26 +27,39 @@ export type DsRec = Object & {
   [name: string]: string | number | boolean | Object | Array<any>
 }
 
+export enum EntityType {
+  Dummy, Embedded, Normal
+}
 
 export class Muds {
 
   private static manager = new MudsManager()
 
   /**
-   * * Mandatory annotation to mark a class as Muds Entity
+   * * Annotation to mark a class as Normal Muds Entity (Mandatory: one of entity / embeddedEntity / dummmy )
    * * Name of entity is fixed based on the class name. Entity classes cannot be minified or renamed
    * * Level: Class declaration
    */
-  static entity(version: number, pkType: Muds.Pk): (target: any) => void {
-    return this.manager.registerEntity.bind(this.manager, version, pkType, false)
+  public static entity(version: number, pkType: Muds.Pk): (target: any) => void {
+    return this.manager.registerEntity.bind(this.manager, version, pkType, EntityType.Normal)
   }
   
   /**
-   * * A dummy entity that is kept just to build the hierarchical ancestor chain
+   * * Annotation to mark a class as Dummy Muds Entity (Mandatory: one of entity / embeddedEntity / dummmy )
+   * * A dummy entity that is kept just to build the hierarchical ancestor chain.  No IO is permitted on them directly
    * * Level: Class declaration
    */
-  static dummy(pkType: Muds.Pk): (target: any) => void {
-    return this.manager.registerEntity.bind(this.manager, 0, pkType, true)
+  public static dummy(pkType: Muds.Pk): (target: any) => void {
+    return this.manager.registerEntity.bind(this.manager, 0, pkType, EntityType.Dummy)
+  }
+
+  /**
+   * * Annotation to mark a class as Embedded Muds Entity (Mandatory: one of entity / embeddedEntity / dummmy )
+   * * An embedded entity entity that is inserted like an object in ds. No IO is permitted on them directly
+   * * Level: Class declaration
+   */
+  public static embeddedEntity(): (target: any) => void {
+    return this.manager.registerEntity.bind(this.manager, 0, Muds.Pk.None, EntityType.Embedded)
   }
   
   /**
@@ -54,7 +67,7 @@ export class Muds {
    * * You should list them in same order as in the key. Example => grandfather, father
    * * Level: Class declaration
    */
-  static ancestors(...modelNames: 
+  public static ancestors(...modelNames: 
           (Function | {new (): Muds.BaseEntity})[]): (target: any) => void {
     return this.manager.registerAncestors.bind(this.manager, modelNames)
   }
@@ -63,46 +76,55 @@ export class Muds {
    * * Optional annotation to provide composite indexes of an entity
    * * You should have a real good reason why you need this as composite indexes
    * * are sparingly available (total 200 for a project)
+   * 
+   * Pending
+   * * Check presence of composite index before running a query
+   * * Allow composite index on embedded entity
+   * 
    * * Level: Class declaration
    */
-  static compositeIndex(idxObj: Mubble.uObject<Muds.Asc | Muds.Dsc>): (target: any) => void {
+  public static compositeIndex(idxObj: Mubble.uObject<Muds.Asc | Muds.Dsc>): (target: any) => void {
     return this.manager.registerCompositeIndex.bind(this.manager, idxObj)
   }
   
 
   /**
-   * * Marks a property for persistence in datastore.
-   * * Optional fields, when left undefined, are not stored in the entity
-   * * Optional=false (mandatory) field cannot be 'undefined' for update / insert. Muds would throw error
+   * * Annotation to mark a field of Muds Entity (Mandatory: one of field / indexed / embedded entity )
+   * * presence=Muds.Opt, field is optional. Muds.Man means that field should atleast be set null
+   * * subtype=Simple field types can be auto detected. Multiple types need to annotated like
+   * * Muds.Subtype.string | Muds.Subtype.number etc. Array types always need to be annotated
+   * * If a Field can have multiple EmbeddedEntity types, use Subtype as Muds.Subtype.embedded
+   * 
    * * Level: property declaration
    */
-  static field(fieldType:Muds.FieldType = Muds.Man): (target: any, propertyKey: string) => void {
+  public static field(presence: Muds.Presence, subtype: Muds.Subtype = Muds.Subtype.auto)
+                      : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
-              mandatory: fieldType === Muds.Man})
+              mandatory: presence === Muds.Man, subtype})
   }
 
   /**
    * * Marks a property for as indexed in datastore.
-   * * For an indexed field, when optional is changed to 'false': we will need to run data migration
+   * * Read documentation of Muds.field 
+   * * For an indexed field, when presence is changed to 'false': we will need to run data migration
    * * Level: property declaration
    */
-  static indexed(fieldType:Muds.FieldType = Muds.Man): (target: any, propertyKey: string) => void {
+  public static indexed(presence:Muds.Presence, subtype: Muds.Subtype = Muds.Subtype.auto)
+                      : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
-              mandatory: fieldType === Muds.Man, indexed: true})
+              mandatory: presence === Muds.Man, indexed: true, subtype})
   }
 
   /**
    * * Marks a property for as unique and indexed in datastore.
-   * * For a unique field, optional value cannot become true, if it was false earlier
+   * * Read documentation of Muds.field 
+   * * For a unique field, presence value cannot become true, if it was false earlier
    * * Level: property declaration
    */
-  static unique(fieldType:Muds.FieldType = Muds.Man): (target: any, propertyKey: string) => void {
+  public static unique(presence:Muds.Presence, subtype: Muds.Subtype = Muds.Subtype.auto)
+                      : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
-              mandatory: fieldType === Muds.Man, indexed: true, unique: true})
-  }
-
-  static getManager() {
-    return this.manager
+              mandatory: presence === Muds.Man, indexed: true, unique: true, subtype})
   }
 
   /**
@@ -110,15 +132,18 @@ export class Muds {
    * * entities: All entities must be identified. To facilitate this list is taken as dummy input
    * * Level: property declaration
    */
-  static init(rc: RunContextServer, gcloudEnv: GcloudEnv, ...entities: ({new(): Muds.BaseEntity}| Function)[]) {
+  public static init(rc: RunContextServer, 
+    gcloudEnv: GcloudEnv, ...entities: ({new(): Muds.BaseEntity}| Function)[]) {
     return this.manager.init(rc, gcloudEnv)
   }
 
-  static transaction(rc: RunContextServer, callback: (transaction: Muds.Transaction, now: number) => Promise<boolean>): void {
+  public static transaction(rc: RunContextServer, 
+    callback: (transaction: Muds.Transaction, now: number) => Promise<boolean>): void {
     new MudsTransaction(rc, this.manager, callback)
   }
 
-  static direct(rc: RunContextServer, callback ?: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
+  public static direct(rc: RunContextServer, 
+    callback ?: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
     new MudsDirectIo(rc, this.manager)
   }
 
@@ -127,9 +152,13 @@ export class Muds {
    * * As JS integer cannot handle full range of DS Integers, we only use 
    * * This api is given for consistency in handling keys
    */
-  static getIntKey(id: number | string): DatastoreInt {
+  public static getIntKey(id: number | string): DatastoreInt {
     if (id === 0 || id === '0') throw('Zero is an invalid int key')
     return this.manager.getDatastore().int(id)
+  }
+
+  static getManager() {
+    return this.manager
   }
 }
 
@@ -145,6 +174,7 @@ export namespace Muds {
   export type  Query        = MudsQuery<MudsBaseEntity>
 
   export enum Pk {
+    None, // Used only for embedded entities as they shouldn't have keys
     Auto,
     /**
      * ** WARNING ** Strongly discouraged when entity has no parent, 
@@ -164,16 +194,26 @@ export namespace Muds {
   export const Asc = 'ascending'
   export const Dsc = 'descending'
   
-  export type FieldType = Muds.Man | Muds.Opt
+  export type Presence = Muds.Man | Muds.Opt
 
   export interface IBaseEntity<T extends Muds.BaseEntity> {
     new(rc: RunContextServer, manager: MudsManager, 
         key ?: (string | DatastoreInt)[], recObj ?: DsRec): T
   }
 
-  export const Error = {
+  export const Error = Object.freeze({
     RNF: 'RECORD_NOT_FOUND'
-  }
+  })
 
+  export enum Subtype {
+    auto        = 0,
+    embedded    = 1,
+    string      = 2,
+    number      = 4,
+    boolean     = 8
+  }
+  
 }
+
+
 
