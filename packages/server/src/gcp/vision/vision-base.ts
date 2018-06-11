@@ -35,15 +35,12 @@ import {RunContextServer}           from '../../rc-server'
 import {executeHttpsRequest}        from '../../util/https-request'
 import {GcloudEnv}                  from '../gcloud-env'
 import {SmartCropGM}                from './smartcrop-gm'
-import * as request                 from 'request'
-import * as fs                      from 'fs'
-import * as uuid                    from 'uuid/v4'
+import {UStream}                    from '../..'
 import * as gm                      from 'gm'
 import * as mime                    from 'mime-types'
 import * as stream                  from 'stream'
 import * as lo                      from 'lodash'
 import * as sharp                   from 'sharp'
-import { UStream } from '../..';
 
 export class VisionBase {
 

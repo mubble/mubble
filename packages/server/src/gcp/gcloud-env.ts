@@ -14,8 +14,6 @@ import {
        }                            from '../rc-server'
 import {
         BaseDatastore,
-        getDatastoreNamespace,
-        CloudStorageBase,
         MonitoringBase,
         VisionBase,
         BigQueryBase,
@@ -23,7 +21,6 @@ import {
         GcpLanguageBase,
         TraceBase
        }                            from '../index'
-import * as url                     from 'url'
 import * as http                    from 'http'
 
 const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/v1/',
@@ -33,7 +30,9 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
       metadataProjectEnvCmd  = 'project/attributes/NC_PROJECT_ENV',
       metadataBqEnvCmd       = 'project/attributes/NC_BQ_ENV',
       azureCdnCmd            = 'project/attributes/AZURE_CDN',
-      metadataOptions : http.RequestOptions   = {
+      oAuthClientIdCmd       = 'project/attributes/OAUTH_CLIENT_ID'
+
+const metadataOptions : http.RequestOptions = {
         host: 'metadata.google.internal',
         port: 80,
         path: this.pathPrefix + this.projectIdCmd,
@@ -45,93 +44,84 @@ const metadataPathPrefix     = 'http://metadata.google.internal/computeMetadata/
 
 export class GcloudEnv {
 
-  static async init(rc : RunContextServer): Promise<GcloudEnv> {
+  public datastore           : any
+  public cloudStorage        : any 
+  public vision              : any 
+  public bigQuery            : any
+  public pubsub              : any
+  public monitoring          : any
+
+  public authKey             : Object
+  public projectId           : string
+  public bqAuthKey           : Object
+  public azureCdn            : string
+  static oAuthClientId       : string
+  
+  private static instanceEnv : string
+  private static projectEnv  : string
+  private static hostName    : string
+
+  constructor(public namespace : string) {
+  }
+
+  private async setMetadata(rc : RunContextServer) {
+    GcloudEnv.instanceEnv   = await GcloudEnv.getMetadata(rc, metadataInstanceEnvCmd)
+    GcloudEnv.projectEnv    = await GcloudEnv.getMetadata(rc, metadataProjectEnvCmd)
+    GcloudEnv.hostName      = await GcloudEnv.getMetadata(rc, metadataHostNameCmd)
+    GcloudEnv.oAuthClientId = await GcloudEnv.getMetadata(rc, oAuthClientIdCmd)
+    this.azureCdn           = await GcloudEnv.getMetadata(rc, azureCdnCmd)
+
+    if(!this.azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn Not Defined')
+
+    this.projectId   = await GcloudEnv.getMetadata(rc, metadataProjectIdCmd)
     
-    const instanceEnv = process.env.MUBBLE_LOCAL_SERVER === 'true' ? undefined  :  
-                        await this.getMetadata(rc, metadataInstanceEnvCmd)
+    const bqAuthKey  = await GcloudEnv.getMetadata(rc, metadataBqEnvCmd)
+    this.bqAuthKey   = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
+  }
 
-    let   gCloudEnv   = null
+  static async init(rc : RunContextServer, authKey ?: Object): Promise<GcloudEnv> {
 
-    if(rc.getRunMode() === RUN_MODE.LOAD) {
-      const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
-            bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
-            azureCdn    = await this.getMetadata(rc, azureCdnCmd),
-            parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
-
-      if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
-      if(instanceEnv) gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.LOAD], projectName, parsedBqKey, azureCdn)
-      else gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.LOAD], projectName, parsedBqKey, azureCdn)
-
-      await this.initGcpComponents(rc, gCloudEnv)
-      return gCloudEnv
-    }
-
-    if (rc.getRunMode() === RUN_MODE.PROD) {
-      if (instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
-      if (await this.getMetadata(rc, metadataProjectEnvCmd) !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
-
-      const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
-            bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
-            azureCdn    = await this.getMetadata(rc, azureCdnCmd),
-            parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
-
-      if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
-      gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.PROD], projectName, parsedBqKey, azureCdn)
+    let gCloudEnv
+    //Local Server
+    if(process.env.MUBBLE_LOCAL_SERVER == 'true') {
+      gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV])
 
     } else {
+      //Running at GCP
+      const hostName  = await GcloudEnv.getMetadata(rc, metadataHostNameCmd),
+            runMode   = rc.getRunMode(),
+            namespace = runMode === RUN_MODE.DEV && this.projectEnv !== RUN_MODE[RUN_MODE.PROD] && hostName
+                        ? hostName.split('.')[0].toUpperCase()
+                        : RUN_MODE[runMode]
 
-      if (instanceEnv) { // running at google
+      gCloudEnv = new GcloudEnv(namespace)
+      await gCloudEnv.setMetadata(rc)
 
-        const projectName = await this.getMetadata(rc, metadataProjectIdCmd),
-              bqAuthKey   = await this.getMetadata(rc, metadataBqEnvCmd),
-              azureCdn    = await this.getMetadata(rc, azureCdnCmd),
-              parsedBqKey = bqAuthKey ? JSON.parse(bqAuthKey) : undefined
-
-        if(!azureCdn) rc.isError() && rc.error(rc.getName(this), 'azureCdn : ' + azureCdn)      
-        if (await this.getMetadata(rc, metadataProjectEnvCmd) === RUN_MODE[RUN_MODE.PROD]) {
-          gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.PROD], projectName, bqAuthKey, azureCdn)
-        } else {
-          const hostname = await this.getMetadata(rc, metadataHostNameCmd)
-          gCloudEnv = new GcloudEnv(hostname.split('.')[0].toUpperCase(), projectName, parsedBqKey, azureCdn)
-        }
-
-      } else {
-        gCloudEnv = new GcloudEnv(RUN_MODE[RUN_MODE.DEV])
+      if (rc.getRunMode() === RUN_MODE.PROD) {
+         if (this.instanceEnv !== RUN_MODE[RUN_MODE.PROD]) throw(new Error('InstanceEnv Mismatch'))
+         if (this.projectEnv !== RUN_MODE[RUN_MODE.PROD])  throw(new Error('ProjectEnv Mismatch'))
       }
     }
+
+    if(!gCloudEnv.bqAuthKey && authKey) gCloudEnv.bqAuthKey = authKey
     await this.initGcpComponents(rc, gCloudEnv)
+
     return gCloudEnv
   }
 
-  private static async initGcpComponents(rc: RunContextServer, gcloudEnv : any) {
-    // TODO: Take a list of components to initialize...
+  private static async initGcpComponents(rc : RunContextServer, gcloudEnv : GcloudEnv) {
     await BaseDatastore.init(rc, gcloudEnv)
     await MonitoringBase.init(rc, gcloudEnv)
-    await VisionBase.init(rc, gcloudEnv) // Not being used
+    await VisionBase.init(rc, gcloudEnv)
     await BigQueryBase.init(rc, gcloudEnv)
     await PubSubBase.init(rc, gcloudEnv)
     await GcpLanguageBase.init(rc, gcloudEnv)
     await TraceBase.init(rc, gcloudEnv)
   }
-  
-  public datastore    : any
-  public cloudStorage : any 
-  public vision       : any 
-  public bigQuery     : any
-  public pubsub       : any
-  public monitoring   : any
-  public authKey      : any
-
-  constructor(public namespace  : string,
-              public projectId ?: string,
-              public bqAuthKey ?: object,
-              public azureCdn  ?: string) {
-    
-  }
 
   // Static Functions to get Metadata Info
-  static async getProjectId(rc: RunContextServer): Promise<any> {
-    return this.getMetadata(rc, metadataProjectIdCmd)
+  async getProjectId(rc: RunContextServer): Promise<any> {
+    return GcloudEnv.getMetadata(rc, metadataProjectIdCmd)
   }
 
   static async checkGcpEnv(rc : RunContextServer): Promise<RUN_MODE> {
@@ -147,7 +137,7 @@ export class GcloudEnv {
     return RUN_MODE.DEV
   }
 
-  static async getMetadata(rc: RunContextServer, urlSuffix: string): Promise<any> {
+  static async getMetadata(rc : RunContextServer, urlSuffix : string): Promise<any> {
     return new Promise((resolve, reject) => {
 
       metadataOptions.path = metadataPathPrefix + urlSuffix

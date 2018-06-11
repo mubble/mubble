@@ -100,9 +100,14 @@ export abstract class UserKeyValue {
 
   getAllClientIds(): number[] { return Object.keys(this.users).map(Number) }
 
-  getAllUserLinkIds(): string[] { return Object.values(this.users).map((user) => {
-    return user['userLinkId']
-  })}
+  getAllUserLinkIds(): string[] { 
+
+    const ids = []
+    for (const i of Object.keys(this.users)) {
+      ids.push(this.users[i]['userLinkId'])
+    }
+    return ids
+  }
 
   getClientIdForUserLink(reqUserLinkId: string): number {
 
