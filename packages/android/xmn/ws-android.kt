@@ -2,6 +2,7 @@ package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.AdhocTimer
+import `in`.mubble.android.util.asyncExecuteInMainThread
 import org.java_websocket.WebSocket
 import org.java_websocket.util.Base64
 import org.jetbrains.anko.info
@@ -225,7 +226,9 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   private fun setupTimer() {
 
-    this.timerPing!!.tickAfter(this.msPingInterval, true)
+    asyncExecuteInMainThread {
+      this.timerPing!!.tickAfter(this.msPingInterval, true)
+    }
   }
 
   private fun cbTimerPing(): Long {

@@ -78,6 +78,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
                        timeout: Long = TIMEOUT_MS) {
 
     val wr = WireRequest(apiName, data, System.currentTimeMillis())
+
     this.ongoingRequests.add(RouterRequest(wr, cb, timeout))
 
     if (this.ci.provider == null) this.prepareConnection()
@@ -85,11 +86,11 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider!!.send(arrayOf(wr)) == null) {
       wr.isSent = true
       info { "Sent request ${wr.toJsonObject()}" }
-      timerReqTimeout!!.tickAfter(timeout)
+      timerReqTimeout!!.tickAfter(timeout, true)
 
     } else {
       info { "Send to be retried ${wr.toJsonObject()}" }
-      timerReqResend!!.tickAfter(SEND_RETRY_MS)
+      timerReqResend!!.tickAfter(SEND_RETRY_MS, true)
     }
   }
 
@@ -217,7 +218,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     when {
       this.ci.provider!!.send(arrayOf(wr.wr)) == null -> {
         wr.wr.isSent = true
-        this.timerReqTimeout!!.tickAfter(wr.timeout)
+        this.timerReqTimeout!!.tickAfter(wr.timeout, true)
       }
 
       (System.currentTimeMillis() - wr.wr.ts) > SEND_TIMEOUT -> {
