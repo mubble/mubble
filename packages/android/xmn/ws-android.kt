@@ -55,7 +55,10 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   @Suppress("IMPLICIT_CAST_TO_ANY")
   override fun send(data: Array<WireObject>): String? {
 
-    val ws = this.ws
+    val ws    = this.ws
+    val datas = mutableListOf<WireObject>()
+
+    datas.addAll(data)
 
     if ( this.sending ||
         (ws != null && (ws.readyState !== WebSocket.READYSTATE.OPEN || !this.configured || ws.hasBufferedData())) ) {
@@ -69,11 +72,14 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       return XmnError._NotReady
     }
 
-    this.sendInternal(data)
+    for (event in this.ephemeralEvents) datas.add(event)
+    this.ephemeralEvents = mutableListOf()
+
+    this.sendInternal(datas)
     return null
   }
 
-  private fun sendInternal(data: Array<WireObject>) {
+  private fun sendInternal(data: MutableList<WireObject>) {
 
     this.sending = true
 
@@ -86,7 +92,8 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       }
 
       val dest    = if (this.ci.publicRequest) WebSocketUrl.PLAIN_PUBLIC else WebSocketUrl.PLAIN_PRIVATE
-      val url     = "${if (this.ci.secure) "wss" else "ws"}://${this.ci.host}:${this.ci.port}/$dest/"
+      val port    = if (!this.ci.port.isBlank()) ":${this.ci.port}" else ""
+      val url     = "${if (this.ci.secure) "wss" else "ws"}://${this.ci.host}$port/$dest/"
       val header  = this.encProvider!!.encodeHeader()
       val body    = this.encProvider!!.encodeBody(data)
 
@@ -99,7 +106,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       this.ws = WsClient(uri, this)
       this.ws!!.connect()
 
-      info { "Opened socket with url $url" }
+      info { "Opened socket with url ${url + msgBody}" }
       this.socketCreateTs = System.currentTimeMillis()
 
     } else {

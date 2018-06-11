@@ -124,7 +124,7 @@ export class WsBrowser implements XmnProvider {
                     encodeURIComponent(this.uiArToB64(body))
         
       this.ws  = new WebSocket(url + messageBody)
-      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url)
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url + messageBody)
   
       this.ws.binaryType = 'arraybuffer'
       

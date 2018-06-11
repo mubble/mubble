@@ -113,7 +113,7 @@ class EncProviderAndroid(private val syncKey : ByteArray,
     return arOut
   }
 
-  fun encodeBody(data: Array<WireObject>): ByteArray {
+  fun encodeBody(data: MutableList<WireObject>): ByteArray {
 
     val str = stringifyWireObjects(data)
 
@@ -219,7 +219,7 @@ class EncProviderAndroid(private val syncKey : ByteArray,
 
   private fun strToByteArray(str: String): ByteArray = str.toByteArray(Charset.defaultCharset())
 
-  private fun stringifyWireObjects(objects: Array<WireObject>): String {
+  private fun stringifyWireObjects(objects: MutableList<WireObject>): String {
 
     val strObjs: Array<String> = Array(objects.size, {
       objects[it].stringify()

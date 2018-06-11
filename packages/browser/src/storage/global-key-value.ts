@@ -127,7 +127,6 @@ export abstract class GlobalKeyValue {
     const rc = this.rc
 
     this.extractFields(this, GlobalKeyValue.fieldMap)
-    rc.isDebug() && rc.debug(rc.getName(this), 'GlobalKeyValue::init', GlobalKeyValue.fieldMap)
 
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
