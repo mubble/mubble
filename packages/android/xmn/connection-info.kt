@@ -9,8 +9,9 @@ open class ConnectionInfo(val shortName: String, val uniqueId: String) {
   // Connection attributes
   var protocol            : Protocol        = Protocol.WEBSOCKET
   var host                : String          = ""        // host name of the server
-  var port                : Int             = 80        // port of the server
+  var port                : String          = "80"      // port of the server
   var url                 : String          = ""        // /api/getTopics Or connectUrl (for WS)
+  var secure              : Boolean         = false
 
   // Information passed by the client: to be used by Xmn internally
   var publicRequest       : Boolean         = false

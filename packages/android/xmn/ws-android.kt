@@ -86,7 +86,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       }
 
       val dest    = if (this.ci.publicRequest) WebSocketUrl.PLAIN_PUBLIC else WebSocketUrl.PLAIN_PRIVATE
-      val url     = "${if (this.ci.port == 443) "wss" else "ws"}://${this.ci.host}:${this.ci.port}/$dest/"
+      val url     = "${if (this.ci.secure) "wss" else "ws"}://${this.ci.host}:${this.ci.port}/$dest/"
       val header  = this.encProvider!!.encodeHeader()
       val body    = this.encProvider!!.encodeBody(data)
 

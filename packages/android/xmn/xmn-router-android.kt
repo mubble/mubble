@@ -50,9 +50,10 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     val url = URL(serverUrl)
 
+    this.ci.secure        = url.protocol == "https"
     this.ci.protocol      = Protocol.WEBSOCKET
     this.ci.host          = url.host
-    this.ci.port          = if (url.port != -1) url.port else (if (url.protocol == "https:") 443 else 80)
+    this.ci.port          = if (url.port != -1) url.port.toString() else ""
     this.ci.useEncryption = syncKey != null
 
     timerReqResend  = AdhocTimer("router-resend", { cbTimerReqResend() })
