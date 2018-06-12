@@ -123,7 +123,7 @@ export class UiRouter {
   public rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
     
     this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'Inside RootNavigate', routeTo)
-    extras.replaceIndex = 0
+    if (extras) extras.replaceIndex = 0
     return this.navigateByUrl([routeTo], extras, PRIMARY_OUTLET)
   }
 
@@ -346,11 +346,11 @@ export class UiRouter {
     History Stack management
   --------------------------------------------------------------------------------------------------------------*/
   
-  public onPopState(e) {
+  private onPopState(e) {
 
     const index     = this.historyWrapper.getState().index,
           stackLen  = this.urlStack.length
-
+    
     this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'onPopState', {stackLen, index})
 
     this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), typeof index === 'number' && 
@@ -369,8 +369,7 @@ export class UiRouter {
 
           return
         } else {
-          this.notifyUserBackPress()
-          this.warnedUser = true
+          this.warnedUser = this.notifyUserBackPress()
         }
       } else {
         this.codePop = false
@@ -543,7 +542,7 @@ export class UiRouter {
       }
     }
 
-    // this.rcBase.isDebug() && this.rcBase.debug(this.rcBase.getName(this), 'syncBrowserHistory', 
+    // this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'syncBrowserHistory', 
     //   {fromIndex, stackLen, browserStackLen: browserStack.length})
 
     if (fromIndex === -1) {
@@ -606,8 +605,8 @@ export class UiRouter {
 
   }
 
-  public notifyUserBackPress() {
-
+  public notifyUserBackPress() : boolean {
+    return true
   }
   
   public notifyAppClose() {
