@@ -20,7 +20,8 @@ import {  MeField,
           MudsEntityInfo }              from './muds-manager'
 import {  Muds, 
           DatastoreInt, 
-          DsRec }                       from '..'
+          DsRec, 
+          EntityType}                       from '..'
 
 export class MudsBaseEntity {
 
@@ -270,26 +271,29 @@ export class FieldAccessor {
   validateType(newValue: any) {
 
     if (this.meField.isArray) {
+      const arValues = newValue as any[]
       if (!Array.isArray(newValue)) throw(this.getId() + ' is not an array')
-    }
-
-
-
-
-
-    // basic data type
-    const meField = this.meField
-    if (this.basicType) {
-      if (newValue === null) throw(this.getId() + ' Base data types cannot be set to null')
-      if (newValue.constructor !== meField.fieldType) {
-        throw(`${this.getId()}: ${meField.fieldType.name} field cannot be set to ${newValue}/${typeof newValue}`)
+      for (const value of arValues) {
+        if (value === undefined || value === null) throw(`${this.getId()}: cannot have ${value}`)
+        this.validateInsType(value, this.meField.subtype)
       }
-    // object data type 
-    } else if (newValue !== null && !(
-                meField.fieldType.prototype.isPrototypeOf(newValue) ||
-                meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-      throw(`${this.getId()}: cannot be set to incompatible type '${
-        newValue.constructor.name}'. Type does not extend '${meField.fieldType.name}'`)
+    } else {
+      this.validateInsType(newValue, this.meField.subtype)
+    }
+ 
+  }
+
+  private validateInsType(newValue: any, subtype: Muds.Subtype) {
+
+    if (subtype === Muds.Subtype.embedded) {
+      if (!Muds.BaseEntity.isPrototypeOf(newValue)) throw(`${this.getId()}: must be MudsEntity`)
+      const be   = newValue as Muds.BaseEntity,
+            info = be.getInfo()
+      if (info.entityType !== EntityType.Embedded)  throw(`${this.getId()}: must be Embedded Entity`)
+    } else {
+      if (!!(subtype & (Muds.TypeMap.get(newValue.constructor) || 0))) {
+        throw(`${this.getId()}: cannot be set to ${newValue}/${typeof newValue}`)
+      }
     }
   }
 
@@ -369,29 +373,29 @@ export class FieldAccessor {
     }
 
     // basic data type
-    if (this.basicType) {
-      if (newValue === null) {
-        return rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
-          }: Db returned null value for base data type. Ignoring...`)
-      }
-      if (newValue.constructor !== meField.fieldType) {
-        rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: ${meField.fieldType.name
-          } came as ${newValue}/${typeof newValue} from db. Converting...`)
+    // if (this.basicType) {
+    //   if (newValue === null) {
+    //     return rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
+    //       }: Db returned null value for base data type. Ignoring...`)
+    //   }
+    //   if (newValue.constructor !== meField.fieldType) {
+    //     rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: ${meField.fieldType.name
+    //       } came as ${newValue}/${typeof newValue} from db. Converting...`)
 
-        if (meField.fieldType === String) newValue = String(newValue)    
-        else if (meField.fieldType === Boolean) newValue = !!newValue
-        else { // Number
-          newValue = Number(newValue)
-          if (isNaN(newValue)) newValue = 0
-        }
-      }
-    // object data type 
-    } else if (newValue !== null && !(
-                meField.fieldType.prototype.isPrototypeOf(newValue) ||
-                meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-      throw(`${this.getId()}: cannot be set to incompatible type ${
-        newValue.constructor.name} does not extend ${meField.fieldType.name}`)
-    }
+    //     if (meField.fieldType === String) newValue = String(newValue)    
+    //     else if (meField.fieldType === Boolean) newValue = !!newValue
+    //     else { // Number
+    //       newValue = Number(newValue)
+    //       if (isNaN(newValue)) newValue = 0
+    //     }
+    //   }
+    // // object data type 
+    // } else if (newValue !== null && !(
+    //             meField.fieldType.prototype.isPrototypeOf(newValue) ||
+    //             meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
+    //   throw(`${this.getId()}: cannot be set to incompatible type ${
+    //     newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+    // }
     entity[this.cvFieldName] = newValue
   }
 
@@ -417,12 +421,12 @@ export class FieldAccessor {
     let cv = entity[this.cvFieldName],
         ov = entity[this.ovFieldName]
 
-    let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
-    if (ov && ov.original !== cv) {
-      ov = ov.original
-      s += ` (was: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
-    }
-    return s
+    // let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
+    // if (ov && ov.original !== cv) {
+    //   ov = ov.original
+    //   s += ` (was: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
+    // }
+    // return s
   }
 
 }

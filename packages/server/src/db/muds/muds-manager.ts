@@ -28,7 +28,6 @@ export class MeField {
               // Subtype of field when it is not possible to decipher it from reflection
               readonly subtype      : Muds.Subtype,
 
-              readonly isMulti      : boolean,
               readonly isArray      : boolean,
 
               readonly mandatory    : boolean,
@@ -134,76 +133,78 @@ export class MudsManager {
     Object.freeze(idxObj)
   }
 
-  registerField({mandatory = false, subtype = Muds.Subtype.auto, indexed = false, unique = false}, target: any, fieldName: string) {
+  registerField({mandatory = false, subtype = Muds.Subtype.auto, indexed = false, 
+      unique = false}, target: any, fieldName: string) {
 
     const cons          = target.constructor,
           entityName    = cons.name
 
-    let   fieldType     = Reflect.getMetadata('design:type', target, fieldName)
-
     if (!this.tempAncestorMap) throw(`Trying to register entity ${entityName
       } after Muds.init(). Forgot to add to entities collection?`)
 
-    if (!fieldType) throw(`Null and undefined type fields are not allowed ${entityName}/${fieldName}`)
-
-    if ((fieldType === Object || fieldType === Array) && subtype === Muds.Subtype.auto) {
-      throw(`${entityName}/${fieldName} of type ${fieldType}, cannot decipher subtype. Please provide`)
-    }
-
-    if (fieldType === Number) {
-      if (!(subtype === Muds.Subtype.number || subtype === Muds.Subtype.auto)) {
-        throw(`For ${entityName}/${fieldName} of type: ${fieldType}, subtype ${
-          subtype} is invalid`)
-      }
-      subtype = Muds.Subtype.number
-    }
-
-    let targetSubtype: Muds.Subtype = 0
-    
-    if (fieldType === Number)   targetSubtype = Muds.Subtype.number
-    else if (fieldType === String)   targetSubtype = Muds.Subtype.string
-    else if (fieldType === Boolean)  targetSubtype = Muds.Subtype.boolean
-    else if (Muds.BaseEntity.isPrototypeOf(fieldType.prototype)) {
-      targetSubtype = Muds.Subtype.embedded
-      fieldType = Object
-    }
-
-    if (targetSubtype) {
-      if (subtype === Muds.Subtype.auto) {
-        subtype = targetSubtype
-      } else if (subtype !== targetSubtype) {
-        throw(`For ${entityName}/${fieldName} of type: ${fieldType}, subtype ${
-          subtype} is invalid`)
-      }
-    } else {
-      if (subtype === Muds.Subtype.auto) {
-        throw(`For ${entityName}/${fieldName} of type: ${fieldType}, it is mandatory to give subtype. 
-          We cannot decipher it automatically`)
-      }
-
-      this.isValidSubtype(`${entityName}/${fieldName}`, subtype)
-    }
+    const fieldType = this.isValidSubtype(entityName, fieldName, 
+              Reflect.getMetadata('design:type', target, fieldName), subtype)
 
     if (!this.tempEntityFieldsMap) throw('Code bug')
     let efm = this.tempEntityFieldsMap[entityName]
     if (!efm) this.tempEntityFieldsMap[entityName] = efm = {}
     if (efm[fieldName]) throw(`${entityName}/${fieldName}: has been annotated twice?`)
 
-    const field = new MeField(fieldName, subtype, fieldType === Object, 
-                    fieldType === Array, mandatory, indexed, unique)
+    const field = new MeField(fieldName, subtype, fieldType === Array, 
+                              mandatory, indexed, unique)
 
     field.accessor = new FieldAccessor(entityName, fieldName, field)
     efm[fieldName] = Object.freeze(field)
     return field.accessor.getAccessor()
   }
 
-  private isValidSubtype(logStr: string, subType: Muds.Subtype) {
+  private isValidSubtype(entityName: string, fieldName: string, fieldType: any, subtype: Muds.Subtype) {
 
-    const isEmbedded = subType & Muds.Subtype.embedded,
-          isBasic    = subType & (Muds.Subtype.boolean | Muds.Subtype.number | Muds.Subtype.string)
+    const logStr = `${entityName}/${fieldName}`,
+          Stype  = Muds.Subtype
 
-    if (isEmbedded ^ isBasic) throw(`${logStr}: Invalid subtype: ${subType
-      } subtype should either be embedded or basic`)
+    if (!fieldType) throw(`${logStr}: Null and undefined type fields are not allowed`)
+
+    if ((fieldType === Object || fieldType === Array) && subtype === Stype.auto) {
+      throw(`${logStr} of type ${fieldType}, cannot decipher subtype. Please provide`)
+    }
+
+    let targetSubtype: Muds.Subtype = Stype.auto
+    
+    if (fieldType === Number)        targetSubtype = Stype.number
+    else if (fieldType === String)   targetSubtype = Stype.string
+    else if (fieldType === Boolean)  targetSubtype = Stype.boolean
+    else if (Muds.BaseEntity.isPrototypeOf(fieldType.prototype)) {
+      targetSubtype = Stype.embedded
+      fieldType = Object
+    }
+
+    if (targetSubtype !== Stype.auto) {
+      if (subtype === Stype.auto) {
+        subtype = targetSubtype
+      } else if (subtype !== targetSubtype) {
+        throw(`For ${logStr} of type: ${fieldType}, subtype ${subtype} is invalid`)
+      }
+    } else {
+      if (subtype === Stype.auto) {
+        throw(`For ${logStr} of type: ${fieldType}, it is mandatory to give subtype. 
+          We cannot decipher it automatically`)
+      }
+
+      const isEmbedded = subtype & Stype.embedded,
+            isBasic    = subtype & (Stype.boolean | Stype.number | Stype.string)
+
+      if (isEmbedded ^ isBasic) throw(`${logStr}: Invalid subtype: ${subtype
+        } subtype should either be embedded or basic`)
+
+      if (isBasic && fieldType === Array) {
+        if (!(subtype === Stype.boolean || subtype === Stype.number || 
+            subtype === Stype.string)) throw(`${logStr}: Array cannot have mixed 
+              basic subtypes`)
+      }
+    }
+
+    return fieldType
   }
 
   init(rc : RunContextServer, gcloudEnv : GcloudEnv) {

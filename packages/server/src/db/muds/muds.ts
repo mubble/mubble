@@ -212,7 +212,12 @@ export namespace Muds {
     number      = 4,
     boolean     = 8
   }
-  
+
+  export const TypeMap = new Map<NumberConstructor | StringConstructor | BooleanConstructor, Muds.Subtype>([
+    [Number, Muds.Subtype.number], 
+    [String, Muds.Subtype.string], 
+    [Boolean, Muds.Subtype.boolean]
+  ])
 }
 
 

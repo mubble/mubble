@@ -58,7 +58,6 @@ export namespace UStream {
         // had skipped removeListener to avoid process level error event
         stream.removeListener('error', this.fnError)
         if (lastStream) (lastStream as stream.Readable).unpipe(stream as stream.Writable)
-        stream.destroy()
         lastStream = stream
       }
 
