@@ -2,6 +2,7 @@ package `in`.mubble.android.ui.auth
 
 import `in`.mubble.android.ui.MubbleBaseActivity
 import `in`.mubble.newschat.R
+import `in`.mubble.newschat.app.firebase.NcFirebaseAnalytics
 import `in`.mubble.newschat.utils.AndroidBase
 import android.app.ProgressDialog
 import android.content.Intent
@@ -15,6 +16,7 @@ import com.google.android.gms.common.api.Scope
 import com.google.api.services.people.v1.PeopleScopes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
+import org.json.JSONObject
 
 /**
  * Created by
@@ -30,22 +32,27 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   init {
 
-    val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-    .requestServerAuthCode(activity.getString(R.string.default_web_client_id))
-    .requestIdToken(activity.getString(R.string.default_web_client_id))
-    .requestEmail()
-    .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE))
-    .build()
+    try {
 
-    if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) {
-      cleanUp()
+      val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+          .requestServerAuthCode(activity.getString(R.string.default_web_client_id))
+          .requestIdToken(activity.getString(R.string.default_web_client_id))
+          .requestEmail()
+          .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE))
+          .build()
+
+      if (mGoogleApiClient != null && mGoogleApiClient!!.isConnected) cleanUp()
+
+      mGoogleApiClient = GoogleApiClient.Builder(activity)
+          .addOnConnectionFailedListener(this)
+          .enableAutoManage(activity, this)
+          .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
+          .build()
+
+    } catch (e: Exception) {
+
+      NcFirebaseAnalytics.logEvent(activity, "google_auth_failed", JSONObject())
     }
-
-    mGoogleApiClient = GoogleApiClient.Builder(activity)
-        .addOnConnectionFailedListener(this)
-        .enableAutoManage(activity, this)
-        .addApi(Auth.GOOGLE_SIGN_IN_API, gso)
-        .build()
   }
 
 //  fun attemptSilentSignIn(emailId: String) {
@@ -70,6 +77,11 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 //  }
 
   override fun signIn(): Int {
+
+    if (mGoogleApiClient == null) {
+      onSignInComplete(ERROR_PLAY_SERVICES, null, null)
+      return -1
+    }
 
     val connResult: Int = AndroidBase.checkPlayServices(activity)
 

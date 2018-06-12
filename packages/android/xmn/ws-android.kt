@@ -2,7 +2,7 @@ package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.AdhocTimer
-import `in`.mubble.android.util.asyncExecuteInMainThread
+import `in`.mubble.android.util.syncExecuteInMainThread
 import org.java_websocket.WebSocket
 import org.java_websocket.util.Base64
 import org.jetbrains.anko.info
@@ -38,7 +38,9 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   private var ephemeralEvents   : MutableList<WireEphEvent> = mutableListOf()
 
   init {
-    timerPing = AdhocTimer("ws-ping", { cbTimerPing() } ) // Being created in the main thread
+    syncExecuteInMainThread {
+      timerPing = AdhocTimer("ws-ping", { cbTimerPing() })
+    }
   }
 
   fun sendEphemeralEvent(event: WireEphEvent) {
@@ -226,7 +228,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   private fun setupTimer() {
 
-    asyncExecuteInMainThread {
+    syncExecuteInMainThread {
       this.timerPing!!.tickAfter(this.msPingInterval, true)
     }
   }
@@ -252,7 +254,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     if (this.ci.provider == null) return
 
     try {
-      this.timerPing!!.remove()
+      syncExecuteInMainThread { this.timerPing!!.remove() }
 
       this.encProvider  = null
       this.ci.provider  = null

@@ -99,11 +99,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val clientIdentity = this.ci.clientIdentity
 
-    info { "sendPersistentEvent $eventName, \n" +
-        "clientIdentity $clientIdentity" }
-
     assert(clientIdentity != null && clientIdentity.clientId != 0L, {
-      "You cannot send events without clientId"
+      "You cannot send Persistent events without clientId"
     })
 
     val event = WireEvent(eventName, data, System.currentTimeMillis())
@@ -118,11 +115,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val clientIdentity = this.ci.clientIdentity
 
-    info { "sendPersistentEvent $eventName, \n" +
-        "clientIdentity $clientIdentity" }
-
     assert(clientIdentity != null && clientIdentity.clientId != 0L, {
-      "You cannot send events without clientId"
+      "You cannot send Ephemeral events without clientId"
     })
 
     val event = WireEphEvent(eventName, data, System.currentTimeMillis())
