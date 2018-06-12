@@ -10,9 +10,9 @@ import org.jetbrains.anko.info
  * siddharthgarg on 24/11/17.
  */
 
-open class LoginManager(private val activity: MubbleBaseActivity,
-                        private val partner: PARTNER,
-                        private val cb: (responseCode: String, clientId: String?, idToken: String?) -> Unit): MubbleLogger {
+open class LoginManager(activity            : MubbleBaseActivity,
+                        private val partner : PARTNER,
+                        private val cb      : (responseCode: String, clientId: String?, idToken: String?) -> Unit): MubbleLogger {
 
   private val requestCode   : Int
   private val currentWorker : LoginWorker
