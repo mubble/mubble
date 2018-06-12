@@ -59,7 +59,7 @@ export namespace MubbleHttpClient {
 
     const certificate = certFullPath ? fs.readFileSync(certFullPath).toString() : 
                                        credentialRegistry.getCredential(host).serverCertificate,
-          secret      = credentialRegistry.getCredential(host).clientSecret                    
+          secret      = credentialRegistry.getCredential(selfFQDN).clientSecret                    
 
     const options: https.RequestOptions = { host, port,
             method    : 'POST',

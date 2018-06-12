@@ -77,7 +77,8 @@ open class WireObject(val type: String, val name: String, var data: JSONObject,
         WireType.SYS_EVENT   -> WireSysEvent(name, data)
         WireType.REQ_RESP    -> WireReqResp(name, data, ts, error)
         WireType.EPH_EVENT   -> WireEphEvent(name, data, ts)
-        else                  -> null
+        WireType.EVENT       -> WireEvent(name, data, ts)
+        else                 -> null
       }
     }
   }
