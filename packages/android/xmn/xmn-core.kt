@@ -67,7 +67,7 @@ open class WireObject(val type: String, val name: String, var data: JSONObject,
 
       val type  = json.getString("type")
       val name  = json.getString("name")
-      val data  = json.getJSONObject("data")
+      val data  = json.optJSONObject("data")
       val ts    = json.getLong("ts")
       val error = json.optString("error", null)
 
@@ -78,6 +78,7 @@ open class WireObject(val type: String, val name: String, var data: JSONObject,
         WireType.REQ_RESP    -> WireReqResp(name, data, ts, error)
         WireType.EPH_EVENT   -> WireEphEvent(name, data, ts)
         WireType.EVENT       -> WireEvent(name, data, ts)
+        WireType.EVENT_RESP  -> WireEventResp(name, data, ts, error)
         else                 -> null
       }
     }
@@ -133,6 +134,9 @@ class WireEvent(eventName: String, data: JSONObject, override var ts: Long):
     }
   }
 }
+
+class WireEventResp(name: String, data: JSONObject?, ts: Long, val error: String? = null):
+    WireObject(WireType.EVENT_RESP, name, data?:JSONObject(), ts)
 
 class WireSysEvent(name: String, data: JSONObject)
   : WireObject(WireType.SYS_EVENT, name, data)
