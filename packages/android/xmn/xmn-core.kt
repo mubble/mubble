@@ -124,6 +124,17 @@ class WireReqResp(name: String, data: JSONObject, ts: Long, val error: String? =
   }
 }
 
+class WireEventResp(name: String, data: JSONObject?, ts: Long, val error: String? = null):
+    WireObject(WireType.EVENT_RESP, name, data?:JSONObject(), ts), JsonSerializable {
+
+  override fun toJsonObject(): JSONObject {
+
+    val json = super.toJsonObject()
+    if (error != null && error.isNotBlank() && error != "null") json.put("error", error)
+    return json
+  }
+}
+
 class WireEvent(eventName: String, data: JSONObject, override var ts: Long):
     WireObject(WireType.EVENT, eventName, data, ts) {
 
@@ -134,9 +145,6 @@ class WireEvent(eventName: String, data: JSONObject, override var ts: Long):
     }
   }
 }
-
-class WireEventResp(name: String, data: JSONObject?, ts: Long, val error: String? = null):
-    WireObject(WireType.EVENT_RESP, name, data?:JSONObject(), ts)
 
 class WireSysEvent(name: String, data: JSONObject)
   : WireObject(WireType.SYS_EVENT, name, data)
