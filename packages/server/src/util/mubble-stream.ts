@@ -28,14 +28,15 @@ export namespace UStream {
              logging = false
 
     constructor(readonly rc: RunContextServer, readonly streams: (stream.Writable | stream.Readable) [], 
-                readonly promise : Mubble.uPromise<any> = new Mubble.uPromise()) {
+                readonly uPromise : Mubble.uPromise<any> = new Mubble.uPromise()) {
 
       const len         = streams.length,
             lastStream  = streams[len - 1],
-            firstStream = streams[0]
+            firstStream = streams[0],
+            readable    = firstStream as stream.Readable
 
       // Needed for Readable and PipedWriteStream
-      if (this.isReadable(firstStream)) (firstStream as stream.Readable).pause()
+      if (readable.pause) readable.pause()
 
       this.subscribe(lastStream) 
       lastStream.on('error', this.fnError)
@@ -54,10 +55,10 @@ export namespace UStream {
 
       if (this.cleaned) return
 
-      while ((stream = this.streams.shift())) {
+      while (stream = this.streams.shift()) {
         // had skipped removeListener to avoid process level error event
         stream.removeListener('error', this.fnError)
-        if (lastStream) (lastStream as stream.Readable).unpipe(stream as stream.Writable)
+        if (lastStream && (lastStream as any).unpipe) (lastStream as any).unpipe(stream as stream.Writable)
         lastStream = stream
       }
 
@@ -71,11 +72,7 @@ export namespace UStream {
       if (this.cleaned) return
       this.rc.isError() && this.rc.error(this.rc.getName(this), 'Error on streams', err)
       this.cleanup()
-      this.promise.reject(err)
-    }
-
-    protected isReadable(stream: any) {
-      return !!stream.read
+      this.uPromise.reject(err)
     }
 
     protected isWritable(stream: any) {
@@ -99,7 +96,7 @@ export namespace UStream {
     public async write(data : Buffer | string) {
       const writeStream = this.streams[0] as stream.Writable
       data ? writeStream.end(data) : writeStream.end()
-      await this.promise.promise
+      await this.uPromise.promise
     }
 
     subscribe(stream: stream.Writable | stream.Readable) {
@@ -113,7 +110,7 @@ export namespace UStream {
 
     private onFinish() {
       this.cleanup()
-      this.promise.resolve(null)
+      this.uPromise.resolve(null)
     }
   }
 
@@ -133,7 +130,7 @@ export namespace UStream {
       const stream = this.streams[0] as stream.Readable
       if (encoding) this.encoding = encoding
       stream.resume()
-      const result = await this.promise.promise
+      const result = await this.uPromise.promise
 
       this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
         'ReadStreams: result', Buffer.isBuffer(this.body) ? 'Buffer' : 'String', result.length)
@@ -196,7 +193,7 @@ export namespace UStream {
       this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
         'ReadStreams: onEnd', 'body', Buffer.isBuffer(result) ? 'Buffer' : 'String', result.length)
 
-      this.promise.resolve(result)
+      this.uPromise.resolve(result)
     }
   }
 
@@ -208,13 +205,13 @@ export namespace UStream {
                 promise ?: Mubble.uPromise<any>) {
       super(rc, streams, promise)
       const firstStream = this.streams[0]
-      rc.isAssert() && rc.assert(rc.getName(this), this.isReadable(firstStream))
     }
 
     public async start() {
       const firstStream = this.streams[0] as stream.Readable
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), firstStream.resume)
       firstStream.resume()
-      await this.promise.promise
+      await this.uPromise.promise
     }
 
     subscribe(stream: stream.Writable | stream.Readable) {
@@ -232,7 +229,7 @@ export namespace UStream {
       this.logging && this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
         'PipedWriterStreams: onFinish')
 
-      this.promise.resolve(null)
+      this.uPromise.resolve(null)
     }
   }
 }
