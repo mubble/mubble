@@ -77,8 +77,8 @@ export class Trie {
       // if tmatch length is <= 6, it should be >= word length. [Indi should not be returned if word = India/Indigo]
       if (tmatch && tmatch.wrd.length <=6 && tmatch.wrd.length < words[idx].length) continue 
       if (tmatch && (!match || match.wrd.length < tmatch.wrd.length)) match = tmatch
-      if (tmatch && tmatch.wrd.length === words[idx].length) rc.isDebug() && rc.debug (rc.getName (this), '\Found:', words[idx], '[' + words[idx].length + '/' + word.length + ']', '=>', JSON.stringify (tmatch))
-      else if (tmatch) rc.isDebug() && rc.debug (rc.getName (this), '\tCheck:', words[idx], '[' + words[idx].length + '/' + word.length + ']', '=>', JSON.stringify (tmatch))
+      if (tmatch && tmatch.wrd.length === words[idx].length) rc.isDebug() && rc.debug (rc.getName (this), '\Found:', words[idx], '[' + words[idx].length + '/' + words.length + ']', '=>', JSON.stringify (tmatch))
+      else if (tmatch) rc.isDebug() && rc.debug (rc.getName (this), '\tCheck:', words[idx], '[' + words[idx].length + '/' + words.length + ']', '=>', JSON.stringify (tmatch))
     }
     return match ? match.val : null
   }
