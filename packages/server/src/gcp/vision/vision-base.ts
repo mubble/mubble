@@ -309,7 +309,8 @@ export class VisionBase {
           cData      = strData.slice(beginIndex, endIndex).split('\n')
   
     if(cData.length > count) cData.splice(0, cData.length - count)
-    if(beginIndex === -1 || endIndex === -1) throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
+    if(beginIndex === -1 || endIndex === -1) return []
+    // throw(new Error(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : HIST_START or HIST_END not found`))
 
     return lo.map(cData, VisionBase.parseHistogramLine)
   }
