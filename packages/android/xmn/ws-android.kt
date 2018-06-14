@@ -2,10 +2,6 @@ package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.AdhocTimer
-import `in`.mubble.android.util.syncExecuteInMainThread
-import `in`.mubble.newschat.app.App
-import `in`.mubble.newschat.app.firebase.NcFirebaseAnalytics
-import `in`.mubble.newschat.utils.AndroidBase
 import org.java_websocket.WebSocket
 import org.java_websocket.util.Base64
 import org.jetbrains.anko.info
@@ -41,9 +37,9 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   private var ephemeralEvents   : MutableList<WireEphEvent> = mutableListOf()
 
   init {
-    syncExecuteInMainThread {
-      timerPing = AdhocTimer("ws-ping", { cbTimerPing() })
-    }
+
+    val isPrivateConn = router.getClientIdentity() != null
+    if (isPrivateConn) timerPing = AdhocTimer("ws-ping", { cbTimerPing() })
   }
 
   fun sendEphemeralEvent(event: WireEphEvent) {
@@ -128,7 +124,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
             "messages : ${data.size}, \n" +
             "firstMsg : ${data[0].name}" }
 
-    this.setupTimer()
+    this.timerPing?.tickAfter(this.msPingInterval, true)
     this.sending = false
   }
 
@@ -181,10 +177,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     }
 
     if (code > 0 && code != 1000) {
-      val json = JSONObject()
-      json.put("code", code)
-      json.put("network", AndroidBase.getCurrentNetworkType(App.instance))
-      NcFirebaseAnalytics.logEvent(App.instance, "socket_close", json)
+      this.router.onSocketAbnormalClose(code)
     }
   }
 
@@ -236,13 +229,6 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     }
   }
 
-  private fun setupTimer() {
-
-    syncExecuteInMainThread {
-      this.timerPing!!.tickAfter(this.msPingInterval, true)
-    }
-  }
-
   private fun cbTimerPing(): Long {
 
     if (this.ci.provider == null) return 0
@@ -264,7 +250,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     if (this.ci.provider == null) return
 
     try {
-      syncExecuteInMainThread { this.timerPing!!.remove() }
+      this.timerPing?.remove()
 
       this.encProvider  = null
       this.ci.provider  = null

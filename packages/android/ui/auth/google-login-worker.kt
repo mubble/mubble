@@ -2,6 +2,7 @@ package `in`.mubble.android.ui.auth
 
 import `in`.mubble.android.ui.MubbleBaseActivity
 import `in`.mubble.newschat.R
+import `in`.mubble.newschat.app.Const
 import `in`.mubble.newschat.app.firebase.NcFirebaseAnalytics
 import `in`.mubble.newschat.utils.AndroidBase
 import android.app.ProgressDialog
@@ -51,7 +52,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
     } catch (e: Exception) {
 
-      NcFirebaseAnalytics.logEvent(activity, "google_auth_failed", JSONObject())
+      NcFirebaseAnalytics.logEvent(activity, Const.FirebaseEvent.GOOGLE_AUTH_FAIL, JSONObject())
     }
   }
 

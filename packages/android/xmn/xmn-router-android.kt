@@ -38,6 +38,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   abstract fun getLocation(): String
   abstract fun getClientIdentity(): ClientIdentity?
   abstract fun handleEphEvent(wo: WireObject)
+  abstract fun onSocketAbnormalClose(code: Int)
 
   companion object {
 
@@ -56,15 +57,19 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     this.ci.port          = if (url.port != -1) url.port.toString() else ""
     this.ci.useEncryption = syncKey != null
 
-    timerReqResend  = AdhocTimer("router-resend", { cbTimerReqResend() })
-    timerReqTimeout = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
+    val isPrivateConn = this.getClientIdentity() != null
+
+    if (isPrivateConn) {
+      timerReqResend  = AdhocTimer("router-resend", { cbTimerReqResend() })
+      timerReqTimeout = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
+    }
   }
 
   open fun cleanup() {
 
     if (this.ci.provider != null) this.ci.provider!!.cleanup()
-    this.timerReqResend!!.remove()
-    this.timerReqTimeout!!.remove()
+    this.timerReqResend?.remove()
+    this.timerReqTimeout?.remove()
   }
 
   fun setNetwork(netType: String) {
@@ -86,11 +91,11 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider!!.send(arrayOf(wr)) == null) {
       wr.isSent = true
       info { "Sent request ${wr.toJsonObject()}" }
-      timerReqTimeout!!.tickAfter(timeout, true)
+      timerReqTimeout?.tickAfter(timeout, true)
 
     } else {
       info { "Send to be retried ${wr.toJsonObject()}" }
-      timerReqResend!!.tickAfter(SEND_RETRY_MS, true)
+      timerReqResend?.tickAfter(SEND_RETRY_MS, true)
     }
   }
 
@@ -212,7 +217,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     when {
       this.ci.provider!!.send(arrayOf(wr.wr)) == null -> {
         wr.wr.isSent = true
-        this.timerReqTimeout!!.tickAfter(wr.timeout, true)
+        this.timerReqTimeout?.tickAfter(wr.timeout, true)
       }
 
       (System.currentTimeMillis() - wr.wr.ts) > SEND_TIMEOUT -> {
