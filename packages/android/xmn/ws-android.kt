@@ -3,6 +3,9 @@ package `in`.mubble.android.xmn
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.AdhocTimer
 import `in`.mubble.android.util.syncExecuteInMainThread
+import `in`.mubble.newschat.app.App
+import `in`.mubble.newschat.app.firebase.NcFirebaseAnalytics
+import `in`.mubble.newschat.utils.AndroidBase
 import org.java_websocket.WebSocket
 import org.java_websocket.util.Base64
 import org.jetbrains.anko.info
@@ -171,16 +174,23 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   override fun onClose(code: Int, reason: String?) {
 
-    info { "onClose" }
+    info { "onClose $code" }
     if (this.ci.provider != null) {
       this.cleanup()
       this.router.providerFailed()
+    }
+
+    if (code > 0 && code != 1000) {
+      val json = JSONObject()
+      json.put("code", code)
+      json.put("network", AndroidBase.getCurrentNetworkType(App.instance))
+      NcFirebaseAnalytics.logEvent(App.instance, "socket_close", json)
     }
   }
 
   override fun onError(ex: Exception?) {
 
-    info { "onError ${ex!!.printStackTrace()}" }
+    info { "onError ${ex?.message}" }
     if (this.ci.provider != null) {
       this.cleanup()
       this.router.providerFailed()

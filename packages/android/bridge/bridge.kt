@@ -183,7 +183,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
     }
   }
 
-  fun canCommunicate(): Boolean {
+  fun isStateShown(): Boolean {
     return state == SHOWN
   }
 
