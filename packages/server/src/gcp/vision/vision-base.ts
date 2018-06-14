@@ -28,8 +28,6 @@ import * as mime                    from 'mime-types'
 import * as lo                      from 'lodash'
 import * as sharp                   from 'sharp'
 
-import * as fs from 'fs'
-
 export class VisionBase {
 
   static _vision : any
@@ -127,16 +125,15 @@ export class VisionBase {
 
       if(imageOptions.shrink) gmImage.resize(imageOptions.shrink.w, imageOptions.shrink.h, '!')
 
-      const finalImage = (imageOptions.quality || imageOptions.progressive)
-                         ? await VisionBase.getProgressiveImage(rc, gmImage, imageOptions)
-                         : gmImage
 
-      const dimentions = await VisionBase.getDimentions(rc, lo.cloneDeep(finalImage))
+      //Always returns progressive Image
+      const finalImage = await VisionBase.getProgressiveImage(rc, gmImage, imageOptions),
+            dimentions = await VisionBase.getDimentions(rc, lo.cloneDeep(finalImage))
 
       retVal.width   = dimentions.width
       retVal.height  = dimentions.height
       retVal.mime    = await VisionBase.getGmMime(lo.cloneDeep(finalImage))
-      retVal.palette = await VisionBase.getTopColors(lo.cloneDeep(finalImage)) as any
+      retVal.palette = await VisionBase.getTopColors(rc, lo.cloneDeep(finalImage)) as any
       retVal.stream  = finalImage.stream()
 
       return retVal
@@ -150,9 +147,9 @@ export class VisionBase {
 
   private static async getProgressiveImage(rc : RunContextServer, gmImage : gm.State, imageOptions : VisionParameters) {
     const gmImageBuffer     = await VisionBase.getGmBuffer(gmImage),
-          progressive       = imageOptions.progressive ? true : false,
-          quality           = imageOptions.quality ? imageOptions.quality : 100,
-          progressiveBuffer = await imagemin.buffer(gmImageBuffer, {use : [imageminMozjpeg({quality, progressive})]})
+          quality           = imageOptions.quality || 100,
+          progressiveBuffer = await imagemin.buffer(gmImageBuffer, 
+                                {use : [imageminMozjpeg({quality, progressive : true})]})
 
     return gm(progressiveBuffer)
   }
@@ -211,8 +208,8 @@ export class VisionBase {
     
     const leftBorderTrue  = lo.cloneDeep(gmImage).crop(3, h, 0, 0),
           rightBorderTrue = gmImage.crop(3, h, w - 3, 0),
-          lbColours       = await VisionBase.getTopColors(leftBorderTrue, 1),
-          rbColours       = await VisionBase.getTopColors(rightBorderTrue, 1),
+          lbColours       = await VisionBase.getTopColors(rc, leftBorderTrue, 1),
+          rbColours       = await VisionBase.getTopColors(rc, rightBorderTrue, 1),
           lbColor         = lbColours[0],
           rbColor         = rbColours[0]
 
@@ -290,7 +287,7 @@ export class VisionBase {
     })
   }
 
-  public static async getTopColors(gmImage : gm.State, count : number = 8) {
+  public static async getTopColors(rc : RunContextServer, gmImage : gm.State, count : number = 8) {
     const HIST_START = 'comment={',
           HIST_END   = '\x0A}'
 
@@ -299,7 +296,7 @@ export class VisionBase {
       .noProfile()
       .colors(count)
       .toBuffer('histogram', (error, buffer) => {
-        if(error) reject(`${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`)
+        rc.isWarn() && rc.warn(rc.getName(this), `${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`)
         if(!buffer) resolve('')
         resolve(buffer.toString())
       })
