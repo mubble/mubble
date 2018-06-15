@@ -128,10 +128,10 @@ export class VisionBase {
 
       //Always returns progressive Image
       const finalImage = await VisionBase.getProgressiveImage(rc, gmImage, imageOptions),
-            dimentions = await VisionBase.getDimentions(rc, lo.cloneDeep(finalImage))
+            dimensions = await VisionBase.getDimensions(rc, lo.cloneDeep(finalImage))
 
-      retVal.width   = dimentions.width
-      retVal.height  = dimentions.height
+      retVal.width   = dimensions.width
+      retVal.height  = dimensions.height
       retVal.mime    = await VisionBase.getGmMime(lo.cloneDeep(finalImage))
       retVal.palette = await VisionBase.getTopColors(rc, lo.cloneDeep(finalImage)) as any
       retVal.stream  = finalImage.stream()
@@ -156,9 +156,9 @@ export class VisionBase {
 
   private static async processRatio(rc : RunContextServer, gmImage : gm.State, ratio : number) {
     const bufferImage = await VisionBase.getGmBuffer(lo.cloneDeep(gmImage)),
-          dimentions  = await VisionBase.getDimentions(rc, lo.cloneDeep(gmImage)),
-          w           = dimentions.width,
-          h           = dimentions.height,
+          dimensions  = await VisionBase.getDimensions(rc, lo.cloneDeep(gmImage)),
+          w           = dimensions.width,
+          h           = dimensions.height,
           maxW        = (w / ratio > h) ? h * ratio : w,
           maxH        = (w / ratio < h) ? w / ratio : h,
           crop        = (await SmartCropGM.crop(bufferImage, {width : 100, height : 100})).topCrop,
@@ -257,7 +257,7 @@ export class VisionBase {
     })
   }
 
-  private static async getDimentions(rc : RunContextServer, gmImage : gm.State) : Promise<{width : number, height : number}>{
+  private static async getDimensions(rc : RunContextServer, gmImage : gm.State) : Promise<{width : number, height : number}>{
     return new Promise<{width : number, height : number}>((resolve, reject) => {
       gmImage.identify((err : any, data : any) => {
         if(err) {
