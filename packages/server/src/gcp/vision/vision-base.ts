@@ -297,7 +297,7 @@ export class VisionBase {
       .colors(count)
       .toBuffer('histogram', (error, buffer) => {
         rc.isWarn() && rc.warn(rc.getName(this), `${VISION_ERROR_CODES.PALETTE_DETECTION_FAILED} : ${error}`)
-        if(!buffer) resolve('')
+        if(!buffer) return resolve('')
         resolve(buffer.toString())
       })
     })
