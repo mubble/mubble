@@ -10,7 +10,7 @@
 import {RunContextServer}   from '../../rc-server'
 import {Mubble}             from '@mubble/core' 
 import * as storage         from 'azure-storage'
-import * as mime            from 'mime-types'
+import * as path            from 'path'
 import * as stream          from 'stream'
 
 export class BlobStorageBase {
@@ -31,14 +31,14 @@ export class BlobStorageBase {
                             FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
   static async uploadDataToBlobStorage(rc : RunContextServer, dataStream : stream.Readable, 
-                                       fullPath: string, fileName: string, mimeType: string) {
+                                       fullPath: string, fileName: string) {
 
     const traceId   = `uploadDataToBlobStorage : ${fileName}`,
           ack       = rc.startTraceSpan(traceId),
           pathArr   = fullPath.split('/'),
           container = pathArr.shift() as string,
-          filePath  = `${pathArr.join('/')}/${fileName}`
-
+          filePath  = path.join(...pathArr, fileName)
+          
     try {
       await new Promise((resolve, reject) => {
         dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
