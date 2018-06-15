@@ -31,7 +31,6 @@
     "@google-cloud/pubsub": "^0.13.0",
     "@google-cloud/storage": "^1.1.1",
     "@google-cloud/translate": "^1.1.0",
-    "@google-cloud/vision": "^0.12.0",
     "@mubble/core": "file:../core",
     "@types/sharp": "^0.17.7",
     "azure-storage": "^2.8.2",
