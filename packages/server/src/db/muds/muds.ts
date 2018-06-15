@@ -97,7 +97,7 @@ export class Muds {
    * 
    * * Level: property declaration
    */
-  public static field(presence: Muds.Presence, subtype: Muds.Subtype = Muds.Subtype.auto)
+  public static field(presence: Muds.Presence, subtype: Muds.Subtype | Muds.BaseEntity = Muds.Subtype.auto)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
               mandatory: presence === Muds.Man, subtype})
@@ -109,7 +109,7 @@ export class Muds {
    * * For an indexed field, when presence is changed to 'false': we will need to run data migration
    * * Level: property declaration
    */
-  public static indexed(presence:Muds.Presence, subtype: Muds.Subtype = Muds.Subtype.auto)
+  public static indexed(presence:Muds.Presence, subtype: Muds.Subtype | Muds.BaseEntity = Muds.Subtype.auto)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
               mandatory: presence === Muds.Man, indexed: true, subtype})
@@ -121,7 +121,7 @@ export class Muds {
    * * For a unique field, presence value cannot become true, if it was false earlier
    * * Level: property declaration
    */
-  public static unique(presence:Muds.Presence, subtype: Muds.Subtype = Muds.Subtype.auto)
+  public static unique(presence:Muds.Presence, subtype: Muds.Subtype | Muds.BaseEntity = Muds.Subtype.auto)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
               mandatory: presence === Muds.Man, indexed: true, unique: true, subtype})
@@ -219,6 +219,3 @@ export namespace Muds {
     [Boolean, Muds.Subtype.boolean]
   ])
 }
-
-
-

@@ -316,7 +316,7 @@ export class FieldAccessor {
     }
   }
 
-  setForDs(rc: RunContextServer, inEntity: MudsBaseEntity, dsRec: DatastorePayload) {
+  setForDs(rc: RunContextServer, inEntity: MudsBaseEntity, data: Mubble.uObject<any>) {
 
     this.checkMandatory(rc, inEntity)
 
@@ -325,11 +325,40 @@ export class FieldAccessor {
     const value = entity[this.cvFieldName]
     if (value === undefined) return
 
-    dsRec.data[this.fieldName] = value
-    this.buildExclusions(value, '', dsRec.excludeFromIndexes)
+    data[this.fieldName] = this.serialize(rc, value)
   }
 
-  private buildExclusions(value: any, prefix: string, arExclude: string[]) {
+  private serialize(rc: RunContextServer, value: any): any {
+    if (Array.isArray(value)) {
+      return value.map(item => this.serialize(rc, item))
+    } else {
+      const valType = typeof(value)
+      if (value === null || valType === 'number' || valType === 'string' || 
+          valType === 'boolean') return value
+
+      if (!(value instanceof MudsBaseEntity)) throw(`${this.getId()}: Invalid type: ${value.constructor.name}`)
+      const ee          = value as MudsBaseEntity,
+            outObj      = {mudsKind: ee.getInfo().entityName} as any,
+            inObj       = outObj[ee.getInfo().entityName] = {},
+            fieldNames  = ee.getInfo().fieldNames
+
+      for (const fieldName of fieldNames) {
+        const accessor  = ee.getInfo().fieldMap[fieldName].accessor
+        accessor.setForDs(rc, ee, inObj)
+      }
+      return outObj
+    }
+  }
+
+  buildExclusions(rc: RunContextServer, inEntity: MudsBaseEntity, arExclude: string[]) {
+    const entity = inEntity as any
+
+    const value = entity[this.cvFieldName]
+    if (value === undefined) return
+    this.buildNestedExclusions(value, '', arExclude)
+  }
+
+  private buildNestedExclusions(value: any, prefix: string, arExclude: string[]) {
 
     if (value instanceof MudsBaseEntity) {
 
@@ -338,7 +367,7 @@ export class FieldAccessor {
       for (const cfName of embedInfo.fieldNames) {
         const cAccessor = embedInfo.fieldMap[cfName].accessor,
               cValue    = (value as any)[this.fieldName]
-        cAccessor.buildExclusions(cValue, (prefix ? prefix + '.' : '') + cfName, arExclude)
+        cAccessor.buildNestedExclusions(cValue, (prefix ? prefix + '.' : '') + cfName, arExclude)
       }
 
     } else if (!(this.meField.indexed || this.meField.unique)) {
@@ -372,30 +401,29 @@ export class FieldAccessor {
       return
     }
 
-    // basic data type
-    // if (this.basicType) {
-    //   if (newValue === null) {
-    //     return rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
-    //       }: Db returned null value for base data type. Ignoring...`)
-    //   }
-    //   if (newValue.constructor !== meField.fieldType) {
-    //     rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: ${meField.fieldType.name
-    //       } came as ${newValue}/${typeof newValue} from db. Converting...`)
+    if (this.basicType) {
+      if (newValue === null) {
+        return rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
+          }: Db returned null value for base data type. Ignoring...`)
+      }
+      if (newValue.constructor !== meField.fieldType) {
+        rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: ${meField.fieldType.name
+          } came as ${newValue}/${typeof newValue} from db. Converting...`)
 
-    //     if (meField.fieldType === String) newValue = String(newValue)    
-    //     else if (meField.fieldType === Boolean) newValue = !!newValue
-    //     else { // Number
-    //       newValue = Number(newValue)
-    //       if (isNaN(newValue)) newValue = 0
-    //     }
-    //   }
-    // // object data type 
-    // } else if (newValue !== null && !(
-    //             meField.fieldType.prototype.isPrototypeOf(newValue) ||
-    //             meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-    //   throw(`${this.getId()}: cannot be set to incompatible type ${
-    //     newValue.constructor.name} does not extend ${meField.fieldType.name}`)
-    // }
+        if (meField.fieldType === String) newValue = String(newValue)    
+        else if (meField.fieldType === Boolean) newValue = !!newValue
+        else { // Number
+          newValue = Number(newValue)
+          if (isNaN(newValue)) newValue = 0
+        }
+      }
+    // object data type 
+    } else if (newValue !== null && !(
+                meField.fieldType.prototype.isPrototypeOf(newValue) ||
+                meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
+      throw(`${this.getId()}: cannot be set to incompatible type ${
+        newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+    }
     entity[this.cvFieldName] = newValue
   }
 
@@ -421,12 +449,12 @@ export class FieldAccessor {
     let cv = entity[this.cvFieldName],
         ov = entity[this.ovFieldName]
 
-    // let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
-    // if (ov && ov.original !== cv) {
-    //   ov = ov.original
-    //   s += ` (was: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
-    // }
-    // return s
+    let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
+    if (ov && ov.original !== cv) {
+      ov = ov.original
+      s += ` (was: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
+    }
+    return s
   }
 
 }

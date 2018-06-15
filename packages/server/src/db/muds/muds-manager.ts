@@ -27,6 +27,7 @@ export class MeField {
 
               // Subtype of field when it is not possible to decipher it from reflection
               readonly subtype      : Muds.Subtype,
+              // readonly embeddedCls  : MudsBaseEntity,
 
               readonly isArray      : boolean,
 
@@ -169,14 +170,16 @@ export class MudsManager {
       throw(`${logStr} of type ${fieldType}, cannot decipher subtype. Please provide`)
     }
 
-    let targetSubtype: Muds.Subtype = Stype.auto
+    let targetSubtype: Muds.Subtype = Stype.auto,
+        embeddedCls
     
     if (fieldType === Number)        targetSubtype = Stype.number
     else if (fieldType === String)   targetSubtype = Stype.string
     else if (fieldType === Boolean)  targetSubtype = Stype.boolean
     else if (Muds.BaseEntity.isPrototypeOf(fieldType.prototype)) {
+      embeddedCls   = fieldType
       targetSubtype = Stype.embedded
-      fieldType = Object
+      fieldType     = Object
     }
 
     if (targetSubtype !== Stype.auto) {
@@ -446,7 +449,8 @@ export class MudsManager {
 
     for (const fieldName of fieldNames) {
       const accessor  = entity.getInfo().fieldMap[fieldName].accessor
-      accessor.setForDs(rc, entity, dsRec)
+      accessor.setForDs(rc, entity, dsRec.data)
+      accessor.buildExclusions(rc, entity, dsRec.excludeFromIndexes)
     }
     return dsRec
   }

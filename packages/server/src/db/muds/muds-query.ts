@@ -9,24 +9,26 @@
 
 import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
-import { Query as DsQuery, 
-  QueryResult as DsQueryResult
-  }                        from '@google-cloud/datastore/query'
+import * as lo                          from 'lodash'
+
+import {  Query as DsQuery, 
+          QueryResult as DsQueryResult
+        }                               from '@google-cloud/datastore/query'
 
 import {  GcloudEnv }                   from '../../gcp/gcloud-env'
         
 import {  RunContextServer  }           from '../../rc-server'
-import * as lo                          from 'lodash'
-import { Mubble }                       from '@mubble/core'
+import {  Mubble }                      from '@mubble/core'
 import {  MeField,         
           MudsManager,
           DatastorePayload,         
           MudsEntityInfo }              from './muds-manager'
-import { Muds, DatastoreInt, 
-         DsRec }                        from '..'
+import {  Muds, 
+          DatastoreInt, 
+          DsRec }                       from '..'
 
-import { DatastoreTransaction 
-           as DSTransaction }           from '@google-cloud/datastore/transaction'
+import {  DatastoreTransaction as DSTransaction }
+                                        from '@google-cloud/datastore/transaction'
          
 import { MudsBaseEntity }               from './muds-base-entity'
 import { MudsIo }                       from './muds-io'
