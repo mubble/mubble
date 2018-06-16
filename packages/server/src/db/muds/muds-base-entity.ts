@@ -23,24 +23,51 @@ import {  Muds,
           DsRec, 
           EntityType}                       from '..'
 
-export class MudsBaseEntity {
+export class MudsBaseStruct {
+
+  protected entityInfo    : MudsEntityInfo
+  constructor(protected rc: RunContextServer, protected manager: MudsManager, 
+              recObj: Mubble.uObject<any>, fullRec: boolean) {
+    this.entityInfo  = this.manager.getInfo(this.constructor)
+    this.deserialize(recObj, fullRec)
+
+  }
+
+  public getLogId(): string {
+    return `MudsStruct: ${this.entityInfo.entityName}`
+  }
+
+  private deserialize(recObj: Mubble.uObject<any>, fullRec: boolean) {
+
+    const fieldNames  = this.entityInfo.fieldNames
+    for (const fieldName of fieldNames) {
+      const meField   = this.entityInfo.fieldMap[fieldName],
+            accessor  = meField.accessor
+
+      accessor.loadFromDs(this.rc, this, recObj[fieldName], fullRec)
+    }
+  }
+
+  getInfo() {
+    return this.entityInfo
+  }
+}
+
+export class MudsBaseEntity extends MudsBaseStruct {
 
   private ancestorKeys  : (string | DatastoreInt) []
   private selfKey       : string | DatastoreInt | undefined
 
-  private editing       : boolean  // indicates editing is undergoing for this entity
   private savePending   : boolean  // indicates that entity is pending to be saved
-  private fromDs        : boolean
-  private entityInfo    : MudsEntityInfo
 
-  constructor(private rc: RunContextServer, private manager: MudsManager,
+  constructor(rc: RunContextServer, manager: MudsManager,
               keys: (string | DatastoreInt)[], recObj: Mubble.uObject<any>, 
               fullRec: boolean) {
-    this.entityInfo  = this.manager.getInfo(this.constructor)
+
+    super(rc, manager, recObj, fullRec)
     if (keys) {
       if (recObj) {
         this.constructFromRecord(keys, recObj, fullRec)
-        this.fromDs = true
       } else {
         const {ancestorKeys, selfKey} = this.manager.separateKeysForInsert(this.rc, 
                                           this.entityInfo.cons, keys)
@@ -52,15 +79,6 @@ export class MudsBaseEntity {
     if (!(this.entityInfo.keyType === Muds.Pk.Auto || this.entityInfo.keyType === Muds.Pk.None)) {
       rc.isAssert() && rc.assert(rc.getName(this), this.selfKey, `Cannot create entity without keys`)
     }
-  }
-
-  public isEditing() {
-    return this.editing
-  }
-
-  public edit() {
-    if (this.editing) throw('Cannot enter the editing mode while already editing')
-    this.editing = true
   }
 
   public hasValidKey() {
@@ -77,7 +95,6 @@ export class MudsBaseEntity {
   }
 
   public discardEditing() {
-    if (!this.editing) throw('Cannot discard edit when not editing')
 
     const fieldNames  = this.entityInfo.fieldNames
 
@@ -85,17 +102,6 @@ export class MudsBaseEntity {
       const meField = this.entityInfo.fieldMap[fieldName]
       meField.accessor.resetter(this)
     }
-
-    this.editing = false
-  }
-
-  /** 
-   * indicates that entity was either fetched from db Or was created new 
-   * and then inserted into db: Essentially denoting this instance of 
-   * entity is from db
-  */ 
-  public isFromDs() {
-    return this.fromDs
   }
 
   // Has been queued up for saving. Another edit would not be permitted on this
@@ -119,7 +125,7 @@ export class MudsBaseEntity {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  constructFromRecord(keys: (string | DatastoreInt)[], recObj: DsRec, fullRec: boolean) {
+  private constructFromRecord(keys: (string | DatastoreInt)[], recObj: DsRec, fullRec: boolean) {
 
     if (this.entityInfo.keyType !== Muds.Pk.None) {
       const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, this.entityInfo.cons, keys)
@@ -138,10 +144,6 @@ export class MudsBaseEntity {
     }
   }
 
-  getInfo() {
-    return this.entityInfo
-  }
-
   getAncestorKey() {
     return this.ancestorKeys
   }
@@ -152,9 +154,6 @@ export class MudsBaseEntity {
 
   // The path may be of multiple undocumented form, handling all of them here
   commitUpsert(path: any) {
-
-    this.editing = false
-    this.fromDs  = true
 
     const fieldNames = this.entityInfo.fieldNames,
           keyType    = this.entityInfo.keyType,
@@ -207,7 +206,7 @@ export class MudsBaseEntity {
     for (const fieldName of entityInfo.fieldNames) {
       const meField = entityInfo.fieldMap[fieldName],
             headEntry = (meField.mandatory ? '*' : '') + 
-                        `${fieldName}/${meField.accessor.$getSubtype()}` + 
+                        `${fieldName}/${meField.fieldType.name}` + 
                         (meField.unique ? '+' : (meField.indexed ? '@' : '')) 
                         
       str += this.$rowHead(headEntry) + 
@@ -235,13 +234,15 @@ export class FieldAccessor {
 
   readonly ovFieldName : string // original value field name
   readonly cvFieldName : string // current  value field name
+  readonly basicType   : boolean
 
   constructor(private entityName: string, private fieldName: string, private meField: MeField) {
     this.ovFieldName = '_$$_' + fieldName
     this.cvFieldName  = '_$_' + fieldName
+    this.basicType = [Number, String, Boolean].indexOf(meField.fieldType as any) !== -1
   }
 
-  private getter(inEntity: MudsBaseEntity) {
+  private getter(inEntity: MudsBaseStruct) {
     return (inEntity as any)[this.cvFieldName]
   }
 
@@ -249,7 +250,7 @@ export class FieldAccessor {
     return `${this.entityName}/${this.fieldName}`
   }
 
-  setter(inEntity: MudsBaseEntity, newValue: any) {
+  setter(inEntity: MudsBaseStruct, newValue: any) {
 
     const entity = inEntity as any
     if (!entity.editing) throw(this.getId() + ' You cannot edit an entity without calling edit() on it first')
@@ -269,35 +270,28 @@ export class FieldAccessor {
   }
 
   validateType(newValue: any) {
-
-    if (this.meField.isArray) {
-      const arValues = newValue as any[]
-      if (!Array.isArray(newValue)) throw(this.getId() + ' is not an array')
-      for (const value of arValues) {
-        if (value === undefined || value === null) throw(`${this.getId()}: cannot have ${value}`)
-        this.validateInsType(value, this.meField.subtype)
+    // basic data type
+    const meField = this.meField
+    if (this.basicType) {
+      if (newValue === null) throw(this.getId() + ' Base data types cannot be set to null')
+      if (newValue.constructor !== meField.fieldType) {
+        throw(`${this.getId()}: ${meField.fieldType.name} field cannot be set to ${newValue}/${typeof newValue}`)
       }
-    } else {
-      this.validateInsType(newValue, this.meField.subtype)
-    }
- 
-  }
-
-  private validateInsType(newValue: any, subtype: Muds.Subtype) {
-
-    if (subtype === Muds.Subtype.embedded) {
-      if (!Muds.BaseEntity.isPrototypeOf(newValue)) throw(`${this.getId()}: must be MudsEntity`)
-      const be   = newValue as Muds.BaseEntity,
-            info = be.getInfo()
-      if (info.entityType !== EntityType.Embedded)  throw(`${this.getId()}: must be Embedded Entity`)
-    } else {
-      if (!!(subtype & (Muds.TypeMap.get(newValue.constructor) || 0))) {
-        throw(`${this.getId()}: cannot be set to ${newValue}/${typeof newValue}`)
+    } else if (meField.fieldType === Array) {
+      if (!Array.isArray(newValue)) {
+        throw(`${this.getId()}: array cannot be set to non-array type '${newValue.constructor.name}'`)
       }
+    } else if (meField.fieldType === Object) {
+      // all allowed
+    } else if (newValue !== null && !(
+                meField.fieldType.prototype.isPrototypeOf(newValue) ||
+                meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
+      throw(`${this.getId()}: cannot be set to incompatible type '${
+        newValue.constructor.name}'. Type does not extend '${meField.fieldType.name}'`)
     }
   }
 
-  resetter(inEntity: MudsBaseEntity) {
+  resetter(inEntity: MudsBaseStruct) {
 
     const entity            = inEntity as any,
           originalValueObj  = entity[this.ovFieldName]
@@ -316,7 +310,7 @@ export class FieldAccessor {
     }
   }
 
-  setForDs(rc: RunContextServer, inEntity: MudsBaseEntity, data: Mubble.uObject<any>) {
+  setForDs(rc: RunContextServer, inEntity: MudsBaseStruct, data: Mubble.uObject<any>) {
 
     this.checkMandatory(rc, inEntity)
 
@@ -329,28 +323,26 @@ export class FieldAccessor {
   }
 
   private serialize(rc: RunContextServer, value: any): any {
-    if (Array.isArray(value)) {
-      return value.map(item => this.serialize(rc, item))
-    } else {
-      const valType = typeof(value)
-      if (value === null || valType === 'number' || valType === 'string' || 
-          valType === 'boolean') return value
 
-      if (!(value instanceof MudsBaseEntity)) throw(`${this.getId()}: Invalid type: ${value.constructor.name}`)
-      const ee          = value as MudsBaseEntity,
-            outObj      = {mudsKind: ee.getInfo().entityName} as any,
-            inObj       = outObj[ee.getInfo().entityName] = {},
-            fieldNames  = ee.getInfo().fieldNames
+    if (this.basicType || !value || this.meField.fieldType === Object) return value
+    if (Array.isArray(value)) return value.map(item => this.serialize(rc, item))
 
-      for (const fieldName of fieldNames) {
-        const accessor  = ee.getInfo().fieldMap[fieldName].accessor
-        accessor.setForDs(rc, ee, inObj)
-      }
-      return outObj
+    if (!(value instanceof MudsBaseStruct)) throw(`${this.getId()
+      }: Code bug Invalid type: ${value.constructor.name}`)
+
+    const ee          = value as MudsBaseStruct,
+          info        = ee.getInfo(),
+          inObj       = {},
+          fieldNames  = info.fieldNames
+
+    for (const fieldName of fieldNames) {
+      const accessor  = info.fieldMap[fieldName].accessor
+      accessor.setForDs(rc, ee, inObj)
     }
+    return inObj
   }
 
-  buildExclusions(rc: RunContextServer, inEntity: MudsBaseEntity, arExclude: string[]) {
+  buildExclusions(rc: RunContextServer, inEntity: MudsBaseStruct, arExclude: string[]) {
     const entity = inEntity as any
 
     const value = entity[this.cvFieldName]
@@ -360,7 +352,7 @@ export class FieldAccessor {
 
   private buildNestedExclusions(value: any, prefix: string, arExclude: string[]) {
 
-    if (value instanceof MudsBaseEntity) {
+    if (value instanceof MudsBaseStruct) {
 
       const embedInfo = value.getInfo()
 
@@ -375,11 +367,11 @@ export class FieldAccessor {
     }
   }
 
-  isModified(inEntity: MudsBaseEntity) {
+  isModified(inEntity: MudsBaseStruct) {
     return !!(inEntity as any)[this.ovFieldName]
   }
 
-  checkMandatory(rc: RunContextServer, inEntity: MudsBaseEntity) {
+  checkMandatory(rc: RunContextServer, inEntity: MudsBaseStruct) {
 
     if (!this.meField.mandatory) return true
 
@@ -390,7 +382,7 @@ export class FieldAccessor {
     return true
   }
 
-  loadFromDs(rc: RunContextServer, inEntity: MudsBaseEntity, newValue: any, fullRec: boolean) {
+  loadFromDs(rc: RunContextServer, inEntity: MudsBaseStruct, newValue: any, fullRec: boolean) {
 
     const entity  = inEntity as any,
           meField = this.meField
@@ -417,32 +409,33 @@ export class FieldAccessor {
           if (isNaN(newValue)) newValue = 0
         }
       }
-    // object data type 
-    } else if (newValue !== null && !(
-                meField.fieldType.prototype.isPrototypeOf(newValue) ||
-                meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-      throw(`${this.getId()}: cannot be set to incompatible type ${
-        newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+    } else if (meField.fieldType === Array) {
+      if (!Array.isArray(newValue)) {
+        rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: array cannot be set to non-array type '${newValue.constructor.name}'`)
+        newValue = []
+      }
+    } else if (meField.fieldType === Object) {
+      // all allowed
+    } else if (newValue !== null) {
+        if (!(meField.fieldType.prototype.isPrototypeOf(newValue) ||
+              meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
+          rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: cannot be set to incompatible type ${
+            newValue.constructor.name} does not extend ${meField.fieldType.name}`)
+          newValue = null  
+        } else {
+          const Cls = this.meField.fieldType as Muds.IBaseStruct<MudsBaseStruct>
+          newValue = new Cls(rc, entity.manager, newValue, fullRec)
+        }
     }
     entity[this.cvFieldName] = newValue
   }
 
-  commitUpsert(inEntity: MudsBaseEntity) {
+  commitUpsert(inEntity: MudsBaseStruct) {
     const entity = inEntity as any
     if (entity[this.ovFieldName]) entity[this.ovFieldName] = undefined
   }
 
-  $getSubtype() {
-    let subtype = 'mult'
-    if (this.meField.subtype === Muds.Subtype.embedded) subtype = 'embedded'
-    else if (this.meField.subtype === Muds.Subtype.string) subtype = 'string'
-    else if (this.meField.subtype === Muds.Subtype.number) subtype = 'number'
-    else if (this.meField.subtype === Muds.Subtype.boolean) subtype = 'boolean'
-    if (this.meField.isArray) subtype += '[]'
-    return subtype
-  }
-
-  $printField(inEntity: MudsBaseEntity) {
+  $printField(inEntity: MudsBaseStruct) {
 
     const entity = inEntity as any
 

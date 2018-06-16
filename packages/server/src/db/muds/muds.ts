@@ -10,25 +10,26 @@
 import * as Datastore           from '@google-cloud/datastore'
 import * as DsEntity            from '@google-cloud/datastore/entity'
 
-import { MudsBaseEntity }       from './muds-base-entity'
-import { MudsQuery }            from './muds-query'
-import { MudsManager }          from './muds-manager'
-import { RunContextServer }     from '../..'
-import { GcloudEnv }            from '../../gcp/gcloud-env'
-import { MudsTransaction, 
-         MudsDirectIo }         from './muds-io'
-import { Mubble }               from '@mubble/core'
-import { DatastoreRequest }     from '@google-cloud/datastore/request';
+import {  MudsBaseEntity,
+          MudsBaseStruct }      from './muds-base-entity'
+import {  MudsQuery }            from './muds-query'
+import {  MudsManager }          from './muds-manager'
+import {  RunContextServer }     from '../..'
+import {  GcloudEnv }            from '../../gcp/gcloud-env'
+import {  MudsTransaction, 
+          MudsDirectIo }         from './muds-io'
+import {  Mubble }               from '@mubble/core'
+import {  DatastoreRequest }     from '@google-cloud/datastore/request';
 
 export type DatastoreInt = DsEntity.DatastoreInt
 export type DatastoreKey = DsEntity.DatastoreKey
 
 export type DsRec = Object & {
-  [name: string]: string | number | boolean | Object | Array<any>
+  [name: string]: string | number | boolean | MudsBaseStruct | Array<any>
 }
 
 export enum EntityType {
-  Dummy, Embedded, Normal
+  Dummy, Struct, Normal
 }
 
 export class Muds {
@@ -54,14 +55,14 @@ export class Muds {
   }
 
   /**
-   * * Annotation to mark a class as Embedded Muds Entity (Mandatory: one of entity / embeddedEntity / dummmy )
-   * * An embedded entity entity that is inserted like an object in ds. No IO is permitted on them directly
+   * * Annotation to mark a class as Muds Struct (Mandatory: one of entity / Struct / dummmy )
+   * * A struct allows field level validations when used in entity
    * * Level: Class declaration
    */
-  public static embeddedEntity(): (target: any) => void {
-    return this.manager.registerEntity.bind(this.manager, 0, Muds.Pk.None, EntityType.Embedded)
+  public static struct(): (target: any) => void {
+    return this.manager.registerEntity.bind(this.manager, 0, Muds.Pk.None, EntityType.Struct)
   }
-  
+
   /**
    * * Optional annotation to provide ancestors of an entity
    * * You should list them in same order as in the key. Example => grandfather, father
@@ -97,7 +98,7 @@ export class Muds {
    * 
    * * Level: property declaration
    */
-  public static field(presence: Muds.Presence, subtype: Muds.Subtype | Muds.BaseEntity = Muds.Subtype.auto)
+  public static field(presence: Muds.Presence, subtype: Muds.TypeHint | Muds.BaseStruct = Muds.TypeHint.auto)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
               mandatory: presence === Muds.Man, subtype})
@@ -109,7 +110,7 @@ export class Muds {
    * * For an indexed field, when presence is changed to 'false': we will need to run data migration
    * * Level: property declaration
    */
-  public static indexed(presence:Muds.Presence, subtype: Muds.Subtype | Muds.BaseEntity = Muds.Subtype.auto)
+  public static indexed(presence:Muds.Presence, subtype: Muds.TypeHint | Muds.BaseStruct = Muds.TypeHint.auto)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
               mandatory: presence === Muds.Man, indexed: true, subtype})
@@ -121,7 +122,7 @@ export class Muds {
    * * For a unique field, presence value cannot become true, if it was false earlier
    * * Level: property declaration
    */
-  public static unique(presence:Muds.Presence, subtype: Muds.Subtype | Muds.BaseEntity = Muds.Subtype.auto)
+  public static unique(presence:Muds.Presence, subtype: Muds.TypeHint | Muds.BaseStruct = Muds.TypeHint.auto)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
               mandatory: presence === Muds.Man, indexed: true, unique: true, subtype})
@@ -166,6 +167,8 @@ export namespace Muds {
 
   export const BaseEntity   = MudsBaseEntity
   export type  BaseEntity   = MudsBaseEntity
+  export const BaseStruct   = MudsBaseStruct
+  export type  BaseStruct   = MudsBaseStruct
   export const Transaction  = MudsTransaction
   export type  Transaction  = MudsTransaction
   export const DirectIo     = MudsDirectIo
@@ -174,7 +177,7 @@ export namespace Muds {
   export type  Query        = MudsQuery<MudsBaseEntity>
 
   export enum Pk {
-    None, // Used only for embedded entities as they shouldn't have keys
+    None, // used for MudsStruct
     Auto,
     /**
      * ** WARNING ** Strongly discouraged when entity has no parent, 
@@ -196,6 +199,11 @@ export namespace Muds {
   
   export type Presence = Muds.Man | Muds.Opt
 
+  export interface IBaseStruct<T extends Muds.BaseStruct> {
+    new(rc: RunContextServer, manager: MudsManager, 
+        recObj: DsRec, fullRec: boolean): T
+  }
+
   export interface IBaseEntity<T extends Muds.BaseEntity> {
     new(rc: RunContextServer, manager: MudsManager, 
         key ?: (string | DatastoreInt)[], recObj ?: DsRec): T
@@ -205,17 +213,11 @@ export namespace Muds {
     RNF: 'RECORD_NOT_FOUND'
   })
 
-  export enum Subtype {
-    auto        = 0,
-    embedded    = 1,
+  export enum TypeHint {
+    auto        = 0, // detect automatically
+    muds        = 1,
     string      = 2,
     number      = 4,
     boolean     = 8
   }
-
-  export const TypeMap = new Map<NumberConstructor | StringConstructor | BooleanConstructor, Muds.Subtype>([
-    [Number, Muds.Subtype.number], 
-    [String, Muds.Subtype.string], 
-    [Boolean, Muds.Subtype.boolean]
-  ])
 }

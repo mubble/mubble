@@ -9,37 +9,34 @@
 import 'reflect-metadata'
 import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
+import * as lo                          from 'lodash'
 
 import {  Muds, 
           DatastoreInt, 
           DatastoreKey, 
           DsRec, 
           EntityType }                  from "./muds"
-import { MudsBaseEntity, 
-         FieldAccessor  }               from "./muds-base-entity"
-import { Mubble }                       from '@mubble/core'
-import { GcloudEnv }                    from '../../gcp/gcloud-env'
-import { RunContextServer }             from '../..'
+import {  MudsBaseEntity, 
+          MudsBaseStruct, 
+          FieldAccessor  }              from "./muds-base-entity"
+import {  Mubble }                      from '@mubble/core'
+import {  GcloudEnv }                   from '../../gcp/gcloud-env'
+import {  RunContextServer }            from '../..'
 
 export class MeField {
   accessor: FieldAccessor
   constructor(readonly fieldName    : string,
-
-              // Subtype of field when it is not possible to decipher it from reflection
-              readonly subtype      : Muds.Subtype,
-              // readonly embeddedCls  : MudsBaseEntity,
-
-              readonly isArray      : boolean,
-
+              readonly fieldType    : StringConstructor  | 
+                                      BooleanConstructor | 
+                                      NumberConstructor  | 
+                                      ObjectConstructor  | 
+                                      ArrayConstructor   | 
+                                      Muds.IBaseStruct<MudsBaseStruct>,
               readonly mandatory    : boolean,
               readonly indexed      : boolean,
               readonly unique       : boolean
   ) {
     if (unique && !indexed) throw('Field cannot be unique without being indexed')            
-  }
-
-  isTypeEmbedded() {
-    return !!(this.subtype & Muds.Subtype.embedded)
   }
 }
 
@@ -134,24 +131,27 @@ export class MudsManager {
     Object.freeze(idxObj)
   }
 
-  registerField({mandatory = false, subtype = Muds.Subtype.auto, indexed = false, 
+  registerField({mandatory = false, subtype = Muds.TypeHint.auto, indexed = false, 
       unique = false}, target: any, fieldName: string) {
 
-    const cons          = target.constructor,
-          entityName    = cons.name
+    const entityName    = target.constructor.name
 
     if (!this.tempAncestorMap) throw(`Trying to register entity ${entityName
       } after Muds.init(). Forgot to add to entities collection?`)
 
-    const fieldType = this.isValidSubtype(entityName, fieldName, 
-              Reflect.getMetadata('design:type', target, fieldName), subtype)
+    const fieldType = Reflect.getMetadata('design:type', target, fieldName)
+    
+    this.validateType(entityName, fieldName, fieldType)
+    if (fieldType === Object || fieldType === Array) {
+      if (indexed || unique) throw(`${entityName}/${fieldName}: Array or object cannot be indexed`)
+    }
 
     if (!this.tempEntityFieldsMap) throw('Code bug')
     let efm = this.tempEntityFieldsMap[entityName]
     if (!efm) this.tempEntityFieldsMap[entityName] = efm = {}
     if (efm[fieldName]) throw(`${entityName}/${fieldName}: has been annotated twice?`)
 
-    const field = new MeField(fieldName, subtype, fieldType === Array, 
+    const field = new MeField(fieldName, fieldType, 
                               mandatory, indexed, unique)
 
     field.accessor = new FieldAccessor(entityName, fieldName, field)
@@ -159,56 +159,70 @@ export class MudsManager {
     return field.accessor.getAccessor()
   }
 
-  private isValidSubtype(entityName: string, fieldName: string, fieldType: any, subtype: Muds.Subtype) {
+  private validateType(entityName: string, fieldName: string, fieldType: any) {
 
-    const logStr = `${entityName}/${fieldName}`,
-          Stype  = Muds.Subtype
-
-    if (!fieldType) throw(`${logStr}: Null and undefined type fields are not allowed`)
-
-    if ((fieldType === Object || fieldType === Array) && subtype === Stype.auto) {
-      throw(`${logStr} of type ${fieldType}, cannot decipher subtype. Please provide`)
+    if ([String, Boolean, Number].indexOf(fieldType) !== -1) return
+    if (MudsBaseStruct.prototype.isPrototypeOf(fieldType.prototype)) {
+      if (MudsBaseEntity.prototype.isPrototypeOf(fieldType.prototype)) throw(`${entityName}/${fieldName
+        }: Cannot be of type Muds.BaseEntity. Use Muds.BaseStruct`)
+      return  
     }
+    if (fieldType === Object || fieldType === Array) return // allowing generic object and array
 
-    let targetSubtype: Muds.Subtype = Stype.auto,
-        embeddedCls
-    
-    if (fieldType === Number)        targetSubtype = Stype.number
-    else if (fieldType === String)   targetSubtype = Stype.string
-    else if (fieldType === Boolean)  targetSubtype = Stype.boolean
-    else if (Muds.BaseEntity.isPrototypeOf(fieldType.prototype)) {
-      embeddedCls   = fieldType
-      targetSubtype = Stype.embedded
-      fieldType     = Object
-    }
-
-    if (targetSubtype !== Stype.auto) {
-      if (subtype === Stype.auto) {
-        subtype = targetSubtype
-      } else if (subtype !== targetSubtype) {
-        throw(`For ${logStr} of type: ${fieldType}, subtype ${subtype} is invalid`)
-      }
-    } else {
-      if (subtype === Stype.auto) {
-        throw(`For ${logStr} of type: ${fieldType}, it is mandatory to give subtype. 
-          We cannot decipher it automatically`)
-      }
-
-      const isEmbedded = subtype & Stype.embedded,
-            isBasic    = subtype & (Stype.boolean | Stype.number | Stype.string)
-
-      if (isEmbedded ^ isBasic) throw(`${logStr}: Invalid subtype: ${subtype
-        } subtype should either be embedded or basic`)
-
-      if (isBasic && fieldType === Array) {
-        if (!(subtype === Stype.boolean || subtype === Stype.number || 
-            subtype === Stype.string)) throw(`${logStr}: Array cannot have mixed 
-              basic subtypes`)
-      }
-    }
-
-    return fieldType
+    throw(`${entityName}/${fieldName} unknown type: ${fieldType.name}`)
   }
+
+
+  // private isValidSubtype(entityName: string, fieldName: string, fieldType: any, subtype: Muds.TypeHint) {
+
+  //   const logStr = `${entityName}/${fieldName}`,
+  //         Stype  = Muds.TypeHint
+
+  //   if (!fieldType) throw(`${logStr}: Null and undefined type fields are not allowed`)
+
+  //   if ((fieldType === Object || fieldType === Array) && subtype === Stype.auto) {
+  //     throw(`${logStr} of type ${fieldType}, cannot decipher subtype. Please provide`)
+  //   }
+
+  //   let targetSubtype: Muds.TypeHint = Stype.auto,
+  //       embeddedCls
+    
+  //   if (fieldType === Number)        targetSubtype = Stype.number
+  //   else if (fieldType === String)   targetSubtype = Stype.string
+  //   else if (fieldType === Boolean)  targetSubtype = Stype.boolean
+  //   else if (Muds.BaseEntity.isPrototypeOf(fieldType.prototype)) {
+  //     embeddedCls   = fieldType
+  //     targetSubtype = Stype.embedded
+  //     fieldType     = Object
+  //   }
+
+  //   if (targetSubtype !== Stype.auto) {
+  //     if (subtype === Stype.auto) {
+  //       subtype = targetSubtype
+  //     } else if (subtype !== targetSubtype) {
+  //       throw(`For ${logStr} of type: ${fieldType}, subtype ${subtype} is invalid`)
+  //     }
+  //   } else {
+  //     if (subtype === Stype.auto) {
+  //       throw(`For ${logStr} of type: ${fieldType}, it is mandatory to give subtype. 
+  //         We cannot decipher it automatically`)
+  //     }
+
+  //     const isEmbedded = subtype & Stype.embedded,
+  //           isBasic    = subtype & (Stype.boolean | Stype.number | Stype.string)
+
+  //     if (isEmbedded ^ isBasic) throw(`${logStr}: Invalid subtype: ${subtype
+  //       } subtype should either be embedded or basic`)
+
+  //     if (isBasic && fieldType === Array) {
+  //       if (!(subtype === Stype.boolean || subtype === Stype.number || 
+  //           subtype === Stype.string)) throw(`${logStr}: Array cannot have mixed 
+  //             basic subtypes`)
+  //     }
+  //   }
+
+  //   return fieldType
+  // }
 
   init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
 
@@ -266,7 +280,7 @@ export class MudsManager {
       rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo, 
         `Missing entity annotation on ${ancestor.name}?`)
 
-      rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo.entityType !== EntityType.Embedded, 
+      rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo.entityType !== EntityType.Struct, 
         `${entityInfo.entityName}: Cannot have Embedded entity ${ancestor.name} as ancestor?`)
         
       entityInfo.ancestors.push(ancestorInfo)
@@ -291,27 +305,19 @@ export class MudsManager {
 
   private finalizeDataStructures(rc: RunContextServer) {
 
-    this.dealloc(rc, 'tempEntityFieldsMap')
-    this.dealloc(rc, 'tempAncestorMap')
-    this.dealloc(rc, 'tempCompIndices')
+    const props = ['tempEntityFieldsMap', 'tempAncestorMap', 'tempCompIndices'],
+          obj   = this as any
+    for (const prop of props) {
+      const keys = Object.keys(obj[prop])
+      rc.isAssert() && rc.assert(rc.getName(this), !keys.length, 
+      ` ${prop} is not empty. Has: ${keys}`);
+
+      obj[prop] = null
+    }
 
     Object.freeze(this.entityInfoMap)
     Object.freeze(this)
   }
-
-  private dealloc(rc    : RunContextServer, 
-                  elem  : 'tempEntityFieldsMap' | 'tempAncestorMap' | 'tempCompIndices') {
-
-    const obj   = this[elem],
-          keys  = Object.keys(obj as any)
-
-    rc.isAssert() && rc.assert(rc.getName(this), !keys.length,
-      ` ${elem} is not empty. Has: ${keys}`)
-
-    this[elem] = null  
-  }
-
-  
   
   /* ---------------------------------------------------------------------------
      I N T E R N A L   U T I L I T Y    F U N C T I O N S

@@ -148,7 +148,6 @@ export abstract class MudsIo {
                     ...keys : (string | DatastoreInt)[]): Promise<T> {
     let entity = await this.getEntityIfExists(entityClass, ...keys)
     if (!entity) entity = new entityClass(this.rc, this.manager, keys)
-    entity.edit()
     return entity
   }
 
@@ -161,7 +160,6 @@ export abstract class MudsIo {
                 ...keys : (string | DatastoreInt)[]): T {
 
     const entity = new entityClass(this.rc, this.manager, keys.length ? keys : undefined)
-    entity.edit()
     return entity
     }
 
@@ -175,9 +173,6 @@ export abstract class MudsIo {
           dsRecs   = []
 
     for (const entity of entities) {
-
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.isEditing(),
-        `${entity.getLogId()} Skipping entity not in edit mode`)
 
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.isModified(),
         `${entity.getLogId()} Skipping entity as it is not modified`)
