@@ -8,6 +8,24 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+
+
+
+/*------------------------------------------------------------------------------
+Running local datastore emulator
+
+Following command emits the env vars
+> gcloud beta emulators datastore env-init 
+export DATASTORE_DATASET=playground-india
+export DATASTORE_EMULATOR_HOST=localhost:8081
+export DATASTORE_EMULATOR_HOST_PATH=localhost:8081/datastore
+export DATASTORE_HOST=http://localhost:8081
+export DATASTORE_PROJECT_ID=playground-india
+
+To set them automatically as env var $(gcloud beta emulators datastore env-init)
+
+------------------------------------------------------------------------------*/
+
 import {
         RunContextServer,
         RUN_MODE,

@@ -163,6 +163,9 @@ export class MudsManager {
 
     if ([String, Boolean, Number].indexOf(fieldType) !== -1) return
     if (MudsBaseStruct.prototype.isPrototypeOf(fieldType.prototype)) {
+      if (fieldType === MudsBaseEntity || fieldType === MudsBaseStruct) throw(`${entityName}/${fieldName
+      }: Cannot be Muds.BaseEntity/Muds.BaseStruct. Use drived class of Muds.BaseStruct`)
+
       if (MudsBaseEntity.prototype.isPrototypeOf(fieldType.prototype)) throw(`${entityName}/${fieldName
         }: Cannot be of type Muds.BaseEntity. Use Muds.BaseStruct`)
       return  
@@ -254,6 +257,8 @@ export class MudsManager {
       if (compIndices) this.valAndProvisionCompIndices(rc, compIndices, entityInfo)
     }
 
+    this.validateIndices(rc)
+
     this.datastore = new Datastore({
       projectId   : gcloudEnv.projectId,
       credentials : gcloudEnv.authKey || undefined
@@ -301,6 +306,38 @@ export class MudsManager {
       entityInfo.compositeIndices.push(compIdx)
     }
     Object.freeze(entityInfo.compositeIndices)
+  }
+
+  private validateIndices(rc : RunContextServer) {
+
+    for (const entityName of this.entityNames) {
+      const info = this.entityInfoMap[entityName]
+      for (const fieldName of info.fieldNames) {
+        const field = info.fieldMap[fieldName]
+
+        if (MudsBaseStruct.prototype.isPrototypeOf(field.fieldType.prototype)) {
+
+          const structName    = field.fieldType.name,
+                structIndexed = this.isStructIndexed(rc, structName, entityName),
+                strIndexed    = (structIndexed ? '' : 'un') + 'indexed'
+
+          rc.isAssert() && rc.assert(rc.getName(this), !(Number(field.indexed) ^ Number(structIndexed)),
+            `${entityName}/${fieldName} should be '${strIndexed}' as struct is '${strIndexed}'`)
+        }
+      }
+    }
+  }
+
+  private isStructIndexed(rc: RunContextServer, structName: string, entityName: string) {
+    const structInfo = this.entityInfoMap[structName]
+    rc.isAssert() && rc.assert(rc.getName(this), structInfo,
+      `${structName}' is not annotated as MudsStruct. Used in ${entityName}`)
+
+    for (const sf of structInfo.fieldNames) {
+      const sfm = structInfo.fieldMap[sf]
+      if (sfm.indexed) return true
+    }
+    return false
   }
 
   private finalizeDataStructures(rc: RunContextServer) {
@@ -455,9 +492,13 @@ export class MudsManager {
 
     for (const fieldName of fieldNames) {
       const accessor  = entity.getInfo().fieldMap[fieldName].accessor
-      accessor.setForDs(rc, entity, dsRec.data)
+      accessor.setForDs(entity, dsRec.data)
       accessor.buildExclusions(rc, entity, dsRec.excludeFromIndexes)
     }
+
+    console.log('getRecordForUpsert: data', dsRec.data)
+    console.log('getRecordForUpsert: excludeFromIndexes', dsRec.excludeFromIndexes)
+
     return dsRec
   }
 
@@ -478,4 +519,46 @@ export class MudsManager {
 
     return this.datastore.key(dsKeys)
   }
+
+  checkIndexed(rc: RunContextServer, dottedStr: string, entityName: string) {
+
+    const props = dottedStr.split('.'),
+          start = entityName
+          
+    let type
+    for (const prop of props) {
+      const info = this.entityInfoMap[entityName]
+
+      rc.isAssert() && rc.assert(rc.getName(this), info, 
+        `'${entityName}' is not found in entityInfo. Used in '${dottedStr}' of entity '${start}'`)
+
+      const fieldMap = info.fieldMap[prop]  
+      rc.isAssert() && rc.assert(rc.getName(this), fieldMap.indexed, 
+        `'${prop}' is not indexed in path '${dottedStr}' of entity '${start}'`)
+      type = fieldMap.accessor  
+
+      if (MudsBaseStruct.prototype.isPrototypeOf(fieldMap.fieldType.prototype)) {
+        entityName = fieldMap.fieldType.name
+      }
+    }
+  }
+
+  getAccessor(rc: RunContextServer, dottedStr: string, entityName: string) {
+
+    const props = dottedStr.split('.'),
+          start = entityName
+          
+    let accessor
+    for (const prop of props) {
+      const info      = this.entityInfoMap[entityName]
+      const fieldMap  = info.fieldMap[prop]  
+      accessor = fieldMap.accessor  
+
+      if (MudsBaseStruct.prototype.isPrototypeOf(fieldMap.fieldType.prototype)) {
+        entityName = fieldMap.fieldType.name
+      }
+    }
+    return accessor
+  }
+
 }

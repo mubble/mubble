@@ -27,30 +27,76 @@ export class MudsBaseStruct {
 
   protected entityInfo    : MudsEntityInfo
   constructor(protected rc: RunContextServer, protected manager: MudsManager, 
-              recObj: Mubble.uObject<any>, fullRec: boolean) {
+              recObj ?: Mubble.uObject<any>, fullRec ?: boolean) {
     this.entityInfo  = this.manager.getInfo(this.constructor)
-    this.deserialize(recObj, fullRec)
 
+    if (!recObj) return
+    const fieldNames  = this.entityInfo.fieldNames
+    for (const fieldName of fieldNames) {
+      const meField   = this.entityInfo.fieldMap[fieldName],
+            accessor  = meField.accessor
+
+      accessor.loadFromDs(this.rc, this, recObj[fieldName], !!fullRec)
+    }
   }
 
   public getLogId(): string {
     return `MudsStruct: ${this.entityInfo.entityName}`
   }
 
-  private deserialize(recObj: Mubble.uObject<any>, fullRec: boolean) {
-
-    const fieldNames  = this.entityInfo.fieldNames
-    for (const fieldName of fieldNames) {
-      const meField   = this.entityInfo.fieldMap[fieldName],
-            accessor  = meField.accessor
-
-      accessor.loadFromDs(this.rc, this, recObj[fieldName], fullRec)
-    }
-  }
-
   getInfo() {
     return this.entityInfo
   }
+
+  $dump() {
+    console.log(this.toString())
+  }
+
+  // overloaded to print even the entity
+  public toString(indent = 0) {
+
+    const entityInfo = this.entityInfo,
+          thisObj    = this as any,
+          aks        = thisObj.ancestorKeys,
+          sk         = thisObj.selfKey
+
+    let str = ' '.repeat(indent) + `------ ${entityInfo.entityName} -------\n`
+
+    if (aks && aks.length) {
+      const ancestorsInfo = entityInfo.ancestors
+      str += this.$rowHead('ancestors', indent)
+      for (const [index, info] of ancestorsInfo.entries()) {
+        str += this.$key(info, aks[index])
+      }
+      str += '\n'
+    }
+
+    if (sk) {
+      str += this.$rowHead('key', indent) + 
+      `${this.$key(entityInfo, sk)}\n`
+    }
+
+    for (const fieldName of entityInfo.fieldNames) {
+      const meField = entityInfo.fieldMap[fieldName],
+            headEntry = (meField.mandatory ? '*' : '') + 
+                        `${fieldName}/${meField.fieldType.name}` + 
+                        (meField.unique ? '+' : (meField.indexed ? '@' : '')) 
+                        
+      str += this.$rowHead(headEntry, indent) + 
+        ` ${meField.accessor.$printField(this, indent)}\n`
+    }
+    return str
+  }
+
+  private $key(info: MudsEntityInfo, key: undefined | string | DatastoreInt) {
+    return ` ${info.entityName} (${key ? (info.keyType === Muds.Pk.String ? `"${key}"` : 
+      ('Int: ' + (key as DatastoreInt).value)) : key })`
+  }
+
+  private $rowHead(str: string, indent: number) {
+    return lo.padEnd(' '.repeat(indent + 2) + str, 24) + ' => '
+  }
+
 }
 
 export class MudsBaseEntity extends MudsBaseStruct {
@@ -59,24 +105,24 @@ export class MudsBaseEntity extends MudsBaseStruct {
   private selfKey       : string | DatastoreInt | undefined
 
   private savePending   : boolean  // indicates that entity is pending to be saved
+  private fromDs        : boolean  // indicates that entity has been restored from ds (get or query)
 
   constructor(rc: RunContextServer, manager: MudsManager,
               keys: (string | DatastoreInt)[], recObj: Mubble.uObject<any>, 
               fullRec: boolean) {
 
     super(rc, manager, recObj, fullRec)
+    if (recObj) this.fromDs = true // means data has been loaded
     if (keys) {
-      if (recObj) {
-        this.constructFromRecord(keys, recObj, fullRec)
-      } else {
-        const {ancestorKeys, selfKey} = this.manager.separateKeysForInsert(this.rc, 
-                                          this.entityInfo.cons, keys)
-        this.ancestorKeys = ancestorKeys
+      const {ancestorKeys, selfKey} = this.manager.separateKeysForInsert(this.rc, 
+                                        this.entityInfo.cons, keys)
+      this.ancestorKeys = ancestorKeys
+      if (selfKey) {
         this.selfKey      = selfKey
+      } else {
+        rc.isAssert() && rc.assert(rc.getName(this), !recObj, `Cannot have selfkey without data`)
       }
-    }
-
-    if (!(this.entityInfo.keyType === Muds.Pk.Auto || this.entityInfo.keyType === Muds.Pk.None)) {
+    } else if (this.entityInfo.keyType !== Muds.Pk.Auto || this.entityInfo.ancestors.length) {
       rc.isAssert() && rc.assert(rc.getName(this), this.selfKey, `Cannot create entity without keys`)
     }
   }
@@ -104,6 +150,11 @@ export class MudsBaseEntity extends MudsBaseStruct {
     }
   }
 
+  // Tells whether the entity has been restored from ds during getForUpsert call
+  public isFromDs() {
+    return this.fromDs
+  }
+
   // Has been queued up for saving. Another edit would not be permitted on this
   public isSavePending() {
     return this.savePending
@@ -125,25 +176,6 @@ export class MudsBaseEntity extends MudsBaseStruct {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  private constructFromRecord(keys: (string | DatastoreInt)[], recObj: DsRec, fullRec: boolean) {
-
-    if (this.entityInfo.keyType !== Muds.Pk.None) {
-      const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, this.entityInfo.cons, keys)
-      this.ancestorKeys = ancestorKeys
-      this.selfKey      = selfKey
-
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.selfKey)
-    }
-
-    const fieldNames  = this.entityInfo.fieldNames
-    for (const fieldName of fieldNames) {
-      const meField   = this.entityInfo.fieldMap[fieldName],
-            accessor  = meField.accessor
-
-      accessor.loadFromDs(this.rc, this, recObj[fieldName], fullRec)
-    }
-  }
-
   getAncestorKey() {
     return this.ancestorKeys
   }
@@ -180,49 +212,6 @@ export class MudsBaseEntity extends MudsBaseStruct {
     }
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.selfKey, path)
   }
-
-  $dump() {
-    console.log(this.toString())
-  }
-
-  public toString() {
-
-    const entityInfo = this.entityInfo,
-          aks        = this.ancestorKeys
-
-    let str = `------ ${entityInfo.entityName} -------\n`
-
-    if (aks && aks.length) {
-      const ancestorsInfo = entityInfo.ancestors
-      str += this.$rowHead('ancestors')
-      for (const [index, info] of ancestorsInfo.entries()) {
-        str += this.$key(info, aks[index])
-      }
-      str += '\n'
-    }
-    str += this.$rowHead('key') + 
-           `${this.$key(entityInfo, this.selfKey)}\n`
-
-    for (const fieldName of entityInfo.fieldNames) {
-      const meField = entityInfo.fieldMap[fieldName],
-            headEntry = (meField.mandatory ? '*' : '') + 
-                        `${fieldName}/${meField.fieldType.name}` + 
-                        (meField.unique ? '+' : (meField.indexed ? '@' : '')) 
-                        
-      str += this.$rowHead(headEntry) + 
-        `[${ meField.accessor.$printField(this)}]\n`
-    }
-    return str
-  }
-
-  private $key(info: MudsEntityInfo, key: undefined | string | DatastoreInt) {
-    return ` ${info.entityName} (${key ? (info.keyType === Muds.Pk.String ? `"${key}"` : 
-      ('Int: ' + (key as DatastoreInt).value)) : key })`
-  }
-
-  private $rowHead(str: string) {
-    return lo.padEnd(lo.padStart(str, 2), 24) + ' => '
-  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -235,11 +224,13 @@ export class FieldAccessor {
   readonly ovFieldName : string // original value field name
   readonly cvFieldName : string // current  value field name
   readonly basicType   : boolean
+  readonly isMudStruct : boolean
 
   constructor(private entityName: string, private fieldName: string, private meField: MeField) {
     this.ovFieldName = '_$$_' + fieldName
     this.cvFieldName  = '_$_' + fieldName
     this.basicType = [Number, String, Boolean].indexOf(meField.fieldType as any) !== -1
+    this.isMudStruct = MudsBaseStruct.prototype.isPrototypeOf(meField.fieldType.prototype)
   }
 
   private getter(inEntity: MudsBaseStruct) {
@@ -253,7 +244,6 @@ export class FieldAccessor {
   setter(inEntity: MudsBaseStruct, newValue: any) {
 
     const entity = inEntity as any
-    if (!entity.editing) throw(this.getId() + ' You cannot edit an entity without calling edit() on it first')
 
     // when there is no change
     if (entity[this.cvFieldName] === newValue) return
@@ -264,9 +254,26 @@ export class FieldAccessor {
     } else {
       this.validateType(newValue)
     }
-
-    if (!entity[this.ovFieldName]) entity[this.ovFieldName] = {original: entity[this.cvFieldName]}
     entity[this.cvFieldName] = newValue
+  }
+
+  private getOriginal(inEntity: MudsBaseStruct) {
+    const entity = inEntity as any,
+          ov     = entity[this.ovFieldName]
+
+    return ov ? ov.original : undefined
+  }
+
+  private setOriginal(inEntity: MudsBaseStruct, value: any) {
+    const entity = inEntity as any
+    entity[this.ovFieldName] = {original: value}
+  }
+
+  private hasOriginal(inEntity: MudsBaseStruct) {
+    const entity = inEntity as any,
+          ov     = entity[this.ovFieldName]
+
+    return !!ov
   }
 
   validateType(newValue: any) {
@@ -310,22 +317,22 @@ export class FieldAccessor {
     }
   }
 
-  setForDs(rc: RunContextServer, inEntity: MudsBaseStruct, data: Mubble.uObject<any>) {
+  setForDs(inEntity: MudsBaseStruct, data: Mubble.uObject<any>) {
 
-    this.checkMandatory(rc, inEntity)
+    this.checkMandatory(inEntity)
 
     const entity = inEntity as any
 
     const value = entity[this.cvFieldName]
     if (value === undefined) return
 
-    data[this.fieldName] = this.serialize(rc, value)
+    data[this.fieldName] = this.setForDsInternal(value)
   }
 
-  private serialize(rc: RunContextServer, value: any): any {
+  private setForDsInternal(value: any): any {
 
     if (this.basicType || !value || this.meField.fieldType === Object) return value
-    if (Array.isArray(value)) return value.map(item => this.serialize(rc, item))
+    if (Array.isArray(value)) return value.map(item => this.setForDsInternal(item))
 
     if (!(value instanceof MudsBaseStruct)) throw(`${this.getId()
       }: Code bug Invalid type: ${value.constructor.name}`)
@@ -337,7 +344,7 @@ export class FieldAccessor {
 
     for (const fieldName of fieldNames) {
       const accessor  = info.fieldMap[fieldName].accessor
-      accessor.setForDs(rc, ee, inObj)
+      accessor.setForDs(ee, inObj)
     }
     return inObj
   }
@@ -352,6 +359,11 @@ export class FieldAccessor {
 
   private buildNestedExclusions(value: any, prefix: string, arExclude: string[]) {
 
+    if (!(this.meField.indexed || this.meField.unique)) {
+      arExclude.push((prefix ? prefix + '.' : '') + this.fieldName)
+      return
+    }
+
     if (value instanceof MudsBaseStruct) {
 
       const embedInfo = value.getInfo()
@@ -359,11 +371,8 @@ export class FieldAccessor {
       for (const cfName of embedInfo.fieldNames) {
         const cAccessor = embedInfo.fieldMap[cfName].accessor,
               cValue    = (value as any)[this.fieldName]
-        cAccessor.buildNestedExclusions(cValue, (prefix ? prefix + '.' : '') + cfName, arExclude)
+        cAccessor.buildNestedExclusions(cValue, (prefix ? prefix + '.' : '') + this.fieldName, arExclude)
       }
-
-    } else if (!(this.meField.indexed || this.meField.unique)) {
-      arExclude.push((prefix ? prefix + '.' : '') + this.fieldName)
     }
   }
 
@@ -371,17 +380,14 @@ export class FieldAccessor {
     return !!(inEntity as any)[this.ovFieldName]
   }
 
-  checkMandatory(rc: RunContextServer, inEntity: MudsBaseStruct) {
+  checkMandatory(inEntity: MudsBaseStruct) {
 
     if (!this.meField.mandatory) return true
-
     const entity = inEntity as any
-    rc.isAssert() && rc.assert(rc.getName(this), 
-      entity[this.cvFieldName] !== undefined, 
-      `${this.getId()}: mandatory field must not be undefined`)
-    return true
+    if(entity[this.cvFieldName] === undefined) throw(`${this.getId()}: mandatory field must not be undefined`)
   }
 
+  // Should be called only once while constructing the object
   loadFromDs(rc: RunContextServer, inEntity: MudsBaseStruct, newValue: any, fullRec: boolean) {
 
     const entity  = inEntity as any,
@@ -390,13 +396,14 @@ export class FieldAccessor {
     if (newValue === undefined) {
       if (meField.mandatory && fullRec) rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
         }: Db returned undefined for mandatory field. Ignoring...`)
-      return
+      return this.setOriginal(inEntity, newValue)
     }
 
     if (this.basicType) {
       if (newValue === null) {
-        return rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
+        rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()
           }: Db returned null value for base data type. Ignoring...`)
+        return this.setOriginal(inEntity, undefined)
       }
       if (newValue.constructor !== meField.fieldType) {
         rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: ${meField.fieldType.name
@@ -417,17 +424,11 @@ export class FieldAccessor {
     } else if (meField.fieldType === Object) {
       // all allowed
     } else if (newValue !== null) {
-        if (!(meField.fieldType.prototype.isPrototypeOf(newValue) ||
-              meField.fieldType.prototype.isPrototypeOf(newValue.constructor.prototype))) {
-          rc.isWarn() && rc.warn(rc.getName(this), `${this.getId()}: cannot be set to incompatible type ${
-            newValue.constructor.name} does not extend ${meField.fieldType.name}`)
-          newValue = null  
-        } else {
-          const Cls = this.meField.fieldType as Muds.IBaseStruct<MudsBaseStruct>
-          newValue = new Cls(rc, entity.manager, newValue, fullRec)
-        }
+      const Cls = this.meField.fieldType as Muds.IBaseStruct<MudsBaseStruct>
+      newValue = new Cls(rc, entity.manager, newValue, fullRec)
     }
     entity[this.cvFieldName] = newValue
+    this.setOriginal(inEntity, newValue)
   }
 
   commitUpsert(inEntity: MudsBaseStruct) {
@@ -435,19 +436,38 @@ export class FieldAccessor {
     if (entity[this.ovFieldName]) entity[this.ovFieldName] = undefined
   }
 
-  $printField(inEntity: MudsBaseStruct) {
+  $printField(inEntity: MudsBaseStruct, indent: number) {
 
-    const entity = inEntity as any
+    const entity    = inEntity as any
 
     let cv = entity[this.cvFieldName],
-        ov = entity[this.ovFieldName]
+        ov = this.getOriginal(inEntity)
+
+    if (this.isMudStruct) {
+      if (cv) cv = this.structToObject(cv)
+      if (ov) ov = this.structToObject(ov)
+    }    
 
     let s = `${this.basicType || !cv ? String(cv) : JSON.stringify(cv)}`
-    if (ov && ov.original !== cv) {
-      ov = ov.original
+    if (this.hasOriginal(entity) && entity[this.cvFieldName] !== this.getOriginal(inEntity)) {
       s += ` (was: ${this.basicType || !ov ? String(ov) : JSON.stringify(ov)})`
     }
     return s
+  }
+
+  private structToObject(ee: MudsBaseStruct): any {
+
+    const info        = ee.getInfo(),
+          inObj       = {} as Mubble.uObject<any>,
+          fieldNames  = info.fieldNames
+
+    for (const fieldName of fieldNames) {
+      const accessor  = info.fieldMap[fieldName].accessor,
+            value     = (ee as any)[fieldName]
+
+      inObj[fieldName] = value && accessor.isMudStruct ? this.structToObject(value) : value
+    }
+    return inObj
   }
 
 }

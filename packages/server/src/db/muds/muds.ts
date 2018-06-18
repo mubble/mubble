@@ -201,12 +201,12 @@ export namespace Muds {
 
   export interface IBaseStruct<T extends Muds.BaseStruct> {
     new(rc: RunContextServer, manager: MudsManager, 
-        recObj: DsRec, fullRec: boolean): T
+        recObj ?: DsRec, fullRec ?: boolean): T
   }
 
   export interface IBaseEntity<T extends Muds.BaseEntity> {
     new(rc: RunContextServer, manager: MudsManager, 
-        key ?: (string | DatastoreInt)[], recObj ?: DsRec): T
+          key ?: (string | DatastoreInt)[], recObj ?: DsRec, fullRec ?: boolean): T
   }
 
   export const Error = Object.freeze({

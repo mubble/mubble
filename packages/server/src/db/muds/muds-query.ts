@@ -12,26 +12,25 @@ import * as DsEntity                    from '@google-cloud/datastore/entity'
 import * as lo                          from 'lodash'
 
 import {  Query as DsQuery, 
-          QueryResult as DsQueryResult
-        }                               from '@google-cloud/datastore/query'
+          QueryResult 
+            as DsQueryResult }          from '@google-cloud/datastore/query'
+import {  DatastoreTransaction 
+            as DSTransaction }          from '@google-cloud/datastore/transaction'
+         
 
-import {  GcloudEnv }                   from '../../gcp/gcloud-env'
-        
 import {  RunContextServer  }           from '../../rc-server'
 import {  Mubble }                      from '@mubble/core'
 import {  MeField,         
           MudsManager,
           DatastorePayload,         
           MudsEntityInfo }              from './muds-manager'
+
 import {  Muds, 
           DatastoreInt, 
-          DsRec }                       from '..'
+          DsRec }                       from './muds'
 
-import {  DatastoreTransaction as DSTransaction }
-                                        from '@google-cloud/datastore/transaction'
-         
-import { MudsBaseEntity }               from './muds-base-entity'
-import { MudsIo }                       from './muds-io'
+import {  MudsBaseEntity, 
+          MudsBaseStruct }              from './muds-base-entity'
 
 export type Comparator = '=' | '>' | '>=' | '<' | '<='
 
@@ -87,10 +86,19 @@ which are treated as separate types by Cloud Datastore. Because all integers are
 sorted before all floats, a property with the integer value 38 is sorted 
 before one with the floating-point value 37.5.
 */
+
+enum Criteria {
+  selects = 'selects', 
+  groupBys = 'groupBys', 
+  filters = 'filters', 
+  orders = 'orders'
+}
+
+const arCriteria = Object.keys(Criteria)
+
 export class MudsQuery<T extends MudsBaseEntity> {
 
   private readonly entityInfo   : MudsEntityInfo
-  private readonly validFields  : string[]        = []
   private readonly filters      : FilterOps[]     = []
   private readonly orders       : OrderOps[]      = []
   private readonly selects      : string[]        = []
@@ -106,11 +114,6 @@ export class MudsQuery<T extends MudsBaseEntity> {
             ) {
 
     const entityInfo = this.entityInfo = manager.getInfo(entityClass)
-    
-    for (const fieldName of entityInfo.fieldNames) {
-      const meField = entityInfo.fieldMap[fieldName]
-      if (meField.indexed) this.validFields.push(fieldName)
-    }
   }
 
   public select(fieldName: keyof T | KEY) {
@@ -118,15 +121,8 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
-
-    if (fieldName !== KEY) {
-      rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
-        `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
-    }
-
-    rc.isAssert() && rc.assert(rc.getName(this), !this.filters.length && !this.orders.length, 
-      `${entityName}/${fieldName} add select clause before order and filter`)
+    this.verifyStatusAndFieldName(fieldName)
+    this.verifyCriterion(Criteria.selects)
 
     rc.isAssert() && rc.assert(rc.getName(this), !this.groupBys.length, 
     `${entityName}/${fieldName} you cannt use select when group-by is given`)
@@ -140,16 +136,9 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
-
-    if (fieldName !== KEY) {
-      rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
-        `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
-    }
-
-    rc.isAssert() && rc.assert(rc.getName(this), !this.filters.length && !this.orders.length, 
-      `${entityName}/${fieldName} add select clause before order and filter`)
-
+    this.verifyStatusAndFieldName(fieldName)
+    this.verifyCriterion(Criteria.groupBys)
+      
     rc.isAssert() && rc.assert(rc.getName(this), !this.selects.length, 
       `${entityName}/${fieldName} you cannt use group when select clause is given`)
 
@@ -157,22 +146,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
     return this
   }
 
-  public filter(fieldName: keyof T | KEY, comparator: Comparator, value: any): MudsQuery<T> {
+  public filter(fieldName: keyof T | KEY | string, comparator: Comparator, value: any): MudsQuery<T> {
 
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
-    if (fieldName !== KEY) {
-      rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
-        `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
-    }
+    this.verifyStatusAndFieldName(fieldName)
+    this.verifyCriterion(Criteria.filters)
 
     this.selects.indexOf(fieldName) !== -1 && rc.isAssert() && rc.assert(rc.getName(this), 
       comparator !== '=', `A 'select'ed field ${entityName}/${fieldName} cannot be filtered for equality`)
-
-    rc.isAssert() && rc.assert(rc.getName(this), !this.orders.length, 
-      `${entityName}/${fieldName} add filter clause before order`)
 
     for (const filter of this.filters) {
       if (filter.fieldName === fieldName) {
@@ -207,17 +190,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query closed for edit')
+    this.verifyStatusAndFieldName(fieldName)
+    this.verifyCriterion(Criteria.orders)
+
     if (!this.orders.length) {
       const ineqFilter = this.filters.find(item => item.comparator !== '=')
       ineqFilter && rc.isAssert() && rc.assert(rc.getName(this), ineqFilter.fieldName === fieldName,
       `${entityName}/${fieldName} first order field must be with ineq filter: (${ineqFilter.fieldName})`)
     }
 
-    if (fieldName !== KEY) {
-      rc.isAssert() && rc.assert(rc.getName(this), this.validFields.indexOf(fieldName) !== -1, 
-        `${entityName} can be queried only by indexed fields. ${fieldName} is not indexed`)
-    }
+    this.verifyStatusAndFieldName(fieldName)
 
     for (const filter of this.filters) {
       rc.isAssert() && rc.assert(rc.getName(this), 
@@ -227,6 +209,31 @@ export class MudsQuery<T extends MudsBaseEntity> {
 
     this.orders.push({fieldName, ascending})
     return this
+  }
+
+  private verifyCriterion(criterion: Criteria) {
+
+    const thisObj = this as any,
+          rc      = this.rc
+
+    for (let index = arCriteria.length - 1; index >= 0; index--) {
+      const item = arCriteria[index]
+      if (item === criterion) return
+      rc.isAssert() && rc.assert(rc.getName(this), thisObj[item].length === 0, 
+      `'${criterion}' cannot be specified after '${item}'`)
+    }      
+  }
+
+  private verifyStatusAndFieldName(fieldName: string) {
+
+    const rc          = this.rc,
+          entityName  = this.entityInfo.entityName
+
+    rc.isAssert() && rc.assert(rc.getName(this), !this.result, 'Query closed for edit')
+
+    if (fieldName !== KEY) {
+      this.manager.checkIndexed(this.rc, fieldName, entityName)
+    }
   }
 
   public async run(limit: number) {

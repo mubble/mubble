@@ -8,21 +8,24 @@
 ------------------------------------------------------------------------------*/
 import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
-import { Query as DsQuery }             from '@google-cloud/datastore/query'
-import { DatastoreTransaction 
-           as DSTransaction }           from '@google-cloud/datastore/transaction'
-
 import * as lo                          from 'lodash'
-import { Mubble }                       from '@mubble/core'
 
-import { Muds, DatastoreInt, 
-         DatastoreKey }                 from './muds'
-import { MudsBaseEntity }               from './muds-base-entity'
-import { MudsQuery }                    from './muds-query'
-import { RunContextServer }             from '../..'
-import { MudsManager, MudsEntityInfo }  from './muds-manager'
-import { extension } from 'mime-types';
+import {  Query as DsQuery }            from '@google-cloud/datastore/query'
+import {  DatastoreTransaction 
+           as DSTransaction }           from '@google-cloud/datastore/transaction'
+import {  Mubble }                      from '@mubble/core'
 
+import {  Muds, 
+          DatastoreInt, 
+          DatastoreKey }                from './muds'
+import {  MudsBaseEntity, 
+          MudsBaseStruct }              from './muds-base-entity'
+import {  MudsQuery }                   from './muds-query'
+import {  RunContextServer }            from '../..'
+import {  MudsManager, 
+          MudsEntityInfo }              from './muds-manager'
+
+          
 /**
  * This is the main class on Muds system. All the Datastore operations should 
  * originate from here.
@@ -59,6 +62,16 @@ export abstract class MudsIo {
               protected manager: MudsManager) {
     this.datastore = manager.getDatastore()
     this.now = Date.now()
+  }
+
+
+  /**
+   * newStruct: When you want to create a new instance of MudsStruct
+   * * It is essentially new of the class with basic checks
+   */
+  newStruct<T extends MudsBaseStruct>(entityClass : Muds.IBaseStruct<T>): T {
+    const struct = new entityClass(this.rc, this.manager)
+    return struct
   }
 
   /**
@@ -131,7 +144,7 @@ export abstract class MudsIo {
         continue
       }
       delete resultObj[strKey]
-      arResp.push(new entityClass(this.rc, this.manager, keys, result as any))
+      arResp.push(new entityClass(this.rc, this.manager, keys, result as any, true))
     }
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), lo.isEmpty(resultObj))
@@ -142,7 +155,8 @@ export abstract class MudsIo {
   /**
    * getForUpsert: Api to do insert or update on an entity
    * * Call this api to get editable entity either from ds or blank insertable copy
-   * * This is just a convinience api (combination of getEntityIfExists -> getForInsert -> edit)
+   * * This is just a convinience api (combination of getEntityIfExists / getForInsert)
+   * * To check whether entity was fetched from ds: check entity.isFromDs()
    */
   async getForUpsert<T extends Muds.BaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                     ...keys : (string | DatastoreInt)[]): Promise<T> {
@@ -161,7 +175,7 @@ export abstract class MudsIo {
 
     const entity = new entityClass(this.rc, this.manager, keys.length ? keys : undefined)
     return entity
-    }
+  }
 
   enqueueForUpsert(...entities: MudsBaseEntity[]) {
 
