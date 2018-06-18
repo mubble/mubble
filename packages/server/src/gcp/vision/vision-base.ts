@@ -93,7 +93,7 @@ export class VisionBase {
     return retVal
   }
 
-  static async getImageDimentions(rc : RunContextServer, imageData : Buffer) : Promise<{width : number, height : number}>{
+  static async getImageDimensions(rc : RunContextServer, imageData : Buffer) : Promise<{width : number, height : number}>{
     return new Promise<{width : number, height : number}>((resolve, reject) => {
       gm(imageData).identify((err : any, data : any) => {
         if(err) {
