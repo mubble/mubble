@@ -84,7 +84,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
     of event
    */
 
-  fun sendEventToJs(eventName: String, vararg args: Any?): Unit {
+  fun sendEventToJs(eventName: String, vararg args: Any?) {
 
     asyncExecuteInMainThread {
       if (state !== LOADING) executeJsFunction("eventFromNative", eventName, *args) {}
@@ -103,7 +103,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
 
     val query = "$JS_INTERFACE.$fnName(${(args.map {stringifyArg(it)}).joinToString()})"
 
-    info {"executeJsFunction: $query"}
+    info {"executeJsFunction: $fnName"}
     if (webView.isAttachedToWindow) webView.evaluateJavascript(query, cb)
   }
 
@@ -168,9 +168,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
     check(state === LOADING)
 
     asyncExecuteInMainThread {
-
       state = INITIALIZED
-
     }
   }
 

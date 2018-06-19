@@ -2,8 +2,7 @@ package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.AdhocTimer
-import org.java_websocket.WebSocket
-import org.java_websocket.util.Base64
+import android.util.Base64
 import org.jetbrains.anko.info
 import org.jetbrains.anko.warn
 import org.json.JSONObject
@@ -11,7 +10,6 @@ import xmn.*
 import java.lang.Exception
 import java.net.URI
 import java.net.URLEncoder
-import java.nio.ByteBuffer
 
 /**
  * Created by raghavv on 14/11/17.
@@ -32,7 +30,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   private var sending           : Boolean = false
   private var configured        : Boolean = false
-  private var preConfigQueue    : MutableList<ByteBuffer> = mutableListOf()
+  private var preConfigQueue    : MutableList<ByteArray> = mutableListOf()
 
   private var ephemeralEvents   : MutableList<WireEphEvent> = mutableListOf()
 
@@ -57,18 +55,17 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   @Suppress("IMPLICIT_CAST_TO_ANY")
   override fun send(data: Array<WireObject>): String? {
 
-    val ws    = this.ws
     val datas = mutableListOf<WireObject>()
 
     datas.addAll(data)
 
     if ( this.sending ||
-        (ws != null && (ws.readyState !== WebSocket.READYSTATE.OPEN || !this.configured || ws.hasBufferedData())) ) {
+        (this.ws != null && (!this.ws!!.checkStateReady() || !this.configured || this.ws!!.hasBufferedData())) ) {
 
       info { "WebSocket is not ready right now \n" +
              "anotherSendInProgress  : ${this.sending}, \n" +
              "configured             : ${this.configured}, \n" +
-             "readyState             : ${if (ws != null) ws.readyState else "to be created"}, \n" +
+             "readyState             : ${if (this.ws != null) this.ws!!.readyStateName() else "to be created"}, \n" +
              "bufferedAmount         : ${ws!!.hasBufferedData()} " }
 
       return XmnError._NotReady
@@ -95,12 +92,12 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
       val dest    = if (this.ci.publicRequest) WebSocketUrl.PLAIN_PUBLIC else WebSocketUrl.PLAIN_PRIVATE
       val port    = if (!this.ci.port.isBlank()) ":${this.ci.port}" else ""
-      val url     = "${if (this.ci.secure) "wss" else "ws"}://${this.ci.host}$port/$dest/"
+      val url     = "${if (this.ci.secure) "https" else "http"}://${this.ci.host}$port/$dest/"
       val header  = this.encProvider!!.encodeHeader()
       val body    = this.encProvider!!.encodeBody(data)
 
-      val msgBody = URLEncoder.encode(Base64.encodeBytes(header), "UTF-8") + "/" +
-                    URLEncoder.encode(Base64.encodeBytes(body), "UTF-8")
+      val msgBody = URLEncoder.encode(Base64.encodeToString(header, Base64.DEFAULT), "UTF-8") + "/" +
+                    URLEncoder.encode(Base64.encodeToString(body, Base64.DEFAULT), "UTF-8")
 
       msgBodyLen = msgBody.length
 
@@ -138,25 +135,23 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     info { "onMessage" }
   }
 
-  override fun onMessage(bytes: ByteBuffer?) {
+  override fun onMessage(bytes: ByteArray?) {
 
     info { "onMessage" }
 
     if (bytes == null) return
 
-    val byteArr : ByteArray = bytes.array()
-
     if (!this.configured) {
-      val leader : Char = String(byteArr)[0]
+      val leader : Char = String(bytes)[0]
 
       if (leader != Leader.CONFIG) {
-        info { "Queued message length: ${byteArr.size}" }
+        info { "Queued message length: ${bytes.size}" }
         this.preConfigQueue.add(bytes)
         return
       }
     }
 
-    val messages: MutableList<WireObject> = this.encProvider!!.decodeBody(byteArr)
+    val messages: MutableList<WireObject> = this.encProvider!!.decodeBody(bytes)
     this.router.providerMessage(messages)
   }
 
@@ -164,7 +159,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     info { "onCloseInitiated" }
   }
 
-  override fun onClosing(code: Int, reason: String?, remote: Boolean) {
+  override fun onClosing(code: Int, reason: String?, remote: Boolean?) {
     info { "onClosing" }
   }
 
@@ -255,8 +250,8 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       this.encProvider  = null
       this.ci.provider  = null
 
-      if (this.ws != null) this.ws!!.close()
-      this.ws           = null
+      this.ws?.close()
+      this.ws = null
 
     } catch (e: Exception) {}
   }

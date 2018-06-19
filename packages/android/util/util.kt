@@ -69,6 +69,7 @@ fun <T> syncExecuteInMainThread(closure: ()->T ): T {
   }
 
   synchronized(lock) {
+    if (resp != null) return resp!!
     lock.wait()
     return resp!!
   }
