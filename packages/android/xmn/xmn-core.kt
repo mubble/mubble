@@ -50,6 +50,7 @@ object XmnError {
 
   const val errorCode           = 555
 
+  const val NetworkNotPresent   = "NetworkNotPresent"  // Network is absent
   const val ConnectionFailed    = "ConnectionFailed"   // server connect problem= server not running, no network, connection break
   const val RequestTimedOut     = "RequestTimedOut"    // ideally means api bug
   const val SendTimedOut        = "SendTimedOut"       // ideally means terribly slow connection
