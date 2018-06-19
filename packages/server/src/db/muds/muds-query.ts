@@ -21,8 +21,6 @@ import {  DatastoreTransaction
 import {  RunContextServer  }           from '../../rc-server'
 import {  Mubble }                      from '@mubble/core'
 import {  MeField,         
-          MudsManager,
-          DatastorePayload,         
           MudsEntityInfo }              from './muds-manager'
 
 import {  Muds, 
@@ -30,7 +28,9 @@ import {  Muds,
           DsRec }                       from './muds'
 
 import {  MudsBaseEntity, 
-          MudsBaseStruct }              from './muds-base-entity'
+          MudsBaseStruct, 
+          FieldAccessor}              from './muds-base-entity'
+import { MudsIo } from './muds-io';
 
 export type Comparator = '=' | '>' | '>=' | '<' | '<='
 
@@ -107,13 +107,12 @@ export class MudsQuery<T extends MudsBaseEntity> {
   private result: MudsQueryResult<T>
 
   constructor(private rc            : RunContextServer, 
-              private manager       : MudsManager,
-              private io            : Datastore | DSTransaction,
+              private io            : MudsIo,
               private ancestorKeys  : DsEntity.DatastoreKey | null,
               private entityClass   : Muds.IBaseEntity<T>
             ) {
 
-    const entityInfo = this.entityInfo = manager.getInfo(entityClass)
+    const entityInfo = this.entityInfo = io.getInfo(entityClass)
   }
 
   public select(fieldName: keyof T | KEY) {
@@ -178,8 +177,8 @@ export class MudsQuery<T extends MudsBaseEntity> {
       }
     }
 
-    const accessor = this.entityInfo.fieldMap[fieldName].accessor
-    accessor.validateType(value)
+    const meField = this.io.getReferredField(rc, fieldName, this.entityInfo.entityName) as MeField
+    meField.accessor.validateType(value)
 
     this.filters.push({fieldName, comparator, value})
     return this
@@ -232,7 +231,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
     rc.isAssert() && rc.assert(rc.getName(this), !this.result, 'Query closed for edit')
 
     if (fieldName !== KEY) {
-      this.manager.checkIndexed(this.rc, fieldName, entityName)
+      this.io.checkIndexed(this.rc, fieldName, entityName)
     }
   }
 
@@ -251,8 +250,9 @@ export class MudsQuery<T extends MudsBaseEntity> {
       order.ascending ? undefined : {descending: true})
 
     dsQuery.limit(limit)
-    this.result = new MudsQueryResult(rc, this.manager, this.entityClass, 
-                    dsQuery, await dsQuery.run())
+    this.result = new MudsQueryResult(rc, this.io, this.entityClass, 
+                    dsQuery, await dsQuery.run(), 
+                    !!(this.filters.length || this.groupBys.length))
     return this.result          
   }
 }
@@ -269,11 +269,12 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   // This is short term till we get upgrade to 'for await' 
   private iterator  : { next : (val ?: T) => Promise<{value ?: T, done: boolean}> } | null
 
-  constructor(private rc  : RunContextServer, 
-    private manager       : MudsManager,
-    private entityClass   : Muds.IBaseEntity<T>,
-    private dsQuery       : DsQuery,
-            result        : DsQueryResult) {
+  constructor(private rc      : RunContextServer, 
+    private io                : MudsIo,
+    private entityClass       : Muds.IBaseEntity<T>,
+    private dsQuery           : DsQuery,
+            result            : DsQueryResult,
+    private onlySelectedCols  : boolean) {
     this.init(result)
   }
 
@@ -301,7 +302,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
 
     const entities = []
     for (const rec of this.records) {
-      entities.push(this.manager.getRecordFromDs(this.rc, this.entityClass, rec))
+      entities.push(this.io.getRecordFromDs(this.rc, this.entityClass, rec, !this.onlySelectedCols))
     }
     return entities
   }
@@ -322,7 +323,8 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
         const done = !this.hasMore && ptr === this.records.length
         return {
             done,
-            value: done ? val : this.manager.getRecordFromDs(this.rc, this.entityClass, this.records[ptr++])
+            value: done ? val : this.io.getRecordFromDs(this.rc, this.entityClass, 
+                                  this.records[ptr++], !this.onlySelectedCols)
         }
       }
     }

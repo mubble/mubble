@@ -17,15 +17,31 @@ import {  MudsManager }          from './muds-manager'
 import {  RunContextServer }     from '../..'
 import {  GcloudEnv }            from '../../gcp/gcloud-env'
 import {  MudsTransaction, 
-          MudsDirectIo }         from './muds-io'
+          MudsDirectIo, 
+          MudsIo}         from './muds-io'
 import {  Mubble }               from '@mubble/core'
-import {  DatastoreRequest }     from '@google-cloud/datastore/request';
+import {  DatastoreRequest }     from '@google-cloud/datastore/request'
 
 export type DatastoreInt = DsEntity.DatastoreInt
 export type DatastoreKey = DsEntity.DatastoreKey
 
+export type FieldType = StringConstructor   | 
+                        BooleanConstructor  | 
+                        NumberConstructor   | 
+                        ObjectConstructor   | 
+                        ArrayConstructor    | 
+                        Muds.IBaseStruct<MudsBaseStruct>
+
+export type ArrayField = StringConstructor  | 
+                        NumberConstructor   | 
+                        Muds.IBaseStruct<MudsBaseStruct>
+
 export type DsRec = Object & {
-  [name: string]: string | number | boolean | MudsBaseStruct | Array<any>
+  [name: string]:       string              | 
+                        number              | 
+                        boolean             | 
+                        MudsBaseStruct      | 
+                        Array<string        | number | MudsBaseStruct>
 }
 
 export enum EntityType {
@@ -92,16 +108,14 @@ export class Muds {
   /**
    * * Annotation to mark a field of Muds Entity (Mandatory: one of field / indexed / embedded entity )
    * * presence=Muds.Opt, field is optional. Muds.Man means that field should atleast be set null
-   * * subtype=Simple field types can be auto detected. Multiple types need to annotated like
-   * * Muds.Subtype.string | Muds.Subtype.number etc. Array types always need to be annotated
-   * * If a Field can have multiple EmbeddedEntity types, use Subtype as Muds.Subtype.embedded
+   * * typeHint=Field type when it cannot be auto detected example Array
    * 
    * * Level: property declaration
    */
-  public static field(presence: Muds.Presence, subtype: Muds.TypeHint | Muds.BaseStruct = Muds.TypeHint.auto)
+  public static field(presence: Muds.Presence, typeHint ?: ArrayField)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
-              mandatory: presence === Muds.Man, subtype})
+              mandatory: presence === Muds.Man, typeHint})
   }
 
   /**
@@ -110,10 +124,10 @@ export class Muds {
    * * For an indexed field, when presence is changed to 'false': we will need to run data migration
    * * Level: property declaration
    */
-  public static indexed(presence:Muds.Presence, subtype: Muds.TypeHint | Muds.BaseStruct = Muds.TypeHint.auto)
+  public static indexed(presence:Muds.Presence, typeHint ?: ArrayField)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
-              mandatory: presence === Muds.Man, indexed: true, subtype})
+              mandatory: presence === Muds.Man, indexed: true, typeHint})
   }
 
   /**
@@ -122,10 +136,10 @@ export class Muds {
    * * For a unique field, presence value cannot become true, if it was false earlier
    * * Level: property declaration
    */
-  public static unique(presence:Muds.Presence, subtype: Muds.TypeHint | Muds.BaseStruct = Muds.TypeHint.auto)
+  public static unique(presence:Muds.Presence, typeHint ?: ArrayField)
                       : (target: any, propertyKey: string) => void {
     return this.manager.registerField.bind(this.manager, {
-              mandatory: presence === Muds.Man, indexed: true, unique: true, subtype})
+              mandatory: presence === Muds.Man, indexed: true, unique: true, typeHint})
   }
 
   /**
@@ -156,10 +170,6 @@ export class Muds {
   public static getIntKey(id: number | string): DatastoreInt {
     if (id === 0 || id === '0') throw('Zero is an invalid int key')
     return this.manager.getDatastore().int(id)
-  }
-
-  static getManager() {
-    return this.manager
   }
 }
 
@@ -200,24 +210,16 @@ export namespace Muds {
   export type Presence = Muds.Man | Muds.Opt
 
   export interface IBaseStruct<T extends Muds.BaseStruct> {
-    new(rc: RunContextServer, manager: MudsManager, 
+    new(rc: RunContextServer, io: MudsIo, 
         recObj ?: DsRec, fullRec ?: boolean): T
   }
 
   export interface IBaseEntity<T extends Muds.BaseEntity> {
-    new(rc: RunContextServer, manager: MudsManager, 
-          key ?: (string | DatastoreInt)[], recObj ?: DsRec, fullRec ?: boolean): T
+    new(rc: RunContextServer, io: MudsIo, ancestorKey: (string | DatastoreInt)[],
+          selfKey ?: (string | DatastoreInt), recObj ?: DsRec, fullRec ?: boolean): T
   }
 
   export const Error = Object.freeze({
     RNF: 'RECORD_NOT_FOUND'
   })
-
-  export enum TypeHint {
-    auto        = 0, // detect automatically
-    muds        = 1,
-    string      = 2,
-    number      = 4,
-    boolean     = 8
-  }
 }

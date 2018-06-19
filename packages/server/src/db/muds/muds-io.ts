@@ -17,13 +17,16 @@ import {  Mubble }                      from '@mubble/core'
 
 import {  Muds, 
           DatastoreInt, 
+          DsRec,
           DatastoreKey }                from './muds'
 import {  MudsBaseEntity, 
           MudsBaseStruct }              from './muds-base-entity'
 import {  MudsQuery }                   from './muds-query'
 import {  RunContextServer }            from '../..'
 import {  MudsManager, 
+          MeField,
           MudsEntityInfo }              from './muds-manager'
+import { MudsUtil } from './muds-util';
 
           
 /**
@@ -52,7 +55,6 @@ import {  MudsManager,
  * - A field that has multiple basic types, can it be indexed properly (will query work?)
  */
 
-
 export abstract class MudsIo {
 
   protected datastore: Datastore
@@ -69,8 +71,8 @@ export abstract class MudsIo {
    * newStruct: When you want to create a new instance of MudsStruct
    * * It is essentially new of the class with basic checks
    */
-  newStruct<T extends MudsBaseStruct>(entityClass : Muds.IBaseStruct<T>): T {
-    const struct = new entityClass(this.rc, this.manager)
+  newStruct<T extends MudsBaseStruct>(Cls: Muds.IBaseStruct<T>): T {
+    const struct = new Cls(this.rc, this)
     return struct
   }
 
@@ -81,7 +83,7 @@ export abstract class MudsIo {
   public async getExistingEntity<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                  ...keys : (string | DatastoreInt)[]): Promise<T> {
 
-    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, entityClass, keys),
+    const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
           [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
     if (!entity) throw(Muds.Error.RNF)
     return entity
@@ -93,13 +95,13 @@ export abstract class MudsIo {
   public async getEntityIfExists<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                  ...keys : (string | DatastoreInt)[]): Promise<T | undefined> {
 
-    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, entityClass, keys),
+    const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
           [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
     return entity
   }
 
   public getQueueBuilder(): QueueBuilder {
-    return new QueueBuilder(this.rc, this.manager)
+    return new QueueBuilder(this.rc, this)
   }
 
   public async getEntities(queueBuilder: QueueBuilder): Promise< (MudsBaseEntity | undefined)[]> {
@@ -107,13 +109,13 @@ export abstract class MudsIo {
   }
 
   private async getEntitiesInternal<T extends MudsBaseEntity>(
-    ...reqs: IEntityKey<T>[]): Promise< (T | undefined)[]> {
+                                    ...reqs: IEntityKey<T>[]): Promise< (T | undefined)[]> {
 
     const dsKeys  : DatastoreKey[] = [],
           arResp  : (T | undefined)[] = []
 
     for (const {entityClass, ancestorKeys, selfKey} of reqs) {
-      dsKeys.push(this.manager.buildKey(this.rc, entityClass, 
+      dsKeys.push(this.buildKeyForDs(this.rc, entityClass, 
                   ancestorKeys, selfKey))
     }
 
@@ -123,8 +125,8 @@ export abstract class MudsIo {
 
     for (const result of results) {
       const rawKeys     = (result as any)[this.datastore.KEY] as DatastoreKey,
-            entityClass = this.manager.getInfo(rawKeys.kind).cons,
-            keysFromDs  = this.manager.extractKeyFromDs(this.rc, entityClass, result),
+            entityClass = this.getInfo(rawKeys.kind).cons,
+            keysFromDs  = this.extractKeyFromDs(this.rc, entityClass, result),
             strKey      = JSON.stringify(keysFromDs)
 
       console.log(strKey)
@@ -133,10 +135,7 @@ export abstract class MudsIo {
 
     for (const {entityClass, ancestorKeys, selfKey} of reqs) {
 
-      const keys   = lo.clone(ancestorKeys)
-      keys.push(selfKey)
-
-      const strKey = JSON.stringify(keys),
+      const strKey = JSON.stringify({ancestorKeys, selfKey}),
             result = resultObj[strKey]
             
       if (!result) {
@@ -144,7 +143,7 @@ export abstract class MudsIo {
         continue
       }
       delete resultObj[strKey]
-      arResp.push(new entityClass(this.rc, this.manager, keys, result as any, true))
+      arResp.push(new entityClass(this.rc, this, ancestorKeys, selfKey, result as any, true))
     }
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), lo.isEmpty(resultObj))
@@ -160,9 +159,8 @@ export abstract class MudsIo {
    */
   async getForUpsert<T extends Muds.BaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                     ...keys : (string | DatastoreInt)[]): Promise<T> {
-    let entity = await this.getEntityIfExists(entityClass, ...keys)
-    if (!entity) entity = new entityClass(this.rc, this.manager, keys)
-    return entity
+    return (await this.getEntityIfExists(entityClass, ...keys)) || 
+           this.getForInsert(entityClass, ...keys)
   }
 
   /**
@@ -173,8 +171,8 @@ export abstract class MudsIo {
   getForInsert<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
                 ...keys : (string | DatastoreInt)[]): T {
 
-    const entity = new entityClass(this.rc, this.manager, keys.length ? keys : undefined)
-    return entity
+    const {ancestorKeys, selfKey} = this.separateKeysForInsert(this.rc, entityClass, keys)
+    return new entityClass(this.rc, this, ancestorKeys, selfKey)
   }
 
   enqueueForUpsert(...entities: MudsBaseEntity[]) {
@@ -191,7 +189,7 @@ export abstract class MudsIo {
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.isModified(),
         `${entity.getLogId()} Skipping entity as it is not modified`)
 
-      dsRecs.push(this.manager.getRecordForUpsert(this.rc, entity))
+      dsRecs.push(entity.convertForUpsert(this.rc))
     }
 
     /**
@@ -206,6 +204,7 @@ export abstract class MudsIo {
      */
 
     const results = await exec.upsert(dsRecs)
+    
     for (const [index, result] of results.entries()) {
 
       const entity           = entities[index],
@@ -221,7 +220,7 @@ export abstract class MudsIo {
 
   public async delete(...entities: (MudsBaseEntity)[]): Promise<void> {
 
-    const qb = new QueueBuilder(this.rc, this.manager)
+    const qb = new QueueBuilder(this.rc, this)
     for (const entity of entities) {
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.hasValidKey())
       qb.add(entity.getInfo().cons, ...entity.getFullKey())
@@ -240,7 +239,7 @@ export abstract class MudsIo {
           dsRecs   = []
 
     for (const {entityClass, ancestorKeys, selfKey} of reqs) {
-      dsRecs.push(this.manager.buildKey(this.rc, entityClass, ancestorKeys, selfKey))
+      dsRecs.push(this.buildKeyForDs(this.rc, entityClass, ancestorKeys, selfKey))
     }
     const result = await exec.delete(dsRecs)
     /*
@@ -254,13 +253,158 @@ export abstract class MudsIo {
     Abstract functions
   -----------------------------------------------------------------------------*/
   protected abstract getExec(): Datastore | DSTransaction
-  
+  abstract createQuery(entityName: string): DsQuery
+
 
   /* ---------------------------------------------------------------------------
    P R I V A T E    C O D E    S E C T I O N     B E L O W
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
+  getInfo(entityClass:  Function                         |
+                        Muds.IBaseStruct<MudsBaseStruct> | 
+                        Muds.IBaseEntity<MudsBaseEntity> | 
+                        string): MudsEntityInfo {
+    return this.manager.getInfo(entityClass)
+  }
+
+  separateKeys<T extends Muds.BaseEntity>(rc: RunContextServer, 
+    entityClass : Muds.IBaseEntity<T>, 
+    keys        : (string | DatastoreInt) []) {
+
+    const {ancestorKeys, selfKey} = this.separateKeysForInsert(rc, entityClass, keys)
+    if (selfKey === undefined) {
+      throw('Self key is not set')
+    } else {
+      return {ancestorKeys, selfKey}
+    }
+  }
+
+  separateKeysForInsert<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                  entityClass : Muds.IBaseEntity<T>, 
+                  keys        : (string | DatastoreInt) []) {
+
+    const entityInfo    = this.getInfo(entityClass),
+          ancestorsInfo = entityInfo.ancestors
+
+    rc.isAssert() && rc.assert(rc.getName(this), keys.length >= ancestorsInfo.length)
+    const ancestorKeys = []
+
+    for (const [index, info] of ancestorsInfo.entries()) {
+      ancestorKeys.push(this.checkKeyType(rc, keys[index], info))
+    }
+
+    let selfKey
+    if (keys.length === ancestorsInfo.length) {
+      rc.isAssert() && rc.assert(rc.getName(this), 
+        entityInfo.keyType === Muds.Pk.None || entityInfo.keyType === Muds.Pk.Auto)
+      selfKey = undefined
+    } else {
+      selfKey = this.checkKeyType(rc, keys[keys.length - 1], entityInfo)
+    }
+
+    Object.freeze(ancestorKeys)
+    return {ancestorKeys, selfKey}
+  }
+
+  private checkKeyType(rc: RunContextServer, key: DatastoreInt | string, info: MudsEntityInfo) {
+
+    const strKey = info.keyType === Muds.Pk.String ? key : (key as DatastoreInt).value 
+    rc.isAssert() && rc.assert(rc.getName(this), strKey && 
+      typeof(strKey) === 'string')
+    return key
+  }
+
+  buildKeyForDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                                      entityClass : Muds.IBaseEntity<T>, 
+                                      ancestorKeys: (string | DatastoreInt) [], 
+                                      selfKey: string | DatastoreInt | undefined) {
+
+    const keyPath: (string | DatastoreInt)[] = [],
+          entityInfo = this.getInfo(entityClass)
+
+    for (const [index, ancestor] of entityInfo.ancestors.entries()) {
+      keyPath.push(ancestor.entityName, ancestorKeys[index])
+    }
+
+    keyPath.push(entityInfo.entityName)
+    if (selfKey !== undefined) keyPath.push(selfKey)
+
+    // console.log(`keyPath ${JSON.stringify(keyPath)}`)
+    return this.datastore.key(keyPath)
+  }
+
+  extractKeyFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                  entityClass : Muds.IBaseEntity<T>, 
+                  rec         : Mubble.uObject<any>) {
+
+    const entityInfo    = this.getInfo(entityClass),
+          ancestorsInfo = entityInfo.ancestors,
+          ancestorKeys  = [] as (string | DatastoreInt)[],
+          key           = rec[this.datastore.KEY] as DatastoreKey,
+          keyPath       = key.path
+
+    rc.isAssert() && rc.assert(rc.getName(this), key.kind === entityInfo.entityName)
+    rc.isAssert() && rc.assert(rc.getName(this), 
+      entityInfo.keyType === Muds.Pk.String ? key.name : key.id)
+    rc.isAssert() && rc.assert(rc.getName(this), 
+      ancestorsInfo.length === (keyPath.length / 2) - 1)
+
+    for (let index = 0; index < keyPath.length - 2; index = index + 2) {
+      const kind = keyPath[index],
+            subk = keyPath[index + 1],
+            anc  = ancestorsInfo[index / 2]
+
+      rc.isAssert() && rc.assert(rc.getName(this), kind === anc.entityName)
+      if (anc.keyType === Muds.Pk.String) {
+        rc.isAssert() && rc.assert(rc.getName(this), typeof(subk) === 'string')
+        ancestorKeys.push(subk as string)
+      } else if (typeof(subk) === 'string') {
+        ancestorKeys.push(Muds.getIntKey(subk))
+      } else {
+        rc.isAssert() && rc.assert(rc.getName(this), typeof(subk) === 'object' && subk.value)
+        ancestorKeys.push(subk as DatastoreInt)
+      }
+    }
+
+    const selfKey = entityInfo.keyType === Muds.Pk.String ? key.name as string : 
+                    Muds.getIntKey(key.id as string)
+    return {ancestorKeys, selfKey}
+  }
+
+  getRecordFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                    entityClass : Muds.IBaseEntity<T>, 
+                    record: Mubble.uObject<any>, fullRec: boolean): T {
+
+    const {ancestorKeys, selfKey} = this.extractKeyFromDs(rc, entityClass, record)
+    return new entityClass(rc, this, ancestorKeys, selfKey, record, fullRec)
+  }
+
+  verifyAncestorKeys<T extends Muds.BaseEntity>(rc: RunContextServer, 
+                      entityClass : Muds.IBaseEntity<T>, 
+                      ancestorKeys: (string | DatastoreInt) []) {
+
+    const entityInfo    = this.getInfo(entityClass),
+          ancestorsInfo = entityInfo.ancestors,
+          dsKeys        = []
+
+    rc.isAssert() && rc.assert(rc.getName(this), ancestorsInfo.length, 
+      'It is mandatory to have ancestorKeys for querying with-in transaction')
+
+    for (const [index, info] of ancestorsInfo.entries()) {
+      dsKeys.push(info.entityName, this.checkKeyType(rc, ancestorKeys[index], info))
+    }
+
+    return this.datastore.key(dsKeys)
+  }
+
+  checkIndexed(rc: RunContextServer, dottedStr: string, entityName: string) {
+    MudsUtil.checkIndexed(rc, this.manager.getInfoMap(), dottedStr, entityName)
+  }
+
+  getReferredField(rc: RunContextServer, dottedStr: string, entityName: string) {
+    return MudsUtil.getReferredField(rc, this.manager.getInfoMap(), dottedStr, entityName)
+  }
 
 }
 
@@ -270,7 +414,11 @@ export class MudsDirectIo extends MudsIo {
   }
 
   public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>): MudsQuery<T> {
-    return new MudsQuery(this.rc, this.manager, this.getExec(), null, entityClass)
+    return new MudsQuery(this.rc, this, null, entityClass)
+  }
+
+  createQuery(entityName: string) {
+    return this.datastore.createQuery(entityName)
   }
   
 }
@@ -296,14 +444,19 @@ export class MudsTransaction extends MudsIo {
           ...otherAncestorKeys  : (string | DatastoreInt)[]): MudsQuery<T> {
 
     otherAncestorKeys.unshift(firstAncestorKey) 
-    return new MudsQuery(this.rc, this.manager, this.getExec(), 
-      this.manager.verifyAncestorKeys(this.rc, entityClass, otherAncestorKeys),
+    return new MudsQuery(this.rc, this, 
+      this.verifyAncestorKeys(this.rc, entityClass, otherAncestorKeys),
       entityClass)
   }
 
   protected getExec(): Datastore | DSTransaction {
     return this.transaction
   }
+
+  createQuery(entityName: string) {
+    return this.transaction.createQuery(entityName)
+  }
+
 
   private doCallback() {
     this.callback(this, this.now)
@@ -325,12 +478,12 @@ export class QueueBuilder {
   private reqObj: Mubble.uObject<string> = {}
 
   constructor(protected rc: RunContextServer, 
-              protected manager: MudsManager) {}
+              protected io: MudsIo) {}
 
   add<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
     ...keys : (string | DatastoreInt)[]) {
 
-    const {ancestorKeys, selfKey} = this.manager.separateKeys(this.rc, entityClass, keys),
+    const {ancestorKeys, selfKey} = this.io.separateKeys(this.rc, entityClass, keys),
           req: IEntityKey<T>      = {entityClass, ancestorKeys, selfKey},
           reqStr                  = JSON.stringify(req)
       

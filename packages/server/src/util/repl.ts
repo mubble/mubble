@@ -10,6 +10,8 @@
 import * as repl                    from 'repl'
 import * as path                    from 'path'
 import * as fs                      from 'fs'
+import * as lo                      from 'lodash'
+
 import { 
         ConnectionInfo,
         WireObject,
@@ -53,6 +55,7 @@ export abstract class Repl {
 
       context.fs       = fs
       context.path     = path
+      context.lo       = lo
       context.$        = this
       context.rc       = this.rc
       context.ci       = this.ci

@@ -8,13 +8,11 @@
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
 import * as Datastore                   from '@google-cloud/datastore'
-import * as DsEntity                    from '@google-cloud/datastore/entity'
 import * as lo                          from 'lodash'
 
 import {  Muds, 
-          DatastoreInt, 
-          DatastoreKey, 
-          DsRec, 
+          FieldType,
+          ArrayField,
           EntityType }                  from "./muds"
 import {  MudsBaseEntity, 
           MudsBaseStruct, 
@@ -22,16 +20,13 @@ import {  MudsBaseEntity,
 import {  Mubble }                      from '@mubble/core'
 import {  GcloudEnv }                   from '../../gcp/gcloud-env'
 import {  RunContextServer }            from '../..'
+import { MudsUtil } from './muds-util';
 
 export class MeField {
   accessor: FieldAccessor
   constructor(readonly fieldName    : string,
-              readonly fieldType    : StringConstructor  | 
-                                      BooleanConstructor | 
-                                      NumberConstructor  | 
-                                      ObjectConstructor  | 
-                                      ArrayConstructor   | 
-                                      Muds.IBaseStruct<MudsBaseStruct>,
+              readonly fieldType    : FieldType,
+              readonly typeHint     : ArrayField | undefined, 
               readonly mandatory    : boolean,
               readonly indexed      : boolean,
               readonly unique       : boolean
@@ -56,29 +51,16 @@ export class MudsEntityInfo {
   }
 }
 
-export type DatastorePayload = {
-  key                 : DsEntity.DatastoreKey
-  data                : DsRec
-  excludeFromIndexes  : string[]
-}
-
 export class MudsManager {
 
   private entityInfoMap       : Mubble.uObject<MudsEntityInfo> = {}
   private datastore           : Datastore
   private entityNames         : string[]
 
-  // Temporary members while store schema is built
-  private tempAncestorMap     : Mubble.uObject<{new(): Muds.BaseEntity}[]> | null = {}
-  private tempEntityFieldsMap : Mubble.uObject<Mubble.uObject<MeField>> | null = {}
-  private tempCompIndices     : Mubble.uObject<Mubble.uObject<Muds.Asc | Muds.Dsc>[]> | null = {}
-
-  public getInfo(entityClass: Function | {new (): MudsBaseEntity} | string): MudsEntityInfo {
-
-    const entityName = typeof entityClass === 'string' ? entityClass : entityClass.name
-    return this.entityInfoMap[entityName]
-  }
-
+  // Temporary members while store schema is built, they are removed after init
+  private tempAncestorMap     : Mubble.uObject<ReadonlyArray<{new(): Muds.BaseEntity}>> = {}
+  private tempEntityFieldsMap : Mubble.uObject<Mubble.uObject<MeField>> = {}
+  private tempCompIndices     : Mubble.uObject<Mubble.uObject<Muds.Asc | Muds.Dsc>[]> = {}
 
   /* ---------------------------------------------------------------------------
    P R I V A T E    C O D E    S E C T I O N     B E L O W
@@ -89,150 +71,112 @@ export class MudsManager {
     return this.datastore
   }
 
+  getInfo(entityClass:  Function                         |
+                        Muds.IBaseStruct<MudsBaseStruct> | 
+                        Muds.IBaseEntity<MudsBaseEntity> | 
+                        string): MudsEntityInfo {
+
+    const entityName = typeof entityClass === 'string' ? entityClass : entityClass.name
+    return this.entityInfoMap[entityName]
+  }
+
+  getInfoMap() {
+    return this.entityInfoMap
+  }
+
   registerEntity <T extends Muds.BaseEntity> (version: number, 
                 pkType: Muds.Pk, entityType: EntityType, cons: {new(): T}) {
 
-    if (!this.tempAncestorMap) throw(`Trying to register entity ${cons.name
-      } after Muds.init(). Forgot to add to entities collection?`)
+    this.checkInitStatus('registerEntity')
 
-    const entityName = cons.name  
-
-    const old = this.entityInfoMap[entityName]
-    if (old) throw(`Double annotation of entity for ${entityName}?`)
-                                
-    const info = new MudsEntityInfo(cons, version, pkType, entityType)
-    this.entityInfoMap[info.entityName] = info
+    const entityName = cons.name
+    if (this.entityInfoMap[entityName]) throw(`Double annotation of entity for ${entityName}?`)
+    this.entityInfoMap[entityName] = new MudsEntityInfo(cons, version, pkType, entityType)
   }
 
   registerAncestors <T extends Muds.BaseEntity> (ancestors: {new(): Muds.BaseEntity}[], 
                     cons: {new(): T}) {
 
-    if (!this.tempAncestorMap) throw(`Trying to register entity ${cons.name
-      } after Muds.init(). Forgot to add to entities collection?`)
+    this.checkInitStatus('registerAncestors')
 
-    const info = this.tempAncestorMap[cons.name]
-    if (info) throw(`Double annotation of ancestors for ${cons.name}?`)
-
-    Object.freeze(ancestors)
-    this.tempAncestorMap[cons.name] = ancestors
+    const entityName = cons.name
+    if (this.tempAncestorMap[entityName]) throw(`Double annotation of ancestors for ${entityName}?`)
+    this.tempAncestorMap[entityName] = Object.freeze(ancestors)
   }
 
   registerCompositeIndex <T extends Muds.BaseEntity> (idxObj: Mubble.uObject<Muds.Asc | Muds.Dsc>, 
                     cons: {new(): T}) {
 
-    if (!this.tempCompIndices) throw(`Trying to register entity ${cons.name
-      } after Muds.init(). Forgot to add to entities collection?`)
+    this.checkInitStatus('registerCompositeIndex')
 
-    if (!this.tempCompIndices[cons.name]) this.tempCompIndices[cons.name] = []
+    const entityName = cons.name,
+          strIdx     = JSON.stringify(idxObj),
+          arCompIdx  = this.tempCompIndices[entityName] || (this.tempCompIndices[cons.name] = [])
 
-    const ci = this.tempCompIndices[cons.name]
-    ci.push(idxObj)
-    console.log(idxObj)
-    Object.freeze(idxObj)
+    if (arCompIdx.find(item => JSON.stringify(item) === strIdx)) {
+      throw(`Double annotation of composite index ${strIdx} for ${entityName}?`)
+    }
+    arCompIdx.push(Object.freeze(idxObj))
   }
 
-  registerField({mandatory = false, subtype = Muds.TypeHint.auto, indexed = false, 
+  registerField({mandatory = false, typeHint = undefined, indexed = false, 
       unique = false}, target: any, fieldName: string) {
 
-    const entityName    = target.constructor.name
+    this.checkInitStatus('registerField')
 
-    if (!this.tempAncestorMap) throw(`Trying to register entity ${entityName
-      } after Muds.init(). Forgot to add to entities collection?`)
-
-    const fieldType = Reflect.getMetadata('design:type', target, fieldName)
+    const entityName  = target.constructor.name,
+          fieldType   = Reflect.getMetadata('design:type', target, fieldName)
     
-    this.validateType(entityName, fieldName, fieldType)
-    if (fieldType === Object || fieldType === Array) {
-      if (indexed || unique) throw(`${entityName}/${fieldName}: Array or object cannot be indexed`)
+    if (fieldType === Array) {
+      this.validateType(entityName, fieldName, typeHint, true)
+    } else {
+      this.validateType(entityName, fieldName, fieldType)
+    }
+    
+    if (fieldType === Object) {
+      if (indexed) throw(`${entityName}/${fieldName}: Plain objects cannot be indexed`)
     }
 
-    if (!this.tempEntityFieldsMap) throw('Code bug')
-    let efm = this.tempEntityFieldsMap[entityName]
-    if (!efm) this.tempEntityFieldsMap[entityName] = efm = {}
-    if (efm[fieldName]) throw(`${entityName}/${fieldName}: has been annotated twice?`)
-
-    const field = new MeField(fieldName, fieldType, 
-                              mandatory, indexed, unique)
+    const tempMap   = this.tempEntityFieldsMap,
+          entityObj = tempMap[entityName] || (tempMap[entityName] = {}),
+          field     = new MeField(fieldName, fieldType, typeHint, mandatory, indexed, unique)
 
     field.accessor = new FieldAccessor(entityName, fieldName, field)
-    efm[fieldName] = Object.freeze(field)
+    if (entityObj[fieldName]) throw(`${entityName}/${fieldName}: has been annotated twice?`)
+
+    entityObj[fieldName] = Object.freeze(field)
     return field.accessor.getAccessor()
   }
 
-  private validateType(entityName: string, fieldName: string, fieldType: any) {
-
-    if ([String, Boolean, Number].indexOf(fieldType) !== -1) return
-    if (MudsBaseStruct.prototype.isPrototypeOf(fieldType.prototype)) {
-      if (fieldType === MudsBaseEntity || fieldType === MudsBaseStruct) throw(`${entityName}/${fieldName
-      }: Cannot be Muds.BaseEntity/Muds.BaseStruct. Use drived class of Muds.BaseStruct`)
-
-      if (MudsBaseEntity.prototype.isPrototypeOf(fieldType.prototype)) throw(`${entityName}/${fieldName
-        }: Cannot be of type Muds.BaseEntity. Use Muds.BaseStruct`)
-      return  
+  private checkInitStatus(actName: string) {
+    if (!this.tempEntityFieldsMap) {
+      throw(`Trying to ${actName} after Muds.init(). Forgot to add to entities collection?`)
     }
-    if (fieldType === Object || fieldType === Array) return // allowing generic object and array
-
-    throw(`${entityName}/${fieldName} unknown type: ${fieldType.name}`)
   }
 
+  private validateType(entityName: string, fieldName: string, fieldType: any, insideArray ?: boolean) {
 
-  // private isValidSubtype(entityName: string, fieldName: string, fieldType: any, subtype: Muds.TypeHint) {
+    // can happen only for array
+    const id = `${entityName}/${fieldName}: `
+    if (!fieldType) throw(id + 'typeHint is mandatory')
 
-  //   const logStr = `${entityName}/${fieldName}`,
-  //         Stype  = Muds.TypeHint
+    if ([String, Number].indexOf(fieldType) !== -1) return
+    if (!insideArray && [Boolean, Object].indexOf(fieldType) !== -1) return
 
-  //   if (!fieldType) throw(`${logStr}: Null and undefined type fields are not allowed`)
+    if (MudsBaseStruct.prototype.isPrototypeOf(fieldType.prototype)) {
+      if (fieldType === MudsBaseEntity || fieldType === MudsBaseStruct) throw(id + 
+        'Cannot be Muds.BaseEntity/Muds.BaseStruct. Use drived class of Muds.BaseStruct')
 
-  //   if ((fieldType === Object || fieldType === Array) && subtype === Stype.auto) {
-  //     throw(`${logStr} of type ${fieldType}, cannot decipher subtype. Please provide`)
-  //   }
-
-  //   let targetSubtype: Muds.TypeHint = Stype.auto,
-  //       embeddedCls
-    
-  //   if (fieldType === Number)        targetSubtype = Stype.number
-  //   else if (fieldType === String)   targetSubtype = Stype.string
-  //   else if (fieldType === Boolean)  targetSubtype = Stype.boolean
-  //   else if (Muds.BaseEntity.isPrototypeOf(fieldType.prototype)) {
-  //     embeddedCls   = fieldType
-  //     targetSubtype = Stype.embedded
-  //     fieldType     = Object
-  //   }
-
-  //   if (targetSubtype !== Stype.auto) {
-  //     if (subtype === Stype.auto) {
-  //       subtype = targetSubtype
-  //     } else if (subtype !== targetSubtype) {
-  //       throw(`For ${logStr} of type: ${fieldType}, subtype ${subtype} is invalid`)
-  //     }
-  //   } else {
-  //     if (subtype === Stype.auto) {
-  //       throw(`For ${logStr} of type: ${fieldType}, it is mandatory to give subtype. 
-  //         We cannot decipher it automatically`)
-  //     }
-
-  //     const isEmbedded = subtype & Stype.embedded,
-  //           isBasic    = subtype & (Stype.boolean | Stype.number | Stype.string)
-
-  //     if (isEmbedded ^ isBasic) throw(`${logStr}: Invalid subtype: ${subtype
-  //       } subtype should either be embedded or basic`)
-
-  //     if (isBasic && fieldType === Array) {
-  //       if (!(subtype === Stype.boolean || subtype === Stype.number || 
-  //           subtype === Stype.string)) throw(`${logStr}: Array cannot have mixed 
-  //             basic subtypes`)
-  //     }
-  //   }
-
-  //   return fieldType
-  // }
+      if (MudsBaseEntity.prototype.isPrototypeOf(fieldType.prototype)) throw(id + 
+        'Cannot be of type Muds.BaseEntity. Use Muds.BaseStruct')
+      return  
+    }
+    throw(`${id}unknown type: ${fieldType.name}`)
+  }
 
   init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
 
-    if (this.entityNames || 
-        !this.tempAncestorMap ||
-        !this.tempEntityFieldsMap ||
-        !this.tempCompIndices) throw(`Second attempt at Muds.init()?`)
+    if (!this.tempEntityFieldsMap) throw(`Second attempt at Muds.init()?`)
 
     this.entityNames = Object.keys(this.entityInfoMap)
 
@@ -243,14 +187,16 @@ export class MudsManager {
             compIndices = this.extractFromMap(this.tempCompIndices, entityName),
             entityInfo  = this.entityInfoMap[entityName]
 
-      if (ancestors || fieldsMap || compIndices) rc.isAssert() && rc.assert(rc.getName(this), 
-        entityInfo.entityType !== EntityType.Dummy,  `dummy cannot have any other annotation ${entityName}?`)
-
-        entityInfo.entityType !== EntityType.Dummy && rc.isAssert() && rc.assert(rc.getName(this), fieldsMap, 
-        `no fields found for ${entityName}?`)
+      if (entityInfo.entityType === EntityType.Dummy) {
+        rc.isAssert() && rc.assert(rc.getName(this), !(ancestors || fieldsMap || compIndices), 
+          `dummy cannot have any other annotation ${entityName}?`)
+      } else {
+        rc.isAssert() && rc.assert(rc.getName(this), fieldsMap, `no fields found for ${entityName}?`)
+      }
 
       if (ancestors) this.valAndProvisionAncestors(rc, ancestors, entityInfo)
 
+      // As fields are readonly, info is copied into them
       Object.assign(entityInfo.fieldMap, fieldsMap)
       entityInfo.fieldNames.push(...Object.keys(entityInfo.fieldMap))
 
@@ -280,13 +226,14 @@ export class MudsManager {
                                     ancestors: {new(): Muds.BaseEntity}[], 
                                     entityInfo: MudsEntityInfo) {
 
+    const id = `valAndProvisionAncestors ${entityInfo.entityName}:`
     for (const ancestor of ancestors) {
       const ancestorInfo = this.entityInfoMap[ancestor.name]
       rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo, 
-        `Missing entity annotation on ${ancestor.name}?`)
+        `${id} Missing dummy/entity annotation on ${ancestor.name}?`)
 
       rc.isAssert() && rc.assert(rc.getName(this), ancestorInfo.entityType !== EntityType.Struct, 
-        `${entityInfo.entityName}: Cannot have Embedded entity ${ancestor.name} as ancestor?`)
+        `${id}: Cannot have struct ${ancestor.name} as ancestor?`)
         
       entityInfo.ancestors.push(ancestorInfo)
     }
@@ -297,11 +244,9 @@ export class MudsManager {
                                       entityInfo: MudsEntityInfo) {
 
     for (const compIdx of compIndices) {
-      const fields = Object.keys(compIdx)
-      for (const field of fields) {
-        const me = entityInfo.fieldMap[field]
-        rc.isAssert() && rc.assert(rc.getName(this), me && me.indexed,
-          `Invalid field or field not indexed ${entityInfo.entityName}/${field}`)
+      const idxs = Object.keys(compIdx)
+      for (const idx of idxs) {
+        MudsUtil.checkIndexed(rc, this.entityInfoMap, idx, entityInfo.entityName)
       }
       entityInfo.compositeIndices.push(compIdx)
     }
@@ -312,23 +257,29 @@ export class MudsManager {
 
     for (const entityName of this.entityNames) {
       const info = this.entityInfoMap[entityName]
+
       for (const fieldName of info.fieldNames) {
-        const field = info.fieldMap[fieldName]
+        const me = info.fieldMap[fieldName],
+              cls = MudsUtil.getStructClass(me)
 
-        if (MudsBaseStruct.prototype.isPrototypeOf(field.fieldType.prototype)) {
+        if (cls) {
 
-          const structName    = field.fieldType.name,
-                structIndexed = this.isStructIndexed(rc, structName, entityName),
-                strIndexed    = (structIndexed ? '' : 'un') + 'indexed'
+          const structName    = cls.name,
+                indexedFields = this.areFieldsIndexed(rc, structName, entityName),
+                uniqueField   = this.hasUniqueField(rc, structName, entityName),
+                strIndexed    = (indexedFields ? '' : 'un') + 'indexed'
 
-          rc.isAssert() && rc.assert(rc.getName(this), !(Number(field.indexed) ^ Number(structIndexed)),
+          rc.isAssert() && rc.assert(rc.getName(this), !(Number(me.indexed) ^ Number(indexedFields)),
             `${entityName}/${fieldName} should be '${strIndexed}' as struct is '${strIndexed}'`)
+
+          uniqueField && rc.isAssert() && rc.assert(rc.getName(this), me.fieldType !== Array,
+            `${entityName}/${fieldName} array cannot have unique members`)
         }
       }
     }
   }
 
-  private isStructIndexed(rc: RunContextServer, structName: string, entityName: string) {
+  private areFieldsIndexed(rc: RunContextServer, structName: string, entityName: string) {
     const structInfo = this.entityInfoMap[structName]
     rc.isAssert() && rc.assert(rc.getName(this), structInfo,
       `${structName}' is not annotated as MudsStruct. Used in ${entityName}`)
@@ -339,6 +290,19 @@ export class MudsManager {
     }
     return false
   }
+
+  private hasUniqueField(rc: RunContextServer, structName: string, entityName: string) {
+    const structInfo = this.entityInfoMap[structName]
+    rc.isAssert() && rc.assert(rc.getName(this), structInfo,
+      `${structName}' is not annotated as MudsStruct. Used in ${entityName}`)
+
+    for (const sf of structInfo.fieldNames) {
+      const sfm = structInfo.fieldMap[sf]
+      if (sfm.unique) return true
+    }
+    return false
+  }
+
 
   private finalizeDataStructures(rc: RunContextServer) {
 
@@ -355,210 +319,4 @@ export class MudsManager {
     Object.freeze(this.entityInfoMap)
     Object.freeze(this)
   }
-  
-  /* ---------------------------------------------------------------------------
-     I N T E R N A L   U T I L I T Y    F U N C T I O N S
-  -----------------------------------------------------------------------------*/
-  separateKeys<T extends Muds.BaseEntity>(rc: RunContextServer, 
-    entityClass : Muds.IBaseEntity<T>, 
-    keys        : (string | DatastoreInt) []) {
-
-    const {ancestorKeys, selfKey} = this.separateKeysForInsert(rc, entityClass, keys)
-    if (selfKey === undefined) {
-      throw('Self key is not set')
-    } else {
-      return {ancestorKeys, selfKey}
-    }
-  }
-
-  separateKeysForInsert<T extends Muds.BaseEntity>(rc: RunContextServer, 
-                  entityClass : Muds.IBaseEntity<T>, 
-                  keys        : (string | DatastoreInt) []) {
-
-    const entityInfo    = this.getInfo(entityClass),
-          ancestorsInfo = entityInfo.ancestors
-
-    rc.isAssert() && rc.assert(rc.getName(this), keys.length >= ancestorsInfo.length)
-    const ancestorKeys = []
-
-    for (const [index, info] of ancestorsInfo.entries()) {
-      ancestorKeys.push(this.checkKeyType(rc, keys[index], info))
-    }
-
-    let selfKey
-    if (keys.length === ancestorsInfo.length) {
-      rc.isAssert() && rc.assert(rc.getName(this), 
-        entityInfo.keyType === Muds.Pk.None || entityInfo.keyType === Muds.Pk.Auto)
-      selfKey = undefined
-    } else {
-      selfKey = this.checkKeyType(rc, keys[keys.length - 1], entityInfo)
-    }
-
-    Object.freeze(ancestorKeys)
-    return {ancestorKeys, selfKey}
-  }
-
-  private checkKeyType(rc: RunContextServer, key: DatastoreInt | string, info: MudsEntityInfo) {
-
-    const strKey = info.keyType === Muds.Pk.String ? key : (key as DatastoreInt).value 
-    rc.isAssert() && rc.assert(rc.getName(this), strKey && 
-      typeof(strKey) === 'string')
-    return key
-  }
-
-  buildKey<T extends Muds.BaseEntity>(rc: RunContextServer, 
-                                      entityClass : Muds.IBaseEntity<T>, 
-                                      ancestorKeys: (string | DatastoreInt) [], 
-                                      selfKey: string | DatastoreInt | undefined) {
-
-    const keyPath: (string | DatastoreInt)[] = [],
-          entityInfo = this.getInfo(entityClass)
-
-    for (const [index, ancestor] of entityInfo.ancestors.entries()) {
-      keyPath.push(ancestor.entityName, ancestorKeys[index])
-    }
-
-    keyPath.push(entityInfo.entityName)
-    if (selfKey !== undefined) keyPath.push(selfKey)
-
-    // console.log(`keyPath ${JSON.stringify(keyPath)}`)
-    return this.datastore.key(keyPath)
-  }
-
-  extractKeyFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
-                  entityClass : Muds.IBaseEntity<T>, 
-                  rec         : Mubble.uObject<any>) : (string | DatastoreInt)[] {
-
-    const entityInfo    = this.getInfo(entityClass),
-          ancestorsInfo = entityInfo.ancestors,
-          arKey         = [] as (string | DatastoreInt)[],
-          key           = rec[this.datastore.KEY] as DatastoreKey,
-          keyPath       = key.path
-
-    rc.isAssert() && rc.assert(rc.getName(this), 
-      key.kind === entityInfo.entityName)
-    rc.isAssert() && rc.assert(rc.getName(this), 
-      entityInfo.keyType === Muds.Pk.String ? key.name : key.id)
-    rc.isAssert() && rc.assert(rc.getName(this), 
-      ancestorsInfo.length === (keyPath.length / 2) - 1)
-
-    for (let index = 0; index < keyPath.length - 2; index = index + 2) {
-      const kind = keyPath[index],
-            subk = keyPath[index + 1],
-            anc  = ancestorsInfo[index / 2]
-
-      rc.isAssert() && rc.assert(rc.getName(this), 
-          kind === anc.entityName)
-      if (anc.keyType === Muds.Pk.String) {
-        rc.isAssert() && rc.assert(rc.getName(this), typeof(subk) === 'string')
-        arKey.push(subk as string)
-      } else if (typeof(subk) === 'string') {
-        arKey.push(Muds.getIntKey(subk))
-      } else {
-        rc.isAssert() && rc.assert(rc.getName(this), typeof(subk) === 'object' && subk.value)
-        arKey.push(subk as DatastoreInt)
-      }
-    }
-    arKey.push(entityInfo.keyType === Muds.Pk.String ? key.name as string : 
-      Muds.getIntKey(key.id as string))
-    return arKey
-  }
-
-  getRecordFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
-                    entityClass : Muds.IBaseEntity<T>, 
-                    record: Mubble.uObject<any>): T {
-
-    const keys = this.extractKeyFromDs(rc, entityClass, record)
-    return new entityClass(rc, this, keys, record)
-  }
-
-  getRecordForUpsert(rc: RunContextServer, entity: MudsBaseEntity) {
-
-    const entityInfo    = entity.getInfo(),
-          ancestorKeys  = entity.getAncestorKey(), 
-          selfKey       = entity.getSelfKey(),
-          ancCount      = entityInfo.ancestors.length
-
-    // Entity does not allow wrong types to be inserted      
-    rc.isAssert() && rc.assert(rc.getName(this), ancCount ? ancCount === ancestorKeys.length : 
-          !ancestorKeys || ancestorKeys.length === 0)
-
-    const fieldNames : string[]         = entityInfo.fieldNames,
-          dsRec      : DatastorePayload = {
-            key                 : this.buildKey(rc, entityInfo.cons, ancestorKeys, selfKey),
-            data                : {},
-            excludeFromIndexes  : []
-          }
-
-    for (const fieldName of fieldNames) {
-      const accessor  = entity.getInfo().fieldMap[fieldName].accessor
-      accessor.setForDs(entity, dsRec.data)
-      accessor.buildExclusions(rc, entity, dsRec.excludeFromIndexes)
-    }
-
-    console.log('getRecordForUpsert: data', dsRec.data)
-    console.log('getRecordForUpsert: excludeFromIndexes', dsRec.excludeFromIndexes)
-
-    return dsRec
-  }
-
-  verifyAncestorKeys<T extends Muds.BaseEntity>(rc: RunContextServer, 
-                      entityClass : Muds.IBaseEntity<T>, 
-                      ancestorKeys: (string | DatastoreInt) []) {
-
-    const entityInfo    = this.getInfo(entityClass),
-          ancestorsInfo = entityInfo.ancestors,
-          dsKeys        = []
-
-    rc.isAssert() && rc.assert(rc.getName(this), ancestorsInfo.length, 
-      'It is mandatory to have ancestorKeys for querying with-in transaction')
-
-    for (const [index, info] of ancestorsInfo.entries()) {
-      dsKeys.push(info.entityName, this.checkKeyType(rc, ancestorKeys[index], info))
-    }
-
-    return this.datastore.key(dsKeys)
-  }
-
-  checkIndexed(rc: RunContextServer, dottedStr: string, entityName: string) {
-
-    const props = dottedStr.split('.'),
-          start = entityName
-          
-    let type
-    for (const prop of props) {
-      const info = this.entityInfoMap[entityName]
-
-      rc.isAssert() && rc.assert(rc.getName(this), info, 
-        `'${entityName}' is not found in entityInfo. Used in '${dottedStr}' of entity '${start}'`)
-
-      const fieldMap = info.fieldMap[prop]  
-      rc.isAssert() && rc.assert(rc.getName(this), fieldMap.indexed, 
-        `'${prop}' is not indexed in path '${dottedStr}' of entity '${start}'`)
-      type = fieldMap.accessor  
-
-      if (MudsBaseStruct.prototype.isPrototypeOf(fieldMap.fieldType.prototype)) {
-        entityName = fieldMap.fieldType.name
-      }
-    }
-  }
-
-  getAccessor(rc: RunContextServer, dottedStr: string, entityName: string) {
-
-    const props = dottedStr.split('.'),
-          start = entityName
-          
-    let accessor
-    for (const prop of props) {
-      const info      = this.entityInfoMap[entityName]
-      const fieldMap  = info.fieldMap[prop]  
-      accessor = fieldMap.accessor  
-
-      if (MudsBaseStruct.prototype.isPrototypeOf(fieldMap.fieldType.prototype)) {
-        entityName = fieldMap.fieldType.name
-      }
-    }
-    return accessor
-  }
-
 }

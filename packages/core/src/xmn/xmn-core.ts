@@ -14,7 +14,7 @@ export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 export namespace HTTP {
 
   // normally these keys are written with uppercase, we are writing them in lowercase 
-  // for compatibility 
+  // for compatibility
   export const HeaderKey = {
     userAgent       : 'user-agent',
     clientSecret    : 'x-client-secret',
@@ -33,11 +33,8 @@ export namespace HTTP {
   export const Const = {
     protocolHttp  : 'http:',
     protocolHttps : 'https:'
-    
   }
-
 }
-
 
 export const NetworkType = {
   net2G   : '2G',
