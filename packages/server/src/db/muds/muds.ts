@@ -158,8 +158,8 @@ export class Muds {
   }
 
   public static direct(rc: RunContextServer, 
-    callback ?: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
-    new MudsDirectIo(rc, this.manager)
+    callback: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
+    new MudsDirectIo(rc, this.manager, callback)
   }
 
   /**

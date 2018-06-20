@@ -57,8 +57,8 @@ import { MudsUtil } from './muds-util';
 
 export abstract class MudsIo {
 
-  protected datastore: Datastore
-  readonly now: number
+  protected datastore : Datastore
+  readonly now        : number
 
   constructor(protected rc: RunContextServer, 
               protected manager: MudsManager) {
@@ -204,7 +204,7 @@ export abstract class MudsIo {
      */
 
     const results = await exec.upsert(dsRecs)
-    
+
     for (const [index, result] of results.entries()) {
 
       const entity           = entities[index],
@@ -406,9 +406,28 @@ export abstract class MudsIo {
     return MudsUtil.getReferredField(rc, this.manager.getInfoMap(), dottedStr, entityName)
   }
 
+  destroy() {
+    const thisObj = this as any
+    thisObj.rc        = null
+    thisObj.datastore = null
+    thisObj.manager   = null
+  }
+
 }
 
+/*------------------------------------------------------------------------------
+   MudsDirectIo
+--------------------------------------------------------------------------------*/
 export class MudsDirectIo extends MudsIo {
+
+  constructor(rc        : RunContextServer, 
+              manager   : MudsManager, 
+              private callback : (direct: Muds.DirectIo, now: number) => Promise<boolean>) {
+
+    super(rc, manager)
+    this.doCallback()
+  }
+
   protected getExec(): Datastore | DSTransaction {
     return this.datastore
   }
@@ -421,6 +440,18 @@ export class MudsDirectIo extends MudsIo {
     return this.datastore.createQuery(entityName)
   }
   
+  private async doCallback() {
+
+    const rc = this.rc
+    try {
+      await this.callback(this, this.now)
+    } catch (err) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
+    }
+
+    // reset all variables so that the transaction object cannot be used further
+    this.destroy()
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -428,14 +459,13 @@ export class MudsDirectIo extends MudsIo {
 -----------------------------------------------------------------------------*/
 export class MudsTransaction extends MudsIo {
 
-  private readonly transaction: DSTransaction
+  private transaction: DSTransaction
 
   constructor(rc        : RunContextServer, 
               manager   : MudsManager, 
               private callback : (transaction: Muds.Transaction, now: number) => Promise<boolean>) {
 
     super(rc, manager)
-    this.transaction = this.datastore.transaction()
     this.doCallback()
   }
 
@@ -457,9 +487,40 @@ export class MudsTransaction extends MudsIo {
     return this.transaction.createQuery(entityName)
   }
 
+  private async doCallback() {
 
-  private doCallback() {
-    this.callback(this, this.now)
+    const rc = this.rc
+
+    this.transaction = this.datastore.transaction()
+    await this.transaction.run()
+
+    try {
+      if (await this.callback(this, this.now)) {
+        await this.transaction.commit()
+        rc.isWarn() && rc.warn(rc.getName(this), 'transaction cancelled by api. rolling back')
+      } else {
+        await this.transaction.rollback()
+        rc.isWarn() && rc.warn(rc.getName(this), 'transaction cancelled by api. rolling back')
+      }
+    } catch (err) {
+
+      // on certain errors doCallback can be run again
+      // ????
+
+
+      await this.transaction.rollback()
+      rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
+    }
+
+    // reset all variables so that the transaction object cannot be used further
+    this.destroy()
+  }
+
+  destroy() {
+    super.destroy()
+
+    const thisObj = this as any
+    thisObj.transaction = null
   }
 }
 
