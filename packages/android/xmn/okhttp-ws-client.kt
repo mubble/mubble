@@ -54,7 +54,9 @@ open class OkHttpWsClient(private val serverURI: URI, private val wsListener: Ws
   }
 
   override fun onMessage(webSocket: WebSocket?, bytes: ByteString?) {
-    asyncExecuteInMainThread { wsListener.onMessage(bytes?.toByteArray()) }
+
+    if (bytes == null) return
+    asyncExecuteInMainThread { wsListener.onMessage(bytes.toByteArray()) }
   }
 
   override fun onMessage(webSocket: WebSocket?, text: String?) {

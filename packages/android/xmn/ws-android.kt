@@ -139,7 +139,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
     info { "onMessage" }
 
-    if (bytes == null) return
+    if (bytes == null || bytes.isEmpty()) return
 
     if (!this.configured) {
       val leader : Char = String(bytes)[0]
@@ -155,15 +155,15 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
     this.router.providerMessage(messages)
   }
 
-  override fun onCloseInitiated(code: Int, reason: String?) {
+  override fun onCloseInitiated(code: Int?, reason: String?) {
     info { "onCloseInitiated" }
   }
 
-  override fun onClosing(code: Int, reason: String?, remote: Boolean?) {
+  override fun onClosing(code: Int?, reason: String?, remote: Boolean?) {
     info { "onClosing" }
   }
 
-  override fun onClose(code: Int, reason: String?) {
+  override fun onClose(code: Int?, reason: String?) {
 
     info { "onClose $code" }
     if (this.ci.provider != null) {
@@ -171,7 +171,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       this.router.providerFailed()
     }
 
-    if (code > 0 && code != 1000) {
+    if (code != null && (code > 0 && code != 1000)) {
       this.router.onSocketAbnormalClose(code)
     }
   }
