@@ -169,7 +169,7 @@ class EncProviderAndroid(private val syncKey : ByteArray,
       val wo      = WireObject.getWireObject(JSONObject(jsonStr)) as WireObject
       val outAr   = inAr.slice(IntRange(index+1, inAr.size-1))
 
-      wo.data = JSONObject(String(outAr.toByteArray()))
+      wo.data = outAr.toByteArray()
       decLen  =  outAr.size
       arData.add(wo)
 
