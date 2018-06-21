@@ -11,6 +11,7 @@ export const XmnError = {
 
   errorCode           : 555,
 
+  NetworkNotPresent   : 'NetworkNotPresent',  // Network is absent
   ConnectionFailed    : 'ConnectionFailed',   // server connect problem: server not running, no network, connection break
   RequestTimedOut     : 'RequestTimedOut',    // ideally means api bug
   SendTimedOut        : 'SendTimedOut',       // ideally means terribly slow connection

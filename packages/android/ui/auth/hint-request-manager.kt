@@ -78,9 +78,11 @@ open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleL
 
   private fun disconnectClient() {
 
-    mGoogleApiClient!!.disconnect()
-    mGoogleApiClient!!.stopAutoManage(activity)
-    mGoogleApiClient = null
+    if (mGoogleApiClient != null) {
+      mGoogleApiClient!!.disconnect()
+      mGoogleApiClient!!.stopAutoManage(activity)
+      mGoogleApiClient = null
+    }
   }
 
 }

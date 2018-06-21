@@ -50,6 +50,7 @@ object XmnError {
 
   const val errorCode           = 555
 
+  const val NetworkNotPresent   = "NetworkNotPresent"  // Network is absent
   const val ConnectionFailed    = "ConnectionFailed"   // server connect problem= server not running, no network, connection break
   const val RequestTimedOut     = "RequestTimedOut"    // ideally means api bug
   const val SendTimedOut        = "SendTimedOut"       // ideally means terribly slow connection
@@ -58,7 +59,7 @@ object XmnError {
   const val _NotReady           = "_NotReady"
 }
 
-open class WireObject(val type: String, val name: String, var data: JSONObject,
+open class WireObject(val type: String, val name: String, var data: Any,
                       open var ts: Long = System.currentTimeMillis()): JsonSerializable {
 
   companion object {
@@ -67,7 +68,7 @@ open class WireObject(val type: String, val name: String, var data: JSONObject,
 
       val type  = json.getString("type")
       val name  = json.getString("name")
-      val data  = json.optJSONObject("data")
+      val data  = json.opt("data")
       val ts    = json.getLong("ts")
       val error = json.optString("error", null)
 
@@ -100,7 +101,7 @@ open class WireObject(val type: String, val name: String, var data: JSONObject,
   }
 }
 
-class WireRequest(apiName: String, data: JSONObject, override var ts: Long):
+class WireRequest(apiName: String, data: Any, override var ts: Long):
     WireObject(WireType.REQUEST, apiName, data, ts) {
 
   var isSent: Boolean = false
@@ -113,7 +114,7 @@ class WireRequest(apiName: String, data: JSONObject, override var ts: Long):
   }
 }
 
-class WireReqResp(name: String, data: JSONObject, ts: Long, val error: String? = null) :
+class WireReqResp(name: String, data: Any, ts: Long, val error: String? = null) :
     WireObject(WireType.REQ_RESP, name, data, ts), JsonSerializable {
 
   override fun toJsonObject(): JSONObject {
@@ -124,7 +125,7 @@ class WireReqResp(name: String, data: JSONObject, ts: Long, val error: String? =
   }
 }
 
-class WireEventResp(name: String, data: JSONObject?, ts: Long, val error: String? = null):
+class WireEventResp(name: String, data: Any?, ts: Long, val error: String? = null):
     WireObject(WireType.EVENT_RESP, name, data?:JSONObject(), ts), JsonSerializable {
 
   override fun toJsonObject(): JSONObject {
@@ -135,7 +136,7 @@ class WireEventResp(name: String, data: JSONObject?, ts: Long, val error: String
   }
 }
 
-class WireEvent(eventName: String, data: JSONObject, override var ts: Long):
+class WireEvent(eventName: String, data: Any, override var ts: Long):
     WireObject(WireType.EVENT, eventName, data, ts) {
 
   init {
@@ -146,20 +147,22 @@ class WireEvent(eventName: String, data: JSONObject, override var ts: Long):
   }
 }
 
-class WireSysEvent(name: String, data: JSONObject)
+class WireSysEvent(name: String, data: Any)
   : WireObject(WireType.SYS_EVENT, name, data)
 
-class WireEphEvent(eventName: String, data: JSONObject, ts : Long)
+class WireEphEvent(eventName: String, data: Any, ts : Long)
   : WireObject(WireType.EPH_EVENT, eventName, data, ts)
 
-class WebSocketConfig(data: JSONObject) {
-  val msPingInterval  : Long     = data.getLong("msPingInterval")
-  val syncKey         : String?  = data.optString("syncKey", null)
+class WebSocketConfig(data: Any) {
+  val json            : JSONObject  = data as JSONObject
+  val msPingInterval  : Long        = json.getLong("msPingInterval")
+  val syncKey         : String?     = json.optString("syncKey", null)
 }
 
-class ConnectionError(data: JSONObject) {
-  val code  : String = data.optString("code", "")
-  val msg   : String  = data.optString("msg", "")
+class ConnectionError(data: Any) {
+  val json  : JSONObject  = data as JSONObject
+  val code  : String      = json.optString("code", "")
+  val msg   : String      = json.optString("msg", "")
 }
 
 class RouterResponse(val errorCode: String?, val data: Any? = null): JsonSerializable {
