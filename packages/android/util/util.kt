@@ -54,24 +54,26 @@ fun <T> JSONObject.toImmutableList(cb: (key: String, jsonObject: JSONObject)->T)
   M U L T I    T H R E A D I N G I N G
 
 ------------------------------------------------------------------------------*/
-fun <T> syncExecuteInMainThread(closure: ()->T ): T {
+fun <T> syncExecuteInMainThread(closure: ()->T? ): T? {
 
   if (Looper.myLooper() === Looper.getMainLooper()) return closure()
 
-  var resp: T? = null
-  val lock = java.lang.Object()
+  var resp: T?  = null
+  val lock      = java.lang.Object()
+  var obtained  = false
 
   App.instance.runOnUiThread {
     synchronized(lock) {
-      resp = closure()
+      resp     = closure()
+      obtained = true
       lock.notify()
     }
   }
 
   synchronized(lock) {
-    if (resp != null) return resp!!
+    if (obtained) return resp
     lock.wait()
-    return resp!!
+    return resp
   }
 }
 

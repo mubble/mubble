@@ -121,8 +121,14 @@ class EncProviderAndroid(private val syncKey : ByteArray,
     var leader          : Char?      = null
 
     if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
-      firstPassArray  = strToByteArray(str)
-      leader          = Leader.DEF_JSON
+
+      val byteArr = strToByteArray(str)
+      val ar      = CryptoBase.deflate(byteArr)
+
+      if (ar.size < byteArr.size) {
+        firstPassArray  = ar
+        leader          = Leader.DEF_JSON
+      }
     }
 
     if (firstPassArray == null) {
