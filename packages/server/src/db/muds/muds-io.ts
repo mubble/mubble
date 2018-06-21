@@ -57,8 +57,9 @@ import { MudsUtil } from './muds-util';
 
 export abstract class MudsIo {
 
-  protected datastore : Datastore
-  readonly now        : number
+  protected datastore   : Datastore
+  readonly now          : number
+  readonly upsertQueue  : MudsBaseEntity[] = []
 
   constructor(protected rc: RunContextServer, 
               protected manager: MudsManager) {
@@ -176,21 +177,19 @@ export abstract class MudsIo {
   }
 
   enqueueForUpsert(...entities: MudsBaseEntity[]) {
-
+    // we should handle array too, in case somebody calls it by mistake
   }
 
-  async upsert(...entities: MudsBaseEntity[]) {
+  async upsert(entity: MudsBaseEntity) {
 
     const exec     = this.getExec(),
           dsRecs   = []
 
-    for (const entity of entities) {
 
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.isModified(),
-        `${entity.getLogId()} Skipping entity as it is not modified`)
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.isModified(),
+      `${entity.getLogId()} Skipping entity as it is not modified`)
 
-      dsRecs.push(entity.convertForUpsert(this.rc))
-    }
+    dsRecs.push(entity.convertForUpsert(this.rc))
 
     /**
      * [ { mutationResults: [ [Object] ], indexUpdates: 3 } ]
@@ -203,19 +202,13 @@ export abstract class MudsIo {
            }
      */
 
-    const results = await exec.upsert(dsRecs)
+    const result           = (await exec.upsert(dsRecs))[0],
+          [mutationResult] = result.mutationResults
+          
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      !mutationResult.conflictDetected, `${entity.getLogId()} had conflict`)
 
-    for (const [index, result] of results.entries()) {
-
-      const entity           = entities[index],
-            [mutationResult] = result.mutationResults
-            
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-        !mutationResult.conflictDetected, `${entity.getLogId()} had conflict`)
-
-      entity.commitUpsert(mutationResult.key ? mutationResult.key.path : null)
-      
-    }
+    entity.commitUpsert(mutationResult.key ? mutationResult.key.path : null)
   }
 
   public async delete(...entities: (MudsBaseEntity)[]): Promise<void> {

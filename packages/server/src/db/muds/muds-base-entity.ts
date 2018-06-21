@@ -241,19 +241,19 @@ export class MudsBaseEntity extends MudsBaseStruct {
     return ar
   }
 
+  public getAncestorKey() {
+    return this.ancestorKeys
+  }
+
+  public getSelfKey() {
+    return this.selfKey
+  }
+
   /* ---------------------------------------------------------------------------
    P R I V A T E    C O D E    S E C T I O N     B E L O W
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  getAncestorKey() {
-    return this.ancestorKeys
-  }
-
-  getSelfKey() {
-    return this.selfKey
-  }
-
   convertForUpsert(rc: RunContextServer) {
 
     const entityInfo = this.entityInfo
