@@ -2,6 +2,7 @@ package `in`.mubble.android.xmn
 
 import `in`.mubble.android.core.MubbleLogger
 import `in`.mubble.android.util.AdhocTimer
+import `in`.mubble.newschat.app.App
 import `in`.mubble.newschat.utils.AndroidBase
 import org.jetbrains.anko.error
 import org.jetbrains.anko.info
@@ -147,7 +148,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   fun providerFailed(errorCode: String? = null) {
 
     while (this.ongoingRequests.isNotEmpty()) {
-      val erCode = errorCode ?: XmnError.ConnectionFailed
+      val erCode = errorCode ?: if (!AndroidBase.isActiveNetwork(App.instance))
+                                     XmnError.NetworkNotPresent
+                                else XmnError.ConnectionFailed
       this.finishRequest(0, erCode)
     }
 
