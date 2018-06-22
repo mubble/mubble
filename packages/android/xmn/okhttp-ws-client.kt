@@ -64,7 +64,9 @@ open class OkHttpWsClient(private val serverURI: URI, private val wsListener: Ws
   }
 
   override fun onClosing(webSocket: WebSocket?, code: Int, reason: String?) {
+
     asyncExecuteInMainThread { wsListener.onClosing(code, reason, null) }
+    webSocket?.close(1000, null)
   }
 
   override fun onClosed(webSocket: WebSocket?, code: Int, reason: String?) {
@@ -82,7 +84,6 @@ open class OkHttpWsClient(private val serverURI: URI, private val wsListener: Ws
           wsListener.onError(e)
         }
       }
-
     }
   }
 

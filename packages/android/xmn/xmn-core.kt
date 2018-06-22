@@ -36,7 +36,7 @@ object SysEvent {
 }
 
 object Encoder  {
-  const val MIN_SIZE_TO_COMPRESS = 1000000
+  const val MIN_SIZE_TO_COMPRESS = 500
 }
 
 object Leader {
