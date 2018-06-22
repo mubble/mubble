@@ -139,7 +139,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
     info { "onMessage" }
 
-    if (bytes == null || bytes.isEmpty()) return
+    if (bytes == null || bytes.isEmpty() || this.ci.provider == null) return
 
     if (!this.configured) {
       val leader : Char = String(bytes)[0]
