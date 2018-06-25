@@ -85,7 +85,7 @@ export class BlobStorageBase {
   }
   
 
-  static async listFiles(rc: RunContextServer, container: string, prefix ?: string) {
+  static async listFiles(rc: RunContextServer, container: string, prefix ?: string, includeMetadata ?: boolean) {
 
     const BS = this._blobstorage,
           fn = prefix ? BS.listBlobsSegmentedWithPrefix.bind(BS, container, prefix)
@@ -94,17 +94,21 @@ export class BlobStorageBase {
     
     let token = null
     do  {
-      token = await this.listFilesInternal(fn, list, token)
+      token = await this.listFilesInternal(fn, list, token, includeMetadata)
       token && rc.isDebug() && rc.debug(rc.getName(this), 'Continuing... Current length', list.length)
     } while (token)
 
     return list
   }
 
-  private static async listFilesInternal(fn: any, list: Array<storage.BlobService.BlobResult>, token : any) {
-    const result = await Mubble.uPromise.execFn(fn, null, token, {
-      maxResults: 5000
-    })
+  private static async listFilesInternal(fn               : any,
+                                         list             : Array<storage.BlobService.BlobResult>,
+                                         token            : any,
+                                         includeMetadata ?: boolean) {
+
+    const options = includeMetadata ? {maxResults : 5000, include : 'metadata'}
+                                    : {maxResults : 5000},
+          result  = await Mubble.uPromise.execFn(fn, null, token, options)
     list.push(...result.entries)
     return result.continuationToken
   }
