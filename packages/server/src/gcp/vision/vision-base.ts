@@ -165,7 +165,7 @@ export class VisionBase {
           x           = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
           y           = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
 
-    if(!(w / h <= 1.05 && w / h >= 0.7)) return gmImage.crop(maxW, maxH, x, y)
+    if(!(w / h <= 1.05 && w / h >= 0.7 && ratio >= 1.3)) return gmImage.crop(maxW, maxH, x, y)
 
     const logoColors     = await VisionBase.checkLogoBorders(rc, lo.cloneDeep(gmImage), w, h),
           desiredW       = h * ratio,
