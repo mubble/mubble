@@ -6,23 +6,26 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as lo                          from 'lodash'
-
-import {  Mubble }                      from '@mubble/core'
-import {  RunContextServer }            from '../..'
 
 import {  Muds, 
           FieldType,
           DatastoreInt, 
           DatastoreKey, 
           DsRec, 
-          EntityType }                  from "./muds"
-
-import {  MudsEntityInfo, 
-          MeField }                     from './muds-manager'
+          EntityType
+       }                                from "./muds"
+import {  
+          MudsEntityInfo, 
+          MeField
+       }                                from './muds-manager'
 import {  MudsBaseStruct }              from './muds-base-entity'
+import {  Mubble }                      from '@mubble/core'
+import {  RunContextServer }            from '../..'
+import * as lo                          from 'lodash'
 
 export class MudsUtil {
+
+  private static targetDateTs = 2544912000000  //24-8-2050 (GMT)
 
   public static isClassStruct(cls: any) {
     return Muds.BaseStruct.prototype.isPrototypeOf(cls.prototype)
@@ -71,6 +74,7 @@ export class MudsUtil {
     return this.checkIndexed(rc, entityInfoMap, dottedStr, inEntityName)
   }
 
-
-
+  public static getMpoc(ts ?: number) {
+    return (this.targetDateTs - (ts || Date.now())).toString()
+  }
 }

@@ -7,20 +7,23 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as Datastore           from '@google-cloud/datastore'
-import * as DsEntity            from '@google-cloud/datastore/entity'
-
-import {  MudsBaseEntity,
-          MudsBaseStruct }      from './muds-base-entity'
-import {  MudsQuery }            from './muds-query'
-import {  MudsManager }          from './muds-manager'
-import {  RunContextServer }     from '../..'
-import {  GcloudEnv }            from '../../gcp/gcloud-env'
-import {  MudsTransaction, 
+import {  
+          MudsBaseEntity,
+          MudsBaseStruct
+       }                                          from './muds-base-entity'
+import {  
+          MudsTransaction, 
           MudsDirectIo, 
-          MudsIo}         from './muds-io'
-import {  Mubble }               from '@mubble/core'
-import {  DatastoreRequest }     from '@google-cloud/datastore/request'
+          MudsIo
+       }                                          from './muds-io'
+import {  MudsQuery }                             from './muds-query'
+import {  MudsManager }                           from './muds-manager'
+import {  RunContextServer }                      from '../..'
+import {  GcloudEnv }                             from '../../gcp/gcloud-env'
+import {  Mubble }                                from '@mubble/core'
+import {  MudsUtil }                              from './muds-util'
+import * as Datastore                             from '@google-cloud/datastore'
+import * as DsEntity                              from '@google-cloud/datastore/entity'
 
 export type DatastoreInt = DsEntity.DatastoreInt
 export type DatastoreKey = DsEntity.DatastoreKey
@@ -185,6 +188,10 @@ export namespace Muds {
   export type  DirectIo     = MudsDirectIo
   export const Query        = MudsQuery
   export type  Query        = MudsQuery<MudsBaseEntity>
+
+  export const getMpoc     = MudsUtil.getMpoc
+
+
 
   export enum Pk {
     None, // used for MudsStruct
