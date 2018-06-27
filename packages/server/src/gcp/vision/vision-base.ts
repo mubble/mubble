@@ -27,7 +27,7 @@ import * as gm                      from 'gm'
 import * as mime                    from 'mime-types'
 import * as lo                      from 'lodash'
 import * as sharp                   from 'sharp'
-
+import * as fs                      from 'fs'
 export class VisionBase {
 
   static _vision : any
@@ -114,14 +114,14 @@ export class VisionBase {
           ack     = rc.startTraceSpan(traceId),
           retVal  = {} as SmartCropProcessReturn
     try {
-      const gmImage = gm(imageData)
+      let gmImage = gm(imageData)
       .borderColor('black')
       .border(1, 1)
       .fuzz(16, true)
       .trim()
       .setFormat('jpeg')
 
-      if(imageOptions.ratio) await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
+      if(imageOptions.ratio) gmImage = await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
 
       if(imageOptions.shrink) gmImage.resize(imageOptions.shrink.w, imageOptions.shrink.h, '!')
 
@@ -167,37 +167,41 @@ export class VisionBase {
 
     if(!(w / h <= 1.05 && w / h >= 0.7 && ratio >= 1.3)) return gmImage.crop(maxW, maxH, x, y)
 
-    const logoColors     = await VisionBase.checkLogoBorders(rc, lo.cloneDeep(gmImage), w, h),
-          desiredW       = h * ratio,
-          imageToProcess = gmImage.resize(Math.round(desiredW), h, '!')
+    const logoColors = await VisionBase.checkLogoBorders(rc, lo.cloneDeep(gmImage), w, h),
+          desiredW   = Math.round(h * ratio),
+          bgImage    = lo.cloneDeep(gmImage)
 
-    if(logoColors) {
-      imageToProcess
+    if(logoColors) {                                // Image is a logo
+      bgImage
+      .resize(desiredW, h, '!')
       .stroke(logoColors[0], 0)
       .fill(logoColors[0])
-      .drawRectangle(0, 0, Math.round(desiredW) / 2, h)
+      .drawRectangle(0, 0, desiredW / 2, h)
       .stroke(logoColors[1], 0)
       .fill(logoColors[1])
-      .drawRectangle(Math.round(desiredW) / 2, 0, Math.round(desiredW), h)
-    } else {
-      imageToProcess
+      .drawRectangle(desiredW / 2, 0, desiredW, h)
+    } else {                                        // Image is not a logo
+      bgImage
       .crop(maxW, maxH, x, y)
+      .resize(desiredW, h, '!')
       .blur(0, h <= 200 ? 10 : 15)
     }
 
-    const imageToProcessBuffer = await VisionBase.getGmBuffer(imageToProcess)
+    const bgBuffer = await VisionBase.getGmBuffer(bgImage)
 
-    return new Promise<gm.State>((resolve, reject) => {
-      sharp(imageToProcessBuffer)
+    const finalBuffer = await new Promise<Buffer>((resolve, reject) => {
+      sharp(bgBuffer)
       .overlayWith(bufferImage)
       .toBuffer((err, buff) => {
         if(err) {
           rc.isError() && rc.error(rc.getName(this), `Error in converting overlay image to buffer : ${err.message}`)
           reject(err)
         }
-        resolve(gm(buff))
+        resolve(buff)
       })
     })
+
+    return gm(finalBuffer)
   }
 
   private static async checkLogoBorders(rc : RunContextServer, gmImage : gm.State, w : number, h : number) {

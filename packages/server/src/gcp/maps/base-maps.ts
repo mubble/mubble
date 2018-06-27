@@ -26,13 +26,21 @@ export abstract class BaseMaps {
 
   async processQuery(rc : RunContextServer, query : string) {
     const key = this.getKey(rc)
-    if(!key) throw('rc.ENV.GCP.KEY Not Defined')
+    let   err = false
 
+    if(!key) throw('rc.ENV.GCP.KEY Not Defined')
     const url      = `https://maps.googleapis.com/maps/api/geocode/${query}&key=${key}`,
-          response = await executeHttpsRequest(rc, url),
-          data     = JSON.parse(response)
-        
-    rc.isDebug() && rc.debug(rc.getName(this), 'GetLocation ', data)
+          response = await executeHttpsRequest(rc, url)
+    let   data     
+    try {
+      data = JSON.parse(response)
+    }
+    catch (err) {
+      data = ''; 
+      err = true
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'GetLocation => Error:', err, '/', query, '==', data)
     return data
   }
 }
