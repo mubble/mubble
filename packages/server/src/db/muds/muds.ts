@@ -155,14 +155,14 @@ export class Muds {
     return this.manager.init(rc, gcloudEnv)
   }
 
-  public static transaction(rc: RunContextServer, 
-    callback: (transaction: Muds.Transaction, now: number) => Promise<boolean>): void {
-    new MudsTransaction(rc, this.manager, callback)
+  public static async transaction(rc: RunContextServer, 
+    callback: (transaction: Muds.Transaction, now: number) => Promise<any>) {
+    await new MudsTransaction(rc, this.manager, callback).run()
   }
 
-  public static direct(rc: RunContextServer, 
-    callback: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
-    new MudsDirectIo(rc, this.manager, callback)
+  public static async direct(rc: RunContextServer, 
+    callback: (directIo: Muds.DirectIo, now: number) => Promise<any>) {
+    await new MudsDirectIo(rc, this.manager, callback).run()
   }
 
   /**

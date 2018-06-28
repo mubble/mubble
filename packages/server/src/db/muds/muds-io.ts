@@ -334,7 +334,7 @@ export abstract class MudsIo {
     const entityInfo    = this.getInfo(entityClass),
           ancestorsInfo = entityInfo.ancestors,
           ancestorKeys  = [] as (string | DatastoreInt)[],
-          key           = rec[this.datastore.KEY] as DatastoreKey,
+          key           = rec[this.datastore.KEY as any] as DatastoreKey,
           keyPath       = key.path
 
     rc.isAssert() && rc.assert(rc.getName(this), key.kind === entityInfo.entityName)
@@ -415,10 +415,13 @@ export class MudsDirectIo extends MudsIo {
 
   constructor(rc        : RunContextServer, 
               manager   : MudsManager, 
-              private callback : (direct: Muds.DirectIo, now: number) => Promise<boolean>) {
+              private callback : (direct: Muds.DirectIo, now: number) => Promise<any>) {
 
     super(rc, manager)
-    this.doCallback()
+  }
+
+  public async run() {
+    return await this.doCallback()
   }
 
   protected getExec(): Datastore | DSTransaction {
@@ -437,7 +440,7 @@ export class MudsDirectIo extends MudsIo {
 
     const rc = this.rc
     try {
-      await this.callback(this, this.now)
+      return await this.callback(this, this.now)
     } catch (err) {
       rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
     }
@@ -459,7 +462,10 @@ export class MudsTransaction extends MudsIo {
               private callback : (transaction: Muds.Transaction, now: number) => Promise<boolean>) {
 
     super(rc, manager)
-    this.doCallback()
+  }
+
+  public async run() {
+    return await this.doCallback()
   }
 
   public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
@@ -488,18 +494,15 @@ export class MudsTransaction extends MudsIo {
     await this.transaction.run()
 
     try {
-      if (await this.callback(this, this.now)) {
+        const response = await this.callback(this, this.now)
         await this.transaction.commit()
-        rc.isWarn() && rc.warn(rc.getName(this), 'transaction cancelled by api. rolling back')
-      } else {
-        await this.transaction.rollback()
-        rc.isWarn() && rc.warn(rc.getName(this), 'transaction cancelled by api. rolling back')
-      }
+        rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
+
+        return response
     } catch (err) {
 
       // on certain errors doCallback can be run again
       // ????
-
 
       await this.transaction.rollback()
       rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
