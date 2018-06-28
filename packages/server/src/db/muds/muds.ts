@@ -157,12 +157,12 @@ export class Muds {
 
   public static async transaction(rc: RunContextServer, 
     callback: (transaction: Muds.Transaction, now: number) => Promise<any>) {
-    await new MudsTransaction(rc, this.manager, callback).run()
+    return await new MudsTransaction(rc, this.manager, callback).run()
   }
 
   public static async direct(rc: RunContextServer, 
     callback: (directIo: Muds.DirectIo, now: number) => Promise<any>) {
-    await new MudsDirectIo(rc, this.manager, callback).run()
+    return await new MudsDirectIo(rc, this.manager, callback).run()
   }
 
   /**

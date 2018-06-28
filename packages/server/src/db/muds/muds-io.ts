@@ -459,7 +459,7 @@ export class MudsTransaction extends MudsIo {
 
   constructor(rc        : RunContextServer, 
               manager   : MudsManager, 
-              private callback : (transaction: Muds.Transaction, now: number) => Promise<boolean>) {
+              private callback : (transaction: Muds.Transaction, now: number) => Promise<any>) {
 
     super(rc, manager)
   }
