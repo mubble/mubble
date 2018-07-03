@@ -8,6 +8,21 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+/**
+ * O N E  T I M E  T E S T S
+ * 
+ * 
+ * 1) Test against playground-india {count:0, hasMore:false, moreResults:"MORE_RESULTS_AFTER_LIMIT”})
+ *    * Observation : {count:1, hasMore:false, moreResults:"NO_MORE_RESULTS"}
+ * 
+ * 2) Content table index assume is 'number of microsecs from 1 Jan 2050' (mpoch). 
+ *    When we ask for content by content type, asc order __key__. This should not need index.
+ *    * Observation : Order by __Key__ does not work, but the default order is ascending
+ * 
+ * 3) object.freeze: try modifying manager data.
+ *    * Observation : works, data modification  failed.
+ */
+
 import {  Muds }                                  from '../muds'
 import {  RunContextServer }                      from '../../../rc-server'
 import {  TestUtils }                             from './utils'
@@ -26,7 +41,7 @@ export class MudsTests {
       await this.testCase1(rc)
       await this.testCase2(rc)
       await this.testCase3(rc)
-      
+
     } catch(error) {
 
       rc.isError() && rc.error(rc.getName(this), 'Tests Runnning Failed', error)
@@ -57,7 +72,14 @@ export class MudsTests {
         TestUtils.updateKeyValue(rc, this.ts, this.ts + 1, { strValue : 'From Second update function' })
       ])
 
-      rc.isDebug() && rc.debug(rc.getName(this), `Success : ${testString}`)
+      /**
+       * Transaction Failed With The Following Error.
+       * 
+       * MudsTransaction(Init): transaction failed with error 
+       * {code:10, metadata:{_internal_repr:{}}, details:"too much contention on these datastore entities. ..}
+       * Error: 10 ABORTED: too much contention on these datastore entities. please try again.
+       * entity groups: [(app=j~playground-india, Parent, 1530598737095)]
+       */
     } catch(error) {
       rc.isError() && rc.error(rc.getName(this), testString, error)
     }
@@ -94,6 +116,10 @@ export class MudsTests {
         ])
       })
 
+      /**
+       * Transaction Successfull
+       */
+
       rc.isDebug() && rc.debug(rc.getName(this), `Success : ${testString}`)
 
     } catch(error) {
@@ -117,31 +143,43 @@ export class MudsTests {
     rc.isDebug() && rc.debug(rc.getName(this),`3) ${testString}`)
 
     try {
-      
-      await Muds.transaction(rc, async (transaction, now) => {
+      await Promise.all([
+        this.case3Helper(rc, this.ts + 3, '3) From First Transaction'),
+        this.case3Helper(rc, this.ts + 4, '3) From Second Transaction')
+      ])
 
-        await transaction.getEntityIfExists(models.KeyValue, Muds.getIntKey(1234))
-  
-        const parentKey = Muds.getIntKey(this.ts),
-              keyVal1   = await transaction.getForUpsert(models.KeyValue, parentKey, Muds.getIntKey(this.ts + 3)),
-              keyVal2   = await transaction.getForUpsert(models.KeyValue, parentKey, Muds.getIntKey(this.ts + 4))
-
-        keyVal1.populateDummyValues(rc)
-        keyVal2.populateDummyValues(rc)
-
-        keyVal1.strValue = '3) From First Transaction'
-        keyVal2.strValue = '3) From Second Transaction'
-
-        await Promise.all([
-          transaction.upsert(keyVal1),
-          transaction.upsert(keyVal2)
-        ])
-      })
-
-      rc.isDebug() && rc.debug(rc.getName(this), `Success : ${testString}`)
+      /**
+       * Failed With The Following Error
+       * 
+       * MudsTransaction(Init): transaction failed with error 
+       * {code:10, metadata:{_internal_repr:{}}, details:"too much contention on these datastore entities. ..} 
+       * Error: 10 ABORTED: too much contention on these datastore entities. please try again. 
+       * entity groups: [(app=j~playground-india, Parent, 1530599704535)]
+       */
 
     } catch(error) {
       rc.isError() && rc.error(rc.getName(this), testString, error)
     }
+  }
+
+  /**
+   * Updates the `strValue` field with a provided string after trying to get a 
+   * non existant entity, in a transaction.
+   */
+  private async case3Helper(rc : RunContextServer, id : number, strValue : string) {
+    await Muds.transaction(rc, async (transaction, now) => {
+      const tempId    = 1234,
+            parentKey = Muds.getIntKey(this.ts)
+
+      await transaction.getEntityIfExists(models.KeyValue, parentKey, Muds.getIntKey(tempId))
+
+      const keyVal = await transaction.getForUpsert(models.KeyValue, parentKey, Muds.getIntKey(this.ts + 3))
+
+      keyVal.populateDummyValues(rc)
+
+      keyVal.strValue = strValue
+
+      await transaction.upsert(keyVal)
+    })
   }
 }

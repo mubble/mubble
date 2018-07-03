@@ -210,13 +210,13 @@ export abstract class MudsIo {
            }
      */
 
-    const result           = (await exec.upsert(dsRecs))[0],
-          [mutationResult] = result.mutationResults
-    
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      !mutationResult.conflictDetected, `${entity.getLogId()} had conflict`)
+    /**
+     * transaction.upsert gets stuck, ie promise is not resolved.
+     * So, transaction.save is used.
+     */
+    await exec.save(dsRecs)
 
-    entity.commitUpsert(mutationResult.key ? mutationResult.key.path : null)
+    entity.commitUpsert(null)
   }
 
   public async delete(...entities: (MudsBaseEntity)[]): Promise<void> {
@@ -450,7 +450,7 @@ export class MudsDirectIo extends MudsIo {
     try {
       return await this.callback(this, this.now)
     } catch (err) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
+      rc.isWarn() && rc.warn(rc.getName(this), 'Failed with error', err)
     }
 
     // reset all variables so that the transaction object cannot be used further
