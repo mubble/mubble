@@ -6,27 +6,32 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as Datastore                   from '@google-cloud/datastore'
-import * as DsEntity                    from '@google-cloud/datastore/entity'
-import * as lo                          from 'lodash'
 
 import {  Query as DsQuery }            from '@google-cloud/datastore/query'
 import {  DatastoreTransaction 
            as DSTransaction }           from '@google-cloud/datastore/transaction'
-import {  Mubble }                      from '@mubble/core'
-
-import {  Muds, 
+import {  
+          Muds, 
           DatastoreInt, 
           DsRec,
-          DatastoreKey }                from './muds'
-import {  MudsBaseEntity, 
-          MudsBaseStruct }              from './muds-base-entity'
+          DatastoreKey
+       }                                from './muds'
+import {  
+          MudsBaseEntity, 
+          MudsBaseStruct
+       }                                from './muds-base-entity'
+import {  
+          MudsManager, 
+          MeField,
+          MudsEntityInfo
+       }                                from './muds-manager'
+import {  MudsUtil }                    from './muds-util'
+import {  Mubble }                      from '@mubble/core'
 import {  MudsQuery }                   from './muds-query'
 import {  RunContextServer }            from '../..'
-import {  MudsManager, 
-          MeField,
-          MudsEntityInfo }              from './muds-manager'
-import { MudsUtil } from './muds-util';
+import * as Datastore                   from '@google-cloud/datastore'
+import * as DsEntity                    from '@google-cloud/datastore/entity'
+import * as lo                          from 'lodash'
 
           
 /**
@@ -85,7 +90,7 @@ export abstract class MudsIo {
                  ...keys : (string | DatastoreInt)[]): Promise<T> {
 
     const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
-          [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
+          [entity] = await this.getEntitiesInternal(false, {entityClass, ancestorKeys, selfKey})
     if (!entity) throw(Muds.Error.RNF)
     return entity
   }
@@ -97,7 +102,7 @@ export abstract class MudsIo {
                  ...keys : (string | DatastoreInt)[]): Promise<T | undefined> {
 
     const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
-          [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
+          [entity] = await this.getEntitiesInternal(false, {entityClass, ancestorKeys, selfKey})
     return entity
   }
 
@@ -105,11 +110,12 @@ export abstract class MudsIo {
     return new QueueBuilder(this.rc, this)
   }
 
-  public async getEntities(queueBuilder: QueueBuilder): Promise< (MudsBaseEntity | undefined)[]> {
-    return await this.getEntitiesInternal(...queueBuilder.getAll())
+  public async getEntities(queueBuilder: QueueBuilder, getEmptyObjects : boolean): Promise< (MudsBaseEntity | undefined)[]> {
+    return await this.getEntitiesInternal(getEmptyObjects, ...queueBuilder.getAll())
   }
 
   private async getEntitiesInternal<T extends MudsBaseEntity>(
+                                    getEmptyObjects: boolean,
                                     ...reqs: IEntityKey<T>[]): Promise< (T | undefined)[]> {
 
     const dsKeys  : DatastoreKey[] = [],
@@ -140,7 +146,9 @@ export abstract class MudsIo {
             result = resultObj[strKey]
             
       if (!result) {
-        arResp.push(undefined)
+        arResp.push(getEmptyObjects
+                    ? this.getForInsert(entityClass, ...ancestorKeys, selfKey)
+                    : undefined)
         continue
       }
       delete resultObj[strKey]
@@ -204,7 +212,7 @@ export abstract class MudsIo {
 
     const result           = (await exec.upsert(dsRecs))[0],
           [mutationResult] = result.mutationResults
-          
+    
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
       !mutationResult.conflictDetected, `${entity.getLogId()} had conflict`)
 

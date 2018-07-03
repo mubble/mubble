@@ -98,8 +98,10 @@ export class MudsBaseStruct {
           thisObj    = this as any
 
     for (const fieldName of entityInfo.fieldNames) {
-      const meField  = entityInfo.fieldMap[fieldName]
-      if (meField.fieldType === Array) meField.accessor.validateType(thisObj[fieldName])
+      const meField  = entityInfo.fieldMap[fieldName],
+            value    = thisObj[fieldName]
+            
+      if (meField.fieldType === Array && value) meField.accessor.validateType(value)
     }
   }
 

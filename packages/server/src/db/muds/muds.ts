@@ -188,8 +188,7 @@ export namespace Muds {
   export type  DirectIo     = MudsDirectIo
   export const Query        = MudsQuery
   export type  Query        = MudsQuery<MudsBaseEntity>
-
-  export const getMpoc     = MudsUtil.getMpoc
+  export const getMpoc      = MudsUtil.getMpoc
 
 
 
@@ -204,13 +203,13 @@ export namespace Muds {
     String
   }
 
-  export type Man = 'mandatory'
-  export type Opt = 'optional'
+  export type Man  = 'mandatory'
+  export type Opt  = 'optional'
   export const Man = 'mandatory'
   export const Opt = 'optional'
 
-  export type Asc = 'ascending'
-  export type Dsc = 'descending'
+  export type Asc  = 'ascending'
+  export type Dsc  = 'descending'
   export const Asc = 'ascending'
   export const Dsc = 'descending'
   

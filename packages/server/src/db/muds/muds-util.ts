@@ -13,7 +13,7 @@ import {  Muds,
           DatastoreKey, 
           DsRec, 
           EntityType
-       }                                from "./muds"
+       }                                from './muds'
 import {  
           MudsEntityInfo, 
           MeField
@@ -21,7 +21,6 @@ import {
 import {  MudsBaseStruct }              from './muds-base-entity'
 import {  Mubble }                      from '@mubble/core'
 import {  RunContextServer }            from '../..'
-import * as lo                          from 'lodash'
 
 export class MudsUtil {
 
@@ -75,6 +74,6 @@ export class MudsUtil {
   }
 
   public static getMpoc(ts ?: number) {
-    return (this.targetDateTs - (ts || Date.now())).toString()
+    return this.targetDateTs - (ts || Date.now())
   }
 }

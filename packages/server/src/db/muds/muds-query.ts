@@ -251,7 +251,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
 
     dsQuery.limit(limit)
     this.result = new MudsQueryResult(rc, this.io, this.entityClass, 
-                    dsQuery, await dsQuery.run(), 
+                    dsQuery, limit, await dsQuery.run(), 
                     !!(this.filters.length || this.groupBys.length))
     return this.result          
   }
@@ -273,12 +273,13 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
     private io                : MudsIo,
     private entityClass       : Muds.IBaseEntity<T>,
     private dsQuery           : DsQuery,
+    private limit             : number,
             result            : DsQueryResult,
     private onlySelectedCols  : boolean) {
-    this.init(result)
+    this.loadData(result)
   }
 
-  private init(result: DsQueryResult) {
+  private loadData(result: DsQueryResult) {
 
     const [ar, info]  = result
     this.records      = ar
@@ -290,6 +291,9 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
       this.endCursor    = ''
       this.hasMore      = false
     }
+
+    // ???? checkEmulator()
+    if (this.hasMore && ar.length < this.limit) this.hasMore = false
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Got query result', {
       count: this.records.length, hasMore: this.hasMore, moreResults: info.moreResults
@@ -316,7 +320,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
           if (this.hasMore) {
             this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Fetching more data')
             this.dsQuery.start(this.endCursor)
-            this.init(await this.dsQuery.run())
+            this.loadData(await this.dsQuery.run())
             ptr = 0
           }
         }
