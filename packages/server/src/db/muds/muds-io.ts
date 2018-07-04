@@ -13,7 +13,6 @@ import {  DatastoreTransaction
 import {  
           Muds, 
           DatastoreInt, 
-          DsRec,
           DatastoreKey
        }                                from './muds'
 import {  
@@ -21,8 +20,7 @@ import {
           MudsBaseStruct
        }                                from './muds-base-entity'
 import {  
-          MudsManager, 
-          MeField,
+          MudsManager,
           MudsEntityInfo
        }                                from './muds-manager'
 import {  MudsUtil }                    from './muds-util'
@@ -30,7 +28,6 @@ import {  Mubble }                      from '@mubble/core'
 import {  MudsQuery }                   from './muds-query'
 import {  RunContextServer }            from '../..'
 import * as Datastore                   from '@google-cloud/datastore'
-import * as DsEntity                    from '@google-cloud/datastore/entity'
 import * as lo                          from 'lodash'
 
           
@@ -63,13 +60,14 @@ import * as lo                          from 'lodash'
 export abstract class MudsIo {
 
   protected datastore   : Datastore
-  readonly now          : number
-  readonly upsertQueue  : MudsBaseEntity[] = []
+  readonly  now         : number
+  readonly  upsertQueue : MudsBaseEntity[] = []
 
-  constructor(protected rc: RunContextServer, 
-              protected manager: MudsManager) {
+  constructor(protected rc      : RunContextServer, 
+              protected manager : MudsManager) {
+
     this.datastore = manager.getDatastore()
-    this.now = Date.now()
+    this.now       = Date.now()
   }
 
 
@@ -122,7 +120,7 @@ export abstract class MudsIo {
           arResp  : (T | undefined)[] = []
 
     for (const {entityClass, ancestorKeys, selfKey} of reqs) {
-      dsKeys.push(this.buildKeyForDs(this.rc, entityClass, 
+      dsKeys.push(this.buildKeyForDs(this.rc, entityClass,
                   ancestorKeys, selfKey))
     }
 
@@ -184,8 +182,19 @@ export abstract class MudsIo {
     return new entityClass(this.rc, this, ancestorKeys, selfKey)
   }
 
-  enqueueForUpsert(...entities: MudsBaseEntity[]) {
-    // we should handle array too, in case somebody calls it by mistake
+  async enqueueForUpsert(...entities: MudsBaseEntity[]) {
+    
+    const exec   = this.getExec(),
+          dsRecs = []
+    
+    for(const entity of entities) {
+
+      if(!entity.isModified()) continue
+
+      dsRecs.push(entity.convertForUpsert(this.rc))
+    }
+
+    await exec.save(dsRecs)
   }
 
   async upsert(entity: MudsBaseEntity) {
