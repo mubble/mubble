@@ -277,7 +277,7 @@ export class ClusterMaster {
   }
 
   private findWorkerInfo(worker: cluster.Worker): [number, WorkerInfo | null] {
-    const workerIndex = lo.findIndex(this.workers,  {forkId : worker.id.toString()})
+    const workerIndex = lo.findIndex(this.workers,  {forkId : worker.id})
     return workerIndex === -1 ? [-1, null] : [workerIndex, this.workers[workerIndex]]
   }
 
