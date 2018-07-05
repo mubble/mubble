@@ -22,7 +22,6 @@ import {  RunContextServer }                      from '../..'
 import {  GcloudEnv }                             from '../../gcp/gcloud-env'
 import {  Mubble }                                from '@mubble/core'
 import {  MudsUtil }                              from './muds-util'
-import * as Datastore                             from '@google-cloud/datastore'
 import * as DsEntity                              from '@google-cloud/datastore/entity'
 
 export type DatastoreInt = DsEntity.DatastoreInt
