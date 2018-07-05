@@ -11,7 +11,7 @@ import {  Query as DsQuery }            from '@google-cloud/datastore/query'
 import {  DatastoreTransaction 
            as DSTransaction }           from '@google-cloud/datastore/transaction'
 import {  
-          Muds, 
+          Muds,
           DatastoreInt, 
           DatastoreKey
        }                                from './muds'
@@ -20,6 +20,7 @@ import {
           MudsBaseStruct
        }                                from './muds-base-entity'
 import {  
+          MeField,
           MudsManager,
           MudsEntityInfo
        }                                from './muds-manager'
@@ -27,6 +28,7 @@ import {  MudsUtil }                    from './muds-util'
 import {  Mubble }                      from '@mubble/core'
 import {  MudsQuery }                   from './muds-query'
 import {  RunContextServer }            from '../..'
+import * as DsEntity                    from '@google-cloud/datastore/entity'
 import * as Datastore                   from '@google-cloud/datastore'
 import * as lo                          from 'lodash'
 
