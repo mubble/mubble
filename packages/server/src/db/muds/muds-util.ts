@@ -74,6 +74,7 @@ export class MudsUtil {
   }
 
   public static getMpoc(ts ?: number) {
-    return this.targetDateTs - (ts || Date.now())
+    
+    return MudsUtil.targetDateTs - (ts || Date.now())
   }
 }
