@@ -6,27 +6,31 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as Datastore                   from '@google-cloud/datastore'
-import * as DsEntity                    from '@google-cloud/datastore/entity'
-import * as lo                          from 'lodash'
 
 import {  Query as DsQuery }            from '@google-cloud/datastore/query'
 import {  DatastoreTransaction 
            as DSTransaction }           from '@google-cloud/datastore/transaction'
-import {  Mubble }                      from '@mubble/core'
-
-import {  Muds, 
+import {  
+          Muds,
           DatastoreInt, 
-          DsRec,
-          DatastoreKey }                from './muds'
-import {  MudsBaseEntity, 
-          MudsBaseStruct }              from './muds-base-entity'
+          DatastoreKey
+       }                                from './muds'
+import {  
+          MudsBaseEntity, 
+          MudsBaseStruct
+       }                                from './muds-base-entity'
+import {  
+          MeField,
+          MudsManager,
+          MudsEntityInfo
+       }                                from './muds-manager'
+import {  MudsUtil }                    from './muds-util'
+import {  Mubble }                      from '@mubble/core'
 import {  MudsQuery }                   from './muds-query'
 import {  RunContextServer }            from '../..'
-import {  MudsManager, 
-          MeField,
-          MudsEntityInfo }              from './muds-manager'
-import { MudsUtil } from './muds-util';
+import * as DsEntity                    from '@google-cloud/datastore/entity'
+import * as Datastore                   from '@google-cloud/datastore'
+import * as lo                          from 'lodash'
 
           
 /**
@@ -58,13 +62,14 @@ import { MudsUtil } from './muds-util';
 export abstract class MudsIo {
 
   protected datastore   : Datastore
-  readonly now          : number
-  readonly upsertQueue  : MudsBaseEntity[] = []
+  readonly  now         : number
+  readonly  upsertQueue : MudsBaseEntity[] = []
 
-  constructor(protected rc: RunContextServer, 
-              protected manager: MudsManager) {
+  constructor(protected rc      : RunContextServer, 
+              protected manager : MudsManager) {
+
     this.datastore = manager.getDatastore()
-    this.now = Date.now()
+    this.now       = Date.now()
   }
 
 
@@ -85,7 +90,7 @@ export abstract class MudsIo {
                  ...keys : (string | DatastoreInt)[]): Promise<T> {
 
     const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
-          [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
+          [entity] = await this.getEntitiesInternal(false, {entityClass, ancestorKeys, selfKey})
     if (!entity) throw(Muds.Error.RNF)
     return entity
   }
@@ -97,7 +102,7 @@ export abstract class MudsIo {
                  ...keys : (string | DatastoreInt)[]): Promise<T | undefined> {
 
     const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
-          [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
+          [entity] = await this.getEntitiesInternal(false, {entityClass, ancestorKeys, selfKey})
     return entity
   }
 
@@ -105,18 +110,19 @@ export abstract class MudsIo {
     return new QueueBuilder(this.rc, this)
   }
 
-  public async getEntities(queueBuilder: QueueBuilder): Promise< (MudsBaseEntity | undefined)[]> {
-    return await this.getEntitiesInternal(...queueBuilder.getAll())
+  public async getEntities(queueBuilder: QueueBuilder, getEmptyObjects : boolean): Promise< (MudsBaseEntity | undefined)[]> {
+    return await this.getEntitiesInternal(getEmptyObjects, ...queueBuilder.getAll())
   }
 
   private async getEntitiesInternal<T extends MudsBaseEntity>(
+                                    getEmptyObjects: boolean,
                                     ...reqs: IEntityKey<T>[]): Promise< (T | undefined)[]> {
 
     const dsKeys  : DatastoreKey[] = [],
           arResp  : (T | undefined)[] = []
 
     for (const {entityClass, ancestorKeys, selfKey} of reqs) {
-      dsKeys.push(this.buildKeyForDs(this.rc, entityClass, 
+      dsKeys.push(this.buildKeyForDs(this.rc, entityClass,
                   ancestorKeys, selfKey))
     }
 
@@ -140,7 +146,9 @@ export abstract class MudsIo {
             result = resultObj[strKey]
             
       if (!result) {
-        arResp.push(undefined)
+        arResp.push(getEmptyObjects
+                    ? this.getForInsert(entityClass, ...ancestorKeys, selfKey)
+                    : undefined)
         continue
       }
       delete resultObj[strKey]
@@ -176,8 +184,19 @@ export abstract class MudsIo {
     return new entityClass(this.rc, this, ancestorKeys, selfKey)
   }
 
-  enqueueForUpsert(...entities: MudsBaseEntity[]) {
-    // we should handle array too, in case somebody calls it by mistake
+  async enqueueForUpsert(...entities: MudsBaseEntity[]) {
+    
+    const exec   = this.getExec(),
+          dsRecs = []
+    
+    for(const entity of entities) {
+
+      if(!entity.isModified()) continue
+
+      dsRecs.push(entity.convertForUpsert(this.rc))
+    }
+
+    await exec.save(dsRecs)
   }
 
   async upsert(entity: MudsBaseEntity) {
@@ -202,13 +221,13 @@ export abstract class MudsIo {
            }
      */
 
-    const result           = (await exec.upsert(dsRecs))[0],
-          [mutationResult] = result.mutationResults
-          
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      !mutationResult.conflictDetected, `${entity.getLogId()} had conflict`)
+    /**
+     * transaction.upsert gets stuck, ie promise is not resolved.
+     * So, transaction.save is used.
+     */
+    await exec.save(dsRecs)
 
-    entity.commitUpsert(mutationResult.key ? mutationResult.key.path : null)
+    entity.commitUpsert(null)
   }
 
   public async delete(...entities: (MudsBaseEntity)[]): Promise<void> {
@@ -334,7 +353,7 @@ export abstract class MudsIo {
     const entityInfo    = this.getInfo(entityClass),
           ancestorsInfo = entityInfo.ancestors,
           ancestorKeys  = [] as (string | DatastoreInt)[],
-          key           = rec[this.datastore.KEY] as DatastoreKey,
+          key           = rec[this.datastore.KEY as any] as DatastoreKey,
           keyPath       = key.path
 
     rc.isAssert() && rc.assert(rc.getName(this), key.kind === entityInfo.entityName)
@@ -415,10 +434,13 @@ export class MudsDirectIo extends MudsIo {
 
   constructor(rc        : RunContextServer, 
               manager   : MudsManager, 
-              private callback : (direct: Muds.DirectIo, now: number) => Promise<boolean>) {
+              private callback : (direct: Muds.DirectIo, now: number) => Promise<any>) {
 
     super(rc, manager)
-    this.doCallback()
+  }
+
+  public async run() {
+    return await this.doCallback()
   }
 
   protected getExec(): Datastore | DSTransaction {
@@ -437,9 +459,9 @@ export class MudsDirectIo extends MudsIo {
 
     const rc = this.rc
     try {
-      await this.callback(this, this.now)
+      return await this.callback(this, this.now)
     } catch (err) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
+      rc.isWarn() && rc.warn(rc.getName(this), 'Failed with error', err)
     }
 
     // reset all variables so that the transaction object cannot be used further
@@ -456,10 +478,13 @@ export class MudsTransaction extends MudsIo {
 
   constructor(rc        : RunContextServer, 
               manager   : MudsManager, 
-              private callback : (transaction: Muds.Transaction, now: number) => Promise<boolean>) {
+              private callback : (transaction: Muds.Transaction, now: number) => Promise<any>) {
 
     super(rc, manager)
-    this.doCallback()
+  }
+
+  public async run() {
+    return await this.doCallback()
   }
 
   public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
@@ -488,18 +513,15 @@ export class MudsTransaction extends MudsIo {
     await this.transaction.run()
 
     try {
-      if (await this.callback(this, this.now)) {
+        const response = await this.callback(this, this.now)
         await this.transaction.commit()
-        rc.isWarn() && rc.warn(rc.getName(this), 'transaction cancelled by api. rolling back')
-      } else {
-        await this.transaction.rollback()
-        rc.isWarn() && rc.warn(rc.getName(this), 'transaction cancelled by api. rolling back')
-      }
+        rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
+
+        return response
     } catch (err) {
 
       // on certain errors doCallback can be run again
       // ????
-
 
       await this.transaction.rollback()
       rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)

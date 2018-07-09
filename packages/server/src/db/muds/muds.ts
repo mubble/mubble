@@ -22,7 +22,6 @@ import {  RunContextServer }                      from '../..'
 import {  GcloudEnv }                             from '../../gcp/gcloud-env'
 import {  Mubble }                                from '@mubble/core'
 import {  MudsUtil }                              from './muds-util'
-import * as Datastore                             from '@google-cloud/datastore'
 import * as DsEntity                              from '@google-cloud/datastore/entity'
 
 export type DatastoreInt = DsEntity.DatastoreInt
@@ -155,14 +154,14 @@ export class Muds {
     return this.manager.init(rc, gcloudEnv)
   }
 
-  public static transaction(rc: RunContextServer, 
-    callback: (transaction: Muds.Transaction, now: number) => Promise<boolean>): void {
-    new MudsTransaction(rc, this.manager, callback)
+  public static async transaction(rc: RunContextServer, 
+    callback: (transaction: Muds.Transaction, now: number) => Promise<any>) {
+    return await new MudsTransaction(rc, this.manager, callback).run()
   }
 
-  public static direct(rc: RunContextServer, 
-    callback: (directIo: Muds.DirectIo, now: number) => Promise<boolean>): void {
-    new MudsDirectIo(rc, this.manager, callback)
+  public static async direct(rc: RunContextServer, 
+    callback: (directIo: Muds.DirectIo, now: number) => Promise<any>) {
+    return await new MudsDirectIo(rc, this.manager, callback).run()
   }
 
   /**
@@ -188,8 +187,7 @@ export namespace Muds {
   export type  DirectIo     = MudsDirectIo
   export const Query        = MudsQuery
   export type  Query        = MudsQuery<MudsBaseEntity>
-
-  export const getMpoc     = MudsUtil.getMpoc
+  export const getMpoc      = MudsUtil.getMpoc
 
 
 
@@ -204,13 +202,13 @@ export namespace Muds {
     String
   }
 
-  export type Man = 'mandatory'
-  export type Opt = 'optional'
+  export type Man  = 'mandatory'
+  export type Opt  = 'optional'
   export const Man = 'mandatory'
   export const Opt = 'optional'
 
-  export type Asc = 'ascending'
-  export type Dsc = 'descending'
+  export type Asc  = 'ascending'
+  export type Dsc  = 'descending'
   export const Asc = 'ascending'
   export const Dsc = 'descending'
   

@@ -14,3 +14,6 @@ export *                      from './datastore/ds-transaction'
 export *                      from './datastore/error-codes'
 
 export *                      from './muds/muds'
+
+export *                      from './muds/test'
+export *                      from './muds/test/models'

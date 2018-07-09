@@ -6,21 +6,16 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
 import * as lo                          from 'lodash'
 
-import {  GcloudEnv }                   from '../../gcp/gcloud-env'
-        
 import {  RunContextServer  }           from '../../rc-server'
 import {  Mubble }                      from '@mubble/core'
 import {  MeField,         
           MudsEntityInfo}               from './muds-manager'
 import {  Muds, 
           DatastoreInt, 
-          DsRec, 
-          FieldType,
-          EntityType}                   from '..'
+          DsRec}                        from '..'
 import {  MudsIo }                      from './muds-io'
 import { MudsUtil }                     from './muds-util'
 
@@ -98,8 +93,10 @@ export class MudsBaseStruct {
           thisObj    = this as any
 
     for (const fieldName of entityInfo.fieldNames) {
-      const meField  = entityInfo.fieldMap[fieldName]
-      if (meField.fieldType === Array) meField.accessor.validateType(thisObj[fieldName])
+      const meField  = entityInfo.fieldMap[fieldName],
+            value    = thisObj[fieldName]
+            
+      if (meField.fieldType === Array && value) meField.accessor.validateType(value)
     }
   }
 
