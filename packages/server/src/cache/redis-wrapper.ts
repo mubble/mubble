@@ -10,7 +10,6 @@
 import {
         RedisClient,
         createClient, 
-        ResCallbackT,
         Multi
        }                                from 'redis'
 import {
@@ -32,6 +31,46 @@ function redisLog(rc : RunContextServer , ...args : any[] ) : void {
 }
 
 const LOG_ID = 'RedisWrapper'
+
+export enum IndexType {
+
+  // startIdx, endIdx are position in set. Full Range 0 to -1
+  // Ascending uses (ZRange) 0=>First 1=>Second -1=>last. 
+  // Desc (ZREVRANGE)
+  // limit is not valid in this case as indexes can be used to control the count
+  Position, 
+
+  // startIdx, endIdx are scores in set. Full Range -inf to +inf
+  // index: (1 : excluding 1
+  // ZRANGEBYSCORE, ZREVRANGEBYSCORE
+  Score,    
+
+  // Lexographical order of member, only works when all items are inserted with same score
+  // startIdx, endIdx are scores in set. Full Range - +
+  // index: (1 : excluding 1, [1 : including 1, 1 : invalid
+  // ZRANGEBYLEX, ZREVRANGEBYLEX
+  Member
+}
+
+export interface ZRangeGetOpt {
+
+  key             : string
+  idxType         : IndexType // default: Position
+
+  startIdx        : string    // defaults to all
+  endIdx          : string    // defaults to all
+
+  descending      : boolean   // default: false
+  withoutScore    : boolean   // default: false
+  
+  offset          : number    // 0    : Invalid for idxType = Position
+  limit           : number    // 500  : Invalid for idxType = Position
+}
+
+export interface ZResult {
+  member: string
+  score: number
+}
 
 export class RedisCmds {
   
@@ -58,6 +97,9 @@ export class RedisCmds {
   lrange    (key : string , start : number , stop : number) : Promise<string[]> { return true as any }
   ltrim     (key : string , start : number , stop : number) : Promise<string[]> { return true as any }
 
+  pubsub    (...channelsAndPattern : string[]) : Promise<string[]> { return true as any }
+  pexpire   (key : string, ms : number) : Promise<void> {return true as any}
+
   rpush     (key : string , field : string) : Promise<number> { return true as any }
   
   // set apis
@@ -80,6 +122,12 @@ export class RedisCmds {
   zremrangebylex (key : string , start : string , end : string) : Promise<void> { return true as any }
   
   exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
+
+  // Cannot work in old multi, will need to create a new one, Raghu ?????
+  // zRangeGet({key, descending = false}: ZRangeGetOpt, result: ZResult[]): Promise<void> { return true as any}
+
+  // Raghu pending: verify if works in transaction
+  // xadd      (key : string , id : string, ...fieldVal: string[]) : Promise<boolean> { return true as any }
 }
 
 export type RedisMulti = RedisCmds
@@ -115,27 +163,33 @@ export class RedisWrapper {
   }
   // Unfortunately there is no static initializer like java in ts/js
   static init(rc : RunContextServer) : void {
+
     if(RedisWrapper.inited) return
+
+    // ???? Raghu test
+    // (RedisClient as any).addCommand('xadd') // needed as stream support in not there in node_redis 2.8
     
     const cmds : string [] = Object.getOwnPropertyNames(RedisCmds.prototype).filter((cmd : string)=>{
       return (cmd !== 'constructor') && typeof((RedisCmds.prototype as any)[cmd]) === 'function' 
     })
-    for(const cmd of cmds){
+    for(const cmd of cmds) {
       // we can find all the function (name) of RedisClient from reflection . check signature type
       add(cmd)
     }
     RedisWrapper.inited = true
   }
 
-  static async connect(rc : RunContextServer , name : string , url : string , options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<RedisWrapper>{
+  static async connect(rc : RunContextServer , name : string , url : string , 
+                        options ?: {max_attempts ?: number , connect_timeout ?: number} ) : Promise<RedisWrapper>{
     
     const redisWrapper : RedisWrapper = new RedisWrapper(name , rc)
-    await redisWrapper._connect(url , options)
+    await redisWrapper._connect(rc, url , options)
     return redisWrapper
     
   }
 
-  private async _connect(url : string , options ?: {max_attempts ?: number , connect_timeout ?: number}) {
+  private async _connect(rc : RunContextServer , url : string , 
+                          options ?: {max_attempts ?: number , connect_timeout ?: number}) {
     
     await new Promise ((resolve : any , reject : any) => {
       
@@ -151,15 +205,11 @@ export class RedisWrapper {
       })
     })
     await this._info()
+    // rc.isAssert() && rc.assert(rc.getName(this), this.getRedisVersion().startsWith('5'), 
+    //   'Please upgrade redis. Min version need 5.x')
   }
 
-  async getRedisVersion() : Promise<string> {
-    if(lo.size(this.info)){
-      return this.info['redis_version']
-    }
-    
-    redisLog(this.rc , 'checking redis version')
-    await this._info()
+  getRedisVersion() : string {
     return this.info['redis_version']
   }
 
