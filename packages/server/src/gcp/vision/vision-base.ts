@@ -119,7 +119,6 @@ export class VisionBase {
       .border(1, 1)
       .fuzz(16, true)
       .trim()
-      .setFormat('jpeg')
 
       if(imageOptions.ratio) gmImage = await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
 
@@ -134,6 +133,8 @@ export class VisionBase {
       retVal.height  = dimensions.height
       retVal.mime    = await VisionBase.getGmMime(lo.cloneDeep(finalImage))
       retVal.palette = await VisionBase.getTopColors(rc, lo.cloneDeep(finalImage)) as any
+
+      finalImage.setFormat('jpeg')
       retVal.stream  = finalImage.stream()
 
       return retVal
