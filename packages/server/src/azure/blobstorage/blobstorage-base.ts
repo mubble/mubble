@@ -31,35 +31,36 @@ export class BlobStorageBase {
                             FUNCTIONS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
   static async uploadDataToBlobStorage(rc : RunContextServer, dataStream : stream.Readable, 
-                                       fullPath: string, fileName: string) {
+    fullPath: string, fileName: string, optionsIn ?: storage.BlobService.CreateBlockBlobRequestOptions) {
 
     const traceId   = `uploadDataToBlobStorage : ${fileName}`,
           ack       = rc.startTraceSpan(traceId),
           pathArr   = fullPath.split('/'),
           container = pathArr.shift() as string,
-          filePath  = path.join(...pathArr, fileName)
-          
-    try {
-      await new Promise((resolve, reject) => {
-        dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
-          if(error) {
-            rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${filePath}) : ${error.message}.`)
-            reject(error)
-          }
-          if(response.isSuccessful) {
-            rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage.`)
-            resolve(true)
-          }
-          resolve(false)
-        }))
-      })
-    } catch(err) {
-      rc.isError() && rc.error(rc.getName(this), `Error in uploading file (${filePath}) to Azure Blob Storage : ${err}.`)
-    } finally {
-      rc.endTraceSpan(traceId, ack)
-    }
+          filePath  = path.join(...pathArr, fileName),
+          options   = (optionsIn) ? optionsIn : {} as storage.BlobService.CreateBlockBlobRequestOptions
 
-    return filePath
+      try {
+        await new Promise((resolve, reject) => {
+          dataStream.pipe(this._blobstorage.createWriteStreamToBlockBlob(container, filePath, options, (error : Error, result : storage.BlobService.BlobResult, response : storage.ServiceResponse) => {
+            if(error) {
+              rc.isError() && rc.error(rc.getName(this), `Error in creating Azure Blob Service write stream (${filePath}) : ${error.message}.`)
+              reject(error)
+            }
+            if(response.isSuccessful) {
+              rc.isStatus() && rc.status(rc.getName(this), `Succesfully uploaded ${fileName} to Azure Blob Storage.`)
+              resolve(true)
+            }
+            resolve(false)
+          }))
+        })
+      } catch(err) {
+          rc.isError() && rc.error(rc.getName(this), `Error in uploading file (${filePath}) to Azure Blob Storage : ${err}.`)
+        } finally {
+          rc.endTraceSpan(traceId, ack)
+        }
+
+      return filePath
   }
 
   static async getWriteStream(rc: RunContextServer, container: string, file: string) {
