@@ -246,6 +246,14 @@ export class MudsBaseEntity extends MudsBaseStruct {
     return this.selfKey
   }
 
+  public getStringKey(key : DatastoreInt | string | undefined = this.selfKey) {
+
+    if(!key) return
+
+    if(typeof key === 'string') return key
+    else return key.value
+  }
+
   /* ---------------------------------------------------------------------------
    P R I V A T E    C O D E    S E C T I O N     B E L O W
 
@@ -259,11 +267,11 @@ export class MudsBaseEntity extends MudsBaseStruct {
     rc.isAssert() && rc.assert(rc.getName(this), 
       entityInfo.ancestors.length === this.ancestorKeys.length)
 
-    const dsRec      : DatastorePayload = {
-            key                 : this.io.buildKeyForDs(rc, entityInfo.cons, 
+    const dsRec : DatastorePayload = {
+            key                : this.io.buildKeyForDs(rc, entityInfo.cons, 
                                     this.ancestorKeys, this.selfKey),
-            data                : {},
-            excludeFromIndexes  : []
+            data               : {},
+            excludeFromIndexes : []
           }
 
     this.checkMandatory(rc)
@@ -271,7 +279,8 @@ export class MudsBaseEntity extends MudsBaseStruct {
     
     dsRec.data = this.serialize()
     for (const fieldName of entityInfo.fieldNames) {
-      const accessor  = this.entityInfo.fieldMap[fieldName].accessor
+      const accessor = this.entityInfo.fieldMap[fieldName].accessor
+
       accessor.buildExclusions(rc, this, dsRec.excludeFromIndexes)
     }
 
