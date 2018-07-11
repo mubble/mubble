@@ -27,7 +27,6 @@ import * as gm                      from 'gm'
 import * as mime                    from 'mime-types'
 import * as lo                      from 'lodash'
 import * as sharp                   from 'sharp'
-import * as fs                      from 'fs'
 export class VisionBase {
 
   static _vision : any
@@ -45,7 +44,7 @@ export class VisionBase {
   static async processBufferData(rc           : RunContextServer,
                                  imageData    : Buffer,
                                  imageOptions : VisionParameters) : Promise<SmartCropProcessReturn> {
-
+                                  
     rc.isDebug() && rc.debug(rc.getName(this), `Image Data: ${imageData.length} bytes`)
 
     return VisionBase.processImage(rc, imageData, imageOptions)
@@ -94,15 +93,7 @@ export class VisionBase {
   }
 
   static async getImageDimensions(rc : RunContextServer, imageData : Buffer) : Promise<{width : number, height : number}>{
-    return new Promise<{width : number, height : number}>((resolve, reject) => {
-      gm(imageData).identify((err : any, data : any) => {
-        if(err) {
-          rc.isError() && rc.error(rc.getName(this), `Error in identifying image buffer : ${err.message}`)
-          reject(err)
-        }
-        resolve({width : data.size.width, height : data.size.height})
-      })
-    })
+    return this.getDimensions (rc, gm(imageData))
   }
 
 /* ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -121,7 +112,6 @@ export class VisionBase {
       .trim()
 
       if(imageOptions.ratio) gmImage = await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
-
       if(imageOptions.shrink) gmImage.resize(imageOptions.shrink.w, imageOptions.shrink.h, '!')
 
 
@@ -161,8 +151,10 @@ export class VisionBase {
           w           = dimensions.width,
           h           = dimensions.height,
           maxW        = (w / ratio > h) ? h * ratio : w,
-          maxH        = (w / ratio < h) ? w / ratio : h,
-          crop        = (await SmartCropGM.crop(bufferImage, {width : 100, height : 100})).topCrop,
+          maxH        = (w / ratio < h) ? w / ratio : h
+
+    const scgm        = new SmartCropGM(rc, dimensions.width, dimensions.height),
+          crop        = (await scgm.crop(bufferImage, {width : 100, height : 100})).topCrop,
           x           = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
           y           = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
 
@@ -252,16 +244,6 @@ export class VisionBase {
     })
   }
 
-  private static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
-    return new Promise<ImageMeta>((resolve, reject) => {
-      gm(imageData).size((error, size) => {
-        if(error) reject(error)
-
-        resolve({height : size.height, width : size.width})
-      })
-    })
-  }
-
   private static async getDimensions(rc : RunContextServer, gmImage : gm.State) : Promise<{width : number, height : number}>{
     return new Promise<{width : number, height : number}>((resolve, reject) => {
       gmImage.identify((err : any, data : any) => {
@@ -270,6 +252,16 @@ export class VisionBase {
           reject(err)
         }
         resolve({width : data.size.width, height : data.size.height})
+      })
+    })
+  }
+
+  private static async getImageMeta(rc : RunContextServer, imageData : Buffer) : Promise<ImageMeta> {
+    return new Promise<ImageMeta>((resolve, reject) => {
+      gm(imageData).size((error, size) => {
+        if(error) reject(error)
+
+        resolve({height : size.height, width : size.width})
       })
     })
   }
