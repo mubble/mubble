@@ -8,21 +8,6 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-/**
- * O N E  T I M E  T E S T S
- * 
- * 
- * 1) Test against playground-india {count:0, hasMore:false, moreResults:"MORE_RESULTS_AFTER_LIMIT”})
- *    * Observation : {count:1, hasMore:false, moreResults:"NO_MORE_RESULTS"}
- * 
- * 2) Content table index assume is 'number of microsecs from 1 Jan 2050' (mpoch). 
- *    When we ask for content by content type, asc order __key__. This should not need index.
- *    * Observation : Order by __Key__ does not work, but the default order is ascending
- * 
- * 3) object.freeze: try modifying manager data.
- *    * Observation : works, data modification  failed.
- */
-
 import {  Muds }                                  from '../muds'
 import {  RunContextServer }                      from '../../../rc-server'
 import {  TestUtils }                             from './utils'

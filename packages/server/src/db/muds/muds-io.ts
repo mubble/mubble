@@ -90,7 +90,7 @@ export abstract class MudsIo {
                  ...keys : (string | DatastoreInt)[]): Promise<T> {
 
     const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
-          [entity] = await this.getEntitiesInternal(false, {entityClass, ancestorKeys, selfKey})
+          [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
     if (!entity) throw(Muds.Error.RNF)
     return entity
   }
@@ -102,7 +102,7 @@ export abstract class MudsIo {
                  ...keys : (string | DatastoreInt)[]): Promise<T | undefined> {
 
     const {ancestorKeys, selfKey} = this.separateKeys(this.rc, entityClass, keys),
-          [entity] = await this.getEntitiesInternal(false, {entityClass, ancestorKeys, selfKey})
+          [entity] = await this.getEntitiesInternal({entityClass, ancestorKeys, selfKey})
     return entity
   }
 
@@ -110,13 +110,11 @@ export abstract class MudsIo {
     return new QueueBuilder(this.rc, this)
   }
 
-  public async getEntities(queueBuilder: QueueBuilder, getEmptyObjects : boolean): Promise< (MudsBaseEntity | undefined)[]> {
-    return await this.getEntitiesInternal(getEmptyObjects, ...queueBuilder.getAll())
+  public async getEntities(queueBuilder: QueueBuilder): Promise< (MudsBaseEntity | undefined)[]> {
+    return await this.getEntitiesInternal(...queueBuilder.getAll())
   }
 
-  private async getEntitiesInternal<T extends MudsBaseEntity>(
-                                    getEmptyObjects: boolean,
-                                    ...reqs: IEntityKey<T>[]): Promise< (T | undefined)[]> {
+  private async getEntitiesInternal<T extends MudsBaseEntity>(...reqs: IEntityKey<T>[]): Promise< (T | undefined)[]> {
 
     const dsKeys  : DatastoreKey[] = [],
           arResp  : (T | undefined)[] = []
@@ -136,7 +134,6 @@ export abstract class MudsIo {
             keysFromDs  = this.extractKeyFromDs(this.rc, entityClass, result),
             strKey      = JSON.stringify(keysFromDs)
 
-      console.log(strKey)
       resultObj[strKey] = result
     }
 
@@ -146,9 +143,7 @@ export abstract class MudsIo {
             result = resultObj[strKey]
             
       if (!result) {
-        arResp.push(getEmptyObjects
-                    ? this.getForInsert(entityClass, ...ancestorKeys, selfKey)
-                    : undefined)
+        arResp.push(this.getForInsert(entityClass, ...ancestorKeys, selfKey))
         continue
       }
       delete resultObj[strKey]
@@ -156,6 +151,7 @@ export abstract class MudsIo {
     }
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), lo.isEmpty(resultObj))
+
     return arResp
   }
   
@@ -185,18 +181,7 @@ export abstract class MudsIo {
   }
 
   async enqueueForUpsert(...entities: MudsBaseEntity[]) {
-    
-    const exec   = this.getExec(),
-          dsRecs = []
-    
-    for(const entity of entities) {
-
-      if(!entity.isModified()) continue
-
-      dsRecs.push(entity.convertForUpsert(this.rc))
-    }
-
-    await exec.save(dsRecs)
+    this.upsertQueue.push(...entities)
   }
 
   async upsert(entity: MudsBaseEntity) {
@@ -273,6 +258,20 @@ export abstract class MudsIo {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
+  protected async processUpsertQueue() {
+    const exec   = this.getExec(),
+          dsRecs = []
+
+    for(const entity of this.upsertQueue) {
+
+      if(!entity.isModified()) continue
+
+      dsRecs.push(entity.convertForUpsert(this.rc))
+    }
+
+    await exec.save(dsRecs)
+  }
+
   getInfo(entityClass:  Function                         |
                         Muds.IBaseStruct<MudsBaseStruct> | 
                         Muds.IBaseEntity<MudsBaseEntity> | 
@@ -295,13 +294,13 @@ export abstract class MudsIo {
   separateKeysForInsert<T extends Muds.BaseEntity>(rc: RunContextServer, 
                   entityClass : Muds.IBaseEntity<T>, 
                   keys        : (string | DatastoreInt) []) {
-
+                    
     const entityInfo    = this.getInfo(entityClass),
           ancestorsInfo = entityInfo.ancestors
-
+          
     rc.isAssert() && rc.assert(rc.getName(this), keys.length >= ancestorsInfo.length)
     const ancestorKeys = []
-
+    
     for (const [index, info] of ancestorsInfo.entries()) {
       ancestorKeys.push(this.checkKeyType(rc, keys[index], info))
     }
@@ -323,7 +322,7 @@ export abstract class MudsIo {
 
     const strKey = info.keyType === Muds.Pk.String ? key : (key as DatastoreInt).value 
     rc.isAssert() && rc.assert(rc.getName(this), strKey && 
-      typeof(strKey) === 'string')
+      typeof(strKey) === 'string', `KeyType Mismatch`)
     return key
   }
 
@@ -459,7 +458,9 @@ export class MudsDirectIo extends MudsIo {
 
     const rc = this.rc
     try {
-      return await this.callback(this, this.now)
+      const response = await this.callback(this, this.now)
+      await this.processUpsertQueue()
+      return response
     } catch (err) {
       rc.isWarn() && rc.warn(rc.getName(this), 'Failed with error', err)
     }
@@ -514,6 +515,7 @@ export class MudsTransaction extends MudsIo {
 
     try {
         const response = await this.callback(this, this.now)
+        if(this.upsertQueue.length) await this.processUpsertQueue()
         await this.transaction.commit()
         rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
 
@@ -564,7 +566,7 @@ export class QueueBuilder {
           reqStr                  = JSON.stringify(req)
       
     this.arReq.push(req)
-    
+
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), !this.reqObj[reqStr],
       'Duplicate key in queue')
     this.reqObj[reqStr] = reqStr
