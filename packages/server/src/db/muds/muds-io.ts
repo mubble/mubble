@@ -489,8 +489,8 @@ export class MudsTransaction extends MudsIo {
   }
 
   public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
-          firstAncestorKey      : string | DatastoreInt,
-          ...otherAncestorKeys  : (string | DatastoreInt)[]): MudsQuery<T> {
+          firstAncestorKey     : string | DatastoreInt,
+          ...otherAncestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
 
     otherAncestorKeys.unshift(firstAncestorKey) 
     return new MudsQuery(this.rc, this, 
