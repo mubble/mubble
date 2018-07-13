@@ -11,6 +11,7 @@
 import {  Muds }                                  from '../muds'
 import {  RunContextServer }                      from '../../../rc-server'
 import {  TestUtils }                             from './utils'
+import {  POCTests }                              from './proof-of-concept'
 import * as models                                from './models'
 
 export class MudsTests {
@@ -23,9 +24,11 @@ export class MudsTests {
       await TestUtils.cleanUp(rc)
       await TestUtils.prepareData(rc, this.ts, this.ts + 1, this.ts + 2)
 
-      await this.testCase1(rc)
-      await this.testCase2(rc)
-      await this.testCase3(rc)
+      await POCTests.testCase1(rc)
+
+      // await this.testCase1(rc)
+      // await this.testCase2(rc)
+      // await this.testCase3(rc)
 
     } catch(error) {
 

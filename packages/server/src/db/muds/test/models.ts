@@ -27,11 +27,11 @@ export class Parent extends Muds.BaseEntity {
 @Muds.compositeIndex({ numValue: Muds.Asc, strValue: Muds.Dsc })
 export class KeyValue extends Muds.BaseEntity {
 
-  @Muds.field(Muds.Man)     boolValue   : boolean
+  @Muds.field(Muds.Opt)     boolValue   : boolean
   @Muds.indexed(Muds.Opt)   numValue    : number
-  @Muds.unique(Muds.Man)    strValue    : string
+  @Muds.unique(Muds.Opt)    strValue    : string
 
-  @Muds.field(Muds.Man, String) 
+  @Muds.field(Muds.Opt, String) 
                             arValue     : string[]
 
   public async populateDummyValues(rc : RunContextServer) {

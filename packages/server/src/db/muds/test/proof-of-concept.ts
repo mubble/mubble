@@ -27,24 +27,23 @@ import * as models                                from './models'
 
  export class POCTests {
 
-  private ts = Date.now()
+  private static ts = Date.now()
 
   /**
    * Test is the transaction is working when somebody updates the entity outside transaction
    */
-  private async testCase1(rc : RunContextServer) {
+  static async testCase1(rc : RunContextServer) {
     const testString = 'Updates the entity outside transaction.'
 
     rc.isDebug() && rc.debug(rc.getName(this),`1) ${testString}`)
 
     try {
-      const updateRec = { strValue : 'Updated String Value' }
 
       const transactionPromise = Muds.transaction(rc, async (transaction, now) => {
         const parentKey = Muds.getIntKey(this.ts),
               keyVal1   = await transaction.getForUpsert(models.KeyValue, parentKey, Muds.getIntKey(this.ts + 1))
 
-        Object.assign(keyVal1, updateRec)
+        keyVal1.strValue = 'Updated String Value'
 
         await transaction.upsert(keyVal1)
       })
@@ -53,7 +52,7 @@ import * as models                                from './models'
         const parentKey = Muds.getIntKey(this.ts),
               keyVal1   = await directIo.getForUpsert(models.KeyValue, parentKey, Muds.getIntKey(this.ts + 1))
 
-        Object.assign(keyVal1, updateRec)
+        keyVal1.strValue = 'Updated String Value'
 
         await directIo.upsert(keyVal1)
       })
@@ -62,8 +61,10 @@ import * as models                                from './models'
 
       /**
        * Observations :
-       * 
-       * 
+       * MudsTransaction(Init): transaction failed with error {code:10, metadata:{_internal_repr:{}}, 
+       * details:"too much contention on these datastore entities. ..} 
+       * Error: 10 ABORTED: too much contention on these datastore entities. please try again.
+       * entity groups: [(app=j~playground-india, Parent, 1531469471537)]
        */
 
       rc.isDebug() && rc.debug(rc.getName(this), `Success : ${testString}`)
@@ -76,7 +77,7 @@ import * as models                                from './models'
   /**
    * Test time taken in batching of 500 Vs 100 * 5 (Promise.all)
    */
-  private async testCase2() {
+  async testCase2() {
 
   }
  }
