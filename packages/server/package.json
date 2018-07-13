@@ -20,6 +20,7 @@
     "@types/reflect-metadata": "^0.0.5",
     "@types/request": "^2.0.0",
     "@types/semver": "^5.3.31",
+    "@types/sharp": "^0.17.7",
     "@types/uuid": "^3.0.0",
     "@types/ws": "0.0.40"
   },
@@ -32,7 +33,6 @@
     "@google-cloud/storage": "^1.1.1",
     "@google-cloud/translate": "^1.1.0",
     "@mubble/core": "file:../core",
-    "@types/sharp": "^0.17.7",
     "azure-storage": "^2.8.2",
     "cld": "^2.4.7",
     "colors": "^1.1.2",
