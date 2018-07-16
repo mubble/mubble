@@ -70,7 +70,7 @@ export class MudsBaseStruct {
 
     for (const fieldName of entityInfo.fieldNames) {
 
-      const meField  = entityInfo.fieldMap[fieldName]
+      const meField = entityInfo.fieldMap[fieldName]
       let value = thisObj[fieldName]
       
       if (value) {
