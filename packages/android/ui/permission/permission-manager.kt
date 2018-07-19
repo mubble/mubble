@@ -181,7 +181,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
 
     val builder = AlertDialog.Builder(activity, R.style.PermissionDialog)
     builder.setMessage(R.string.cmn_perm_rationale_go_to_settings)
-        .setPositiveButton(R.string.cmn_text_give_perm, { _, _ ->
+        .setPositiveButton(R.string.cmn_text_give_perm) { _, _ ->
 
           val myApp = Uri.parse("package:" + activity.packageName)
           val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, myApp)
@@ -189,9 +189,9 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
           intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
           activity.startActivity(intent)
           //activity.toast(R.string.cch_toast_app_permit)
-        })
-        .setNegativeButton(R.string.cmn_text_later, { _, _ ->
+        }
+        .setNegativeButton(R.string.cmn_text_later) { _, _ ->
           //activity.toast(R.string.cch_toast_permit_proceed)
-        }).create().show()
+        }.create().show()
   }
 }
