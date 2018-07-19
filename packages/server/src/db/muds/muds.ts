@@ -9,6 +9,7 @@
 
 import {  
           MudsBaseEntity,
+          IMudsCacheEntity,
           MudsBaseStruct
        }                                          from './muds-base-entity'
 import {  
@@ -188,8 +189,7 @@ export namespace Muds {
   export const Query        = MudsQuery
   export type  Query        = MudsQuery<MudsBaseEntity>
   export const getMpoc      = MudsUtil.getMpoc
-
-
+  export type  ICacheEntity<T extends Muds.BaseEntity>  = IMudsCacheEntity<T>
 
   export enum Pk {
     None, // used for MudsStruct

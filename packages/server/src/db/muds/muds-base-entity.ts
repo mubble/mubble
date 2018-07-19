@@ -19,10 +19,17 @@ import {  Muds,
 import {  MudsIo }                      from './muds-io'
 import { MudsUtil }                     from './muds-util'
 
+export type IMudsCacheEntity<T extends MudsBaseStruct> = T 
+
 /*------------------------------------------------------------------------------
     MudsBaseStruct
 ------------------------------------------------------------------------------*/
 export class MudsBaseStruct {
+
+  public static fromDsStruct<T extends MudsBaseStruct>(entity: T): IMudsCacheEntity<T> {
+
+    return {} as T
+  }
 
   protected entityInfo    : MudsEntityInfo
   constructor(protected rc: RunContextServer, protected io: MudsIo, 
