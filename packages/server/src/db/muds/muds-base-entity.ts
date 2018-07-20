@@ -185,7 +185,7 @@ export type DatastorePayload = {
 export class MudsBaseEntity extends MudsBaseStruct {
 
   private savePending : boolean  // indicates that entity is pending to be saved
-  private _id         : string   // Used only while serialising
+  public _id          : string   // Used only while serialising
 
   constructor(rc                    : RunContextServer, 
               io                    : MudsIo, 
