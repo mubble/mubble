@@ -26,7 +26,7 @@ export type IMudsCacheEntity<T extends MudsBaseStruct> = T
 ------------------------------------------------------------------------------*/
 export class MudsBaseStruct {
 
-  public static fromDsStruct<T extends MudsBaseStruct>(entity: T): IMudsCacheEntity<T> {
+  public serializeToJson<T extends MudsBaseStruct>(): IMudsCacheEntity<T> {
 
     return {} as T
   }
