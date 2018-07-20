@@ -6,18 +6,22 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as DsEntity                    from '@google-cloud/datastore/entity'
-import * as lo                          from 'lodash'
 
+import {  
+          MeField,
+          MudsEntityInfo
+       }                                from './muds-manager'
+import {  
+          Muds,
+          DatastoreInt,
+          DsRec
+       }                                from '..'
+import {  MudsIo }                      from './muds-io'
+import {  MudsUtil }                    from './muds-util'
 import {  RunContextServer  }           from '../../rc-server'
 import {  Mubble }                      from '@mubble/core'
-import {  MeField,         
-          MudsEntityInfo}               from './muds-manager'
-import {  Muds, 
-          DatastoreInt, 
-          DsRec}                        from '..'
-import {  MudsIo }                      from './muds-io'
-import { MudsUtil }                     from './muds-util'
+import * as DsEntity                    from '@google-cloud/datastore/entity'
+import * as lo                          from 'lodash'
 
 export type IMudsCacheEntity<T extends MudsBaseStruct> = T 
 
@@ -25,11 +29,6 @@ export type IMudsCacheEntity<T extends MudsBaseStruct> = T
     MudsBaseStruct
 ------------------------------------------------------------------------------*/
 export class MudsBaseStruct {
-
-  public serializeToJson<T extends MudsBaseStruct>(): IMudsCacheEntity<T> {
-
-    return {} as T
-  }
 
   protected entityInfo    : MudsEntityInfo
   constructor(protected rc: RunContextServer, protected io: MudsIo, 
@@ -114,12 +113,13 @@ export class MudsBaseStruct {
           data       = {} as Mubble.uObject<any>
 
     for (const fieldName of entityInfo.fieldNames) {
-      const meField  = entityInfo.fieldMap[fieldName],
-            value    = thisObj[fieldName]
+      const meField = entityInfo.fieldMap[fieldName],
+            value   = thisObj[fieldName]
       
       if (value === undefined) continue
       data[fieldName] = meField.accessor.serialize(this)
     }
+
     return data
   }
 
@@ -184,7 +184,8 @@ export type DatastorePayload = {
 ------------------------------------------------------------------------------*/
 export class MudsBaseEntity extends MudsBaseStruct {
 
-  private savePending   : boolean  // indicates that entity is pending to be saved
+  private savePending : boolean  // indicates that entity is pending to be saved
+  private _id         : string   // Used only while serialising
 
   constructor(rc                    : RunContextServer, 
               io                    : MudsIo, 
@@ -199,6 +200,24 @@ export class MudsBaseEntity extends MudsBaseStruct {
     } else if (this.entityInfo.keyType !== Muds.Pk.Auto) {
       rc.isAssert() && rc.assert(rc.getName(this), this.selfKey, `Cannot create entity without selfkey`)
     }
+  }
+
+  public serializeToJson<T extends MudsBaseStruct>() {
+
+    const entityInfo = this.entityInfo,
+          thisObj    = this as any,
+          data       = {} as Mubble.uObject<any>
+
+    data._id = this.getStringKey(this.getSelfKey())
+
+    for (const fieldName of entityInfo.fieldNames) {
+      const meField  = entityInfo.fieldMap[fieldName],
+            value    = thisObj[fieldName]
+      
+      if (value === undefined) continue
+      data[fieldName] = meField.accessor.serialize(this)
+    }
+    return data as T
   }
 
   public hasValidKey() {
