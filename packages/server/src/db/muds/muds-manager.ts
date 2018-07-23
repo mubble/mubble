@@ -6,21 +6,26 @@
    
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import 'reflect-metadata'
-import * as Datastore                   from '@google-cloud/datastore'
 
-import {  Muds, 
+import 'reflect-metadata'
+import {  
+          Muds, 
           FieldType,
           ArrayField,
-          EntityType }                  from "./muds"
-
-import {  MudsBaseEntity, 
+          EntityType
+       }                                from './muds'
+import {  
+          MudsBaseEntity, 
           MudsBaseStruct, 
-          FieldAccessor  }              from "./muds-base-entity"
+          FieldAccessor
+       }                                from './muds-base-entity'
 import {  Mubble }                      from '@mubble/core'
 import {  GcloudEnv }                   from '../../gcp/gcloud-env'
 import {  RunContextServer }            from '../..'
 import {  MudsUtil }                    from './muds-util'
+import {  RedisWrapper }                from '../../cache/redis-wrapper'
+import * as Datastore                   from '@google-cloud/datastore'
+
 
 export class MeField {
   accessor: FieldAccessor
@@ -31,7 +36,7 @@ export class MeField {
               readonly indexed      : boolean,
               readonly unique       : boolean
   ) {
-    if (unique && !indexed) throw('Field cannot be unique without being indexed')            
+    if (unique && !indexed) throw('Field cannot be unique without being indexed')
   }
 }
 
@@ -41,6 +46,7 @@ export class MudsEntityInfo {
   readonly ancestors        : MudsEntityInfo[] = []
   readonly fieldMap         : Mubble.uObject<MeField> = {}
   readonly fieldNames       : string[] = []
+  readonly uniqueFields     : { [ i : string ] : string[] } = {}
   readonly compositeIndices : Mubble.uObject<Muds.Asc | Muds.Dsc>[] = []
 
   constructor(readonly cons        : {new(): MudsBaseEntity},
@@ -56,6 +62,7 @@ export class MudsManager {
   private entityInfoMap       : Mubble.uObject<MudsEntityInfo> = {}
   private datastore           : Datastore
   private entityNames         : string[]
+  private trRedis             : RedisWrapper
 
   // Temporary members while store schema is built, they are removed after init
   private tempAncestorMap     : Mubble.uObject<ReadonlyArray<{new(): Muds.BaseEntity}>> = {}
@@ -69,6 +76,10 @@ export class MudsManager {
   -----------------------------------------------------------------------------*/
   getDatastore() {
     return this.datastore
+  }
+
+  getCacheReference() {
+    return this.trRedis
   }
 
   getInfo(entityClass:  Function                         |
@@ -174,7 +185,9 @@ export class MudsManager {
     throw(`${id}unknown type: ${fieldType.name}`)
   }
 
-  init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
+  public init(rc : RunContextServer, gcloudEnv : GcloudEnv, trRedis : RedisWrapper) {
+
+    this.trRedis = trRedis
 
     if (!this.tempEntityFieldsMap) throw(`Second attempt at Muds.init()?`)
 
@@ -196,9 +209,13 @@ export class MudsManager {
 
       if (ancestors) this.valAndProvisionAncestors(rc, ancestors, entityInfo)
 
+      this.populateUniq(rc, entityInfo)
+
       // As fields are readonly, info is copied into them
       Object.assign(entityInfo.fieldMap, fieldsMap)
       entityInfo.fieldNames.push(...Object.keys(entityInfo.fieldMap))
+      
+      entityInfo.uniqueFields
 
       if (compIndices) this.valAndProvisionCompIndices(rc, compIndices, entityInfo)
     }
@@ -213,7 +230,7 @@ export class MudsManager {
     rc.isDebug() && rc.debug(rc.getName(this), `Muds initialized with ${
       Object.keys(this.entityInfoMap).length} entities`)
 
-    this.finalizeDataStructures(rc)
+    this.finalizeDataStructures(rc) 
   }
 
   private extractFromMap(obj: Mubble.uObject<any>, prop: string) {
@@ -237,6 +254,34 @@ export class MudsManager {
         
       entityInfo.ancestors.push(ancestorInfo)
     }
+  }
+
+  private populateUniq(rc          : RunContextServer, 
+                       entityInfo  : MudsEntityInfo,
+                       prefix     ?: string) {
+
+  
+    entityInfo.fieldMap
+    for(let fieldName in entityInfo.fieldMap) {
+
+      const field = entityInfo.fieldMap[fieldName]
+
+      if(field.unique) {
+
+        const uniqueKey = prefix ? `${prefix}.${field.fieldName}` : field.fieldName,
+              Cls       = MudsUtil.getStructClass(field)
+              
+          
+        if (Cls && field.indexed) {
+          //TODO(AD) : fix
+          // this.populateUniq(rc, uniques, uniqueKey)
+          
+        }
+
+        entityInfo.uniqueFields[uniqueKey] = uniqueKey.split('.')
+      }
+    }
+
   }
 
   private valAndProvisionCompIndices( rc : RunContextServer, 

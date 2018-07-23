@@ -7,7 +7,8 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {  Muds, 
+import {  
+          Muds, 
           FieldType,
           DatastoreInt, 
           DatastoreKey, 
@@ -18,7 +19,10 @@ import {
           MudsEntityInfo, 
           MeField
        }                                from './muds-manager'
-import {  MudsBaseStruct }              from './muds-base-entity'
+import {  
+          MudsBaseStruct,
+          MudsBaseEntity
+       }                                from './muds-base-entity'
 import {  Mubble }                      from '@mubble/core'
 import {  RunContextServer }            from '../..'
 
@@ -76,5 +80,38 @@ export class MudsUtil {
   public static getMpoc(ts ?: number) {
     
     return MudsUtil.targetDateTs - (ts || Date.now())
+  }
+
+  public static getUniques(rc : RunContextServer, entity : MudsBaseStruct, uniques : Array<Object>, prefix ?: string) { 
+    
+    const entityInfo = entity.getInfo()
+
+    for (const fieldName of entityInfo.fieldNames) {
+
+      const meField = entityInfo.fieldMap[fieldName]
+      let   value   = (entity as any)[fieldName]
+      
+      if (value && meField.unique) {
+        const uniqueKey = prefix ? `${prefix}.${meField.fieldName}` : meField.fieldName,
+              Cls       = MudsUtil.getStructClass(meField)
+              
+        if (Cls && meField.indexed) {
+          value = meField.fieldType === Array ? value : [value]
+          value.forEach((struct: MudsBaseStruct) => this.getUniques(rc, struct, uniques, uniqueKey))
+        }
+
+        uniques.push({entity : entityInfo.entityName, key : uniqueKey, value : value})
+      }
+    }
+
+    return uniques.length
+  }
+
+  public static async checkIfEntityExists(rc : RunContextServer, entity : MudsBaseEntity) {
+    return await Muds.direct(rc, async (directIo, now) => {
+      
+      return await directIo.getEntityIfExists(entity.getInfo().cons, ...entity.getFullKey())
+
+    }) as MudsBaseEntity | undefined
   }
 }

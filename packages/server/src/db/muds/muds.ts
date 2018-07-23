@@ -23,6 +23,7 @@ import {  RunContextServer }                      from '../..'
 import {  GcloudEnv }                             from '../../gcp/gcloud-env'
 import {  Mubble }                                from '@mubble/core'
 import {  MudsUtil }                              from './muds-util'
+import {  RedisWrapper }                          from '../../cache/redis-wrapper'
 import * as DsEntity                              from '@google-cloud/datastore/entity'
 
 export type DatastoreInt = DsEntity.DatastoreInt
@@ -150,9 +151,12 @@ export class Muds {
    * * entities: All entities must be identified. To facilitate this list is taken as dummy input
    * * Level: property declaration
    */
-  public static init(rc: RunContextServer, 
-    gcloudEnv: GcloudEnv, ...entities: ({new(): Muds.BaseEntity}| Function)[]) {
-    return this.manager.init(rc, gcloudEnv)
+  public static init(rc          : RunContextServer, 
+                     gcloudEnv   : GcloudEnv, 
+                     trRedis     : RedisWrapper,
+                     ...entities : ({new(): Muds.BaseEntity}| Function)[]) {
+
+    return this.manager.init(rc, gcloudEnv, trRedis)
   }
 
   public static async transaction(rc: RunContextServer, 

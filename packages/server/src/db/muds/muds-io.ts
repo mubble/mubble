@@ -63,7 +63,8 @@ export abstract class MudsIo {
 
   protected datastore   : Datastore
   readonly  now         : number
-  readonly  upsertQueue : MudsBaseEntity[] = []
+  protected upsertQueue : MudsBaseEntity[] = []
+  readonly  uniques     : UniqCacheObj[]   = []
 
   constructor(protected rc      : RunContextServer, 
               protected manager : MudsManager) {
@@ -154,7 +155,6 @@ export abstract class MudsIo {
 
     return arResp
   }
-  
 
   /**
    * getForUpsert: Api to do insert or update on an entity
@@ -180,42 +180,18 @@ export abstract class MudsIo {
     return new entityClass(this.rc, this, ancestorKeys, selfKey)
   }
 
-  async enqueueForUpsert(...entities: MudsBaseEntity[]) {
+  enqueueForUpsert(entity : MudsBaseEntity) {
+    this.upsertQueue.push(entity)
+  }
+
+  public async upsertImmideately(rc : RunContextServer, ...entities : MudsBaseEntity[]) {
     this.upsertQueue.push(...entities)
+
+    await this.processUpsertQueue(rc)
+
   }
 
-  async upsert(entity: MudsBaseEntity) {
-
-    const exec     = this.getExec(),
-          dsRecs   = []
-
-
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), entity.isModified(),
-      `${entity.getLogId()} Skipping entity as it is not modified`)
-
-    dsRecs.push(entity.convertForUpsert(this.rc))
-
-    /**
-     * [ { mutationResults: [ [Object] ], indexUpdates: 3 } ]
-     * mutationResults [ { key: { path: [Array], partitionId: [Object] }, version: '1527613238307000', conflictDetected: false } ]
-     * key { path: 
-              [ { kind: 'User', id: '1', idType: 'id' },
-                { kind: 'KeyType', id: '2', idType: 'id' },
-                { kind: 'UserKeyValue', id: '5629499534213120', idType: 'id' } ],
-             partitionId: { projectId: 'mubble-playground', namespaceId: '' } 
-           }
-     */
-
-    /**
-     * transaction.upsert gets stuck, ie promise is not resolved.
-     * So, transaction.save is used.
-     */
-    await exec.save(dsRecs)
-
-    entity.commitUpsert(null)
-  }
-
-  public async delete(...entities: (MudsBaseEntity)[]): Promise<void> {
+  public async delete(...entities: MudsBaseEntity[]): Promise<void> {
 
     const qb = new QueueBuilder(this.rc, this)
     for (const entity of entities) {
@@ -258,23 +234,150 @@ export abstract class MudsIo {
 
    D O   N O T   A C C E S S   D I R E C T L Y
   -----------------------------------------------------------------------------*/
-  protected async processUpsertQueue() {
-    const exec   = this.getExec(),
-          dsRecs = []
+  protected async processUpsertQueue(rc : RunContextServer) {
+    const exec         = this.getExec(),
+          checkForUniq = [],
+          dsRecs       = []
+
+    if(!this.upsertQueue.length) return
 
     for(const entity of this.upsertQueue) {
 
       if(!entity.isModified()) continue
 
       dsRecs.push(entity.convertForUpsert(this.rc))
+      checkForUniq.push(entity)
     }
+    
+    await this.checkUnique(rc, ...checkForUniq)
 
     await exec.save(dsRecs)
+
+    this.upsertQueue = []
+  }
+
+  /* ?????
+    - maintain the list of unique fields MudsEntityInfo like {'a.b.c': [a, b, c]}.
+    - existanceCheckQuery : use muds instead of native.
+    - UniqCacheObj class : where to put ?.
+    - entityBase.getNestedField (should give undefined for opt structs) assert in struct is not optional.
+
+    - redis todo list [ entityName.a.b.c.value ]
+    - db to list []
+  */
+
+  private async checkUnique(rc: RunContextServer, ...entities : MudsBaseEntity[]) {
+
+    const uniques = await this.getAllUniques(rc, ...entities),
+          queries = []
+
+    //example: For UserContent [{'UserContent.a.b.c:value' : 'value'}]
+    const existingFields = await this.checkExistanceInCache(rc, uniques)
+
+    rc.isAssert() && rc.assert(rc.getName(this), !existingFields.length, 
+    `Unique Key Violation : ${JSON.stringify(existingFields)}`)
+
+    for(const pair of uniques) {
+
+      const entity = lo.filter(entities, o => o.getInfo().entityName === pair.entityName)[0]
+
+      queries.push(this.existanceCheckQuery(rc, entity, pair.key, pair.value))
+    }
+
+    const existingFilelds = (await Promise.all(queries)).filter(o => o)
+
+    if(existingFilelds.length) {
+      rc.isWarn() && rc.warn(rc.getName(this), `Unique Key Violation : ${JSON.stringify(existingFilelds)}`)
+      throw(`Unique Key Violation : ${JSON.stringify(existingFilelds)}`)
+    }
+
+    this.uniques.concat(uniques)
+  }
+
+  private async getAllUniques(rc : RunContextServer, ...entities : MudsBaseEntity[]) {
+
+    let uniqueVals = [] as UniqCacheObj[]
+
+    for(const entity of entities) {
+      
+      if (!MudsUtil.getUniques(rc, entity, uniqueVals)) continue
+
+      const existingEntity = await MudsUtil.checkIfEntityExists(rc, entity)
+
+      if (existingEntity) {
+
+        const oldUniqVals = [] as UniqCacheObj[]
+  
+        MudsUtil.getUniques(rc, existingEntity, oldUniqVals)
+  
+        uniqueVals = lo.difference(uniqueVals, oldUniqVals)
+      }
+    }
+
+    return uniqueVals
+  }
+  
+  private async checkExistanceInCache(rc : RunContextServer, uniqueVals : any[]) {
+
+    const trRedis      = this.manager.getCacheReference(),
+          multi        = trRedis.redisMulti(),
+          existingKeys = [] as any[]
+
+    for(const uniqueVal of uniqueVals) {
+
+      const key = this.getCacheKey(rc, uniqueVal.entity, uniqueVal.key, uniqueVal.value)
+      
+      // Expires in 5 secs.
+      multi.set(key, uniqueVal.value, 'EX', '5', 'NX')
+    }
+
+    const res = await trRedis.execRedisMulti(multi)
+
+    res.forEach((val, index) => {
+      if(!val) existingKeys.push(uniqueVals[index])
+    })
+
+    return existingKeys
+  }
+
+  private getCacheKey(rc : RunContextServer, entityName : string, key : string, value : string) {
+    return entityName + '.' + key + ':' + value
+  }
+
+  private async existanceCheckQuery(rc     : RunContextServer,
+                                    entity : MudsBaseEntity,
+                                    key    : string,
+                                    value  : any) {
+
+    return null
+    // let respEntity
+    // await Muds.direct(rc, async (mudsIo, now) => {
+
+    //   const query = mudsIo.query(entity)
+
+    //   query.filter(key, '=', value)
+
+    //   const result = await query.run(1)
+
+    //   respEntity = await result.getNext()
+    // })
+
+    // return  respEntity ? key : null
+  }
+
+  protected async removeUniqFromCache(rc : RunContextServer) {
+    const trRedis    = this.manager.getCacheReference(),
+          multi      = trRedis.redisMulti()
+
+    for(const uniq of this.uniques)
+      multi.del(uniq.key)
+
+    await trRedis.execRedisMulti(multi)
   }
 
   getInfo(entityClass:  Function                         |
-                        Muds.IBaseStruct<MudsBaseStruct> | 
-                        Muds.IBaseEntity<MudsBaseEntity> | 
+                        Muds.IBaseStruct<MudsBaseStruct> |
+                        Muds.IBaseEntity<MudsBaseEntity> |
                         string): MudsEntityInfo {
     return this.manager.getInfo(entityClass)
   }
@@ -346,7 +449,7 @@ export abstract class MudsIo {
   }
 
   extractKeyFromDs<T extends Muds.BaseEntity>(rc: RunContextServer, 
-                  entityClass : Muds.IBaseEntity<T>, 
+                  entityClass : Muds.IBaseEntity<T>,
                   rec         : Mubble.uObject<any>) {
 
     const entityInfo    = this.getInfo(entityClass),
@@ -459,9 +562,11 @@ export class MudsDirectIo extends MudsIo {
     const rc = this.rc
     try {
       const response = await this.callback(this, this.now)
-      await this.processUpsertQueue()
+      await this.processUpsertQueue(rc)
       return response
     } catch (err) {
+
+      await this.removeUniqFromCache(rc)
       rc.isWarn() && rc.warn(rc.getName(this), 'Failed with error', err)
     }
 
@@ -514,17 +619,18 @@ export class MudsTransaction extends MudsIo {
     await this.transaction.run()
 
     try {
-        const response = await this.callback(this, this.now)
-        if(this.upsertQueue.length) await this.processUpsertQueue()
-        await this.transaction.commit()
-        rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
+      
+      const response = await this.callback(this, this.now)
+      if(this.upsertQueue.length) await this.processUpsertQueue(rc)
+      await this.transaction.commit()
+      rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
 
-        return response
+      return response
     } catch (err) {
 
       // on certain errors doCallback can be run again
       // ????
-
+      await this.removeUniqFromCache(rc)
       await this.transaction.rollback()
       rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
     }
@@ -555,10 +661,10 @@ export class QueueBuilder {
   private arReq: IEntityKey<any>[] = []
   private reqObj: Mubble.uObject<string> = {}
 
-  constructor(protected rc: RunContextServer, 
+  constructor(protected rc: RunContextServer,
               protected io: MudsIo) {}
 
-  add<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>, 
+  add<T extends MudsBaseEntity>(entityClass : Muds.IBaseEntity<T>,
     ...keys : (string | DatastoreInt)[]) {
 
     const {ancestorKeys, selfKey} = this.io.separateKeys(this.rc, entityClass, keys),
@@ -576,4 +682,10 @@ export class QueueBuilder {
   getAll() {
     return this.arReq
   }
+}
+
+export class UniqCacheObj {
+  entityName : string
+  key        : string
+  value      : string
 }

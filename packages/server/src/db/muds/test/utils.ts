@@ -21,7 +21,7 @@ export class TestUtils {
 
       Object.assign(keyVal, updateRec)
 
-      await transaction.upsert(keyVal)
+      await transaction.enqueueForUpsert(keyVal)
     })
   }
   
@@ -35,7 +35,7 @@ export class TestUtils {
       const parent = await directIo.getForUpsert(models.Parent, Muds.getIntKey(parentKey))
 
       await parent.populateDummyValues(rc)
-      await directIo.upsert(parent)
+      await directIo.enqueueForUpsert(parent)
 
       if(!childrenKeys) return
 
@@ -45,9 +45,8 @@ export class TestUtils {
 
         await keyVal.populateDummyValues(rc)
       
-        await directIo.upsert(keyVal)
+        await directIo.enqueueForUpsert(keyVal)
       }
-
     }) as models.KeyValue
   }
 

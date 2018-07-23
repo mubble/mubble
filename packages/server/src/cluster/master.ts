@@ -71,9 +71,9 @@ interface UserInfo {
 ------------------------------------------------------------------------------*/
 export class ClusterMaster {
 
-  private workers:  WorkerInfo[]  = []
-  private userInfo: UserInfo|null = null
-  private config: CONFIG
+  private workers  : WorkerInfo[]     = []
+  private userInfo : UserInfo | null  = null
+  private config   : CONFIG
   
   constructor() {
     if (clusterMaster) throw('ClusterMaster is singleton. It cannot be instantiated again')
@@ -91,7 +91,7 @@ export class ClusterMaster {
     this.validateConfig(rc)
 
     // Set this process title to same as server name
-    process.title  = this.config.SERVER_NAME
+    process.title = this.config.SERVER_NAME
 
     // check if server is already running
     await this.checkRunning(rc)
@@ -301,7 +301,7 @@ const CONST = {
 class WorkerInfo {
 
   private worker        : cluster.Worker | null = null
-  public  forkId        : string                = '0'
+  public  forkId        : number                = 0
   private lastStartTS   : number                = 0
   private restartCount  : number                = 0
   public  state         : WORKER_STATE          = WORKER_STATE.INIT
@@ -316,7 +316,7 @@ class WorkerInfo {
   // either in case of fresh start, death, reload (code change or excessive memory usage) 
   public fork(rc: RunContextServer) {
     this.worker       = cluster.fork()
-    this.forkId       = this.worker.id as any
+    this.forkId       = this.worker.id
     this.lastStartTS  = Date.now()
     this.state        = WORKER_STATE.STARTED
     rc.isDebug() && rc.debug(rc.getName(this), 'Forking worker with index', this.workerIndex)
@@ -347,7 +347,7 @@ class WorkerInfo {
 
   public failed(rc: RunContextServer): void {
     this.worker = null
-    this.forkId = '0'
+    this.forkId = 0
     this.state = WORKER_STATE.FAILED
   }
 
@@ -360,7 +360,7 @@ class WorkerInfo {
 
     this.state  = WORKER_STATE.INIT
     this.worker = null
-    this.forkId = '0'
+    this.forkId = 0
 
     onDeath ? this.restart(rc) : this.fork(rc)
   }

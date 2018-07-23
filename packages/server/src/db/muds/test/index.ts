@@ -98,10 +98,8 @@ export class MudsTests {
         Object.assign(keyVal1, updateRec)
         Object.assign(keyVal2, updateRec)
 
-        await Promise.all([
-          transaction.upsert(keyVal1),
-          transaction.upsert(keyVal2)
-        ])
+        transaction.enqueueForUpsert(keyVal1)
+        transaction.enqueueForUpsert(keyVal2)
       })
 
       /**
@@ -167,7 +165,7 @@ export class MudsTests {
 
       keyVal.strValue = strValue
 
-      await transaction.upsert(keyVal)
+      transaction.enqueueForUpsert(keyVal)
     })
   }
 }

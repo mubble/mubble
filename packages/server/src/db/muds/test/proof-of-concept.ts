@@ -45,7 +45,7 @@ import * as models                                from './models'
 
         keyVal1.strValue = 'Updated String Value'
 
-        await transaction.upsert(keyVal1)
+        await transaction.enqueueForUpsert(keyVal1)
       })
 
       const directIoPromise = Muds.direct(rc, async (directIo, now) => {
@@ -54,7 +54,7 @@ import * as models                                from './models'
 
         keyVal1.strValue = 'Updated String Value'
 
-        await directIo.upsert(keyVal1)
+        await directIo.enqueueForUpsert(keyVal1)
       })
 
       await Promise.all([transactionPromise, directIoPromise])
