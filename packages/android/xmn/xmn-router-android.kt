@@ -61,8 +61,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     val isPrivateConn = this.getClientIdentity() != null
 
     if (isPrivateConn) {
-      timerReqResend  = AdhocTimer("router-resend", { cbTimerReqResend() })
-      timerReqTimeout = AdhocTimer("router-req-timeout", { cbTimerReqTimeout() })
+      timerReqResend  = AdhocTimer("router-resend") { cbTimerReqResend() }
+      timerReqTimeout = AdhocTimer("router-req-timeout") { cbTimerReqTimeout() }
     }
   }
 
@@ -105,9 +105,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val clientIdentity = this.ci.clientIdentity
 
-    assert(clientIdentity != null && clientIdentity.clientId != 0L, {
+    assert(clientIdentity != null && clientIdentity.clientId != 0L) {
       "You cannot send Persistent events without clientId"
-    })
+    }
 
     val event = WireEvent(eventName, data, System.currentTimeMillis())
 
@@ -121,9 +121,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val clientIdentity = this.ci.clientIdentity
 
-    assert(clientIdentity != null && clientIdentity.clientId != 0L, {
+    assert(clientIdentity != null && clientIdentity.clientId != 0L) {
       "You cannot send Ephemeral events without clientId"
-    })
+    }
 
     val event = WireEphEvent(eventName, data, System.currentTimeMillis())
     this.ci.provider!!.sendEphemeralEvent(event)
