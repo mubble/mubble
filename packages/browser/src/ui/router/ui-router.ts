@@ -213,6 +213,10 @@ export class UiRouter {
     return !!params.nc_paramsId
   }
 
+  public getCurrentComponent(outlet = PRIMARY_OUTLET): any {
+    return this.curCompMap[outlet]
+  }
+
   public getCurrentRouteName(): string {
 
     const topUrl: string = this.urlStack[this.urlStack.length-1].url
