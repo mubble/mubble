@@ -12,10 +12,12 @@
   "license": "ISC",
   "devDependencies": {
     "@types/mime-types": "^2.1.0",
-    "@types/lodash": "^4.14.61"
+    "@types/lodash": "^4.14.61",
+    "@types/dot": "^1.1.2"
   },
   "dependencies": {
     "mime-types": "^2.1.15",
-    "lodash": "^4.17.4"
+    "lodash": "^4.17.4",
+    "dot": "^1.1.2"
   }
 }
