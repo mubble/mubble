@@ -155,7 +155,7 @@ export namespace Master{
   export type ForeignKeys = Mubble.uObject<Mubble.uObject<string>> 
   
 
-  export function getDefaultConfig (segment ?: {key : string , cols : string[]}  , fk ?: ForeignKeys )  : ModelConfig {
+  export function getDefaultConfig (segment ?: {key : string , cols : string[]}  , fk ?: ForeignKeys , fileSource ?: boolean )  : ModelConfig {
     //const masConfig : ModelConfig = new MasterModelConfig('Sample')
     
     const masConfig : ModelConfig = new class TestModelConfig extends MasterModelConfig {
@@ -163,7 +163,7 @@ export namespace Master{
         super('Sample')
         this.segment = segment
         if(MaType.isObject(fk)) this.fkConstrains = fk
-        this.hasFileSource = true
+        this.hasFileSource = fileSource!==undefined ? fileSource : true
         this.cache = true
       }
     }
