@@ -310,6 +310,9 @@ export class UiRouter {
 
   public goBack(whereOrByHowMuch ?: string | number) {
     if (!this.canGoBack()) return
+    if (this.isModalActive()) {
+      this.onPopUpClosed()
+    }
     return this.goBackInternal(whereOrByHowMuch)
   }
 
@@ -397,12 +400,26 @@ export class UiRouter {
         return
       }
 
+      if (this.isModalActive()) {
+        this.onPopUpClosed()
+      }
+
       const goBackBy = index - stackLen + 1
       this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
         'onPopState: Going back by', {index, goBackBy})
 
       this.goBackInternal(goBackBy)
     }
+  }
+
+  private onPopUpClosed() {
+    const lastIdx  = this.urlStack.length - 1,
+    lastItem = this.urlStack[lastIdx]
+
+    if (!lastItem) return 
+    const comp = this.curCompMap[lastItem.outlet]
+    if (!comp || !comp.component.onBackPressed) return
+    comp.component.onBackPressed()
   }
 
   private canGoBack() {

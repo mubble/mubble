@@ -128,13 +128,18 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
 
   @HostListener('@routeAnimation.done', ['$event']) onRouteAnimationDone(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
-    if (this.childRequestedClose &&  this.injectedComponent.closeFromParent) this.injectedComponent.closeFromParent()
+    if (this.childRequestedClose &&  this.injectedComponent.closeFromParent) {
+      this.injectedComponent.closeFromParent()
+    } else if (this.backPressed && this.injectedComponent.onBackPressed) {
+      this.injectedComponent.onBackPressed()
+    }
   }
 
   @ViewChild('componentContainer') componentContainer: ElementRef
   @ViewChild('injectAt', {read: ViewContainerRef}) injectAt;
 
   injectedComponent : ModalInterface
+  private backPressed : boolean
   
   @Input() width:string = "75vw"
 
@@ -182,5 +187,9 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
       'Dismissing modal popup in due to host click')
       this.router.goBack()
     }
+  }
+
+  onBackPressed() {
+    this.backPressed = true
   }
 }
