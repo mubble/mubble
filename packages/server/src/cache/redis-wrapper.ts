@@ -213,14 +213,14 @@ export class RedisWrapper {
     return this.info['redis_version']
   }
 
-  async subscribe(events : string[] , callback : (channel : string , message : string) => void ) {
+  async subscribe(events : string[] , callback : (channel : string , message : string) => void ) : Promise<number> {
     
-    return new Promise ((resolve : any , reject : any) => {
+    return new Promise<number> ((resolve : any , reject : any) => {
       
       this.redis.on('subscribe' , (channel : string , count : number)=>{
         redisLog(this.rc , this.name , ' subscribed to channel ' , channel , count)
         // resolve when ? all events are subscribed
-        resolve()
+        resolve(count)
       })
 
       this.redis.on('message' , (channel : string , message : string) => {

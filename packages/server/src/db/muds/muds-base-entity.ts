@@ -310,8 +310,8 @@ export class MudsBaseEntity extends MudsBaseStruct {
       accessor.buildExclusions(rc, this, dsRec.excludeFromIndexes)
     }
 
-    console.log('convertForUpsert: data', dsRec.data)
-    console.log('convertForUpsert: excludeFromIndexes', dsRec.excludeFromIndexes)
+    //console.log('convertForUpsert: data', dsRec.data)
+    //console.log('convertForUpsert: excludeFromIndexes', dsRec.excludeFromIndexes)
 
     return dsRec
   }

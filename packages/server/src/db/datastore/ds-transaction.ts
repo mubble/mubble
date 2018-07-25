@@ -11,7 +11,6 @@ import {
         ERROR_CODES,
         DSError
        }                                         from './error-codes'
-import {GcloudEnv}                               from '../../gcp/gcloud-env'
 import {BaseDatastore}                           from './basedatastore'
 import {RunContextServer}                        from '../../rc-server'
 import * as lo                                   from 'lodash'

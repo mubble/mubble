@@ -299,7 +299,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
       count: this.records.length, hasMore: this.hasMore, moreResults: info.moreResults
     })
 
-    console.log('endCursor', this.endCursor)
+    //console.log('endCursor', this.endCursor)
   }
 
   public getCurrentRecs(): T[] {
