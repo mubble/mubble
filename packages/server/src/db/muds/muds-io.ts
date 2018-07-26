@@ -568,10 +568,12 @@ export class MudsDirectIo extends MudsIo {
 
       await this.removeUniqFromCache(rc)
       rc.isWarn() && rc.warn(rc.getName(this), 'Failed with error', err)
+      throw err
+    }finally{
+      // reset all variables so that the transaction object cannot be used further
+      this.destroy()
     }
 
-    // reset all variables so that the transaction object cannot be used further
-    this.destroy()
   }
 }
 
