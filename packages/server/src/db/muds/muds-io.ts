@@ -571,7 +571,7 @@ export class MudsDirectIo extends MudsIo {
       throw err
     }finally{
       // reset all variables so that the transaction object cannot be used further
-      this.destroy()
+      //this.destroy()
     }
 
   }
