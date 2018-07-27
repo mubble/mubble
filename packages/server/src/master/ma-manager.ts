@@ -557,7 +557,11 @@ export class MasterMgr {
 
       const memcache : MasterInMemCache = this.masterCache[mastername]
 
-      assert(memcache!=null , 'Unknown master data sync request ',mastername)
+      //assert(memcache!=null , 'Unknown master data sync request ',mastername)
+      if(memcache==null){
+        rc.isDebug() && rc.debug(rc.getName(this), 'Unknown master data sync request ' , mastername)
+        return
+      }
       
       assert(synInfo.ts <= memcache.latestRecTs()  , 'syncInfo ts can not be greater than master max ts ',mastername , synInfo.ts , memcache.latestRecTs())
       
