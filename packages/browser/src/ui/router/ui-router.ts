@@ -393,7 +393,7 @@ export class UiRouter {
 
     } else {
 
-      if (!this.canGoBack()) {
+      if (!this.canGoBack() || this.isToolTipShown()) {
         const lastIdx  = this.urlStack.length - 1,
         lastItem = this.urlStack[lastIdx]
         this.historyWrapper.pushState({index: lastIdx}, '', '/#' + lastItem.url)
@@ -632,6 +632,10 @@ export class UiRouter {
   
   public notifyAppClose() {
 
+  }
+
+  public isToolTipShown() : boolean {
+    return true
   }
 }
 
