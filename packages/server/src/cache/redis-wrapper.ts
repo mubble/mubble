@@ -122,6 +122,7 @@ export class RedisCmds {
   zremrangebylex (key : string , start : string , end : string) : Promise<void> { return true as any }
   
   exists    (key : string , ...keys : string[]) : Promise<boolean> { return true as any }
+  keys      (pattern : string) : Promise<string[]> { return true as any }
 
   // Cannot work in old multi, will need to create a new one, Raghu ?????
   // zRangeGet({key, descending = false}: ZRangeGetOpt, result: ZResult[]): Promise<void> { return true as any}
