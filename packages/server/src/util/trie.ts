@@ -83,8 +83,13 @@ export class Trie {
     return match ? match.val : null
   }
 
+  public searchLeading(rc: RunContextServer, string: string): TrieValue {
+    const match = this.searchLongest(rc, string)
+    return match ? match.val : null
+  }
+  
   private searchLongest (rc: RunContextServer, word: string): TrieResult {
-    let match
+    let match : TrieResult
     let currentNode = this.root
     lo.forEach ([...word], (char, idx) => {
       const node = currentNode.children.get(char);
@@ -93,26 +98,22 @@ export class Trie {
       currentNode = node;
     })
     return match
-}
+  }
 
-public search(rc: RunContextServer, word: string): TrieValue {
-  const node = this.getNode(rc, word);
-  return (node && node.value) ? node.value.val : null
-}
+  private search(rc: RunContextServer, word: string): TrieValue {
+    const node = this.getNode(rc, word);
+    return (node && node.value) ? node.value.val : null
+  }
 
-public startsWith(rc: RunContextServer, prefix: string): boolean {
-  return this.getNode(rc, prefix) ? true : false;
-}
+  private getNode(rc: RunContextServer, word: string): TrieNode | null {
+    let node = null;
+    let currentNode = this.root.children;
 
-private getNode(rc: RunContextServer, word: string): TrieNode | null {
-      let node = null;
-      let currentNode = this.root.children;
-
-      for (const char of word) {
-        node = currentNode.get(char);
-        if (node) currentNode = node.children;
-        else return null;
-      }
-      return node;
+    for (const char of word) {
+      node = currentNode.get(char);
+      if (node) currentNode = node.children;
+      else return null;
+    }
+    return node;
   }
 }
