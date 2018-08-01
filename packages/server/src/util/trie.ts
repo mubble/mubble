@@ -100,7 +100,7 @@ export class Trie {
     return match
   }
 
-  private search(rc: RunContextServer, word: string): TrieValue {
+  public search(rc: RunContextServer, word: string): TrieValue {
     const node = this.getNode(rc, word);
     return (node && node.value) ? node.value.val : null
   }
