@@ -248,6 +248,10 @@ export class UiRouter {
     return segments[0].path
   }
 
+  public getCurrentQueryParams(): any {
+    return this.curQueryParam
+  }
+
   public getQueryParams(params): any {
 
     const nc_paramsId = params.nc_paramsId
