@@ -599,12 +599,10 @@ export class MudsTransaction extends MudsIo {
           firstAncestorKey     : string | DatastoreInt,
           ...otherAncestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
 
-    otherAncestorKeys.unshift(firstAncestorKey) 
+    otherAncestorKeys.unshift(firstAncestorKey)
+    
     return new MudsQuery(this.rc, this,
-      //TODO(AD) : Verify : verifyAncestorKeys cannot be used because we might want to query with 
-      // the incomplete set of ancestor keys.
-      this.datastore.key(otherAncestorKeys),
-      // this.verifyAncestorKeys(this.rc, entityClass, otherAncestorKeys),
+      this.verifyAncestorKeys(this.rc, entityClass, otherAncestorKeys),
       entityClass)
   }
 
