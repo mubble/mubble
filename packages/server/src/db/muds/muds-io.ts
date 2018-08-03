@@ -506,6 +506,9 @@ export abstract class MudsIo {
       'It is mandatory to have ancestorKeys for querying with-in transaction')
 
     for (const [index, info] of ancestorsInfo.entries()) {
+      
+      //TODO(AD) : Verify this with raghu.
+      if(ancestorKeys[index])
       dsKeys.push(info.entityName, this.checkKeyType(rc, ancestorKeys[index], info))
     }
 
