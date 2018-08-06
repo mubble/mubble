@@ -639,10 +639,14 @@ export class MudsTransaction extends MudsIo {
       await this.removeUniqFromCache(rc)
       await this.transaction.rollback()
       rc.isWarn() && rc.warn(rc.getName(this), 'transaction failed with error', err)
+      this.destroy()
+      throw err
+    }finally{
+      
     }
 
     // reset all variables so that the transaction object cannot be used further
-    this.destroy()
+    
   }
 
   destroy() {
