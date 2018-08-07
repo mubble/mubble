@@ -59,8 +59,13 @@ export function expandTemplateObj(templateObj: any, data: Mubble.uObject<any>): 
   const newObj = {} as any
 
   for (const key of Object.keys(templateObj)) {
-    const fn = doT.template(templateObj[key], dotSettings)
-    newObj[key] = fn.apply(doT, keys.map(key => data[key]))
+
+    if (typeof templateObj[key] === 'object') {
+      expandTemplateObj(templateObj[key], data)
+    } else {
+      const fn = doT.template(templateObj[key], dotSettings)
+      newObj[key] = fn.apply(doT, keys.map(key => data[key]))
+    }
   }
 
   return newObj
