@@ -1,0 +1,41 @@
+{
+  "name": "@mubble/server",
+  "version": "1.0.0",
+  "description": "Server package for Mubble projects",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Raghvendra Varma",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/mime-types": "^2.1.0",
+    "@types/mkdirp": "^0.3.29",
+    "@types/node": "^8.5.9",
+    "@types/redis": "^2.8.6",
+    "@types/reflect-metadata": "^0.0.5",
+    "@types/request": "^2.0.0",
+    "@types/semver": "^5.3.31",
+    "@types/uuid": "^3.0.0",
+    "@types/ws": "0.0.40",
+    "@types/lodash": "^4.14.117",
+    "@types/oracledb": "^1.11.34"
+  },
+  "dependencies": {
+    "@mubble/core": "file:../core",
+    "cld": "^2.4.7",
+    "colors": "^1.1.2",
+    "lodash": "^4.17.11",
+    "mammoth": "^1.4.6",
+    "mkdirp": "^0.5.1",
+    "posix": "^4.1.2",
+    "redis": "^2.8.0",
+    "reflect-metadata": "^0.1.10",
+    "repl.history": "^0.1.4",
+    "request": "^2.81.0",
+    "semver": "^5.3.0",
+    "ws": "^2.3.1",
+    "oracledb": "^3.0.0"
+  }
+}

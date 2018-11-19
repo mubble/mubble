@@ -1,0 +1,23 @@
+{
+  "name": "@mubble/core",
+  "version": "1.0.0",
+  "description": "Common core module for client & server projects for Mubble",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublish": "tsc"
+  },
+  "author": "Raghvendra Varma",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/mime-types": "^2.1.0",
+    "@types/lodash": "^4.14.117",
+    "@types/dot": "^1.1.2"
+  },
+  "dependencies": {
+    "dot": "^1.1.2",
+    "lodash": "^4.17.11",
+    "mime-types": "^2.1.15"
+  }
+}

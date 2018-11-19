@@ -1,0 +1,16 @@
+<div class="alert-dialog-comp">
+  <header class="header text-body text-size-large border">
+    {{ title }}
+  </header>
+  <div class="content text-body">
+    {{ message }}
+  </div>
+  <footer class="footer">
+    <button class="button-primary-small btn" ncAllowSingleClick (ncClick)="onCancel()">
+      {{ negativeActText }}
+    </button>
+    <button class="button-primary-small btn" ncAllowSingleClick (ncClick)="onContinue()">
+      {{ positiveActText }}
+    </button>
+  </footer>  
+</div>   

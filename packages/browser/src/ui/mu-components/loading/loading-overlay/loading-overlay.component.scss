@@ -1,0 +1,35 @@
+.loading-overlay-root {
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0,0,0,.2);
+  z-index: 60;
+  position: absolute;
+  top: 0
+}
+
+.component-loader {
+  top: 45%;
+  width: 90%;
+  height: 14vh;
+  margin: 0% auto;
+  display: flex;
+  flex-flow: row;
+  border-radius: 10px;
+  border-style: solid;
+  border-color: transparent;
+  position: relative;
+  align-items: center;
+}
+
+.spinner-cont {
+  flex: 0 0 30%;
+}
+
+.loading-text {
+  flex: 0 0 70%;
+}
+
+.spinner {
+  margin: 0% auto;
+  margin-left: 10%;
+}

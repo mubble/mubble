@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="vertical"
+    style="@style/ViewMatchWidth"
+    android:background="@android:color/white"
+    android:padding="5dp">
+
+    <TextView
+        android:id="@+id/prm_rtnl_desc"
+        style="@style/ViewMatchWidth"
+        android:layout_marginTop="15dp"
+        android:layout_marginBottom="15dp"
+        android:layout_marginStart="10dp"
+        android:textSize="14sp"
+        android:layout_gravity="center_horizontal"
+        android:visibility="gone"/>
+
+    <LinearLayout android:id="@+id/prm_rtnl_cont"
+        style="@style/ViewMatchWidth"
+        android:orientation="vertical"
+        android:layout_marginTop="10dp"
+        android:layout_marginBottom="10dp"
+        android:visibility="gone"/>
+
+    <LinearLayout
+        style="@style/ViewMatchWidth"
+        android:gravity="center_vertical|end">
+
+        <Button
+            android:id="@+id/prm_rtnl_neg_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:text="@string/cmn_text_later"
+            android:textColor="#009688"/>
+
+        <Button
+            android:id="@+id/prm_rtnl_pos_btn"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:text="@string/cmn_text_give_perm"
+            android:textColor="#009688"/>
+
+    </LinearLayout>
+
+</LinearLayout>

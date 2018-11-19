@@ -1,0 +1,29 @@
+.alert-dialog-comp {
+  position: relative;
+  padding: 2vw;
+}
+
+.header {
+  position: relative;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  padding-bottom: 2vw;
+}
+
+.content {
+  position: relative;
+  padding: 2vw 0;
+}
+
+.footer {
+  position: relative;
+  display:  flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4vw 0;
+}
+
+.btn {
+  position: relative;
+  width: 30vw;
+}
