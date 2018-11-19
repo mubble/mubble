@@ -19,8 +19,7 @@
     "@types/semver": "^5.3.31",
     "@types/uuid": "^3.0.0",
     "@types/ws": "0.0.40",
-    "@types/lodash": "^4.14.117",
-    "@types/oracledb": "^1.11.34"
+    "@types/lodash": "^4.14.117"
   },
   "dependencies": {
     "@mubble/core": "file:../core",
@@ -35,7 +34,6 @@
     "repl.history": "^0.1.4",
     "request": "^2.81.0",
     "semver": "^5.3.0",
-    "ws": "^2.3.1",
-    "oracledb": "^3.0.0"
+    "ws": "^2.3.1"
   }
 }
