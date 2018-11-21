@@ -118,17 +118,17 @@ export class UiRouter {
     })
   }
 
-  public navigate(routeTo: string, extras ?: NcNavigationExtras) {
-    return this.navigateByUrl([routeTo], extras)
+  public async navigate(routeTo: string, extras ?: NcNavigationExtras) {
+    return await this.navigateByUrl([routeTo], extras)
   }
 
-  public rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
+  public async rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
     
     this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'Inside RootNavigate', routeTo)
     if (!extras) extras = {}
     extras.replaceIndex = 0
     
-    return this.navigateByUrl([routeTo], extras, PRIMARY_OUTLET)
+    return await this.navigateByUrl([routeTo], extras, PRIMARY_OUTLET)
   }
 
   public areWeGoingBack() {
@@ -143,7 +143,7 @@ export class UiRouter {
     return this.curOutlet !== PRIMARY_OUTLET
   }
 
-  private navigateByUrl(urlOrCommand: string | any[], extras ?: NcNavigationExtras, 
+  private async navigateByUrl(urlOrCommand: string | any[], extras ?: NcNavigationExtras, 
           outlet ?: OUTLET) {
 
     if (!extras) extras = {}
@@ -193,7 +193,7 @@ export class UiRouter {
     const url = Array.isArray(urlOrCommand) ? this.router.createUrlTree(urlOrCommand, extras) : urlOrCommand
     this.lastNavUrl = typeof url === 'string' ? url : this.router.serializeUrl(url)
 
-    if (this.router.navigateByUrl(url, extras)) {
+    if (await this.router.navigateByUrl(url, extras)) {
       return true
     }
   }
