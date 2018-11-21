@@ -143,7 +143,7 @@ export class WsServer {
     for (const [webSocket, lastTs] of this.socketMap) {
       if (lastTs < notBefore) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Cleaning up a connection as no ping or close')
-        webSocket.close()
+        webSocket.requestClose()
       } else if (rc.isDebug() && len === 1) {
         // rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active')
       }
@@ -265,7 +265,7 @@ export class ServerWebSocket implements XmnProvider {
     this.router.providerFailed(rc, this.ci)
   }
 
-  public close() {
+  public requestClose() {
     if (!this.ci.provider) return
     this.ws.close()
   }

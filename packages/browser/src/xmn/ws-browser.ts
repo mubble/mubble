@@ -102,6 +102,12 @@ export class WsBrowser implements XmnProvider {
     return null
   }
 
+  public requestClose() {
+    const ws  = this.ws
+    if(ws && ws.readyState !== WebSocket.CLOSED)
+      ws.close()
+  }
+
   private async sendInternal(rc: RunContextBrowser, data: WireObject[]) {
 
     let messageBody

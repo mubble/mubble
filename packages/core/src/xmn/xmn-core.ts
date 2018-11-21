@@ -216,5 +216,6 @@ export const Encoder = {
 }
 
 export interface XmnProvider {
-  send(rc: RunContextBase , data: WireObject[]) : void 
+  send(rc: RunContextBase , data: WireObject[]) : void
+  requestClose() : void
 }

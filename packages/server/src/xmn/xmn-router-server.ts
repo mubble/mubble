@@ -234,6 +234,14 @@ export abstract class XmnRouterServer {
     return true
   }
 
+  closeConnection(rc : RunContextServer, ci : ConnectionInfo) {
+    if(ci.provider) {
+      ci.provider.requestClose()
+    } else {
+      rc.isDebug() && rc.debug(rc.getName(this), 'Cannot close the connection as provider is closed.')
+    }
+  }
+
   async invokeXmnFunction(rc: RunContextServer, ci: ConnectionInfo, 
                           invData: InvocationData, invStruct: InvokeStruct, isEvent: boolean) {
 

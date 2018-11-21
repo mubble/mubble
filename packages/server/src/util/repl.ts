@@ -193,6 +193,10 @@ export class ReplProvider implements XmnProvider {
 
   }
 
+  public requestClose() {
+
+  }
+
   sendOneMessage (rc: RunContextServer, wo: WireObject, idx: number) : void {
     if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == 'UPGRADE_CLIENT_IDENTITY') {
       this.ci.clientIdentity = wo.data as ClientIdentity

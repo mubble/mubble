@@ -184,6 +184,10 @@ export class HttpServerProvider implements XmnProvider {
     this.router.providerClosed(rc, this.ci)
   }
 
+  public requestClose() {
+    
+  }
+
   sendErrorResponse(rc: RunContextServer, errorCode: string) {
     const wo = new WireReqResp(this.wireRequest.name, this.wireRequest.ts, {error : errorCode})
     this.send(rc, [wo])
