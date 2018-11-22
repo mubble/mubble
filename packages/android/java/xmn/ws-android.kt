@@ -200,7 +200,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       assert(msPing > 0)
 
       if (!config.syncKey.isNullOrBlank()) {
-        this.encProvider!!.setNewKey(config.syncKey!!)
+        this.encProvider!!.setNewKey(config.syncKey)
       }
 
       info { "First message in ${System.currentTimeMillis() - socketCreateTs} ms" }
