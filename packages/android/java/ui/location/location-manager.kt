@@ -158,10 +158,7 @@ class ULocationManager(private val parentActivity: MubbleBaseActivity) {
       location.put("lng", mCurrentLocation!!.longitude)
     }
 
-    val response = JSONObject()
-    response.put("java/location", location)
-
-    listener(response)
+    listener(location)
   }
 }
 
