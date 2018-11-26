@@ -23,9 +23,12 @@ import {
         SYS_EVENT,
         InvocationData,
         Protocol,
-        Mubble
+        Mubble,
+        ActiveProviderCollection,
+        XmnProvider
        }                      from '@mubble/core'
 import {RunContextServer}     from '../rc-server'
+import {web}                  from './web'
 
 export class InvokeStruct {
 
@@ -46,12 +49,15 @@ export class InvokeStruct {
 
 export abstract class XmnRouterServer {
 
-  private apiMap   : {[index: string]: InvokeStruct} = {}
-  private eventMap : {[index: string]: InvokeStruct} = {}
-  private piggyfrontMap = new WeakMap<InvocationData, Array<WireEphEvent>>()
+  private apiMap             : {[index: string]: InvokeStruct} = {}
+  private eventMap           : {[index: string]: InvokeStruct} = {}
+  private piggyfrontMap                                        = new WeakMap<InvocationData, Array<WireEphEvent>>()
+  private providerCollection : ActiveProviderCollection
 
-  constructor(rc: RunContextServer, ...providers: any[]) {
-    XmnRegistry.commitRegister(rc, this, providers)   
+  constructor(rc: RunContextServer, ...apiProviders: any[]) {
+    XmnRegistry.commitRegister(rc, this, apiProviders)
+
+    this.providerCollection = web.getActiveProviderCollection(rc)  
   }
 
   abstract getPrivateKeyPem(rc: RunContextServer, ci: ConnectionInfo): string
@@ -314,6 +320,14 @@ export abstract class XmnRouterServer {
     } else {
       throw(Error(rc.error(rc.getName(this), 'event', name, 'does not exit in', rc.getName(parent))))
     }
+  }
+
+  public addToProviderCollection(rc : RunContextServer, clientId : number, provider : XmnProvider) {
+    this.providerCollection.addActiveProvider(clientId, provider)
+  }
+
+  public getClientProvider(rc : RunContextServer, clientId : number) {
+    return this.providerCollection.getActiveProvider(clientId)
   }
 
   private logRegistration(rc: RunContextServer, apiName: string , fnName: string, parent: any, isApi: boolean) {

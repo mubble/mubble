@@ -11,6 +11,7 @@
 import * as http          from 'http'
 import * as ws            from 'ws'
 import * as url           from 'url'
+import * as lo            from 'lodash'
 import {  
         ConnectionInfo,
         Protocol,
@@ -21,7 +22,8 @@ import {
         SYS_EVENT,
         Leader,
         WEB_SOCKET_URL,
-        XmnProvider
+        XmnProvider,
+        ActiveProviderCollection
        }                              from '@mubble/core'
 import {
         RunContextServer
@@ -31,11 +33,12 @@ import {EncProviderServer}            from './enc-provider-server'
 
 const PING_FREQUENCY_MS = 29 * 1000 // Don't change this as ephemeral events travel with ping
 
-export class WsServer {
+export class WsServer implements ActiveProviderCollection {
 
-  private wsServer  : ws.Server
-  private socketMap : Map<ServerWebSocket, number> 
-  private timerPing : NodeJS.Timer
+  private wsServer        : ws.Server
+  private socketMap       : Map<ServerWebSocket, number>
+  private timerPing       : NodeJS.Timer
+  private activeProviders : Map<ServerWebSocket, number>
   
   constructor(private refRc: RunContextServer, httpServer: http.Server, private router: XmnRouterServer) {
 
@@ -119,6 +122,7 @@ export class WsServer {
 
   markClosed(webSocket: ServerWebSocket) {
     this.socketMap.delete(webSocket)
+    this.activeProviders.delete(webSocket)
   }
 
   async sendEventToAll(rc : RunContextServer , wo: WireObject) {
@@ -148,6 +152,16 @@ export class WsServer {
         // rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active')
       }
     }
+  }
+
+  addActiveProvider(clientId : number, webSocket : ServerWebSocket) {
+    this.activeProviders.set(webSocket, clientId)
+  }
+
+  getActiveProvider(clientId : number) : ServerWebSocket | undefined {
+    const providers = lo.map(Array.from(this.activeProviders), arr => arr[0])
+
+    return providers.find(provider => this.activeProviders.get(provider) === clientId)
   }
 }
 
@@ -295,6 +309,6 @@ export class ServerWebSocket implements XmnProvider {
   }
 
   private cleanup() {
-    this.ci.provider = null
+    delete this.ci.provider
   }
 }

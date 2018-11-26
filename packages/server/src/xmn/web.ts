@@ -7,15 +7,15 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as http              from 'http'
-import * as https             from 'https'
+import * as http                    from 'http'
+import * as https                   from 'https'
 
-import {XmnRouterServer}      from './xmn-router-server'
-
-import {HttpServer}           from './http-server'
-import {WsServer}             from './ws-server'
-import {RunContextServer}     from '../rc-server'
-import {clusterWorker}        from '../cluster/worker'
+import {XmnRouterServer}            from './xmn-router-server'
+import {ActiveProviderCollection}   from '@mubble/core'
+import {HttpServer}                 from './http-server'
+import {WsServer}                   from './ws-server'
+import {RunContextServer}           from '../rc-server'
+import {clusterWorker}              from '../cluster/worker'
 
 
 export enum WEB_SERVER_TYPE {HTTP, HTTPS, WEB_SOCKET}
@@ -128,6 +128,10 @@ export class Web {
         socket.end('HTTP/1.1 400 Bad Request\r\n\r\n')
       })
     })
+  }
+
+  getActiveProviderCollection(rc : RunContextServer) : ActiveProviderCollection {
+    return this.wsReqManager
   }
 }
 export const web = new Web()

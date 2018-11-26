@@ -219,3 +219,8 @@ export interface XmnProvider {
   send(rc: RunContextBase , data: WireObject[]) : void
   requestClose() : void
 }
+
+export interface ActiveProviderCollection {
+  addActiveProvider(clientId : number, provider : XmnProvider) : void
+  getActiveProvider(clientId : number) : XmnProvider | undefined
+}

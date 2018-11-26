@@ -121,11 +121,8 @@ export abstract class Repl {
       location        : '{}',
       networkType     : NetworkType.net4G,
       clientIdentity  : this.clientIdentity,
-
-      // provider for this connection (WebSocket, Http etc.)
-      provider        : null
-      
     } as ConnectionInfo
+    
     ci.provider = new ReplProvider (this.rc, ci, (<any>this.rc).router)
     return ci
   }
