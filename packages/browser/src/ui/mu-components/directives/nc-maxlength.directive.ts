@@ -50,18 +50,22 @@ export class NcMaxLengthDirective {
   }
 
   private clipBoardEventHandler(event : any) {
+    
     setTimeout(() => {
       this.ngZone.runOutsideAngular(() => {
-        if (event.srcElement.value.length > this.maxLength) {
-          event.srcElement.value = event.srcElement.value.substring(0, this.maxLength)
+
+        const element = event.srcElement
+
+        if (element.value.length > this.maxLength) {
+          element.value = element.value.substring(0, this.maxLength)
         } 
 
-        const scrollHeight  = event.srcElement.scrollHeight,
-              clientHeight  = event.srcElement.clientHeight
-        if ( scrollHeight > clientHeight && event.srcElement.scrollTop !== scrollHeight - clientHeight ) {
-          event.srcElement.scrollTop = scrollHeight - clientHeight
+        const scrollHeight  = element.scrollHeight,
+              clientHeight  = element.clientHeight
+        if ( scrollHeight > clientHeight && element.scrollTop !== scrollHeight - clientHeight ) {
+          element.scrollTop = scrollHeight - clientHeight
         }
-        this.emitUpdatedValue(event)
+        this.emitUpdatedValue(element.value)
       })
     }, 0)
   } 
@@ -70,33 +74,35 @@ export class NcMaxLengthDirective {
    
     this.ngZone.runOutsideAngular(() => {
 
-      if (event.srcElement.inputMode) {
-        const validInput =  event.srcElement.value.trim().length && event.srcElement.inputMode === NUMERIC 
-                            && !isNaN(event.srcElement.value)
+      const element = event.srcElement
+
+      if (element.inputMode) {
+        const validInput =  element.inputMode === NUMERIC && element.value.trim().length 
+                            && !isNaN(element.value)
                             
         if (!validInput) {
-          event.srcElement.value = ''
+          element.value = ''
           return
         }
       }
 
-      if (event.srcElement.value.length > this.maxLength) {
-        event.srcElement.value = event.srcElement.value.substring(0, this.maxLength)
+      if (element.value.length > this.maxLength) {
+        element.value = element.value.substring(0, this.maxLength)
       } 
 
-      const scrollHeight  = event.srcElement.scrollHeight,
-            clientHeight  = event.srcElement.clientHeight
-      if ( scrollHeight > clientHeight && event.srcElement.scrollTop !== scrollHeight - clientHeight ) {
-        event.srcElement.scrollTop = scrollHeight - clientHeight
+      const scrollHeight  = element.scrollHeight,
+            clientHeight  = element.clientHeight
+      if ( scrollHeight > clientHeight && element.scrollTop !== scrollHeight - clientHeight ) {
+        element.scrollTop = scrollHeight - clientHeight
       }
 
-      this.emitUpdatedValue(event)
+      this.emitUpdatedValue(element.value)
     })
   }
 
-  private emitUpdatedValue(event : any) {
+  private emitUpdatedValue(value: string) {
     this.ngZone.run(() => {
-      this.updatedValue.emit(event.srcElement.value)
+      this.updatedValue.emit(value)
     })
     
   }
