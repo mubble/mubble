@@ -5,8 +5,8 @@
   <div class="content text-body-medium">
     {{ message }}
   </div>
-  <footer class="footer">
-    <button class="button-primary-small btn" ncAllowSingleClick (ncClick)="onCancel()">
+  <footer class="footer" [style.justifyContent]="negativeActText ? 'space-between' : 'center'">
+    <button *ngIf='negativeActText' class="button-primary-small btn" ncAllowSingleClick (ncClick)="onCancel()">
       {{ negativeActText }}
     </button>
     <button class="button-primary-small btn" ncAllowSingleClick (ncClick)="onContinue()">

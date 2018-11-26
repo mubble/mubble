@@ -21,7 +21,8 @@ import {
 
 const KEY_UP  = 'keyup',
       PASTE   = 'paste',
-      CUT     = 'cut'
+      CUT     = 'cut',
+      NUMERIC = 'numeric'
 
 @Directive({
   selector: '[ncMaxLength]'
@@ -41,11 +42,11 @@ export class NcMaxLengthDirective {
 
   ngAfterViewInit() {
     this.maxLength  = Number(this.maxLength) 
-    if (typeof this.maxLength === 'number') {
-      this.eventHandlers.push(this.renderer.listen(this.element.nativeElement, KEY_UP, this.keyUpHandler.bind(this)),
-      this.renderer.listen(this.element.nativeElement, PASTE, this.clipBoardEventHandler.bind(this)),
-      this.renderer.listen(this.element.nativeElement, CUT, this.clipBoardEventHandler.bind(this)))
-    } 
+    if (typeof this.maxLength !== 'number') return
+    this.eventHandlers.push(this.renderer.listen(this.element.nativeElement, KEY_UP, this.keyUpHandler.bind(this)),
+    this.renderer.listen(this.element.nativeElement, PASTE, this.clipBoardEventHandler.bind(this)),
+    this.renderer.listen(this.element.nativeElement, CUT, this.clipBoardEventHandler.bind(this)))
+    
   }
 
   private clipBoardEventHandler(event : any) {
@@ -60,16 +61,25 @@ export class NcMaxLengthDirective {
         if ( scrollHeight > clientHeight && event.srcElement.scrollTop !== scrollHeight - clientHeight ) {
           event.srcElement.scrollTop = scrollHeight - clientHeight
         }
-        this.ngZone.run(() => {
-          this.updatedValue.emit(event.srcElement.value)
-        })
+        this.emitUpdatedValue(event)
       })
     }, 0)
-  }
-
-  private keyUpHandler(event : any) {
-  
+  } 
+ 
+  private keyUpHandler(event : any) { 
+   
     this.ngZone.runOutsideAngular(() => {
+
+      if (event.srcElement.inputMode) {
+        const validInput =  event.srcElement.value.trim().length && event.srcElement.inputMode === NUMERIC 
+                            && !isNaN(event.srcElement.value)
+                            
+        if (!validInput) {
+          event.srcElement.value = ''
+          return
+        }
+      }
+
       if (event.srcElement.value.length > this.maxLength) {
         event.srcElement.value = event.srcElement.value.substring(0, this.maxLength)
       } 
@@ -79,10 +89,16 @@ export class NcMaxLengthDirective {
       if ( scrollHeight > clientHeight && event.srcElement.scrollTop !== scrollHeight - clientHeight ) {
         event.srcElement.scrollTop = scrollHeight - clientHeight
       }
-      this.ngZone.run(() => {
-        this.updatedValue.emit(event.srcElement.value)
-      })
+
+      this.emitUpdatedValue(event)
     })
+  }
+
+  private emitUpdatedValue(event : any) {
+    this.ngZone.run(() => {
+      this.updatedValue.emit(event.srcElement.value)
+    })
+    
   }
 
   ngOnDestroy() {

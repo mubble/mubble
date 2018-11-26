@@ -9,10 +9,10 @@ import { RunContextBrowser }  from '../../../rc-browser'
 
  
 export interface AlertDialogParams {
-  title           : string
-  message         : string
-  positiveActText : string
-  negativeActText : string
+  title            : string
+  message          : string
+  positiveActText  : string
+  negativeActText ?: string
 }
 
 export enum RESULT {
@@ -65,11 +65,11 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
   =====================================================================*/
   setParam(queryParams : any) {
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), queryParams['title'] && queryParams['message'] &&
-    queryParams['positiveActText'] && queryParams['negativeActText'], 'missing queryparams')
+    queryParams['positiveActText'], `missing queryparams ${queryParams}`)
     this.title            = queryParams['title']
     this.message          = queryParams['message']
     this.positiveActText  = queryParams['positiveActText']
-    this.negativeActText  = queryParams['negativeActText']
+    this.negativeActText  = queryParams['negativeActText'] || ''
   }
 
   setCaller(caller: InjectionCaller) {
