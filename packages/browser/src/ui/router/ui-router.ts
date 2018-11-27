@@ -124,7 +124,8 @@ export class UiRouter {
 
   public async rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
     
-    this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'Inside RootNavigate', routeTo)
+    this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 
+      'Inside RootNavigate', routeTo)
     if (!extras) extras = {}
     extras.replaceIndex = 0
     

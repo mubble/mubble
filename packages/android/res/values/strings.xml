@@ -2,7 +2,7 @@
 
 <resources xmlns:tools="http://schemas.android.com/tools" tools:locale="EN">
 
-    <string name="cmn_perm_rationale_go_to_settings">ಸೆಟ್ಟಿಂಗ್ಸ್ ಗೆ ಹೋಗಿ ಮತ್ತು  ಅಗತ್ಯವಿರುವ ಅನುಮತಿಗಳ್ಳನ್ನು  ೀಡಿ</string>
+    <string name="cmn_perm_rationale_go_to_settings">Open App settings and grant permission to Payeasy to proceed further</string>
     <string name="cmn_text_give_perm">Give Permission</string>
     <string name="cmn_text_later">Later</string>
     <string name="cmn_wait">Please wait</string>
