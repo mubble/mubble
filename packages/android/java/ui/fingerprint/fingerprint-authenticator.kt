@@ -13,7 +13,6 @@ import android.support.v4.content.ContextCompat
 import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
 import com.obopay.payeasy.app.core.App
 import core.MubbleLogger
-import org.jetbrains.anko.info
 import java.io.IOException
 import java.security.*
 import java.security.cert.CertificateException
@@ -22,7 +21,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.NoSuchPaddingException
 import javax.crypto.SecretKey
 
-class FingerPrintAuthenticator(private val cb: ((Boolean, String?) -> Unit)): MubbleLogger {
+class FingerPrintAuthenticator: MubbleLogger {
 
   private lateinit var keyStore      : KeyStore
   private lateinit var keyGenerator  : KeyGenerator
@@ -36,38 +35,34 @@ class FingerPrintAuthenticator(private val cb: ((Boolean, String?) -> Unit)): Mu
     private const val ANDROID_KEY         = "AndroidKey"
   }
 
-  fun canRequestAuth(): Boolean {
+  fun canRequestAuth(): String? {
 
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
-      info { "Build version less than Marshmallow" }
-      return false
+      return "Build version less than Marshmallow"
     }
 
     if (!fingerprintManager.isHardwareDetected) {
-      info { "Fingerprint sensor not present on device" }
-      return false
+      return "Fingerprint sensor not present on device"
     }
 
     // Permission should be moved to initialize
-    if (ContextCompat.checkSelfPermission(App.instance, Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
-      info { "Fingerprint permission missing" }
-      return false
+    if (ContextCompat.checkSelfPermission(App.instance,
+            Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
+      return "Fingerprint permission missing"
     }
 
     if (!keyguardManager.isKeyguardSecure) {
-      info { "User hasn't set up a lock screen security" }
-      return false
+      return "You have not set up a lock screen security"
     }
 
     if (!fingerprintManager.hasEnrolledFingerprints()) {
-      info { "No fingerprints are registered" }
-      return false
+      return "No fingerprints are registered"
     }
 
-    return true
+    return null
   }
 
-  fun initialize() {
+  fun initialize(cb: ((Boolean, String?) -> Unit)) {
 
     setupKeyStoreAndKeyGenerator()
     generateKey()
@@ -77,7 +72,6 @@ class FingerPrintAuthenticator(private val cb: ((Boolean, String?) -> Unit)): Mu
       val fingerprintHandler  = FingerprintHandler(cb)
       fingerprintHandler.startAuth(fingerprintManager, cryptoObject)
     }
-
   }
 
   /**
