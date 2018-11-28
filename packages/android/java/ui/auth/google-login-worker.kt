@@ -12,7 +12,7 @@ import com.google.android.gms.common.api.Scope
 import com.google.api.services.people.v1.PeopleScopes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.obopay.payeasy.R
+import com.obopay.demo.R
 import ui.base.MubbleBaseActivity
 import util.AndroidBase
 

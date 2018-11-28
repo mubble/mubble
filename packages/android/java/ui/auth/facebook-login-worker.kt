@@ -7,7 +7,7 @@ import com.facebook.login.LoginResult
 import com.facebook.login.widget.LoginButton
 import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
-import com.obopay.payeasy.R
+import com.obopay.demo.R
 import ui.base.MubbleBaseActivity
 import java.util.*
 

@@ -1,7 +1,7 @@
 package util
 
 import android.content.Context
-import com.obopay.payeasy.app.core.App
+import com.obopay.demo.app.core.App
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream

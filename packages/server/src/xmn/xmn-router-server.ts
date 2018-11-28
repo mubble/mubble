@@ -323,11 +323,11 @@ export abstract class XmnRouterServer {
   }
 
   public addToProviderCollection(rc : RunContextServer, clientId : number, provider : XmnProvider) {
-    this.providerCollection.addActiveProvider(clientId, provider)
+    // this.providerCollection.addActiveProvider(clientId, provider)
   }
 
   public getClientProvider(rc : RunContextServer, clientId : number) {
-    return this.providerCollection.getActiveProvider(clientId)
+    // return this.providerCollection.getActiveProvider(clientId)
   }
 
   private logRegistration(rc: RunContextServer, apiName: string , fnName: string, parent: any, isApi: boolean) {

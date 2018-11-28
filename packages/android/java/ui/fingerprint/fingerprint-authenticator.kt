@@ -11,7 +11,7 @@ import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProperties.*
 import android.support.v4.content.ContextCompat
 import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
-import com.obopay.payeasy.app.core.App
+import com.obopay.demo.app.core.App
 import core.MubbleLogger
 import java.io.IOException
 import java.security.*

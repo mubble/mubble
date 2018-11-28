@@ -35,7 +35,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException
 import com.google.android.gms.common.GooglePlayServicesRepairableException
-import com.obopay.payeasy.BuildConfig
+import com.obopay.demo.BuildConfig
 import core.BaseApp
 import core.ConstBase
 import location.ULocation

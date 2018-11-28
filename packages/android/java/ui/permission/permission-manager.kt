@@ -13,7 +13,7 @@ import android.view.ViewGroup
 import android.view.Window
 import android.widget.Button
 import android.widget.TextView
-import com.obopay.payeasy.R
+import com.obopay.demo.R
 import org.jetbrains.anko.find
 import ui.base.MubbleBaseActivity
 import util.AndroidBase
