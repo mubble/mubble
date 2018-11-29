@@ -1,7 +1,7 @@
 package util
 
 import android.content.Context
-import com.obopay.demo.app.core.App
+import core.BaseApp
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileOutputStream
@@ -29,7 +29,7 @@ object FileBase {
   fun asyncWriteFileToInternal(filePath: String,
                                fileName: String, bytes: ByteArray) {
 
-    writeFileToInternal(App.instance, filePath, fileName, bytes)
+    writeFileToInternal(BaseApp.instance, filePath, fileName, bytes)
   }
 
   fun writeFileToInternal(context: Context, filePath: String,

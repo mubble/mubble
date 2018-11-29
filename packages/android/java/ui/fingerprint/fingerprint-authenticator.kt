@@ -11,7 +11,7 @@ import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProperties.*
 import android.support.v4.content.ContextCompat
 import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
-import com.obopay.demo.app.core.App
+import core.BaseApp
 import core.MubbleLogger
 import java.io.IOException
 import java.security.*
@@ -27,8 +27,8 @@ class FingerPrintAuthenticator: MubbleLogger {
   private lateinit var keyGenerator  : KeyGenerator
   private lateinit var cipher        : Cipher
 
-  private val keyguardManager  = App.instance.getSystemService(KeyguardManager::class.java)
-  private val fingerprintManager= FingerprintManagerCompat.from(App.instance)
+  private val keyguardManager  = BaseApp.instance.getSystemService(KeyguardManager::class.java)
+  private val fingerprintManager= FingerprintManagerCompat.from(BaseApp.instance)
 
   companion object {
     private const val ANDROID_KEY_STORE   = "AndroidKeyStore"
@@ -46,7 +46,7 @@ class FingerPrintAuthenticator: MubbleLogger {
     }
 
     // Permission should be moved to initialize
-    if (ContextCompat.checkSelfPermission(App.instance,
+    if (ContextCompat.checkSelfPermission(BaseApp.instance,
             Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
       return "Fingerprint permission missing"
     }
