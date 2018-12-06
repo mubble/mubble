@@ -10,7 +10,6 @@
    Copyright (c) 2018 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { ComponentRoute }    from '../../../../framework/ui-router/pz-ui-router-constants'
 import { RunContextBrowser } from '@mubble/browser/rc-browser'
  
 export abstract class TrackableScreen  {
@@ -28,12 +27,12 @@ export abstract class TrackableScreen  {
 
   ngOnDestroy() {
 
-    if (this.rc.userKeyVal.clientId && this.isUserVisited()) {
-      const key = Object.keys(ComponentRoute)
-        .find(key => ComponentRoute[key] === this.getRouteName())
+    // if (this.rc.userKeyVal.clientId && this.isUserVisited()) {
+    //   const key = Object.keys(ComponentRoute)
+    //     .find(key => ComponentRoute[key] === this.getRouteName())
 
-       this.rc.userKeyVal.setScreenVisited(key)
-    }
+    //    this.rc.userKeyVal.setScreenVisited(key)
+    // }
   }
 
 }
