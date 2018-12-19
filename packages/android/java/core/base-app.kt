@@ -1,6 +1,9 @@
 package core
 
 import android.app.Application
+import storage.ConfigKeyValue
+import storage.GlobalKeyValue
+import storage.UserKeyValue
 import ui.base.MubbleBaseActivity
 import java.lang.ref.WeakReference
 
@@ -13,14 +16,24 @@ import java.lang.ref.WeakReference
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-abstract class MyApp : Application() {
+abstract class BaseApp : Application() {
 
   abstract val splashResourceId : Int
+  abstract val defaultClientId  : String
+  abstract val isDebugApp       : Boolean
+  abstract var sessionId        : Long
+
+  abstract val userKeyVal       : UserKeyValue
+  abstract val globalKeyVal     : GlobalKeyValue
+  abstract val configKeyVal     : ConfigKeyValue
+
   private  var initDone         : Boolean = false // late
   private  var notifyActivity   : WeakReference<MubbleBaseActivity>? = null
 
+  protected abstract fun onAppInit()
+
   companion object {
-    internal var instance: MyApp? = null
+    lateinit var instance: BaseApp
   }
 
   override fun onCreate() {
@@ -34,10 +47,9 @@ abstract class MyApp : Application() {
 
     if (initDone) return true
     if (activity !== null) notifyActivity = WeakReference(activity)
+
     return false
   }
-
-  protected abstract fun onAppInit()
 
   protected open fun onAppInitComplete() {
 
@@ -50,12 +62,6 @@ abstract class MyApp : Application() {
     val activity = notifyActivity!!.get()
     activity?.mubbleAppInitialized()
     notifyActivity = null
-  }
-}
-
-object BaseApp {
-  val instance: MyApp by lazy {
-    MyApp.instance!!
   }
 }
 

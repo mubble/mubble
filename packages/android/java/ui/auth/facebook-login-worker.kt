@@ -7,7 +7,7 @@ import com.facebook.login.LoginResult
 import com.facebook.login.widget.LoginButton
 import com.google.firebase.auth.FacebookAuthProvider
 import com.google.firebase.auth.FirebaseAuth
-import com.obopay.demo.R
+import core.BaseApp
 import ui.base.MubbleBaseActivity
 import java.util.*
 
@@ -47,7 +47,7 @@ internal class FacebookLoginWorker(activity: MubbleBaseActivity, loginMgr: Login
         }
 
         onSignInComplete("success",
-            activity.getString(R.string.default_web_client_id), token.token)
+            BaseApp.instance.defaultClientId, token.token)
 
         // TODO: check
 

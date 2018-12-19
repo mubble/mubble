@@ -1,22 +1,9 @@
 package ui.permission
 
-import android.app.AlertDialog
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
-import android.provider.Settings
 import android.support.annotation.NonNull
 import android.support.v4.app.ActivityCompat
-import android.view.LayoutInflater
-import android.view.View
-import android.view.ViewGroup
-import android.view.Window
-import android.widget.Button
-import android.widget.TextView
-import com.obopay.demo.R
-import org.jetbrains.anko.find
 import ui.base.MubbleBaseActivity
-import util.AndroidBase
 import java.util.*
 
 /**
@@ -130,68 +117,21 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
 
   private fun showRationaleDialog(groups: MutableSet<AskedPermission>) {
 
-    val builder     = AlertDialog.Builder(activity, R.style.PermissionDialog)
-    val dialogView  = LayoutInflater.from(activity).inflate(R.layout.prm_rationale_dialog, null)
-    builder.setView(dialogView)
+    activity.showRationaleDialog(groups) { action: Boolean ->
 
-    val dialog = builder.create()
-    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+      if (action) {
+        requestPending = false
+        cb(groups, true, false)
 
-    if (groups.size == 1) {
-      val rationaleDesc : TextView = dialogView.find(R.id.prm_rtnl_desc)
-      rationaleDesc.visibility = View.VISIBLE
-      rationaleDesc.text = AndroidBase.fromHtml(groups.first().getRationaleText())
-
-    } else {
-      val rationaleCont : ViewGroup = dialogView.find(R.id.prm_rtnl_cont)
-      rationaleCont.visibility = View.VISIBLE
-      for (groupPerm in groups) {
-        val bulletView = LayoutInflater.from(activity).inflate(R.layout.prm_rationale, rationaleCont, false)
-        bulletView.find<TextView>(R.id.cmn_bullet_text).text = groupPerm.getRationaleText()
-        rationaleCont.addView(bulletView)
+      } else {
+        val perms = mutableListOf<String>()
+        for (groupPerms in groups) perms.addAll(groupPerms.getPermissionGroup().groupPermissions)
+        ActivityCompat.requestPermissions(activity, perms.toTypedArray(), PermissionManager.APP_PERMISSIONS_REQ_CODE)
       }
     }
-
-    val posBtn : Button = dialogView.find(R.id.prm_rtnl_pos_btn)
-    val negBtn : Button = dialogView.find(R.id.prm_rtnl_neg_btn)
-
-    val perms = mutableListOf<String>()
-    for (groupPerms in groups) perms.addAll(groupPerms.getPermissionGroup().groupPermissions)
-
-    posBtn.setOnClickListener {
-      ActivityCompat.requestPermissions(activity, perms.toTypedArray(), APP_PERMISSIONS_REQ_CODE)
-      dialog.dismiss()
-    }
-
-    negBtn.setOnClickListener {
-      //activity.toast(R.string.prm_rationale_toast)
-      requestPending = false
-      cb(groups, true, false)
-      dialog.dismiss()
-    }
-
-    dialog.show()
-    val width     = AndroidBase.calculate(90, AndroidBase.getScreenWidth(activity))
-    val params    = dialog.window!!.attributes
-    params.width  = width
-    dialog.window!!.attributes = params
   }
 
   private fun showPermSettingDialog() {
-
-    val builder = AlertDialog.Builder(activity, R.style.PermissionDialog)
-    builder.setMessage(R.string.cmn_perm_rationale_go_to_settings)
-        .setPositiveButton(R.string.cmn_text_give_perm) { _, _ ->
-
-          val myApp = Uri.parse("package:" + activity.packageName)
-          val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, myApp)
-          intent.addCategory(Intent.CATEGORY_DEFAULT)
-          intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
-          activity.startActivity(intent)
-          //activity.toast(R.string.cch_toast_app_permit)
-        }
-        .setNegativeButton(R.string.cmn_text_later) { _, _ ->
-          //activity.toast(R.string.cch_toast_permit_proceed)
-        }.create().show()
+    activity.showPermSettingDialog()
   }
 }

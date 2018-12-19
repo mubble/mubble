@@ -1,6 +1,5 @@
 package ui.auth
 
-import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
 import com.google.android.gms.auth.api.Auth
@@ -12,7 +11,7 @@ import com.google.android.gms.common.api.Scope
 import com.google.api.services.people.v1.PeopleScopes
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
-import com.obopay.demo.R
+import core.BaseApp
 import ui.base.MubbleBaseActivity
 import util.AndroidBase
 
@@ -25,7 +24,6 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
   : LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
 
   private var mGoogleApiClient  : GoogleApiClient? = null
-  private var progressDialog    : ProgressDialog? = null
   private var sessionSignOut    : Boolean         = false
 
   init {
@@ -33,8 +31,8 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     try {
 
       val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-          .requestServerAuthCode(activity.getString(R.string.default_web_client_id))
-          .requestIdToken(activity.getString(R.string.default_web_client_id))
+          .requestServerAuthCode(BaseApp.instance.defaultClientId)
+          .requestIdToken(BaseApp.instance.defaultClientId)
           .requestEmail()
           .requestScopes(Scope(PeopleScopes.USERINFO_PROFILE))
           .build()
@@ -49,7 +47,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
     } catch (e: Exception) {
 
-      //PzFirebaseAnalytics.logEvent(activity, Const.FirebaseEvent.GOOGLE_AUTH_FAIL, JSONObject())
+      //FirebaseAnalytics.logEvent(activity, Const.FirebaseEvent.GOOGLE_AUTH_FAIL, JSONObject())
     }
   }
 
@@ -146,19 +144,12 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
 
   private fun showProgressDialog() {
 
-    if (progressDialog == null) {
-      progressDialog = ProgressDialog(activity)
-      progressDialog!!.setMessage(activity.getString(R.string.cmn_wait))
-      progressDialog!!.isIndeterminate = true
-    }
-    progressDialog!!.show()
+    activity.showProgressDialog()
   }
 
   private fun hideProgressDialog() {
 
-    if (progressDialog != null && progressDialog!!.isShowing) {
-      progressDialog!!.dismiss()
-    }
+    activity.hideProgressDialog()
   }
 
   override fun onConnectionFailed(connectionResult: ConnectionResult) {
@@ -175,8 +166,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     .addOnCompleteListener(activity) { task ->
 
       if (task.isSuccessful) {
-        onSignInComplete("success",
-            activity.getString(R.string.default_web_client_id), acct.idToken)
+        onSignInComplete("success", BaseApp.instance.defaultClientId, acct.idToken)
 
       } else {
         onSignInComplete(ERROR_FIREBASE_AUTH, null, null)

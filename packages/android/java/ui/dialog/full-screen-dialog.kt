@@ -1,0 +1,92 @@
+package ui.dialog
+
+import android.app.Activity
+import android.app.Dialog
+import android.content.Context
+import android.os.Bundle
+import android.support.v4.app.DialogFragment
+import android.support.v4.app.Fragment
+import android.view.ViewGroup
+import android.view.Window
+import core.BaseApp
+import firebase.FirebaseAnalytics
+import core.MubbleLogger
+import org.json.JSONObject
+
+abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
+
+  protected var eventParams = Bundle()
+  protected var listener  : OnDialogFragmentInteractionListener? = null
+
+  private var stayTime    : Long?    = null
+
+  abstract fun getScreenName(): String
+
+  override fun onAttach(activity: Activity?) {
+    super.onAttach(activity)
+    if (activity != null) onAttachInternal(activity)
+  }
+
+  override fun onAttach(context: Context) {
+    super.onAttach(context)
+    onAttachInternal(context)
+  }
+
+  override fun onAttachFragment(childFragment: Fragment?) {
+    super.onAttachFragment(childFragment)
+    if (childFragment != null) onAttachInternal(BaseApp.instance)
+  }
+
+  override fun onStart() {
+    super.onStart()
+
+    if (dialog != null) {
+      val width = ViewGroup.LayoutParams.MATCH_PARENT
+      val height = ViewGroup.LayoutParams.MATCH_PARENT
+      dialog.window!!.setLayout(width, height)
+      dialog.window!!.setBackgroundDrawable(null)
+    }
+
+    stayTime = System.currentTimeMillis()
+  }
+
+  override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+
+    val dialog = super.onCreateDialog(savedInstanceState)
+    dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+    return dialog
+  }
+
+  override fun onStop() {
+    super.onStop()
+
+    stayTime = System.currentTimeMillis() - stayTime!!
+
+    eventParams.putLong("stay_time", stayTime!!)
+    eventParams.putLong("session_id", BaseApp.instance.sessionId)
+
+    FirebaseAnalytics.logEvent(BaseApp.instance, getScreenName(), eventParams)
+    eventParams = Bundle()
+  }
+
+  override fun onDetach() {
+    super.onDetach()
+
+    listener?.onDialogDetach(getScreenName())
+    listener = null
+  }
+
+  private fun onAttachInternal(context: Context) {
+
+    if (context is OnDialogFragmentInteractionListener) {
+      listener = context
+    } else {
+      throw RuntimeException(context.toString() + " must implement OnFragmentInteractionListener")
+    }
+  }
+
+  interface OnDialogFragmentInteractionListener {
+    fun onDialogFragmentInteraction(dialogName: String, actionName: String, result: JSONObject)
+    fun onDialogDetach(dialogName: String)
+  }
+}

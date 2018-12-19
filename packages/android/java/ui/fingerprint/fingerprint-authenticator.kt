@@ -9,6 +9,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProperties.*
+import android.support.annotation.RequiresApi
 import android.support.v4.content.ContextCompat
 import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
 import core.BaseApp
@@ -27,6 +28,7 @@ class FingerPrintAuthenticator: MubbleLogger {
   private lateinit var keyGenerator  : KeyGenerator
   private lateinit var cipher        : Cipher
 
+  @RequiresApi(Build.VERSION_CODES.M)
   private val keyguardManager  = BaseApp.instance.getSystemService(KeyguardManager::class.java)
   private val fingerprintManager= FingerprintManagerCompat.from(BaseApp.instance)
 
