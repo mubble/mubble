@@ -1,3 +1,5 @@
 export * from './nc-allow-single-click.directive'
 export * from './nc-autofocus.directive'
 export * from './nc-maxlength.directive'
+export * from './longpress.directive'
+export * from './nc-style-class.directive'

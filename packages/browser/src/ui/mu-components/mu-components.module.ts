@@ -15,7 +15,10 @@ import { ToastComponent }                   from './toast/toast.component'
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { NcAllowSingleClickDirective,
          NcMaxLengthDirective,
-         NcAutoFocusDirective }             from './directives'
+         NcAutoFocusDirective, 
+         LongPressDirective, 
+         NcStyleClassDirective 
+}                                           from './directives'
 
 import { TRANSLATION_PROVIDERS,
          TranslateService,
@@ -41,6 +44,8 @@ import { TRANSLATION_PROVIDERS,
     NcAllowSingleClickDirective,
     NcAutoFocusDirective,
     NcMaxLengthDirective,
+    LongPressDirective, 
+    NcStyleClassDirective,
 
     TranslatePipe
   ],
@@ -60,7 +65,8 @@ import { TRANSLATION_PROVIDERS,
     NcAllowSingleClickDirective,
     NcAutoFocusDirective,
     NcMaxLengthDirective,
-
+    LongPressDirective, 
+    NcStyleClassDirective,
 
     TranslatePipe
   ]
