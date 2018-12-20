@@ -12,6 +12,8 @@ import { LoadingComponent }                 from './loading/loading.component'
 import { LoadingErrorComponent }            from './loading/loading-error/loading-error.component'
 import { LoadingOverlayComponent }          from './loading/loading-overlay/loading-overlay.component'
 import { ToastComponent }                   from './toast/toast.component'
+import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
+
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { NcAllowSingleClickDirective,
          NcMaxLengthDirective,
@@ -39,6 +41,7 @@ import { TRANSLATION_PROVIDERS,
     LoadingOverlayComponent,
     ToastComponent,
     AlertDialogComponent,
+    InfiniteScrollComponent,
 
 
     NcAllowSingleClickDirective,
@@ -61,6 +64,7 @@ import { TRANSLATION_PROVIDERS,
     LoadingErrorComponent,
     LoadingOverlayComponent,
     ToastComponent,
+    InfiniteScrollComponent,
 
     NcAllowSingleClickDirective,
     NcAutoFocusDirective,
