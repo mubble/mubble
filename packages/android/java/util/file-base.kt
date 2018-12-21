@@ -2,10 +2,8 @@ package util
 
 import android.content.Context
 import core.BaseApp
-import java.io.BufferedReader
-import java.io.File
-import java.io.FileOutputStream
-import java.io.FileReader
+import org.jetbrains.anko.error
+import java.io.*
 
 /**
  * Created by
@@ -24,6 +22,23 @@ object FileBase {
   fun getLocalStoragePath(context: Context): String {
 
     return context.filesDir.absolutePath
+  }
+
+  fun getWebFileUrl(context: Context): String {
+    return (getJsCodePath(context)
+        + File.separator + ConstBase.InternalStorage.Code.WEB_FILE)
+  }
+
+  fun getJsCodePath(context: Context): String {
+
+    return getLocalStoragePath(context) + File.separator +
+        ConstBase.InternalStorage.Code.NAME
+  }
+
+  fun getJsUpgradePath(context: Context): String {
+
+    return getLocalStoragePath(context) + File.separator +
+        ConstBase.InternalStorage.Upgrade.NAME
   }
 
   fun asyncWriteFileToInternal(filePath: String,
@@ -92,6 +107,26 @@ object FileBase {
     }
     bufferedReader.close()
     return builder.toString()
+  }
+
+  fun writeFile(fullFilePath: String, fileName: String,
+                bytes: ByteArray, append: Boolean): Boolean {
+
+    try {
+      val path = File(fullFilePath)
+      if (!path.exists()) path.mkdirs()
+
+      val output = File(path, fileName)
+      if (!output.exists()) output.createNewFile()
+
+      val stream = FileOutputStream(output, append)
+      stream.write(bytes)
+      stream.close()
+      return true
+
+    } catch (e: IOException) {
+      error { "error: $e" }
+    }
   }
 
   fun deleteRecursive(fileOrDirectory: File) {

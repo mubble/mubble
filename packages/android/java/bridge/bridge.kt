@@ -8,8 +8,8 @@ import org.jetbrains.anko.info
 import org.jetbrains.anko.warn
 import org.json.JSONArray
 import org.json.JSONObject
+import util.UtilBase
 import util.asyncExecuteInMainThread
-import util.toTimeString
 import java.util.*
 
 /*------------------------------------------------------------------------------
@@ -204,7 +204,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
           if (cbStruct.ts < then) {
             warn {
               "TimeoutTimer: $key timed-out, was constructed at ${
-              toTimeString(cbStruct.ts)}"
+              UtilBase.toTimeString(cbStruct.ts)}"
             }
             iterator.remove()
           }

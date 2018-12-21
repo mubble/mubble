@@ -12,10 +12,15 @@ import { LoadingComponent }                 from './loading/loading.component'
 import { LoadingErrorComponent }            from './loading/loading-error/loading-error.component'
 import { LoadingOverlayComponent }          from './loading/loading-overlay/loading-overlay.component'
 import { ToastComponent }                   from './toast/toast.component'
+import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
+
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { NcAllowSingleClickDirective,
          NcMaxLengthDirective,
-         NcAutoFocusDirective }             from './directives'
+         NcAutoFocusDirective, 
+         LongPressDirective, 
+         NcStyleClassDirective 
+}                                           from './directives'
 
 import { TRANSLATION_PROVIDERS,
          TranslateService,
@@ -36,11 +41,14 @@ import { TRANSLATION_PROVIDERS,
     LoadingOverlayComponent,
     ToastComponent,
     AlertDialogComponent,
+    InfiniteScrollComponent,
 
 
     NcAllowSingleClickDirective,
     NcAutoFocusDirective,
     NcMaxLengthDirective,
+    LongPressDirective, 
+    NcStyleClassDirective,
 
     TranslatePipe
   ],
@@ -56,11 +64,13 @@ import { TRANSLATION_PROVIDERS,
     LoadingErrorComponent,
     LoadingOverlayComponent,
     ToastComponent,
+    InfiniteScrollComponent,
 
     NcAllowSingleClickDirective,
     NcAutoFocusDirective,
     NcMaxLengthDirective,
-
+    LongPressDirective, 
+    NcStyleClassDirective,
 
     TranslatePipe
   ]

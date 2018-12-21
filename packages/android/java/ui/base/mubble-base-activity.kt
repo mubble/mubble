@@ -1,11 +1,13 @@
 package ui.base
 
+import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.support.v7.app.AppCompatActivity
 import core.BaseApp
 import core.MubbleLogger
+import ui.permission.AskedPermission
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -18,7 +20,11 @@ import core.MubbleLogger
 
 abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
 
-  private var loadedPreAppInit: Boolean = false
+  private var loadedPreAppInit  : Boolean         = false
+  private var progressDialog    : ProgressDialog? = null
+
+  abstract fun showRationaleDialog(groups: MutableSet<AskedPermission>, cb: (Boolean) -> Unit)
+  abstract fun showPermSettingDialog()
 
   final override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -173,5 +179,23 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
     startActivity(intent)
     overridePendingTransition(0, 0)
   }
+
+  fun showProgressDialog(message: String = "Please wait") {
+
+    if (progressDialog == null) {
+      progressDialog = ProgressDialog(this)
+      progressDialog!!.setMessage(message)
+      progressDialog!!.isIndeterminate = true
+    }
+    progressDialog!!.show()
+  }
+
+  fun hideProgressDialog() {
+
+    if (progressDialog != null && progressDialog!!.isShowing) {
+      progressDialog!!.dismiss()
+    }
+  }
+
 
 }

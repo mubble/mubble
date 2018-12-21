@@ -35,9 +35,8 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException
 import com.google.android.gms.common.GooglePlayServicesRepairableException
-import com.obopay.demo.BuildConfig
 import core.BaseApp
-import core.ConstBase
+import ConstBase
 import location.ULocation
 import location.ULocationProvider
 import org.hashids.Hashids
@@ -62,9 +61,6 @@ private const val PLAY_SERVICES_RESOLUTION_REQUEST = 1000
 object AndroidBase {
 
   private val TAG = "AndroidBase"
-
-  val appVersionName: String
-    get() = BuildConfig.VERSION_NAME
 
   val cpuInfo: String
     get() {
@@ -757,7 +753,7 @@ object AndroidBase {
     if (b) return
     val assertionError = AssertionError(message)
 
-    if (BuildConfig.DEBUG) {
+    if (BaseApp.instance.isDebugApp) {
       throw assertionError
 
     } else {

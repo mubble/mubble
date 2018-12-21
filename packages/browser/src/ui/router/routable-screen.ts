@@ -11,14 +11,14 @@
 ------------------------------------------------------------------------------*/
 
 import { TrackableScreen }    from './trackable-screen'
-import { RunContextPzApp }    from 'framework'
+import { RunContextApp }    from 'framework'
 import { Mubble }             from '@mubble/core';
 
 export abstract class RoutableScreen extends TrackableScreen {
 
   abstract onRouterInit(queryParams: Mubble.uObject<any>, firstInvocation: boolean): void
   
-  constructor(protected rc: RunContextPzApp) {
+  constructor(protected rc: RunContextApp) {
     super(rc)
   }
 }
