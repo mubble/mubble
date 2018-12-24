@@ -17,5 +17,5 @@ export const XmnError = {
   SendTimedOut        : 'SendTimedOut',       // ideally means terribly slow connection
   UnAuthorized        : 'UnAuthorized',       // When the client id is not valid (server to server)
 
-  _NotReady           : '_NotReady'
+  _NotReady           : '_NotReady'           // Used by the client when connection is not ready
 }
