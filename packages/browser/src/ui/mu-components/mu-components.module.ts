@@ -2,7 +2,9 @@ import { NgModule, ModuleWithProviders }    from '@angular/core'
 
 import { CommonModule }                     from '@angular/common'
 
-import { FormsModule }                      from '@angular/forms'
+import { FormsModule, 
+         ReactiveFormsModule 
+       }                                    from '@angular/forms'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -30,6 +32,7 @@ import { TRANSLATION_PROVIDERS,
   imports: [
     CommonModule,
     FormsModule,
+    ReactiveFormsModule,
     MuComponentsRoutingModule
   ],
 
@@ -58,6 +61,11 @@ import { TRANSLATION_PROVIDERS,
   ],
   
   exports: [
+
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+
     BottomInComponent,
     ModalPopupComponent,
     LoadingComponent,
