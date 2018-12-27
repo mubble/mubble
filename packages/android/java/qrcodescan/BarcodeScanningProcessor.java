@@ -95,8 +95,5 @@ public class BarcodeScanningProcessor extends VisionProcessorBase<List<FirebaseV
         Log.e(TAG, "Barcode detection failed " + e);
     }
 
-  interface ResultListener {
-
-      void setResult(List<FirebaseVisionBarcode> barcodes);
-  }
 }
+
