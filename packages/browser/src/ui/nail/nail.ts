@@ -7,8 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { PerformanceMetrics, 
-         RunContextBase }           from '@mubble/core'
+import { PerformanceMetrics }       from '@mubble/core'
 import { Renderer2 }                from '@angular/core'
 import { DIRECTION, 
          THRESHOLD,

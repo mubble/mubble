@@ -39,11 +39,11 @@
   .toast-comp {
     
     .toast-text {
-      color: mat-color($foreground, toast-text);
+      color: mat-color($foreground, toast-text) !important;
     }
 
     .toast {
-      background: mat-color($background, toast-bg);
+      background: mat-color($background, toast-bg) !important;
     }
 
   }
