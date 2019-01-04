@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Represents a Mubble Client Installation
+   About      : Represents a Mubble Client Installation.
    
    Created on : Sat Jun 24 2017
    Author     : Raghvendra Varma
@@ -16,6 +16,8 @@ import { SyncRequest } from '../master'
  */
 export interface ClientIdentity {
 
+  uniqueId      : string    // Typically a version in 'a.b.c' format 
+
   // only valid when request is from Mubble (web)app
   appName       : string
   channel       : string
@@ -30,6 +32,9 @@ export interface ClientIdentity {
   // TODO: Remove this
   firstName     : string
   lastName      : string
+  // Information passed by the client used by   
+  location      : string   // it is in form of serialized json object 
+  networkType   : string
 
   syncReq      ?: SyncRequest
 }

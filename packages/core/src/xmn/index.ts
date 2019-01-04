@@ -9,5 +9,6 @@
 
 export * from './client-identity'
 export * from './connection-info'
+export * from './session-info'
 export * from './xmn-error'
 export * from './xmn-core'

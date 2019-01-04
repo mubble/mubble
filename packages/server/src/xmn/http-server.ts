@@ -20,7 +20,8 @@ import {
         XmnError,
         HTTP,
         WireReqResp,
-        XmnProvider
+        XmnProvider,
+        SessionInfo
        }                              from '@mubble/core'
 import {
         RunContextServer
@@ -56,6 +57,7 @@ export class HttpServer {
           reqId       = Number(ar[1]) || Date.now()
 
     const ci           = {} as ConnectionInfo,
+          si           = {} as SessionInfo,
           [host, port] = (req.headers.host || '').split(':')
 
     ci.protocol       = this.secure ? Protocol.HTTPS : Protocol.HTTP
@@ -69,12 +71,11 @@ export class HttpServer {
     // communication
     ci.msOffset       = 0
     ci.lastEventTs    = 0
-    ci.location       = ''
-    ci.networkType    = ''
-    ci.publicRequest  = false
+
+    si.publicRequest  = false
 
     try {
-      await this.router.verifyConnection(rc, ci, apiName)
+      await this.router.verifyConnection(rc, ci, si, apiName)
     } catch (err) {
       res.writeHead(404, {
         [HTTP.HeaderKey.contentLength]  : 0,
@@ -85,7 +86,8 @@ export class HttpServer {
     }
 
     const httpProvider = new HttpServerProvider(rc, ci, this.router, req, res, this)
-    ci.provider       = httpProvider
+    si.provider = httpProvider
+
     this.providerMap.set(httpProvider , Date.now())
     httpProvider.processRequest(rc, apiName, reqId, urlObj.query || '')
   }
