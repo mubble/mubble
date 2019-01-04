@@ -7,23 +7,24 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {  RunContextServer } from '../rc-server'
-import {  ConnectionInfo,
-          WireObject,
-          Leader,
-          Mubble,
-          Encoder
-        } from '@mubble/core'
-
-import * as zlib from 'zlib'
-import * as crypto from 'crypto'
-import * as constants from 'constants'
+import { RunContextServer }     from '../rc-server'
+import { 
+         WireObject,
+         Leader,
+         Mubble,
+         Encoder,
+         SessionInfo,
+         ConnectionInfo
+       }                        from '@mubble/core'
+import * as zlib                from 'zlib'
+import * as crypto              from 'crypto'
+import * as constants           from 'constants'
 
 const IV = Buffer.alloc(16)
 
 export class EncProviderServer {
 
-  constructor(rc: RunContextServer, private ci: ConnectionInfo) {
+  constructor(rc: RunContextServer, private ci: ConnectionInfo, private si : SessionInfo) {
 
   }
 
@@ -39,33 +40,30 @@ export class EncProviderServer {
 
   decodeHeader(rc: RunContextServer, data: Buffer, pk: string | null): void {
 
-    const endPtr    = this.extractKey(rc, data, pk)
-    const headers   = JSON.parse(this.decrypt(data.slice(endPtr)).toString())
+    const endPtr  = this.extractKey(rc, data, pk),
+          headers = JSON.parse(this.decrypt(data.slice(endPtr)).toString()),
+          diff    = Date.now() - headers.now
 
-    this.ci.networkType     = headers.networkType
-    this.ci.location        = headers.location
-
-    const diff              = Date.now() - headers.now
-    this.ci.msOffset        = Math.abs(diff) > 5000 ? diff : 0
+    this.ci.msOffset = Math.abs(diff) > 5000 ? diff : 0
     
     delete headers.networkType
     delete headers.location
     delete headers.now
 
-    this.ci.clientIdentity  = headers
+    this.ci.customData  = headers
   }
 
   extractKey(rc: RunContextServer, data: Buffer, pk: string | null) {
 
     const startPtr  = 7
-    if (!this.ci.useEncryption) return startPtr
+    if (!this.si.useEncryption) return startPtr
 
     const endPtr    = 7 + 256,
           encKey    = data.slice(startPtr, endPtr)
 
     rc.isAssert() && rc.assert(rc.getName(this), data.length !== 256, 'Incorrect header')
 
-    if (pk) this.ci.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
+    if (pk) this.si.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
     return endPtr
   } 
 
@@ -126,10 +124,10 @@ export class EncProviderServer {
 
   private encrypt(buffer: Buffer) {
 
-    if (!this.ci.useEncryption) return buffer
+    if (!this.si.useEncryption) return buffer
     // console.log('encrypt', this.ci.syncKey.length, this.ci.syncKey)
 
-    const cipher  = crypto.createCipheriv('aes-256-cbc', this.ci.syncKey, IV),
+    const cipher  = crypto.createCipheriv('aes-256-cbc', this.si.syncKey, IV),
           outBuf1 = cipher.update(buffer),
           outBuf2 = cipher.final()
 
@@ -143,9 +141,9 @@ export class EncProviderServer {
 
   private decrypt(buffer: Buffer) {
 
-    if (!this.ci.useEncryption) return buffer
+    if (!this.si.useEncryption) return buffer
 
-    const decipher  = crypto.createDecipheriv('aes-256-cbc', this.ci.syncKey, IV),
+    const decipher  = crypto.createDecipheriv('aes-256-cbc', this.si.syncKey, IV),
           outBuf1   = decipher.update(buffer),
           outBuf2   = decipher.final()
 
@@ -172,6 +170,6 @@ export class EncProviderServer {
     ar.forEach(num => {
       if (num > 99) throw('setUniqueId: invalid data')
     })
-    this.ci.uniqueId = ar.join('.')
+    this.ci.customData.uniqueId = ar.join('.')
   }
 }

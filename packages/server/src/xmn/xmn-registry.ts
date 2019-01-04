@@ -51,7 +51,7 @@ export class XmnRegistry {
     providers.forEach(provider => {
 
       let providerUsed = false
-       while (provider !== Function && provider !== Object) {
+      while (provider !== Function && provider !== Object) {
         if (this.checkForProvider(rc, router, provider)) providerUsed = true
         provider = provider.constructor
       }
