@@ -34,7 +34,8 @@ import { ComponentRoutes }      from './shared-router-constants'
 import { AlertDialogParams,
          AlertDialogComponent } from '../mu-components/alert-dialog/alert-dialog.component'
 
-const ROOT_URL     = '/#/?launched=true'
+const ROOT_URL     = '#/?launched=true'
+const BASE_HREF    = location.href
 
 export const PRIMARY_OUTLET = 'primary',
              MODAL_OUTLET   = 'modal'
@@ -104,10 +105,9 @@ export class UiRouter {
 
     this.urlStack[0]      = new StackItem()
     this.urlStack[0].url  = (location.hash || '').substr(1)
-
-    const curLoc = location.href
-    this.historyWrapper.replaceState({index: -1}, document.title, ROOT_URL)
-    this.historyWrapper.pushState({index: 0}, document.title, curLoc)
+    
+    this.historyWrapper.replaceState({index: -1}, document.title, BASE_HREF + ROOT_URL)
+    this.historyWrapper.pushState({index: 0}, document.title, BASE_HREF)
 
     window.addEventListener('popstate', this.onPopState.bind(this))
     this.browserStack[0]  = this.urlStack[0].url
@@ -193,6 +193,8 @@ export class UiRouter {
 
     const url = Array.isArray(urlOrCommand) ? this.router.createUrlTree(urlOrCommand, extras) : urlOrCommand
     this.lastNavUrl = typeof url === 'string' ? url : this.router.serializeUrl(url)
+
+    console.log(`Test: ${url}`)
 
     if (await this.router.navigateByUrl(url, extras)) {
       return true
@@ -400,7 +402,7 @@ export class UiRouter {
 
       for (let i = 0; i < stackLen; i++) {
         this.browserStack[i] = this.urlStack[i].url
-        this.historyWrapper.pushState({index: i}, '', '/#' + this.urlStack[i].url)
+        this.historyWrapper.pushState({index: i}, '', BASE_HREF + '#' + this.urlStack[i].url)
       }
       this.browserStack.length = stackLen
 
@@ -409,7 +411,7 @@ export class UiRouter {
       if (!this.canGoBack() || this.isToolTipShown()) {
         const lastIdx  = this.urlStack.length - 1,
         lastItem = this.urlStack[lastIdx]
-        this.historyWrapper.pushState({index: lastIdx}, '', '/#' + lastItem.url)
+        this.historyWrapper.pushState({index: lastIdx}, '', BASE_HREF + '#' + lastItem.url)
         this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'not going back')
         return
       }
@@ -586,10 +588,10 @@ export class UiRouter {
     } else if (fromIndex === (stackLen - 1)) {
 
       if (browserStack.length === urlStack.length) {
-        this.historyWrapper.replaceState({index: fromIndex}, '', '/#' + urlStack[fromIndex])
+        this.historyWrapper.replaceState({index: fromIndex}, '', BASE_HREF + '#' + urlStack[fromIndex])
         browserStack[fromIndex] = urlStack[fromIndex].url
       } else if (browserStack.length + 1 === urlStack.length) {
-        this.historyWrapper.pushState({index: fromIndex}, '', '/#' + urlStack[fromIndex])
+        this.historyWrapper.pushState({index: fromIndex}, '', BASE_HREF + '#' + urlStack[fromIndex])
         browserStack[fromIndex] = urlStack[fromIndex].url
       } else {
         this.browserGotoRoot()
@@ -677,6 +679,8 @@ class HistoryWrapper {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before replaceState', {
       historyLength : history.length, 
       historyState  : history.state,
+      title         : title,
+      url           : url,
       newState      : state
     })
     history.replaceState(state, title, url)
