@@ -2,7 +2,7 @@ import { NgModule, ModuleWithProviders }    from '@angular/core'
 
 import { CommonModule }                     from '@angular/common'
 
-import { FormsModule, 
+import { FormsModule,
          ReactiveFormsModule 
        }                                    from '@angular/forms'
 
@@ -33,6 +33,7 @@ import { TRANSLATION_PROVIDERS,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    
     MuComponentsRoutingModule
   ],
 
@@ -80,7 +81,12 @@ import { TRANSLATION_PROVIDERS,
     LongPressDirective, 
     NcStyleClassDirective,
 
-    TranslatePipe
+    TranslatePipe,
+    
+    FormsModule,
+    ReactiveFormsModule,
+    CommonModule
+    
   ]
 })
 
