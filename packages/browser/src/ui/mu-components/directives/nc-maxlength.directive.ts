@@ -81,7 +81,7 @@ export class NcMaxLengthDirective {
                             && !isNaN(element.value)
                             
         if (!validInput) {
-          element.value = ''
+          // element.value = ''
           return
         }
       }
