@@ -7,10 +7,13 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { Component, OnInit, 
-         Input, Output, 
-         Inject, EventEmitter }             from '@angular/core'
-import { RunContextBrowser }                from '../../../../rc-browser'
+import { Component, 
+         Input, 
+         Output, 
+         Inject, 
+         EventEmitter 
+       }                            from '@angular/core'
+import { RunContextBrowser }        from '../../../../rc-browser'
 
 @Component({
   selector    : 'loading-error',
