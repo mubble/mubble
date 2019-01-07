@@ -27,7 +27,7 @@ import java.util.regex.Pattern
 
 object DeviceInfo {
 
-  fun getData(): String {
+  fun getData(): JSONObject {
 
     val json = JSONObject()
 
@@ -91,7 +91,7 @@ object DeviceInfo {
       e.printStackTrace()
     }
 
-    return json.toString()
+    return json
   }
 
   private fun getDisplaySize(context: Context): String {

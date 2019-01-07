@@ -91,7 +91,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
     }
   }
 
-  fun sendAsyncResponseToJs(requestId: Int, json: JSONObject) {
+  fun sendAsyncResponseToJs(requestId: Int, json: JSONObject = JSONObject()) {
 
     asyncExecuteInMainThread {
       executeJsFunction("asyncResponseFromNative", requestId, json) {}
@@ -126,7 +126,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
       is JSONObject,
       is Boolean      -> arg.toString()
 
-      else            -> {check(false, {"$arg has invalid type"}); ""}
+      else            -> {check(false) {"$arg has invalid type"}; ""}
     }
   }
 
@@ -135,7 +135,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   }
 
   @JavascriptInterface
-  fun asyncRequestResponseFromJs(requestTag: String, respJsonStr: String) {
+  fun asyncRequestResponseFromJs(requestId: Int, requestTag: String, respJsonStr: String) {
 
     check(state > State.LOADING)
 
@@ -153,14 +153,16 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   }
 
   @JavascriptInterface
-  fun setStateFromJs(strState: String) {
+  fun setStateFromJs(requestId: Int, strState: String) {
 
     val state: State = State.valueOf(strState)
     when(state) {
       INITIALIZED -> initializedFromJs()
-      LOADING -> check(false, {"Automatically set"})
+      LOADING -> check(false) {"Automatically set"}
       SHOWN -> shownFromJs()
     }
+
+    sendAsyncResponseToJs(requestId)
   }
 
   protected fun initializedFromJs() {

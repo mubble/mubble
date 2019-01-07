@@ -194,8 +194,6 @@ export class UiRouter {
     const url = Array.isArray(urlOrCommand) ? this.router.createUrlTree(urlOrCommand, extras) : urlOrCommand
     this.lastNavUrl = typeof url === 'string' ? url : this.router.serializeUrl(url)
 
-    console.log(`Test: ${url}`)
-
     if (await this.router.navigateByUrl(url, extras)) {
       return true
     }
