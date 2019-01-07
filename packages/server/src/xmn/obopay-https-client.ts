@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Mubble Client
+   About      : Obopay Https Client
    
    Created on : Tue Dec 18 2018
    Author     : Vishal Sinha
@@ -70,7 +70,7 @@ export namespace ObopayHttpsClient {
     requestMem         = requestRedis
   }
 
-  export async function mubbleApi(rc            : RunContextServer, 
+  export async function obopayApi(rc            : RunContextServer, 
                                   apiName       : string,
                                   params        : Mubble.uObject<any>,
                                   id            : string,
@@ -139,7 +139,7 @@ export namespace ObopayHttpsClient {
       readPromise.reject(err)
     })
 
-    const encWo        = encProvider.encodeWireObject(rc, wo, [req]),
+    const encWo        = encProvider.encodeWireObject(wo, [req]),
           writeStreams = encWo.streams,
           data         = encWo.data,
           writeUstream = new UStream.WriteStreams(rc, writeStreams, writePromise)

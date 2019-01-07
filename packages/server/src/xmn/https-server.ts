@@ -99,7 +99,9 @@ export class HttpsServer {
                                 `${req.method} not supported.`)
 
       const encProvider = ObopayHttpsClient.verifyClientRequest(rc, ci.headers, ci.ip),
-            bodyStr     = await encProvider.decodeBody(rc, [req])
+            streams     = encProvider.decodeBody([req]),
+            stream      = new UStream.ReadStreams(rc, streams),
+            bodyStr     = (await stream.read()).toString()
 
       await ObopayHttpsClient.addRequestToMemory(ci.headers[HTTP.HeaderKey.requestTs],
                                                  ci.headers[HTTP.HeaderKey.clientId],
@@ -141,6 +143,10 @@ export class HttpsServer {
     }
   }
 }
+
+/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   Https Server Provider
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 export class HttpsServerProvider implements XmnProvider {
 

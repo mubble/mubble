@@ -8,6 +8,8 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble, RunContextBase } from '..'
+import { XmnError }               from './xmn-error'
+
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
 /* HTTP Headers */
@@ -223,6 +225,26 @@ export const Leader = {
   CONFIG      : 'C',
   DEF_JSON    : 'D',
   JSON        : 'J'
+}
+
+export function getLeaderByte(leader : string) {
+  switch(leader) {
+    case Leader.BIN      : return [ 0x01 ]
+    case Leader.DEF_JSON : return [ 0x02 ]
+    case Leader.JSON     : return [ 0x03 ]
+  }
+
+  throw new Mubble.uError(XmnError.InvalidLeader, `Invalid leader ${leader}.`)
+}
+
+export function getLeader(leaderByte : number) {
+  switch(leaderByte) {
+    case 0x01 : return Leader.BIN
+    case 0x02 : return Leader.DEF_JSON
+    case 0x03 : return Leader.JSON
+  }
+
+  throw new Mubble.uError(XmnError.InvalidLeader, `Invalid leader byte ${leaderByte}.`)
 }
 
 export const Encoder = {
