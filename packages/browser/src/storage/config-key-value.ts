@@ -10,9 +10,9 @@ export class ConfigKeyVal {
     await this.storage.setGcConfig(this.rc, config)
   }
 
-  getConfig(category: string, key: string): Mubble.uObject<string> {
+  async getConfig(category: string, key: string): Promise<Mubble.uObject<string>> {
 
-    const value = this.storage.getGcConfig(this.rc, category, key)
+    const value = await this.storage.getGcConfig(this.rc, category, key)
     if (!value) {
       this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 
         `No config found for category ${category}, key ${key}`)

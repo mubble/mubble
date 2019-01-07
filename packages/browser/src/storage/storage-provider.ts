@@ -11,7 +11,7 @@ export class StorageProvider {
     localStorage.setItem(storageKey, value)
   }
 
-  getGlobalKeyValue(rc: RunContextBrowser, key: string): string {
+  async getGlobalKeyValue(rc: RunContextBrowser, key: string): Promise<string> {
     const storageKey = GLOBAL_PREFIX + '.' + key
     return localStorage.getItem(storageKey)
   }
@@ -20,7 +20,7 @@ export class StorageProvider {
     localStorage.setItem(key, value)
   }
 
-  getUserKeyValue(rc: RunContextBrowser, key: string): string {
+  async getUserKeyValue(rc: RunContextBrowser, key: string): Promise<string> {
     return localStorage.getItem(key)
   }
 
@@ -37,7 +37,7 @@ export class StorageProvider {
     })
   }
 
-  getGcConfig(rc: RunContextBrowser, category: string, key: string): string {
+  async getGcConfig(rc: RunContextBrowser, category: string, key: string): Promise<string> {
 
     const storageKey = `${CONFIG_PREFIX}.${category}|${key}`
     return localStorage.getItem(storageKey)

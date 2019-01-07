@@ -25,15 +25,21 @@ export abstract class UserKeyValue {
   private lastClientId  : number
 
   constructor(protected rc: RunContextBrowser, private storage: StorageProvider) {
+  }
 
-    const users = storage.getUserKeyValue(rc, USERS)
+  async init() {
+
+    const users = await this.storage.getUserKeyValue(this.rc, USERS)
     if (!users) return
 
     this.users = JSON.parse(users)
-    this.lastClientId = Number(storage.getUserKeyValue(rc, LAST_USER))
+    const cid  = await this.storage.getUserKeyValue(this.rc, LAST_USER)
+    this.lastClientId = Number(cid)
 
     if (!this.lastClientId) return
     this.deserialize(this.users[this.lastClientId])
+
+    return this
   }
 
   registerNewUser(clientId: number, userLinkId: string, userName: string) {
