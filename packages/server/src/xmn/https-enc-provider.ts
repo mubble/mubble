@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Encryption-decryption provider for server to server comm
+   About      : Encryption-decryption provider for https server
    
    Created on : Thu Dec 27 2018
    Author     : Vishal Sinha
@@ -13,8 +13,6 @@ import {
          HTTP
        }                      from '@mubble/core'
 import { SecurityErrorCodes } from './security-errors'
-import { UStream }            from '../util'
-import { RunContextServer }   from '../rc-server'
 import * as crypto            from 'crypto'
 import * as zlib              from 'zlib'
 import * as stream            from 'stream'
@@ -63,19 +61,17 @@ export class HttpsEncProvider {
     return requestTs
   }
 
-  public encodeWireObject(rc      : RunContextServer,
-                          wo      : WireObject,
+  public encodeWireObject(wo      : WireObject,
                           streams : Array<stream.Writable>) {
                                   
     this.headers[HTTP.HeaderKey.requestTs]   = this.encodeRequestTs(wo.ts)
     this.headers[HTTP.HeaderKey.contentType] = HTTP.HeaderValue.stream
     
-    return this.encodeBody(rc, wo.data, streams)
+    return this.encodeBody(wo.data, streams)
   }
 
-  public async decodeBody(rc       : RunContextServer,
-                          streams  : Array<stream.Readable>,
-                          encoding : string = this.headers[HTTP.HeaderKey.bodyEncoding]) : Promise<string> {
+  public decodeBody(streams  : Array<stream.Readable>,
+                    encoding : string = this.headers[HTTP.HeaderKey.bodyEncoding]) : Array<stream.Readable> {
     
     streams.push(this.getDecipher() as any)
 
@@ -96,10 +92,7 @@ export class HttpsEncProvider {
                                 'Unknown compression factor.')
     }
 
-    const stream  = new UStream.ReadStreams(rc, streams),
-          jsonStr = (await stream.read()).toString()
-
-    return jsonStr
+    return streams
   }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -121,8 +114,7 @@ export class HttpsEncProvider {
     return requestTs
   }
 
-  private encodeBody(rc      : RunContextServer,
-                     json    : Mubble.uObject<any>,
+  private encodeBody(json    : Mubble.uObject<any>,
                      streams : Array<stream.Writable>) {
 
     const jsonStr = JSON.stringify(json)
