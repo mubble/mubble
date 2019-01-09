@@ -1,9 +1,18 @@
 package util
 
 import android.content.Context
+import android.database.Cursor
+import android.net.Uri
+import android.util.Base64
 import core.BaseApp
-import org.jetbrains.anko.error
 import java.io.*
+import com.obopay.mobilemoney.core.App
+import android.provider.OpenableColumns
+import org.jetbrains.anko.error
+import java.math.BigInteger
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+
 
 /**
  * Created by
@@ -139,4 +148,142 @@ object FileBase {
 
     fileOrDirectory.delete()
   }
+
+  fun convertContentUriToBase64(contentUri: Uri): String? {
+
+    val inputStream = App.instance.contentResolver.openInputStream(contentUri)!!
+    return convertStreamToBase64(inputStream)
+  }
+
+  fun convertFileToBase64(f: File): String? {
+
+    val inputStream = FileInputStream(f)
+    return convertStreamToBase64(inputStream)
+  }
+
+  fun convertStreamToBase64(inputStream: InputStream): String? {
+
+    try {
+
+      val bos = ByteArrayOutputStream()
+      val b   = ByteArray(1024 * 11)
+
+      var bytesRead = inputStream.read(b)
+      while (bytesRead != -1) {
+        bos.write(b, 0, bytesRead)
+        bytesRead = inputStream.read(b)
+      }
+
+      val byteArray = bos.toByteArray()
+
+      return Base64.encodeToString(byteArray, Base64.DEFAULT)
+    } catch (e: IOException) {
+      e.printStackTrace()
+    } catch (e: FileNotFoundException) {
+      e.printStackTrace()
+    }
+
+    return null
+  }
+
+  fun getFileSize(contentUri: Uri): Long? {
+
+    var cursor: Cursor? = null
+    try {
+      cursor = BaseApp.instance.contentResolver.query(contentUri, null, null, null, null)
+      if (cursor != null && cursor.moveToFirst()) {
+        val size: Long = cursor.getLong(cursor.getColumnIndex(OpenableColumns.SIZE))
+        return size
+      }
+    } finally {
+      cursor!!.close()
+    }
+    return null
+  }
+
+  fun getFileSize(file: File): Long? {
+    return file.length()
+  }
+
+  fun calculateMD5(contentUri: Uri): String? {
+
+    val inputStream = App.instance.contentResolver.openInputStream(contentUri)!!
+    return calculateMD5(inputStream)
+  }
+
+  fun calculateMD5(fullFilePath: String, fileName: String): String? {
+
+    val dirs = fullFilePath.split("/".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
+    var path1 = ""
+    for (dir in dirs) {
+      path1 += File.separator + dir
+    }
+
+    val path = File(path1)
+    if (!path.exists()) {
+      error { "path doesn't exist to match md5" }
+    }
+
+    val dirFiles = path.listFiles()
+    var updateFile: File? = null
+
+    for (file in dirFiles) {
+      if (file.name == fileName) {
+        updateFile = file
+        break
+      }
+    }
+
+    if (updateFile == null) return null
+
+    val inputStream: InputStream
+    try {
+      inputStream = FileInputStream(updateFile)
+
+    } catch (e: FileNotFoundException) {
+      error { "Exception while getting FileInputStream: $e" }
+    }
+
+    return calculateMD5(inputStream)
+  }
+
+  fun calculateMD5(inputStream: InputStream): String? {
+
+    val digest: MessageDigest
+    try {
+      digest = MessageDigest.getInstance("MD5")
+
+    } catch (e: NoSuchAlgorithmException) {
+      error { "Exception while getting digest: $e" }
+    }
+
+    val buffer = ByteArray(8192)
+    try {
+      var read: Int = inputStream.read(buffer)
+      while (read > 0) {
+        digest.update(buffer, 0, read)
+        read = inputStream.read(buffer)
+      }
+
+      val md5sum = digest.digest()
+      val bigInt = BigInteger(1, md5sum)
+      var output = bigInt.toString(16)
+      // Fill to 32 chars
+      output = String.format("%32s", output).replace(' ', '0')
+      return output
+
+    } catch (e: IOException) {
+      throw RuntimeException("Unable to process file for MD5", e)
+
+    } finally {
+      try {
+        inputStream.close()
+
+      } catch (e: IOException) {
+        error { "Exception on closing MD5 input stream: $e" }
+      }
+    }
+  }
+
+
 }

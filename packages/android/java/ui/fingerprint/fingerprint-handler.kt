@@ -30,6 +30,7 @@ class FingerprintHandler(private val cb: ((Boolean, String?) -> Unit)) : Fingerp
 
   override fun onAuthenticationSucceeded(result: FingerprintManagerCompat.AuthenticationResult?) {
     info { "Auth success" }
+
     cb(true, null)
   }
 }

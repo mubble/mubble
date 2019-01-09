@@ -29,8 +29,8 @@ class FingerPrintAuthenticator: MubbleLogger {
   private lateinit var cipher        : Cipher
 
   @RequiresApi(Build.VERSION_CODES.M)
-  private val keyguardManager  = BaseApp.instance.getSystemService(KeyguardManager::class.java)
-  private val fingerprintManager= FingerprintManagerCompat.from(BaseApp.instance)
+  private val keyguardManager     = BaseApp.instance.getSystemService(KeyguardManager::class.java)
+  private val fingerprintManager  = FingerprintManagerCompat.from(BaseApp.instance)
 
   companion object {
     private const val ANDROID_KEY_STORE   = "AndroidKeyStore"

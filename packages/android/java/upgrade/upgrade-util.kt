@@ -9,9 +9,6 @@ import org.jetbrains.anko.error
 import org.jetbrains.anko.verbose
 import util.FileBase
 import java.io.*
-import java.math.BigInteger
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 
 object UpgradeUtil: MubbleLogger {
 
@@ -155,7 +152,7 @@ object UpgradeUtil: MubbleLogger {
     }
 
     val fullFilePath = FileBase.getJsUpgradePath(context) + File.separator + filePath
-    val calculatedDigest = calculateMD5(fullFilePath, fileName)
+    val calculatedDigest = FileBase.calculateMD5(fullFilePath, fileName)
 
     if (calculatedDigest == null) {
       error { "calculatedDigest null" }
@@ -169,77 +166,6 @@ object UpgradeUtil: MubbleLogger {
 
     val upgradeDir = File(FileBase.getJsUpgradePath(context))
     deleteRecursiveLeavingManifest(upgradeDir)
-  }
-
-  private fun calculateMD5(fullFilePath: String, fileName: String): String? {
-
-    val dirs = fullFilePath.split("/".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-    var path1 = ""
-    for (dir in dirs) {
-      path1 += File.separator + dir
-    }
-
-    val path = File(path1)
-    if (!path.exists()) {
-      error { "path doesn't exist to match md5" }
-    }
-
-    val dirFiles = path.listFiles()
-    var updateFile: File? = null
-
-    for (file in dirFiles) {
-      if (file.name == fileName) {
-        updateFile = file
-        break
-      }
-    }
-
-    if (updateFile == null) return null
-
-    val digest: MessageDigest
-    try {
-      digest = MessageDigest.getInstance("MD5")
-
-    } catch (e: NoSuchAlgorithmException) {
-      error { "Exception while getting digest: $e" }
-      return null
-    }
-
-    val inputStream: InputStream
-    try {
-      inputStream = FileInputStream(updateFile)
-
-    } catch (e: FileNotFoundException) {
-      error { "Exception while getting FileInputStream: $e" }
-      return null
-    }
-
-    val buffer = ByteArray(8192)
-    try {
-      var read: Int = inputStream.read(buffer)
-      while (read > 0) {
-        digest.update(buffer, 0, read)
-        read = inputStream.read(buffer)
-      }
-
-      val md5sum = digest.digest()
-      val bigInt = BigInteger(1, md5sum)
-      var output = bigInt.toString(16)
-      // Fill to 32 chars
-      output = String.format("%32s", output).replace(' ', '0')
-      return output
-
-    } catch (e: IOException) {
-      throw RuntimeException("Unable to process file for MD5", e)
-
-    } finally {
-      try {
-        inputStream.close()
-
-      } catch (e: IOException) {
-        error { "Exception on closing MD5 input stream: $e" }
-      }
-    }
   }
 
   private fun deleteRecursiveLeavingManifest(fileOrDirectory: File) {
