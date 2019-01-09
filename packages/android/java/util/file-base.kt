@@ -14,6 +14,13 @@ import android.provider.OpenableColumns
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
+import com.obopay.mobilemoney.core.App
+import android.provider.OpenableColumns
+import org.jetbrains.anko.error
+import java.math.BigInteger
+import java.security.MessageDigest
+import java.security.NoSuchAlgorithmException
+
 
 /**
  * Created by
