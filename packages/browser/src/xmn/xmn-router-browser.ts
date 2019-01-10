@@ -228,7 +228,7 @@ export abstract class XmnRouterBrowser {
     // finishRequest removed the item from ongoingRequests array
     while (this.ongoingRequests.length) {
       const wr = this.ongoingRequests[0];
-      this.finishRequest(this.rc, 0, errCode || XmnError.ConnectionFailed)
+      this.finishRequest(this.rc, 0, errCode || XmnError.ConnectionFailed, null)
     }
     this.ongoingRequests  = []
     this.lastEventTs      = 0
@@ -281,7 +281,7 @@ export abstract class XmnRouterBrowser {
             return
           }
 
-          await this.finishRequest(this.rc, index, resp.error, resp.data)
+          await this.finishRequest(this.rc, index, resp.errorCode, resp.errorMessage, resp.data)
           break
 
         case WIRE_TYPE.SYS_EVENT:
@@ -315,7 +315,7 @@ export abstract class XmnRouterBrowser {
 
     } else if ((Date.now() - wr.ts) > SEND_TIMEOUT) {
 
-      this.finishRequest(this.rc, this.ongoingRequests.indexOf(wr), XmnError.SendTimedOut)
+      this.finishRequest(this.rc, this.ongoingRequests.indexOf(wr), XmnError.SendTimedOut, null)
 
     } else {
       return SEND_RETRY_MS
@@ -337,7 +337,7 @@ export abstract class XmnRouterBrowser {
 
       if (wr._isSent) {
         if (now >= timeoutAt) {
-          this.finishRequest(this.rc, index--, XmnError.RequestTimedOut)
+          this.finishRequest(this.rc, index--, XmnError.RequestTimedOut, null)
         } else {
           if (nextTimeout > timeoutAt) nextTimeout = timeoutAt
         }
@@ -360,7 +360,7 @@ export abstract class XmnRouterBrowser {
     return TIMEOUT_MS
   }
 
-  private finishRequest(rc: RunContextBrowser, index: number, errorCode: string | null, data ?: object) {
+  private finishRequest(rc: RunContextBrowser, index: number, errorCode: string | null, errorMessage: string | null, data ?: object) {
 
     const wr  = this.ongoingRequests[index],
           now = Date.now()
@@ -380,7 +380,7 @@ export abstract class XmnRouterBrowser {
       rc.isStatus() && rc.status(rc.getName(this), 'Request failed with code', errorCode,
         wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
       
-      wr.reject(new Error(errorCode))
+      wr.reject(new Mubble.uError(errorCode, errorMessage))
 
     } else {
 

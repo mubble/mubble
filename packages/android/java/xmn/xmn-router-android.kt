@@ -182,7 +182,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
             info { "Got response for request that is not in progress... timed-out? ${resp.name} sent at ${resp.ts}" }
             return
           }
-          this.finishRequest(this.ongoingRequests.indexOf(reqObj), resp.error, resp.data)
+          this.finishRequest(this.ongoingRequests.indexOf(reqObj), resp.errorCode, resp.errorMessage, resp.data)
         }
 
         WireType.SYS_EVENT -> {
@@ -257,7 +257,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     return if (nextTimeout == Long.MAX_VALUE) 0 else nextTimeout - now
   }
 
-  private fun finishRequest(index: Int, errorCode: String? = null, dataObj: Any? = null) {
+  private fun finishRequest(index: Int, errorCode: String? = null, errorMessage: String? = null, dataObj: Any? = null) {
 
     val routerReq = this.ongoingRequests.removeAt(index)
     val now       = System.currentTimeMillis()
@@ -277,7 +277,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
           "${routerReq.wr.name}, created at: ${routerReq.wr.ts}, \n" +
           "timeTaken: ${now - routerReq.wr.ts} ms" }
 
-      routerReq.cb!!(RouterResponse(errorCode))
+      routerReq.cb!!(RouterResponse(errorCode, errorMessage))
 
     } else {
 
@@ -285,7 +285,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
           "${routerReq.wr.name}, created at: ${routerReq.wr.ts}, \n" +
           "timeTaken: ${now - routerReq.wr.ts} ms"}
 
-      routerReq.cb!!(RouterResponse(null, dataObj))
+      routerReq.cb!!(RouterResponse(null, null, dataObj))
     }
 
     routerReq.cb = null

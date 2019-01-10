@@ -66,20 +66,21 @@ open class WireObject(val type: String, val name: String, var data: Any,
 
     fun getWireObject(json: JSONObject): Any? {
 
-      val type  = json.getString("type")
-      val name  = json.getString("name")
-      val data  = json.opt("data")
-      val ts    = json.getLong("ts")
-      val error = json.optString("error", null)
+      val type          = json.getString("type")
+      val name          = json.getString("name")
+      val data          = json.opt("data")
+      val ts            = json.getLong("ts")
+      val errorCode     = json.optString("errorCode", null)
+      val errorMessage  = json.optString("errorMessage", null)
 
       return when (type) {
 
         WireType.REQUEST -> WireRequest(name, data, ts)
         WireType.SYS_EVENT -> WireSysEvent(name, data)
-        WireType.REQ_RESP -> WireReqResp(name, data, ts, error)
+        WireType.REQ_RESP -> WireReqResp(name, data, ts, errorCode, errorMessage)
         WireType.EPH_EVENT -> WireEphEvent(name, data, ts)
         WireType.EVENT -> WireEvent(name, data, ts)
-        WireType.EVENT_RESP -> WireEventResp(name, data, ts, error)
+        WireType.EVENT_RESP -> WireEventResp(name, data, ts, errorCode, errorMessage)
         else                 -> null
       }
     }
@@ -114,24 +115,26 @@ class WireRequest(apiName: String, data: Any, override var ts: Long):
   }
 }
 
-class WireReqResp(name: String, data: Any, ts: Long, val error: String? = null) :
+class WireReqResp(name: String, data: Any, ts: Long, val errorCode: String? = null, val errorMessage: String? = null) :
     WireObject(WireType.REQ_RESP, name, data, ts), JsonSerializable {
 
   override fun toJsonObject(): JSONObject {
 
     val json = super.toJsonObject()
-    if (error != null && error.isNotBlank() && error != "null") json.put("error", error)
+    if (!errorCode.isNullOrBlank() && errorCode != "null") json.put("errorCode", errorCode)
+    if (!errorMessage.isNullOrBlank() && errorMessage != "null") json.put("errorCode", errorMessage)
     return json
   }
 }
 
-class WireEventResp(name: String, data: Any?, ts: Long, val error: String? = null):
+class WireEventResp(name: String, data: Any?, ts: Long, val errorCode: String? = null,val errorMessage: String? = null):
     WireObject(WireType.EVENT_RESP, name, data?:JSONObject(), ts), JsonSerializable {
 
   override fun toJsonObject(): JSONObject {
 
     val json = super.toJsonObject()
-    if (error != null && error.isNotBlank() && error != "null") json.put("error", error)
+    if (!errorCode.isNullOrBlank() && errorCode != "null") json.put("errorCode", errorCode)
+    if (!errorMessage.isNullOrBlank() && errorMessage != "null") json.put("errorCode", errorMessage)
     return json
   }
 }
@@ -165,7 +168,7 @@ class ConnectionError(data: Any) {
   val msg   : String      = json.optString("msg", "")
 }
 
-class RouterResponse(val errorCode: String?, val data: Any? = null): JsonSerializable {
+class RouterResponse(val errorCode: String?, val errorMessage: String?, val data: Any? = null): JsonSerializable {
 
   private var events : MutableList<WireObject> = mutableListOf()
 
@@ -182,6 +185,7 @@ class RouterResponse(val errorCode: String?, val data: Any? = null): JsonSeriali
 
     val json = JSONObject()
     json.put("errorCode", errorCode)
+    json.put("errorMessage", errorMessage)
     json.put("data", data)
     json.put("events", eventsArr)
 
