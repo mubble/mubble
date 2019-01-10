@@ -18,8 +18,7 @@ export abstract class UserKeyValue {
   private _clientId               : number
   private _userLinkId             : string
   private _webProfilePicBase64    : string
-  firstName                       : string
-  lastName                        : string
+  userName                        : string
   screenVisitedStates             : { [compName: string] : boolean }
 
   private users         : {[key: string]: object} = {}
@@ -170,8 +169,7 @@ export abstract class UserKeyValue {
     return {
       clientId            : this._clientId,
       userLinkId          : this._userLinkId,
-      firtsName           : this.firstName,
-      lastName            : this.lastName,
+      userName            : this.userName,
       webProfilePicBase64 : this._webProfilePicBase64,
       screenVisitedStates : this.screenVisitedStates
     }
@@ -180,8 +178,7 @@ export abstract class UserKeyValue {
   deserialize(obj: {[key: string]: any}) {
     this._clientId              = obj.clientId
     this._userLinkId            = obj.userLinkId
-    this.lastName               = obj.lastName
-    this.firstName              = obj.firtsName
+    this.userName               = obj.userName
     this._webProfilePicBase64   = obj.webProfilePicBase64
     this.screenVisitedStates    = obj.screenVisitedStates
   }
