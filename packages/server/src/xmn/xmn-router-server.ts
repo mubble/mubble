@@ -168,8 +168,8 @@ export abstract class XmnRouterServer {
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
 
-      wResp = new WireEventResp(wo.name, wo.ts, {error: err.message || err.name},
-                                err.code || err.name || err, err.msg || err.message || err, err)
+      wResp = new WireReqResp(wo.name, wo.ts, err, err.code || err.name || err,
+                              err.msg || err.message || err, err)
       await this.sendToProvider(rc, ci, wResp, ir)
     } finally {
       return wResp
@@ -199,8 +199,8 @@ export abstract class XmnRouterServer {
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
 
-      wResp = new WireEventResp(wo.name, wo.ts, {error: err.message || err.name},
-                                err.code || err.name || err, err.msg || err.message || err, err)
+      wResp = new WireEventResp(wo.name, wo.ts, err, err.code || err.name || err,
+                                err.msg || err.message || err, err)
       this.sendEventResponse(rc, ci, wResp, ie)
     }
 
