@@ -83,10 +83,10 @@ export class WireObject {
       return new WireSysEvent(json.name, json.data)
 
       case WIRE_TYPE.EVENT_RESP:
-      return new WireEventResp(json.name, json.ts, json.data, json.error)
+      return new WireEventResp(json.name, json.ts, json.data, json.errorCode, json.errorMessage)
 
       case WIRE_TYPE.REQ_RESP:
-      return new WireReqResp(json.name, json.ts, json.data, json.error)
+      return new WireReqResp(json.name, json.ts, json.data, json.errorCode, json.errorMessage)
 
       default:
       console.info('Error: Invalid wire object ' + JSON.stringify(json))
@@ -155,22 +155,28 @@ export class WireEphEvent extends WireObject {
 }
 
 export class WireReqResp extends WireObject {
-  error: string | null
+  errorCode    : string | null
+  errorMessage : string | null
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data: object, error ?: string , fullErr ?: any) {
+  constructor(name: string, ts: number, data: object, errorCode ?: string, errorMessage ?: string, fullErr ?: any) {
     super(WIRE_TYPE.REQ_RESP, name, data, ts)
-    this.error = error || null
-    this._err = fullErr
+
+    this.errorCode    = errorCode || null
+    this.errorMessage = errorMessage || null
+    this._err         = fullErr
   }
 }
 
 export class WireEventResp extends WireObject {
-  error: string  | null
+  errorCode    : string  | null
+  errorMessage : string | null
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data ?: object, error ?: string , fullErr ?: any) {
+  constructor(name: string, ts: number, data ?: object, errorCode ?: string, errorMessage ?: string, fullErr ?: any) {
     super(WIRE_TYPE.EVENT_RESP, name, data || {}, ts)
-    this.error = error || null
-    this._err = fullErr
+
+    this.errorCode    = errorCode || null
+    this.errorMessage = errorMessage || null
+    this._err         = fullErr
   }
 }
 

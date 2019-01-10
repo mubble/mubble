@@ -166,13 +166,10 @@ export abstract class XmnRouterServer {
       await this.sendToProvider(rc, ci, wResp, ir)
 
     } catch (err) {
-      let errStr = (err instanceof Mubble.uError) ? err.code 
-                 : (
-                      (err instanceof Error) ? err.message : err
-                   )
       rc.isError() && rc.error(rc.getName(this), err)
-      wResp = new WireReqResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr , err)
+
+      wResp = new WireEventResp(wo.name, wo.ts, {error: err.message || err.name},
+                                err.code || err.name || err, err.msg || err.message || err, err)
       await this.sendToProvider(rc, ci, wResp, ir)
     } finally {
       return wResp
@@ -200,14 +197,10 @@ export abstract class XmnRouterServer {
       this.sendEventResponse(rc, ci, wResp, ie)
 
     } catch (err) {
-      
-      let errStr =  (err instanceof Mubble.uError) ? err.code :
-                   ((err instanceof Error) ? err.message : err)
-
       rc.isError() && rc.error(rc.getName(this), err)
 
-      wResp = new WireEventResp(wo.name, wo.ts, 
-                       {error: err.message || err.name}, errStr , err)
+      wResp = new WireEventResp(wo.name, wo.ts, {error: err.message || err.name},
+                                err.code || err.name || err, err.msg || err.message || err, err)
       this.sendEventResponse(rc, ci, wResp, ie)
     }
 
@@ -270,7 +263,7 @@ export abstract class XmnRouterServer {
       
       ar.push(response)
       
-      const err = (response as WireReqResp|WireEventResp).error
+      const err = (response as WireReqResp|WireEventResp).errorCode
       // Do not send piggy front events if error api execution fails
       await ci.provider.send(rc, err? [response] : ar)
 

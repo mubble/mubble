@@ -176,7 +176,7 @@ export class HttpServerProvider implements XmnProvider {
     } else {
       headers[HTTP.HeaderKey.contentLength]   = String(Buffer.byteLength(result))
     }    
-    res.writeHead(data.error ? XmnError.errorCode : 200, headers)
+    res.writeHead(data.errorCode ? XmnError.errorCode : 200, headers)
     new UStream.WriteStreams(rc, streams).write(result)
 
     this.finished = true
