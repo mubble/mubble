@@ -20,9 +20,11 @@ data class ClientIdentity(val appName: String, val channel: String,
   var clientId        : Long?       = null
   var userLinkId      : String?     = null
   var userName        : String?     = null
+  var firstName       : String?     = null
+  var lastName        : String?     = null
+  var migMobileNo     : String?     = null
 
   var userRole        : String?     = null
-  var msisdnVerified  : Boolean     = false
   var profilePicMd5   : String?     = null
   var settingsMd5     : String?     = null
 
@@ -35,10 +37,12 @@ data class ClientIdentity(val appName: String, val channel: String,
     obj.put("appVersion",     appVersion)
     obj.put("jsVersion",      jsVersion)
     obj.put("clientId",       clientId)
+    obj.put("migMobileNo",    migMobileNo)
     obj.put("userLinkId",     userLinkId)
     obj.put("userName",       userName)
+    obj.put("firstName",      firstName)
+    obj.put("lastName",       lastName)
     obj.put("userRole",       userRole)
-    obj.put("msisdnVerified", msisdnVerified)
     obj.put("profilePicMd5",  profilePicMd5)
     obj.put("settingsMd5",    settingsMd5)
 

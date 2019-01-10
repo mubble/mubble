@@ -37,16 +37,41 @@ class FingerPrintAuthenticator: MubbleLogger {
     private const val ANDROID_KEY         = "AndroidKey"
   }
 
+  fun isBiometricPromptEnabled(): Boolean {
+    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.P
+  }
+
   fun canRequestAuth(): String? {
 
+    /*
+     * Check if the android version in device is greater than
+     * Marshmallow, since fingerprint authentication is only supported
+     * from Android 6.0.
+     * Note: If your project's minSdkversion is 23 or higher,
+     * then you won't need to perform this check.
+     *
+     * */
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
       return "Build version less than Marshmallow"
     }
 
+    /*
+     * Check if the device has fingerprint sensors.
+     * Note: If you marked android.hardware.fingerprint as something that
+     * your app requires (android:required="true"), then you don't need
+     * to perform this check.
+     *
+     * */
     if (!fingerprintManager.isHardwareDetected) {
       return "Fingerprint sensor not present on device"
     }
 
+    /*
+     * Check if the permission has been added to
+     * the app. This permission will be granted as soon as the user
+     * installs the app on their device.
+     *
+     * */
     // Permission should be moved to initialize
     if (ContextCompat.checkSelfPermission(BaseApp.instance,
             Manifest.permission.USE_FINGERPRINT) != PackageManager.PERMISSION_GRANTED) {
@@ -57,6 +82,12 @@ class FingerPrintAuthenticator: MubbleLogger {
       return "You have not set up a lock screen security"
     }
 
+    /*
+    * Fingerprint authentication can be matched with a
+    * registered fingerprint of the user. So we need to perform this check
+    * in order to enable fingerprint authentication
+    *
+    * */
     if (!fingerprintManager.hasEnrolledFingerprints()) {
       return "No fingerprints are registered"
     }

@@ -24,6 +24,7 @@ abstract class GlobalKeyValue: MubbleLogger {
   private val editor : SharedPreferences.Editor = sharedPrefs.edit()
 
   fun setValue(key: String, value: String?) {
+    if (value.isNullOrBlank()) editor.remove(key)
     editor.putString(key, value).apply()
   }
 

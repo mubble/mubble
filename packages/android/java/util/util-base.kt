@@ -99,6 +99,31 @@ fun asyncExecuteInMainThread(closure: ()->Unit) {
 
 object UtilBase {
 
+  fun sanitizeMobileNo(mobileNo: String?): String? {
+
+    var mobNo = mobileNo
+
+    if (mobNo.isNullOrBlank()) return null
+
+    if (mobNo.startsWith("+91")) return mobNo
+
+    if (mobNo.startsWith("0")) {
+      mobNo = mobNo.substring(1)
+
+      if (mobNo.startsWith("0")) {
+        return "+" + mobNo.substring(1)
+      } else if (mobNo.length == 10) {
+        return "+91$mobNo"
+      } else {
+        return "0$mobNo"
+      }
+    } else if (mobNo.length == 10) {
+      return "+91$mobNo"
+    }
+
+    return mobNo
+  }
+
   fun copyToClipBoard(activity: Activity, textToCopy: String) {
 
     val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
