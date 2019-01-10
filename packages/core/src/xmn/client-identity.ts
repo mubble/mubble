@@ -25,7 +25,8 @@ export interface ClientIdentity {
   // only available when client is issued an identity
   clientId      : number
   userLinkId    : string
-  userName      : string
+  firstName     : string
+  lastName      : string
 
   syncReq      ?: SyncRequest
 }

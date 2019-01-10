@@ -44,11 +44,8 @@ const dotSettings = {
 
 export function expandTemplate(template: string, data: Mubble.uObject<any>): string {
 
-  const keys = Object.keys(data)
-  dotSettings.varname = keys.join(', ')
-
   const fn = doT.template(template, dotSettings)
-  return fn.apply(doT, keys.map(key => data[key]))
+  return fn(data)
 }
 
 export function expandTemplateObj(templateObj: any, data: Mubble.uObject<any>): any {
