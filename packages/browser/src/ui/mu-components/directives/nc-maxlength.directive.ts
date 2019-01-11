@@ -75,13 +75,15 @@ export class NcMaxLengthDirective {
     this.ngZone.runOutsideAngular(() => {
 
       const element = event.srcElement
-
       if (element.inputMode) {
         const validInput =  element.inputMode === NUMERIC && element.value.trim().length 
                             && !isNaN(element.value)
                             
         if (!validInput) {
-          // element.value = ''
+          const currentValue  = element.value as string,
+                invalidIndex  = currentValue.indexOf(event.key)
+
+          element.value = (element.value as string).substring(0, invalidIndex)
           return
         }
       }

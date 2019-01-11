@@ -103,7 +103,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
 
     val query = "$JS_INTERFACE.$fnName(${(args.map {stringifyArg(it)}).joinToString()})"
 
-    info {"executeJsFunction: $fnName"}
+    info {"executeJsFunction: $fnName ${(args.map {stringifyArg(it)}).joinToString()}"}
     if (webView.isAttachedToWindow) webView.evaluateJavascript(query, cb)
   }
 

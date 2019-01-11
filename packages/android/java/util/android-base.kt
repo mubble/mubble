@@ -567,6 +567,10 @@ object AndroidBase {
     return Math.round(dp * scale)
   }
 
+  fun pxToDp(px: Float, context: Context): Float {
+    return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT)
+  }
+
   fun calculate(pct1: Int, total: Int): Int {
     var pct = pct1
     if (pct < 0) {

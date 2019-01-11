@@ -182,6 +182,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
             info { "Got response for request that is not in progress... timed-out? ${resp.name} sent at ${resp.ts}" }
             return
           }
+
+          info { "Test: ${resp.toJsonObject()}" }
           this.finishRequest(this.ongoingRequests.indexOf(reqObj), resp.errorCode, resp.errorMessage, resp.data)
         }
 
