@@ -76,10 +76,9 @@ export class NcMaxLengthDirective {
 
       const element = event.srcElement
       if (element.inputMode) {
-        const validInput =  element.inputMode === NUMERIC && element.value.trim().length 
-                            && !isNaN(element.value)
-                            
-        if (!validInput) {
+        const validInput : boolean =  element.inputMode === NUMERIC && element.value.trim().length 
+                                      && !isNaN(element.value)
+        if (validInput === false) {
           const currentValue  = element.value as string,
                 invalidIndex  = currentValue.indexOf(event.key)
 
