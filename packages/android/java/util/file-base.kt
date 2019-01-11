@@ -247,6 +247,12 @@ object FileBase {
     return calculateMD5(inputStream)
   }
 
+
+  fun calculateMD5(file: File): String? {
+
+    return calculateMD5(FileInputStream(file))
+  }
+
   fun calculateMD5(inputStream: InputStream): String? {
 
     val digest: MessageDigest
