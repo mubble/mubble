@@ -27,6 +27,10 @@ export interface ClientIdentity {
   userLinkId    : string
   userName      : string
 
+  // TODO: Remove this
+  firstName     : string
+  lastName      : string
+
   syncReq      ?: SyncRequest
 }
 
