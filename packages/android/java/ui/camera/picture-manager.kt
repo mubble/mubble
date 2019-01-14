@@ -255,7 +255,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     const val REQUEST_CROP_PHOTO              = 2002
     const val REQUEST_SELECT_PHOTO            = 2003
 
-    private const val AUTHORITY               = "in.mubble.newschat.fileprovider"
+    private const val AUTHORITY               = "com.obopay.mobilemoney.fileprovider"
     private const val USERS                   = "users"
     private const val OUTPUT_FILENAME         = "output.jpeg"
     private const val MIME_TYPE               = "image/jpeg"

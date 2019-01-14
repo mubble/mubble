@@ -84,7 +84,7 @@ export abstract class UserKeyValue {
     
     if (Object.keys(this.users).length > 0) {
       const lastClientId = Number(Object.keys(this.users)[0])
-      this.switchUserOnCurrRun(lastClientId)
+      await this.switchUserOnCurrRun(lastClientId)
     } else {
       await this.storage.setUserKeyValue(this.rc, LAST_USER, null)
     }
@@ -107,8 +107,8 @@ export abstract class UserKeyValue {
 
     if (!rc.userKeyVal.userLinkId) {
 
-      rc.isStatus() && rc.status(rc.getName(this), `not saving rc, as user is not regisetered
-      ${{userLinkId : rc.userKeyVal.userLinkId}}`)
+      rc.isStatus() && rc.status(rc.getName(this), `not saving rc, as user is 
+        not registered ${JSON.stringify({userLinkId : rc.userKeyVal.userLinkId})}`)
       return
     }
     
