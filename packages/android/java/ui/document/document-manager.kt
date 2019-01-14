@@ -2,15 +2,12 @@ package ui.document
 
 import android.app.Activity
 import android.content.Intent
-import android.graphics.Bitmap
 import core.BaseApp
 import core.MubbleLogger
 import org.jetbrains.anko.info
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
 import util.FileBase
-import java.io.File
-import java.io.FileInputStream
 
 class DocumentManager(private val parentActivity: MubbleBaseActivity,
                       private val listener: (JSONObject) -> Unit) : MubbleLogger {

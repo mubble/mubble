@@ -42,15 +42,15 @@ export abstract class UserKeyValue {
     return this
   }
 
-  registerNewUser(clientId: number, userLinkId: string, userName: string) {
+  async registerNewUser(clientId: number, userLinkId: string, userName: string) {
 
     const obj = { clientId, userLinkId, userName }
     this.users[clientId] = obj
-    this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
+    await this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
 
     if (this.lastClientId !== clientId) {
       this.lastClientId = clientId
-      this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
+      await this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
     }
 
     this.deserialize(obj)
@@ -72,7 +72,7 @@ export abstract class UserKeyValue {
     this.save(rc)
   }
 
-  logOutCurrentUser(): string {
+  async logOutCurrentUser(): Promise<string> {
 
     this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this._userLinkId, 
       'Trying to logout a user who is not registered')
@@ -80,25 +80,25 @@ export abstract class UserKeyValue {
     const userLinkId = this._userLinkId
     
     delete this.users[this._clientId]
-    this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
+    await this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
     
     if (Object.keys(this.users).length > 0) {
       const lastClientId = Number(Object.keys(this.users)[0])
       this.switchUserOnCurrRun(lastClientId)
     } else {
-      this.storage.setUserKeyValue(this.rc, LAST_USER, null)
+      await this.storage.setUserKeyValue(this.rc, LAST_USER, null)
     }
  
     return userLinkId
   }
 
-  switchUserOnCurrRun(clientId: number) {
+  async switchUserOnCurrRun(clientId: number) {
     this.lastClientId = clientId
-    this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
+    await this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
     this.deserialize(this.users[this.lastClientId])
   }
 
-  save(rc: RunContextBrowser): void {
+  async save(rc: RunContextBrowser) {
 
     rc.isAssert() && rc.assert(rc.getName(this), this._clientId, 
       'Came to save userKeyVal before clientId')
@@ -113,11 +113,11 @@ export abstract class UserKeyValue {
     }
     
     this.users[this._clientId] = this.serialize()
-    this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
+    await this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
 
     if (this.lastClientId !== this._clientId) {
       this.lastClientId = this._clientId
-      this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
+      await this.storage.setUserKeyValue(this.rc, LAST_USER, String(this.lastClientId))
     }
   }
 
