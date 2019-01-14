@@ -2,12 +2,16 @@ package util
 
 import android.content.Context
 import android.database.Cursor
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Base64
 import core.BaseApp
 import java.io.*
 import com.obopay.mobilemoney.core.App
 import android.provider.OpenableColumns
+import android.util.Log
+import android.webkit.JavascriptInterface
 import org.jetbrains.anko.error
 import java.math.BigInteger
 import java.security.MessageDigest
@@ -176,7 +180,9 @@ object FileBase {
 
       val byteArray = bos.toByteArray()
 
-      return Base64.encodeToString(byteArray, Base64.DEFAULT)
+      Log.i("Test", "" + byteArray.size)
+
+      return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     } catch (e: IOException) {
       e.printStackTrace()
     } catch (e: FileNotFoundException) {
@@ -290,6 +296,62 @@ object FileBase {
       }
     }
   }
+
+  fun md5(s: String): String {
+
+    try {
+      // Create MD5 Hash
+      val digest = java.security.MessageDigest
+          .getInstance("MD5")
+      digest.update(s.toByteArray())
+      val messageDigest = digest.digest()
+
+      // Create Hex String
+      val hexString = StringBuilder()
+      for (aMessageDigest in messageDigest) {
+        var h = Integer.toHexString(0xFF and aMessageDigest.toInt())
+        while (h.length < 2)
+          h = "0$h"
+        hexString.append(h)
+      }
+      return hexString.toString()
+
+    } catch (e: NoSuchAlgorithmException) {
+      e.printStackTrace()
+    }
+
+    return ""
+  }
+
+
+  @Throws(IOException::class)
+  fun getBitmapFromUri(uri: Uri?): Bitmap {
+
+    val parcelFileDescriptor = BaseApp.instance.contentResolver.openFileDescriptor(uri!!, "r")
+    val fileDescriptor = parcelFileDescriptor!!.fileDescriptor
+    val image = BitmapFactory.decodeFileDescriptor(fileDescriptor)
+    parcelFileDescriptor.close()
+    return image
+  }
+
+
+  @Throws(FileNotFoundException::class)
+  fun getBase64Data(uri: Uri?): String {
+
+    val im = BaseApp.instance.contentResolver.openInputStream(uri!!)
+    val bm = BitmapFactory.decodeStream(im)
+    return getBase64Data(bm)
+  }
+
+  fun getBase64Data(bm: Bitmap): String {
+
+    val baos = ByteArrayOutputStream()
+    bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
+    val b = baos.toByteArray()
+    return Base64.encodeToString(b, Base64.DEFAULT)
+  }
+
+
 
 
 }

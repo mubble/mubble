@@ -55,8 +55,6 @@ class EncProviderAndroid(private val syncKey : ByteArray,
       index = 0
       var parts: List<Int> = ci.uniqueId.split('.').map {it.toInt()}
 
-      Log.i("Test", "" + ci.uniqueId)
-
       if (parts.size > 1) {
         check(parts.size == 3 && parts[0] <= 99 && parts[1] <= 99 && parts[2] <= 99)
       } else {

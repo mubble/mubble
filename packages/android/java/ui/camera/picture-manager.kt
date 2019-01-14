@@ -4,15 +4,14 @@ import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.content.FileProvider
-import android.util.Base64
 import core.BaseApp
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
+import util.FileBase
 import java.io.*
 
 /**
@@ -62,8 +61,8 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
       when (requestCode) {
 
         REQUEST_TAKE_PHOTO -> {
-          bm = getBitmapFromUri(fileUri)
-          galleryImgBase64 = getBase64Data(bm)
+          bm = FileBase.getBitmapFromUri(fileUri)
+          galleryImgBase64 = FileBase.getBase64Data(bm)
           cropCapturedImage(fileUri)
         }
 
@@ -74,8 +73,8 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
           }
 
           val selectedImageUri = data.data
-          bm = getBitmapFromUri(selectedImageUri)
-          galleryImgBase64 = getBase64Data(bm)
+          bm = FileBase.getBitmapFromUri(selectedImageUri)
+          galleryImgBase64 = FileBase.getBase64Data(bm)
 
           val baos = ByteArrayOutputStream()
           bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
@@ -93,7 +92,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
         }
 
         REQUEST_CROP_PHOTO -> {
-          val encImage = getBase64Data(fileUri)
+          val encImage = FileBase.getBase64Data(fileUri)
           respondWithSuccess(encImage, true)
         }
       }
@@ -220,16 +219,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     }
   }
 
-  @Throws(IOException::class)
-  private fun getBitmapFromUri(uri: Uri?): Bitmap {
-
-    val parcelFileDescriptor = BaseApp.instance.contentResolver.openFileDescriptor(uri!!, "r")
-    val fileDescriptor = parcelFileDescriptor!!.fileDescriptor
-    val image = BitmapFactory.decodeFileDescriptor(fileDescriptor)
-    parcelFileDescriptor.close()
-    return image
-  }
-
   private fun respondWithFailure(failureCode: String) {
 
     onPictureResult(false, null, null, null, failureCode)
@@ -252,22 +241,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
     listener(jsonObject)
     cleanUp()
-  }
-
-  @Throws(FileNotFoundException::class)
-  private fun getBase64Data(uri: Uri?): String {
-
-    val im = BaseApp.instance.contentResolver.openInputStream(uri!!)
-    val bm = BitmapFactory.decodeStream(im)
-    return getBase64Data(bm)
-  }
-
-  private fun getBase64Data(bm: Bitmap): String {
-
-    val baos = ByteArrayOutputStream()
-    bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
-    val b = baos.toByteArray()
-    return Base64.encodeToString(b, Base64.DEFAULT)
   }
 
   private fun cleanUp() {
