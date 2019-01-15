@@ -183,7 +183,6 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
             return
           }
 
-          info { "Test: ${resp.toJsonObject()}" }
           this.finishRequest(this.ongoingRequests.indexOf(reqObj), resp.errorCode, resp.errorMessage, resp.data)
         }
 

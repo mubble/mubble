@@ -176,9 +176,6 @@ object FileBase {
       }
 
       val byteArray = bos.toByteArray()
-
-      Log.i("Test", "" + byteArray.size)
-
       return Base64.encodeToString(byteArray, Base64.NO_WRAP)
     } catch (e: IOException) {
       e.printStackTrace()
@@ -345,7 +342,7 @@ object FileBase {
     val baos = ByteArrayOutputStream()
     bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
     val b = baos.toByteArray()
-    return Base64.encodeToString(b, Base64.DEFAULT)
+    return Base64.encodeToString(b, Base64.NO_WRAP)
   }
 
 }
