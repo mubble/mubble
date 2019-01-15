@@ -62,7 +62,6 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
     val uri   = data!!.data!!
 
     val base64    : String?
-    val size      : Long?
     val md5       : String?
     val mimeType  : String?
 
@@ -74,42 +73,18 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
 
         val bm    = FileBase.getBitmapFromUri(uri)
         base64    = FileBase.getBase64Data(bm)
-        size      = FileBase.getFileSize(uri)
         md5       = FileBase.md5(base64)
 
       } else { // User selected PDF
 
         base64    = FileBase.getBase64Data(uri)
-        size      = FileBase.getFileSize(uri)
         md5       = FileBase.md5(base64)
       }
 
-//      when {
-//        uri.toString().startsWith("content://") -> {
-//          base64    = FileBase.getBase64Data(uri)
-//          size      = FileBase.getFileSize(uri)
-//          md5       = FileBase.md5(base64)
-//        }
-//
-//        uri.toString().startsWith("file://") -> {
-//
-//          val file        = File(uri.toString())
-//          val inputStream = FileInputStream(file)
-//
-//          base64    = FileBase.getBase64Data(uri)
-//          size      = FileBase.getFileSize(file)
-//          md5       = FileBase.md5(base64)
-//          mimeType  = BaseApp.instance.contentResolver.getType(uri)
-//        }
-//      }
-
       val obj = JSONObject()
       obj.put("base64",   base64)
-      obj.put("size",     size)
       obj.put("md5",      md5)
       obj.put("mimeType", mimeType)
-
-      info { "Size $size Base64 $base64" }
 
       listener(obj)
 

@@ -11,12 +11,9 @@ import java.io.*
 import com.obopay.mobilemoney.core.App
 import android.provider.OpenableColumns
 import android.util.Log
-import android.webkit.JavascriptInterface
-import org.jetbrains.anko.error
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
-
 
 /**
  * Created by
@@ -350,8 +347,5 @@ object FileBase {
     val b = baos.toByteArray()
     return Base64.encodeToString(b, Base64.DEFAULT)
   }
-
-
-
 
 }
