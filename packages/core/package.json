@@ -9,6 +9,10 @@
     "prepublish": "tsc"
   },
   "author": "Raghvendra Varma",
+  "repository": {
+    "type": "git",
+    "url": "https://source.developers.google.com/p/obopay-devtools/r/mubble"
+  },
   "license": "ISC",
   "devDependencies": {
     "@types/mime-types": "^2.1.0",
