@@ -8,9 +8,7 @@ import android.net.Uri
 import android.util.Base64
 import core.BaseApp
 import java.io.*
-import com.obopay.mobilemoney.core.App
 import android.provider.OpenableColumns
-import android.util.Log
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -152,7 +150,7 @@ object FileBase {
 
   fun convertContentUriToBase64(contentUri: Uri): String? {
 
-    val inputStream = App.instance.contentResolver.openInputStream(contentUri)!!
+    val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
     return convertStreamToBase64(inputStream)
   }
 
@@ -207,7 +205,7 @@ object FileBase {
 
   fun calculateMD5(contentUri: Uri): String? {
 
-    val inputStream = App.instance.contentResolver.openInputStream(contentUri)!!
+    val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
     return calculateMD5(inputStream)
   }
 
