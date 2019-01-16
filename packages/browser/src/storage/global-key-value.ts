@@ -54,7 +54,6 @@ export abstract class GlobalKeyValue {
   @GlobalKeyValue.autoStore() syncSegments  : object
   @GlobalKeyValue.autoStore() jsVersion     : string
   @GlobalKeyValue.autoStore() logLevel      : number
-  @GlobalKeyValue.autoStore() keyboardHt    : number
   
   public static autoStore(): any {
 
