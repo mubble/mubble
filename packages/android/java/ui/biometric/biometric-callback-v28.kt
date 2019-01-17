@@ -1,7 +1,10 @@
 package ui.biometric
 
 import android.hardware.biometrics.BiometricPrompt
+import android.os.Build
+import android.support.annotation.RequiresApi
 
+@RequiresApi(api = Build.VERSION_CODES.P)
 class BiometricCallbackV28(private val biometricCallback: BiometricCallback): BiometricPrompt.AuthenticationCallback() {
 
   override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
