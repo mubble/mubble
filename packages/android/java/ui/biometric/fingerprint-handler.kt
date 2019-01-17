@@ -1,4 +1,4 @@
-package ui.fingerprint
+package ui.biometric
 
 import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
 import android.support.v4.os.CancellationSignal

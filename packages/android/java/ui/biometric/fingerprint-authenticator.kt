@@ -1,4 +1,4 @@
-package ui.fingerprint
+package ui.biometric
 
 import android.Manifest
 import android.annotation.TargetApi
