@@ -178,7 +178,7 @@ export abstract class XmnRouterServer {
       
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       wResp = new WireReqResp(ir.name, wo.ts, resp)
-      await this.sendToProvider(rc, this.sessionInfo, wResp, ir)
+      await this.sendToProvider(rc, wResp, ir)
 
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
@@ -190,7 +190,7 @@ export abstract class XmnRouterServer {
 
       wResp = new WireReqResp(wo.name, wo.ts, data, err.code || err.name || err,
                               err.msg || err.message || err, err)
-      await this.sendToProvider(rc, ci, wResp, ir)
+      await this.sendToProvider(rc, wResp, ir)
     } finally {
       return wResp
     }
@@ -216,7 +216,7 @@ export abstract class XmnRouterServer {
       }
 
       wResp = new WireEventResp(wo.name, wo.ts)
-      this.sendEventResponse(rc, ci, this.sessionInfo, wResp, ie)
+      this.sendEventResponse(rc, ci, wResp, ie)
 
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
@@ -276,20 +276,18 @@ export abstract class XmnRouterServer {
 
   private async sendEventResponse(rc      : RunContextServer,
                                   ci      : ConnectionInfo,
-                                  si      : SessionInfo, 
                                   resp    : WireEventResp,
                                   invData : InvocationData ) {
 
     if (ci.lastEventTs < resp.ts) ci.lastEventTs = resp.ts // this is same as req.ts
-    await this.sendToProvider(rc, si, resp , invData)
+    await this.sendToProvider(rc, resp , invData)
   }
 
   private async sendToProvider(rc       : RunContextServer,
-                               si       : SessionInfo, 
                                response : WireObject,
                                invData  : InvocationData | null) {
 
-    if (si.provider) {
+    if (this.sessionInfo.provider) {
 
       const ar = invData && this.piggyfrontMap.get(invData) || []
       if (invData && ar.length) this.piggyfrontMap.delete(invData)
@@ -298,7 +296,7 @@ export abstract class XmnRouterServer {
       
       const err = (response as WireReqResp|WireEventResp).errorCode
       // Do not send piggy front events if error api execution fails
-      await si.provider.send(rc, err? [response] : ar)
+      await this.sessionInfo.provider.send(rc, err? [response] : ar)
 
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')

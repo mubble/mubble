@@ -169,7 +169,7 @@ export class HttpsServerProvider implements XmnProvider {
       return
     }
 
-    const result    = {error : data.error, data : data.data},
+    const result    = {error : data.errorCode, data : data.data},
           resultStr = JSON.stringify(result),
           headers   = {
             [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.json,

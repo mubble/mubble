@@ -47,13 +47,13 @@ export namespace ObopayHttpsClient {
   }
 
   export class ResultStruct {
+    error   : null | Error        = null
     headers : Mubble.uObject<any>
     status  : number
     output  : {
       error : null   | string
       data  : number | Mubble.uObject<any>
     }
-    error   : null | Error  = null
   }
 
   export function init(rc           : RunContextServer,
@@ -78,7 +78,7 @@ export namespace ObopayHttpsClient {
                                   port          : number = 443,
                                   syncHashPath ?: string) : Promise<ResultStruct> {
 
-    rc.isAssert() && rc.assert(CLASS_NAME, selfId && credentialRegistry)
+    rc.isAssert() && rc.assert(CLASS_NAME, selfId && credentialRegistry, 'selfId and credentialRegistry not defined.')
 
     const syncHash = syncHashPath ? fs.readFileSync(syncHashPath).toString()
                                   : credentialRegistry.getCredential(id).syncHash,
