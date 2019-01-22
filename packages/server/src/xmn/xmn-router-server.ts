@@ -7,7 +7,6 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as lo                from 'lodash'
 import {
         XmnRegistry
        }                      from './xmn-registry'
@@ -30,6 +29,7 @@ import {
        }                      from '@mubble/core'
 import {RunContextServer}     from '../rc-server'
 import {web}                  from './web'
+import * as lo                from 'lodash'
 
 export class InvokeStruct {
 

@@ -32,6 +32,10 @@ export namespace ObopayWssClient {
     
   }
 
+  export function establishHandshake() {
+    
+  }
+
   export function verifyVersion(version : string) : boolean {
     return version === HTTP.CurrentProtocolVersion
   }

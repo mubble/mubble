@@ -62,7 +62,7 @@ export class HttpsEncProvider {
   }
 
   public encodeWireObject(wo      : WireObject,
-                          streams : Array<stream.Writable>) {
+                          streams : Array<stream.Writable>) : {streams : Array<stream.Writable>, data : string} {
                                   
     this.headers[HTTP.HeaderKey.requestTs]   = this.encodeRequestTs(wo.ts)
     this.headers[HTTP.HeaderKey.contentType] = HTTP.HeaderValue.stream
@@ -115,7 +115,7 @@ export class HttpsEncProvider {
   }
 
   private encodeBody(json    : Mubble.uObject<any>,
-                     streams : Array<stream.Writable>) {
+                     streams : Array<stream.Writable>) : {streams : Array<stream.Writable>, data : string} {
 
     const jsonStr = JSON.stringify(json)
 
