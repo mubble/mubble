@@ -41,10 +41,10 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
 
     val intent = Intent(Intent.ACTION_GET_CONTENT)
 
-    val types = MIME_TYPE.DOC.getValue().plus(MIME_TYPE.IMG.getValue())
+    val types = MIME_TYPE.IMG.getValue()
 
     intent.addCategory(Intent.CATEGORY_OPENABLE)
-    intent.type = "*/*"
+    intent.type = "image/*"
     intent.putExtra(Intent.EXTRA_MIME_TYPES, types)
     intent.flags = Intent.FLAG_GRANT_READ_URI_PERMISSION and Intent.FLAG_GRANT_WRITE_URI_PERMISSION
 
