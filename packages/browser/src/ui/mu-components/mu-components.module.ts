@@ -5,6 +5,7 @@ import { CommonModule }                     from '@angular/common'
 import { FormsModule,
          ReactiveFormsModule 
        }                                    from '@angular/forms'
+import { FlexLayoutModule }                 from '@angular/flex-layout'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -21,7 +22,7 @@ import { NcAllowSingleClickDirective,
          NcMaxLengthDirective,
          NcAutoFocusDirective, 
          LongPressDirective, 
-         NcStyleClassDirective 
+         NcStyleClassDirective
 }                                           from './directives'
 
 import { TRANSLATION_PROVIDERS,
@@ -33,6 +34,7 @@ import { TRANSLATION_PROVIDERS,
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    FlexLayoutModule,
     
     MuComponentsRoutingModule
   ],
@@ -53,7 +55,7 @@ import { TRANSLATION_PROVIDERS,
     NcMaxLengthDirective,
     LongPressDirective, 
     NcStyleClassDirective,
-
+  
     TranslatePipe
   ],
 
@@ -85,7 +87,8 @@ import { TRANSLATION_PROVIDERS,
     
     FormsModule,
     ReactiveFormsModule,
-    CommonModule
+    CommonModule,
+    FlexLayoutModule
     
   ]
 })

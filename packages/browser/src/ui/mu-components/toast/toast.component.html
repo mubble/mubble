@@ -1,5 +1,9 @@
 <div class="toast-comp" [@visibilityChanged]>
-  <div class="toast">
+  <div class="toast"
+    [ngClass.xl]="['web-toast']"
+    [ngClass.lg]="['web-toast']"
+    [ngClass.md]="['web-toast']"
+    [ngClass.sm]="['web-toast']">
     <span class="text-body-medium-normal toast-text">{{toastMessage}}</span>
   </div>
 </div>
