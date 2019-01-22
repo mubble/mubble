@@ -1,5 +1,9 @@
 <div class="loading-overlay-comp loading-overlay-root">
-  <div class="component-loader">
+  <div class="component-loader"
+      [ngClass.xl]="['web-comp-width']"
+      [ngClass.lg]="['web-comp-width']"
+      [ngClass.md]="['web-comp-width']"
+      [ngClass.sm]="['web-comp-width']">
       <div class="spinner-cont">
         <i class="spinner fa fa-spinner fa-pulse fa-3x fa-fw text-color-primary"></i>
       </div>
