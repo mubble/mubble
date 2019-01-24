@@ -35,7 +35,11 @@ import { AlertDialogParams,
          AlertDialogComponent } from '../mu-components/alert-dialog/alert-dialog.component'
 
 const ROOT_URL     = '#/?launched=true'
-const BASE_HREF    = location.href
+
+const hashIndex = location.href.indexOf('#'),
+      baseHref  = location.href.substr(0,hashIndex)
+    
+const BASE_HREF = baseHref
 
 export const PRIMARY_OUTLET = 'primary',
              MODAL_OUTLET   = 'modal'
@@ -105,9 +109,10 @@ export class UiRouter {
 
     this.urlStack[0]      = new StackItem()
     this.urlStack[0].url  = (location.hash || '').substr(1)
+
     
-    this.historyWrapper.replaceState({index: -1}, document.title, BASE_HREF + ROOT_URL)
-    this.historyWrapper.pushState({index: 0}, document.title, BASE_HREF)
+    this.historyWrapper.replaceState({index: -1}, document.title, baseHref + ROOT_URL)
+    this.historyWrapper.pushState({index: 0}, document.title, baseHref)
 
     window.addEventListener('popstate', this.onPopState.bind(this))
     this.browserStack[0]  = this.urlStack[0].url
@@ -379,7 +384,7 @@ export class UiRouter {
     if (index === -1) {
       
       if (!this.codePop) {
-        if (this.warnedUser) {
+        if (this.warnedUser || this.runningInBrowser) {
           this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this),
             'onPopState: Exiting the app', this.historyWrapper.getLength())
           this.notifyAppClose()

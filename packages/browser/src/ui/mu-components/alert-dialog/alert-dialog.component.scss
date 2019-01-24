@@ -26,3 +26,26 @@
   position: relative;
   width: 30vw;
 }
+
+.web-alerts-dialog {
+
+  padding:  20px;
+
+  .header {
+    padding-bottom: 20px; 
+  }
+
+  .content {
+    position: relative;
+    padding: 20px 0;
+  }
+
+  .footer {
+    padding: 20px 0;
+  }
+
+  .btn {
+    width : 100px;
+  }
+
+}
