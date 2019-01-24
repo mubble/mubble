@@ -1,5 +1,10 @@
 <div class="loading-comp">
-  <div class="mu-loading-root">
+  <div class="mu-loading-root"
+    [ngClass.xl]="['web-content-div']"
+    [ngClass.lg]="['web-content-div']"
+    [ngClass.md]="['web-content-div']"
+    [ngClass.sm]="['web-content-div']">
+
     <div class="spinner-cont" [class.spinner-cont-top]="apiLoadingBottomIn">
       <i class="spinner fa fa-spinner fa-pulse fa-3x fa-fw text-color-primary"></i>
     </div>
