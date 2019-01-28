@@ -12,9 +12,31 @@ import {
          XmnProvider
        }                      from '@mubble/core'
 import { RunContextServer }   from '../rc-server'
+import { XmnRouterServer } 		from './xmn-router-server'
+import * as ws                from 'ws'
+import * as https             from 'https'
+import * as http 							from 'http'
 
 export class WssServer {
 
+  private server : ws.Server
+
+  constructor(private refRc  : RunContextServer,
+              private router : XmnRouterServer,
+              httpServer     : https.Server) {
+
+		this.server = new ws.Server({
+			server : httpServer
+		})
+
+		this.server.on('connection', this.establishHandshake.bind(this))
+	}
+	
+	private establishHandshake(socket : WebSocket, req : http.IncomingMessage) {
+
+    
+
+	}
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

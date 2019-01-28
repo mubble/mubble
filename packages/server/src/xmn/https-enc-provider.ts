@@ -9,7 +9,6 @@
 
 import {
          Mubble,
-         WireObject,
          HTTP
        }                      from '@mubble/core'
 import { SecurityErrorCodes } from './security-errors'
@@ -17,31 +16,31 @@ import * as crypto            from 'crypto'
 import * as zlib              from 'zlib'
 import * as stream            from 'stream'
 
-const SYM_ALGO             = 'aes-256-cbc',
-      IV                   = new Buffer([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
-                                          0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
-      MIN_SIZE_TO_COMPRESS = 1000,
-      BASE64               = 'base64'
+const SYM_ALGO                = 'aes-256-cbc',
+      IV                      = new Buffer([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                                             0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
+      MIN_SIZE_TO_COMPRESS    = 1000,
+      BASE64                  = 'base64'
+      // RSA_OAEP_PKCS1_PADDDING = 4         // TODO : Need fix? Why crypto.constants not working?
 
 export class HttpsEncProvider {
 
-  private symmKey : Buffer
-  private headers : Mubble.uObject<any>
+  private symmKey    : Buffer
+  private privateKey : string
 
-  public constructor(private privateKey : string, headers ?: Mubble.uObject<any>) {
-    this.headers = headers ? headers : {}
+  public constructor(pk : string) {
+    this.privateKey = pk
   }
 
   public encodeSymmKey(publicKey : string) : string {
     if(!this.symmKey) this.setSymmKey()
-    const encSymmKey = (crypto.publicEncrypt(publicKey, this.symmKey)).toString(BASE64)
 
-    this.headers[HTTP.HeaderKey.symmKey] = encSymmKey
+    const encSymmKey = (crypto.publicEncrypt(publicKey, this.symmKey)).toString(BASE64)
 
     return encSymmKey
   }
 
-  public decodeSymmKey(encSymmKey : string = this.headers[HTTP.HeaderKey.symmKey]) : Buffer {
+  public decodeSymmKey(encSymmKey : string) : Buffer {
     const encSymmKeyBuf = new Buffer(encSymmKey, BASE64)
 
     this.symmKey = crypto.privateDecrypt(this.privateKey, encSymmKeyBuf)
@@ -49,29 +48,30 @@ export class HttpsEncProvider {
     return this.symmKey
   }
 
-  public getHeaders() {
-    return this.headers
+  public encodeRequestTs(ts : number) : string {
+    const encReqTs = this.encryptRequestTs(ts)
+
+    return encReqTs
   }
 
-  public getRequestTs(publicKey : string,
-                      encReqTs  : string = this.headers[HTTP.HeaderKey.requestTs]) {
-                        
-    const requestTs = this.decodeRequestTs(publicKey, encReqTs)
+  public decodeRequestTs(publicKey : string, encReqTs  : string) {
+    const requestTs = this.decryptRequestTs(publicKey, encReqTs)
 
     return requestTs
   }
 
-  public encodeWireObject(wo      : WireObject,
-                          streams : Array<stream.Writable>) : {streams : Array<stream.Writable>, data : string} {
-                                  
-    this.headers[HTTP.HeaderKey.requestTs]   = this.encodeRequestTs(wo.ts)
-    this.headers[HTTP.HeaderKey.contentType] = HTTP.HeaderValue.stream
-    
-    return this.encodeBody(wo.data, streams)
+  public encodeBody(data : Mubble.uObject<any>) : {
+                                                    streams       : Array<stream.Writable>,
+                                                    dataStr       : string,
+                                                    bodyEncoding  : string,
+                                                    chunked       : boolean,
+                                                  } {
+
+    return this.encryptBody(data)
   }
 
   public decodeBody(streams  : Array<stream.Readable>,
-                    encoding : string = this.headers[HTTP.HeaderKey.bodyEncoding]) : Array<stream.Readable> {
+                    encoding : string) : Array<stream.Readable> {
     
     streams.push(this.getDecipher() as any)
 
@@ -99,14 +99,14 @@ export class HttpsEncProvider {
    PRIVATE METHODS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-  private encodeRequestTs(tsMilli : number) : string {
+  private encryptRequestTs(tsMilli : number) : string {
     const tsMicro  = tsMilli * 1000,
-          encReqTs = crypto.privateEncrypt(this.privateKey, new Buffer(tsMicro))
+          encReqTs = crypto.privateEncrypt(this.privateKey, new Buffer(tsMicro.toString()))
 
     return encReqTs.toString(BASE64)
   }
 
-  private decodeRequestTs(publicKey : string, encReqTs : string) : number {
+  private decryptRequestTs(publicKey : string, encReqTs : string) : number {
     const encReqTsBuf = new Buffer(encReqTs, BASE64),
           reqTsBuf    = crypto.publicDecrypt(publicKey, encReqTsBuf),
           requestTs   = Number(reqTsBuf.toString())
@@ -114,23 +114,28 @@ export class HttpsEncProvider {
     return requestTs
   }
 
-  private encodeBody(json    : Mubble.uObject<any>,
-                     streams : Array<stream.Writable>) : {streams : Array<stream.Writable>, data : string} {
+  private encryptBody(json : Mubble.uObject<any>) : {
+                                                     streams       : Array<stream.Writable>,
+                                                     dataStr       : string,
+                                                     bodyEncoding  : string,
+                                                     chunked       : boolean,
+                                                    } {
 
-    const jsonStr = JSON.stringify(json)
+    const jsonStr = JSON.stringify(json),
+          streams = [] as Array<stream.Writable>
+
+    let chunked      : boolean = false,
+        bodyEncoding : string  = HTTP.HeaderValue.identity
 
     streams.unshift(this.getCipher() as any)
 
     if(jsonStr.length > MIN_SIZE_TO_COMPRESS) {
-      this.headers[HTTP.HeaderKey.bodyEncoding]     = HTTP.HeaderValue.deflate
-      this.headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
+      bodyEncoding = HTTP.HeaderValue.deflate
+      chunked      = true
       streams.unshift(zlib.createDeflate())
-    } else {
-      this.headers[HTTP.HeaderKey.bodyEncoding]  = HTTP.HeaderValue.identity
-      this.headers[HTTP.HeaderKey.contentLength] = jsonStr.length
     }
 
-    return {streams, data : jsonStr}
+    return {streams, dataStr : jsonStr, bodyEncoding, chunked}
   }
 
   private setSymmKey(data ?: Buffer) : Buffer {
@@ -148,8 +153,6 @@ export class HttpsEncProvider {
   }
 
   private getDecipher() {
-    if(!this.symmKey) this.decodeSymmKey()
-
     const decipher = crypto.createDecipheriv(SYM_ALGO, this.symmKey, IV)
 
     return decipher

@@ -99,7 +99,7 @@ export class HttpsServer {
                                 `${req.method} not supported.`)
 
       const encProvider = ObopayHttpsClient.verifyClientRequest(rc, ci.headers, ci.ip),
-            streams     = encProvider.decodeBody([req]),
+            streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding]),
             stream      = new UStream.ReadStreams(rc, streams),
             bodyStr     = (await stream.read()).toString()
 

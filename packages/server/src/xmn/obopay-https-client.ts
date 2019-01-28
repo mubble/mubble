@@ -21,10 +21,13 @@ import { RedisWrapper }         from '../cache'
 import * as https               from 'https'
 import * as http                from 'http'
 import * as fs                  from 'fs'
+import * as stream              from 'stream'
+import * as lo                  from 'lodash'
 
 const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro seconds
       REQUEST_EXPIRY_SECS = 30 * 60,                  // 30 minutes in seconds,
-      PIPE_SEP            = ' | '
+      PIPE_SEP            = ' | ',
+      SLASH_SEP           = '/'
 
 export namespace ObopayHttpsClient {
 
@@ -37,9 +40,11 @@ export namespace ObopayHttpsClient {
       requestMem         : RedisWrapper
 
   export type SyncCredentials = {
-    id       : string     // Some identification of the client
-    syncHash : string     // Client public key
-    ip       : string     // Request IP
+    id           : string             // Client / Server identifier
+    syncHash     : string             // Client / Server public key
+    host         : string             // Server host
+    port         : number             // Server port
+    permittedIps : Array<string>      // Permitted IPs for client
   }
 
   export interface CredentialRegistry {
@@ -73,85 +78,107 @@ export namespace ObopayHttpsClient {
   export async function obopayApi(rc            : RunContextServer, 
                                   apiName       : string,
                                   params        : Mubble.uObject<any>,
-                                  id            : string,
-                                  host          : string,
-                                  port          : number = 443,
+                                  serverId      : string,
+                                  unsecured    ?: boolean,
                                   syncHashPath ?: string) : Promise<ResultStruct> {
 
-    rc.isAssert() && rc.assert(CLASS_NAME, selfId && credentialRegistry, 'selfId and credentialRegistry not defined.')
+    rc.isAssert() && rc.assert(CLASS_NAME, selfId && credentialRegistry,
+                               'selfId or credentialRegistry not defined.')
 
-    const syncHash = syncHashPath ? fs.readFileSync(syncHashPath).toString()
-                                  : credentialRegistry.getCredential(id).syncHash,
-          json     = {
-                      type : WIRE_TYPE.REQUEST,
-                      name : apiName,
-                      data : params
-                     },
-          wo       = WireObject.getWireObject(json) as WireObject
+    const requestServer = credentialRegistry.getCredential(serverId)
+
+    rc.isAssert() && rc.assert(CLASS_NAME, requestServer && requestServer.host && requestServer.port,
+                               'requestServer not defined.')
+
+    const syncHash   = syncHashPath ? fs.readFileSync(syncHashPath).toString()
+                                    : requestServer.syncHash,
+          json       = {
+                        type : WIRE_TYPE.REQUEST,
+                        name : apiName,
+                        data : params
+                       },
+          wo         = WireObject.getWireObject(json) as WireObject
     
     const headers : Mubble.uObject<any> = {} 
 
     headers[HTTP.HeaderKey.clientId]      = selfId
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
+    headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
 
-    const encProvider = new HttpsEncProvider(privateKey, headers)
+    const encProvider = new HttpsEncProvider(privateKey)
     
-    headers[HTTP.HeaderKey.symmKey] = encProvider.encodeSymmKey(syncHash)
+    headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeSymmKey(syncHash)
+    headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(wo.ts)
+
+    const encBodyObj = encProvider.encodeBody(wo.data)
+
+    headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
+    encBodyObj.chunked ? headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
+                       : headers[HTTP.HeaderKey.contentLength]    = encBodyObj.dataStr.length
     
     const options : https.RequestOptions = {
-      host     : host,
-      port     : port,
       method   : POST,
-      protocol : HTTP.Const.protocolHttps,
+      protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+      host     : requestServer.host,
+      port     : requestServer.port,
+      path     : SLASH_SEP + wo.name,
       headers  : headers
     }
 
-    return await request(rc, options, encProvider, wo)
+    return await request(rc, options, encBodyObj.streams, encBodyObj.dataStr, unsecured)
   }
 
-  export async function request(rc          : RunContextServer,
-                                options     : https.RequestOptions,
-                                encProvider : HttpsEncProvider,
-                                wo          : WireObject) : Promise<ResultStruct> {
+  export async function request(rc            : RunContextServer,
+                                options       : https.RequestOptions,
+                                writeStreams  : Array<stream.Writable>,
+                                dataStr       : string,
+                                unsecured    ?: boolean) : Promise<ResultStruct> {
 
-    const req          = https.request(options),
+    const req          = unsecured ? http.request(options) : https.request(options),
           writePromise = new Mubble.uPromise(),
           readPromise  = new Mubble.uPromise(),
           result       = new ResultStruct()
 
-    req.on('reaponse', (resp : http.IncomingMessage) => {
+    writeStreams.push(req)
+
+    req.on('response', (resp : http.IncomingMessage) => {
       result.headers = resp.headers
       result.status  = resp.statusCode || 200
 
       const readStreams = [resp]
 
-      rc.isStatus() && rc.status(CLASS_NAME, 'https request response.',
-                                 resp, resp.headers)
+      rc.isDebug() && rc.debug(CLASS_NAME,
+                               `http${unsecured ? '' : 's'} request response headers.`,
+                               resp.headers)
 
       const readUstream = new UStream.ReadStreams(rc, readStreams, readPromise)
       readUstream.read()
     })
 
     req.on('error', (err : Error) => {
-      rc.isError() && rc.error(CLASS_NAME, 'https request error.', err)
+      rc.isError() && rc.error(CLASS_NAME,
+                               `http${unsecured ? '' : 's'} request error.`,
+                               err)
 
       writePromise.reject(err)
       readPromise.reject(err)
     })
 
-    const encWo        = encProvider.encodeWireObject(wo, [req]),
-          writeStreams = encWo.streams,
-          data         = encWo.data,
-          writeUstream = new UStream.WriteStreams(rc, writeStreams, writePromise)
+    const writeUstream = new UStream.WriteStreams(rc, writeStreams, writePromise)
 
-    writeUstream.write(data)
+    writeUstream.write(dataStr)
 
-    rc.isStatus() && rc.status(CLASS_NAME, 'https request to server.',
-                               options, options.headers)
+    rc.isStatus() && rc.status(CLASS_NAME,
+                               `http${unsecured ? '' : 's'} request to server.`,
+                               options)
 
     try {
       const [ , output] : Array<any> = await Promise.all([writePromise.promise,
                                                           readPromise.promise])
+
+      rc.isStatus() && rc.status(CLASS_NAME,
+                                 `http${unsecured ? '' : 's'} request response.`,
+                                 output)
 
       result.output = output
     } catch(err) {
@@ -166,17 +193,20 @@ export namespace ObopayHttpsClient {
                                       headers  : Mubble.uObject<any>,
                                       clientIp : string) : HttpsEncProvider {
 
-    rc.isStatus() && rc.status(CLASS_NAME,
-                               'Verifying client request headers.',
-                               headers,
-                               clientIp)
+    rc.isDebug() && rc.debug(CLASS_NAME,
+                             'Verifying client request headers.',
+                             headers,
+                             clientIp)
 
     const clientCredentials = credentialRegistry.getCredential(headers[HTTP.HeaderKey.clientId])
 
     if(clientCredentials
        && clientCredentials.syncHash
-       && clientCredentials.ip
-       && clientCredentials.ip === clientIp) {
+       && clientCredentials.permittedIps.length) {
+        
+      if(!verifyIp(clientCredentials.permittedIps, clientIp))
+        throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
+                                'Client IP not permitted.')
 
       if(!verifyVersion(headers[HTTP.HeaderKey.versionNumber]))
         throw new Mubble.uError(SecurityErrorCodes.INVALID_VERSION,
@@ -186,8 +216,11 @@ export namespace ObopayHttpsClient {
       if(!headers[HTTP.HeaderKey.bodyEncoding])
         headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 
-      const encProvider = new HttpsEncProvider(privateKey, headers),
-            requestTs   = encProvider.getRequestTs(clientCredentials.syncHash)
+      const encProvider = new HttpsEncProvider(privateKey),
+            requestTs   = encProvider.decodeRequestTs(clientCredentials.syncHash,
+                                                      headers[HTTP.HeaderKey.requestTs])
+
+      encProvider.decodeSymmKey(headers[HTTP.HeaderKey.symmKey])
 
       if(!verifyRequestTs(requestTs))
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_TS,
@@ -198,6 +231,10 @@ export namespace ObopayHttpsClient {
 
     throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                             'Client not found in registry.')
+  }
+
+  export function verifyIp(permittedIps : Array<string>, ip : string) : boolean {
+    return lo.includes(permittedIps, ip)
   }
 
   export function verifyVersion(version : string) : boolean {

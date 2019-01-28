@@ -13,7 +13,6 @@ import {
 import { 
         ConnectionInfo,
         SessionInfo,
-        ClientIdentity,
         WIRE_TYPE,
         WireEphEvent,
         WireEventResp,
@@ -176,7 +175,7 @@ export abstract class XmnRouterServer {
         throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
       }
       
-      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
+      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false, this.sessionInfo.publicRequest)
       wResp = new WireReqResp(ir.name, wo.ts, resp)
       await this.sendToProvider(rc, wResp, ir)
 
@@ -212,7 +211,7 @@ export abstract class XmnRouterServer {
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
 
-        await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
+        await this.invokeXmnFunction(rc, ci, ie, eventStruct, true, this.sessionInfo.publicRequest)
       }
 
       wResp = new WireEventResp(wo.name, wo.ts)
@@ -246,7 +245,7 @@ export abstract class XmnRouterServer {
         params  : wo.data
       } as InvocationData
 
-      await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
+      await this.invokeXmnFunction(rc, ci, ie, eventStruct, true, this.sessionInfo.publicRequest)
 
     } catch (err) {
       
@@ -268,10 +267,14 @@ export abstract class XmnRouterServer {
     }
   }
 
-  async invokeXmnFunction(rc: RunContextServer, ci: ConnectionInfo, 
-                          invData: InvocationData, invStruct: InvokeStruct, isEvent: boolean) {
+  async invokeXmnFunction(rc              : RunContextServer,
+                          ci              : ConnectionInfo, 
+                          invData         : InvocationData,
+                          invStruct       : InvokeStruct,
+                          isEvent         : boolean,
+                          isPublicRequest : boolean) {
 
-    return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent)
+    return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent, isPublicRequest)
   }
 
   private async sendEventResponse(rc      : RunContextServer,
@@ -305,7 +308,7 @@ export abstract class XmnRouterServer {
 
   upgradeClientIdentity(rc      : RunContextServer, 
                         ci      : ConnectionInfo, 
-                        data    : Mubble.uChildObject<ClientIdentity>,
+                        data    : Mubble.uChildObject<any>,
                         invData : InvocationData) {
     
     rc.isAssert() && rc.assert(rc.getName(this), ci.customData)
