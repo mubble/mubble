@@ -37,9 +37,9 @@ import { AlertDialogParams,
 const ROOT_URL     = '#/?launched=true'
 
 const hashIndex = location.href.indexOf('#'),
-      baseHref  = location.href.substr(0,hashIndex)
-    
-const BASE_HREF = baseHref
+      baseHref  = hashIndex !== -1 ? location.href.substr(0, hashIndex) : location.href
+
+const BASE_HREF    = baseHref
 
 export const PRIMARY_OUTLET = 'primary',
              MODAL_OUTLET   = 'modal'
