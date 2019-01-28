@@ -125,7 +125,7 @@ export class WsBrowser implements XmnProvider {
             url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${dest}/`,
             header  = await this.encProvider.encodeHeader(rc),
             body    = await this.encProvider.encodeBody(rc, data)
-
+      
       messageBody = encodeURIComponent(this.uiArToB64(header)) + '/' + 
                     encodeURIComponent(this.uiArToB64(body))
         
