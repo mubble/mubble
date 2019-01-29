@@ -17,35 +17,37 @@ import * as zlib              from 'zlib'
 import * as stream            from 'stream'
 
 const SYM_ALGO                = 'aes-256-cbc',
-      IV                      = new Buffer([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
-                                             0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
+      IV                      = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                                              0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
       MIN_SIZE_TO_COMPRESS    = 1000,
-      BASE64                  = 'base64'
-      // RSA_OAEP_PKCS1_PADDDING = 4         // TODO : Need fix? Why crypto.constants not working?
+      BASE64                  = 'base64',
+      SIXTEEN                 = 16
 
 export class HttpsEncProvider {
 
-  private symmKey    : Buffer
+  private reqAesKey  : Buffer
+  private respAesKey : Buffer
   private privateKey : string
 
   public constructor(pk : string) {
     this.privateKey = pk
   }
 
-  public encodeSymmKey(publicKey : string) : string {
-    if(!this.symmKey) this.setSymmKey()
+  public encodeRequestKey(publicKey : string) : string {
+    if(!this.reqAesKey) this.setReqAesKey()
 
-    const encSymmKey = (crypto.publicEncrypt(publicKey, this.symmKey)).toString(BASE64)
+    const encKeyBuf = (crypto.publicEncrypt(publicKey, this.reqAesKey)),
+          encKey    = encKeyBuf.toString(BASE64)
 
-    return encSymmKey
+    return encKey
   }
 
-  public decodeSymmKey(encSymmKey : string) : Buffer {
-    const encSymmKeyBuf = new Buffer(encSymmKey, BASE64)
+  public decodeRequestKey(encKey : string) : Buffer {
+    const encKeyBuf = Buffer.from(encKey, BASE64)
 
-    this.symmKey = crypto.privateDecrypt(this.privateKey, encSymmKeyBuf)
+    this.reqAesKey = crypto.privateDecrypt(this.privateKey, encKeyBuf)
 
-    return this.symmKey
+    return this.reqAesKey
   }
 
   public encodeRequestTs(ts : number) : string {
@@ -60,20 +62,24 @@ export class HttpsEncProvider {
     return requestTs
   }
 
-  public encodeBody(data : Mubble.uObject<any>) : {
-                                                    streams       : Array<stream.Writable>,
-                                                    dataStr       : string,
-                                                    bodyEncoding  : string,
-                                                    chunked       : boolean,
-                                                  } {
+  public encodeBody(data     : Mubble.uObject<any>,
+                    response : boolean) : {
+                                            streams        : Array<stream.Writable>,
+                                            dataStr        : string,
+                                            bodyEncoding   : string,
+                                            contentLength ?: number
+                                          } {
 
-    return this.encryptBody(data)
+    return this.encryptBody(data, response)
   }
 
   public decodeBody(streams  : Array<stream.Readable>,
-                    encoding : string) : Array<stream.Readable> {
+                    encoding : string,
+                    response : boolean) : Array<stream.Readable> {
     
-    streams.push(this.getDecipher() as any)
+    const key = response ? this.reqAesKey : this.reqAesKey
+
+    streams.push(this.getDecipher(key) as any)
 
     switch(encoding) {
       case HTTP.HeaderValue.deflate :
@@ -95,6 +101,15 @@ export class HttpsEncProvider {
     return streams
   }
 
+  public decodeResponseKey(publicKey : string, encKey : string) : Buffer {
+    const encKeyBuf = Buffer.from(encKey, BASE64),
+          decKey    = crypto.publicDecrypt(publicKey, encKeyBuf)
+
+    this.respAesKey = this.decryptUsingReqAesKey(decKey)
+
+    return this.respAesKey
+  }
+
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    PRIVATE METHODS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -114,48 +129,66 @@ export class HttpsEncProvider {
     return requestTs
   }
 
-  private encryptBody(json : Mubble.uObject<any>) : {
-                                                     streams       : Array<stream.Writable>,
-                                                     dataStr       : string,
-                                                     bodyEncoding  : string,
-                                                     chunked       : boolean,
-                                                    } {
+  private encryptBody(json     : Mubble.uObject<any>,
+                      response : boolean) : {
+                                              streams        : Array<stream.Writable>,
+                                              dataStr        : string,
+                                              bodyEncoding   : string,
+                                              contentLength ?: number
+                                            } {
 
     const jsonStr = JSON.stringify(json),
           streams = [] as Array<stream.Writable>
 
-    let chunked      : boolean = false,
-        bodyEncoding : string  = HTTP.HeaderValue.identity
-
-    streams.unshift(this.getCipher() as any)
+    let bodyEncoding  : string             = HTTP.HeaderValue.identity,
+        contentLength : number | undefined
 
     if(jsonStr.length > MIN_SIZE_TO_COMPRESS) {
       bodyEncoding = HTTP.HeaderValue.deflate
-      chunked      = true
-      streams.unshift(zlib.createDeflate())
+      streams.push(zlib.createDeflate())
+    } else {
+      contentLength = this.getFinalContentLength(jsonStr.length)
     }
 
-    return {streams, dataStr : jsonStr, bodyEncoding, chunked}
+    if(!this.reqAesKey) this.setReqAesKey()
+    const key = response ? this.respAesKey : this.reqAesKey
+
+    streams.push(this.getCipher(key) as any)
+
+    return {streams, dataStr : jsonStr, bodyEncoding, contentLength}
   }
 
-  private setSymmKey(data ?: Buffer) : Buffer {
-    this.symmKey = data ? data : crypto.randomBytes(32)
+  private setReqAesKey(data ?: Buffer) : Buffer {
+    this.reqAesKey = data ? data : crypto.randomBytes(32)
 
-    return this.symmKey
+    return this.reqAesKey
   }
 
-  private getCipher() {
-    if(!this.symmKey) this.setSymmKey()
-
-    const cipher = crypto.createCipheriv(SYM_ALGO, this.symmKey, IV)
+  private getCipher(key : Buffer) {
+    const cipher = crypto.createCipheriv(SYM_ALGO, key, IV)
 
     return cipher
   }
 
-  private getDecipher() {
-    const decipher = crypto.createDecipheriv(SYM_ALGO, this.symmKey, IV)
+  private getDecipher(key : Buffer) {
+    const decipher = crypto.createDecipheriv(SYM_ALGO, key, IV)
 
     return decipher
+  }
+
+  private decryptUsingReqAesKey(encData : Buffer) : Buffer {
+    const decipher = this.getDecipher(this.reqAesKey),
+          buff1    = decipher.update(encData),
+          buff2    = decipher.final()
+
+    return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
+  }
+
+  private getFinalContentLength(contentLength : number) : number {
+    const rem         = contentLength % SIXTEEN,
+          finalLength = contentLength - rem + SIXTEEN
+
+    return finalLength
   }
 
 

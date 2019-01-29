@@ -93,13 +93,13 @@ export namespace ObopayHttpsClient {
     const syncHash   = syncHashPath ? fs.readFileSync(syncHashPath).toString()
                                     : requestServer.syncHash,
           json       = {
-                        type : WIRE_TYPE.REQUEST,
-                        name : apiName,
-                        data : params
+                         type : WIRE_TYPE.REQUEST,
+                         name : apiName,
+                         data : params
                        },
           wo         = WireObject.getWireObject(json) as WireObject
     
-    const headers : Mubble.uObject<any> = {} 
+    const headers : Mubble.uObject<any> = {}
 
     headers[HTTP.HeaderKey.clientId]      = selfId
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
@@ -107,14 +107,14 @@ export namespace ObopayHttpsClient {
 
     const encProvider = new HttpsEncProvider(privateKey)
     
-    headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeSymmKey(syncHash)
+    headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeRequestKey(syncHash)
     headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(wo.ts)
 
-    const encBodyObj = encProvider.encodeBody(wo.data)
+    const encBodyObj = encProvider.encodeBody(wo.data, false)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
-    encBodyObj.chunked ? headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
-                       : headers[HTTP.HeaderKey.contentLength]    = encBodyObj.dataStr.length
+    encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
+                             : headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
     
     const options : https.RequestOptions = {
       method   : POST,
@@ -125,11 +125,19 @@ export namespace ObopayHttpsClient {
       headers  : headers
     }
 
-    return await request(rc, options, encBodyObj.streams, encBodyObj.dataStr, unsecured)
+    return await request(rc,
+                         options,
+                         syncHash,
+                         encProvider,
+                         encBodyObj.streams,
+                         encBodyObj.dataStr,
+                         unsecured)
   }
 
   export async function request(rc            : RunContextServer,
                                 options       : https.RequestOptions,
+                                serverPubKey  : string,
+                                encProvider   : HttpsEncProvider,
                                 writeStreams  : Array<stream.Writable>,
                                 dataStr       : string,
                                 unsecured    ?: boolean) : Promise<ResultStruct> {
@@ -145,7 +153,14 @@ export namespace ObopayHttpsClient {
       result.headers = resp.headers
       result.status  = resp.statusCode || 200
 
-      const readStreams = [resp]
+      if(!result.headers[HTTP.HeaderKey.bodyEncoding])
+        result.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
+
+      encProvider.decodeResponseKey(serverPubKey, result.headers[HTTP.HeaderKey.symmKey])
+
+      const readStreams = encProvider.decodeBody([resp],
+                                                 result.headers[HTTP.HeaderKey.bodyEncoding],
+                                                 true)
 
       rc.isDebug() && rc.debug(CLASS_NAME,
                                `http${unsecured ? '' : 's'} request response headers.`,
@@ -220,7 +235,7 @@ export namespace ObopayHttpsClient {
             requestTs   = encProvider.decodeRequestTs(clientCredentials.syncHash,
                                                       headers[HTTP.HeaderKey.requestTs])
 
-      encProvider.decodeSymmKey(headers[HTTP.HeaderKey.symmKey])
+      encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
 
       if(!verifyRequestTs(requestTs))
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_TS,

@@ -99,7 +99,7 @@ export class HttpsServer {
                                 `${req.method} not supported.`)
 
       const encProvider = ObopayHttpsClient.verifyClientRequest(rc, ci.headers, ci.ip),
-            streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding]),
+            streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
             bodyStr     = (await stream.read()).toString()
 
@@ -168,6 +168,8 @@ export class HttpsServerProvider implements XmnProvider {
       rc.isWarn() && rc.warn(rc.getName(this), `Request ${data.name} already processed.`)
       return
     }
+
+    // TODO
 
     const result    = {error : data.errorCode, data : data.data},
           resultStr = JSON.stringify(result),
