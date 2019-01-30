@@ -38,16 +38,16 @@ const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
 export class HttpsServer {
 
   private providerMap : Map<HttpsServerProvider, number>
-  private timerPing   : NodeJS.Timer
 
   constructor(private refRc : RunContextServer, private router : XmnRouterServer) {
     this.providerMap = new Map()
-    this.timerPing   = setInterval(this.cbTimerPing.bind(this), TIMER_FREQUENCY_MS)
+    
+    setInterval(this.cbTimerPing.bind(this), TIMER_FREQUENCY_MS)
   }
 
   async requestHandler(req : http.IncomingMessage, res : http.ServerResponse) {
 
-    const rc = this.refRc.copyConstruct('', 'http-request')
+    const rc = this.refRc.copyConstruct('', 'https-request')
 
     const urlObj   = urlModule.parse(req.url || ''),
           pathName = urlObj.pathname || '',
@@ -168,8 +168,6 @@ export class HttpsServerProvider implements XmnProvider {
       rc.isWarn() && rc.warn(rc.getName(this), `Request ${data.name} already processed.`)
       return
     }
-
-    // TODO
 
     const result    = {error : data.errorCode, data : data.data},
           resultStr = JSON.stringify(result),
