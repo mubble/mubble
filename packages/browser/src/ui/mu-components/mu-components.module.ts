@@ -22,7 +22,8 @@ import { NcAllowSingleClickDirective,
          NcMaxLengthDirective,
          NcAutoFocusDirective, 
          LongPressDirective, 
-         NcStyleClassDirective
+         NcStyleClassDirective,
+         NextInpFocusDirective
 }                                           from './directives'
 
 import { TRANSLATION_PROVIDERS,
@@ -55,6 +56,7 @@ import { TRANSLATION_PROVIDERS,
     NcMaxLengthDirective,
     LongPressDirective, 
     NcStyleClassDirective,
+    NextInpFocusDirective,
   
     TranslatePipe
   ],
@@ -82,6 +84,7 @@ import { TRANSLATION_PROVIDERS,
     NcMaxLengthDirective,
     LongPressDirective, 
     NcStyleClassDirective,
+    NextInpFocusDirective,
 
     TranslatePipe,
     
