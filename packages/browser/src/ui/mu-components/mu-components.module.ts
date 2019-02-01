@@ -18,8 +18,7 @@ import { ToastComponent }                   from './toast/toast.component'
 import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
-import { NcAllowSingleClickDirective,
-         NcMaxLengthDirective,
+import { NcMaxLengthDirective,
          NcAutoFocusDirective, 
          LongPressDirective, 
          NcStyleClassDirective,
@@ -51,7 +50,6 @@ import { TRANSLATION_PROVIDERS,
     InfiniteScrollComponent,
 
 
-    NcAllowSingleClickDirective,
     NcAutoFocusDirective,
     NcMaxLengthDirective,
     LongPressDirective, 
@@ -79,7 +77,6 @@ import { TRANSLATION_PROVIDERS,
     ToastComponent,
     InfiniteScrollComponent,
 
-    NcAllowSingleClickDirective,
     NcAutoFocusDirective,
     NcMaxLengthDirective,
     LongPressDirective, 

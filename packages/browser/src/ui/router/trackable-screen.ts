@@ -21,7 +21,7 @@ export abstract class TrackableScreen  {
 
   }
 
-  onApiComplete(success: boolean) {
+  onApiComplete(success: boolean) { 
     
   }
 
