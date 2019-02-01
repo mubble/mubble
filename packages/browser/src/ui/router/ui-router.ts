@@ -123,7 +123,17 @@ export class UiRouter {
     })
   }
 
-  public async navigate(routeTo: string, extras ?: NcNavigationExtras) {
+  public async navigate(routeTo: string, extras ?: NcNavigationExtras, replaceAllUrls : boolean = false) {
+
+    if (replaceAllUrls) {
+      if (!extras) {
+        extras = {}
+      }
+      if (this.urlStack.length - 1 > 0) {
+        extras.replaceIndex = 1
+      }
+    }
+
     return await this.navigateByUrl([routeTo], extras)
   }
 
