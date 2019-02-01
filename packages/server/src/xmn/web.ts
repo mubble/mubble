@@ -13,6 +13,7 @@ import * as https                   from 'https'
 import {XmnRouterServer}            from './xmn-router-server'
 import {ActiveProviderCollection}   from '@mubble/core'
 import {HttpServer}                 from './http-server'
+import {HttpsServer}                from './https-server'
 import {WsServer}                   from './ws-server'
 import {RunContextServer}           from '../rc-server'
 import {clusterWorker}              from '../cluster/worker'
@@ -31,8 +32,8 @@ export interface WebsocketConfig extends WebConfig {
 }
 
 export interface HttpsConfig extends WebConfig {
-  key  : string
-  cert : string
+  key  ?: string
+  cert ?: string
 }
 
 export class Web {
@@ -90,8 +91,8 @@ export class Web {
         throw('https port cannot be same as ws port')
       }
 
-      const httpReqManager = new HttpServer(rc, router , true)
-      this.httpsServer     = https.createServer(this.httpsConfig , httpReqManager.requestHandler.bind(httpReqManager))
+      const httpReqManager = new HttpsServer(rc, router)
+      this.httpsServer     = https.createServer(this.httpsConfig, httpReqManager.requestHandler.bind(httpReqManager))
     }
   }
 

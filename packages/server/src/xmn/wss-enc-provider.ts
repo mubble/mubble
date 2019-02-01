@@ -21,8 +21,8 @@ import * as zlib          from 'zlib'
 const BASE64   = 'base64',
       BINARY   = 'binary',
       SYM_ALGO = 'aes-256-cbc',
-      IV       = new Buffer([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
-                              0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ])
+      IV       = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                               0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ])
 
 export class WssEncProvider {
 
@@ -34,7 +34,7 @@ export class WssEncProvider {
 
   public encodeTsMicro(tsMicro : number, aes ?: boolean) : string {
     const tsMicroStr  = tsMicro.toString(),
-          tsMicroBuff = new Buffer(tsMicroStr)
+          tsMicroBuff = Buffer.from(tsMicroStr)
 
     if(aes) {
       const encTsMicroBuff = this.encryptUsingAesKey(tsMicroBuff),
@@ -50,7 +50,7 @@ export class WssEncProvider {
   }
 
   public decodeTsMicro(encTsMicro : string, key : string, aes ?: boolean) : number {
-    const encTsMicroBuff = new Buffer(encTsMicro, BASE64)
+    const encTsMicroBuff = Buffer.from(encTsMicro, BASE64)
 
     if(aes) {
 
@@ -74,7 +74,7 @@ export class WssEncProvider {
                                ? Leader.DEF_JSON
                                : Leader.JSON
 
-    let woBuffer : Buffer = new Buffer(strData)
+    let woBuffer : Buffer = Buffer.from(strData)
 
     switch(leader) {
       case Leader.DEF_JSON :
@@ -82,11 +82,11 @@ export class WssEncProvider {
         break
       
       case Leader.BIN :
-        woBuffer = new Buffer(strData, BINARY)
+        woBuffer = Buffer.from(strData, BINARY)
         break
     }
 
-    const leaderBuff  = new Buffer(getLeaderByte(leader)),
+    const leaderBuff  = Buffer.from(getLeaderByte(leader)),
           dataBuff    = Buffer.concat([leaderBuff, woBuffer]),
           encDataBuff = this.encryptUsingPublicKey(dataBuff, publicKey),
           encDataStr  = encDataBuff.toString(BASE64)
@@ -95,7 +95,7 @@ export class WssEncProvider {
   }
 
   public async decodeBody(encDataStr : string) : Promise<WireObject> {
-    const encDataBuff = new Buffer(encDataStr, BASE64),
+    const encDataBuff = Buffer.from(encDataStr, BASE64),
           dataBuff    = this.decryptyUsingPrivateKey(encDataBuff),
           leader      = getLeader(dataBuff[0]),
           woBuffer    = dataBuff.slice(1)
@@ -172,7 +172,7 @@ export class WssEncProvider {
   }
 
   private setAesKey(keyStr ?: string) {
-    this.aesKey = keyStr ? new Buffer(keyStr, BASE64)
+    this.aesKey = keyStr ? Buffer.from(keyStr, BASE64)
                          : crypto.randomBytes(32)
   }
 }

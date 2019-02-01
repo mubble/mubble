@@ -26,6 +26,7 @@ import {
 import { RunContextServer }   from '../rc-server'
 import { XmnRouterServer }    from './xmn-router-server'
 import { ObopayHttpsClient }  from './obopay-https-client'
+import { HttpsEncProvider }   from './https-enc-provider'
 import { UStream }            from '../util'
 import * as http              from 'http'
 import * as urlModule         from 'url'
@@ -64,7 +65,7 @@ export class HttpsServer {
     ci.url            = req.url || ''
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)
-
+    
     // Following fields are unrelated / irrelevant for 3rd party
     ci.msOffset       = 0
     ci.lastEventTs    = 0
@@ -83,7 +84,8 @@ export class HttpsServer {
       return
     }
 
-    const httpsProvider = new HttpsServerProvider(rc, ci, this.router, res, this)
+    const encProvider   = ObopayHttpsClient.getEncProvider(),
+          httpsProvider = new HttpsServerProvider(rc, ci, this.router, res, encProvider, this)
 
     si.provider = httpsProvider
 
@@ -98,8 +100,9 @@ export class HttpsServer {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_METHOD,
                                 `${req.method} not supported.`)
 
-      const encProvider = ObopayHttpsClient.verifyClientRequest(rc, ci.headers, ci.ip),
-            streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
+      ObopayHttpsClient.verifyClientRequest(rc, encProvider, ci.headers, ci.ip)
+
+      const streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
             bodyStr     = (await stream.read()).toString()
 
@@ -153,11 +156,12 @@ export class HttpsServerProvider implements XmnProvider {
   private finished    : boolean     = false
   private wireRequest : WireRequest
 
-  constructor(private refRc  : RunContextServer,
-              private ci     : ConnectionInfo,
-              private router : XmnRouterServer,
-              private res    : http.ServerResponse,
-              private server : HttpsServer) {
+  constructor(private refRc       : RunContextServer,
+              private ci          : ConnectionInfo,
+              private router      : XmnRouterServer,
+              private res         : http.ServerResponse,
+              private encProvider : HttpsEncProvider,
+              private server      : HttpsServer) {
 
   }
 
@@ -169,19 +173,26 @@ export class HttpsServerProvider implements XmnProvider {
       return
     }
 
-    const result    = {error : data.errorCode, data : data.data},
-          resultStr = JSON.stringify(result),
-          headers   = {
-            [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.json,
-            [HTTP.HeaderKey.contentLength] : resultStr.length,
-            connection                     : 'close' 
+    const headers = {
+            [HTTP.HeaderKey.clientId]      : this.ci.headers[HTTP.HeaderKey.clientId],
+            [HTTP.HeaderKey.versionNumber] : this.ci.headers[HTTP.HeaderKey.versionNumber],
+            [HTTP.HeaderKey.symmKey]       : this.encProvider.encodeResponseKey(),
+            [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.stream
           }
 
-    this.res.writeHead(200, headers)
-          
-    const stream = new UStream.WriteStreams(rc, [this.res])
+    const body       = {error : data.errorCode, data : data.data},
+          encBodyObj = this.encProvider.encodeBody(body, true)
 
-    stream.write(resultStr)
+    headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
+    encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
+                             : headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
+
+    this.res.writeHead(200, headers)
+         
+    encBodyObj.streams.push(this.res)
+    const stream = new UStream.WriteStreams(rc, encBodyObj.streams)
+
+    stream.write(encBodyObj.dataStr)
 
     this.finished = true
     this.server.markFinished(this)

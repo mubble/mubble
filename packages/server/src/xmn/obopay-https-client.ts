@@ -40,11 +40,12 @@ export namespace ObopayHttpsClient {
       requestMem         : RedisWrapper
 
   export type SyncCredentials = {
-    id           : string             // Client / Server identifier
-    syncHash     : string             // Client / Server public key
-    host         : string             // Server host
-    port         : number             // Server port
-    permittedIps : Array<string>      // Permitted IPs for client
+    id            : string             // Client / Server identifier
+    syncHash      : string             // Client / Server public key
+    host          : string             // Server host
+    port          : number             // Server port
+    permittedIps  : Array<string>      // Permitted IPs for client
+    nodeServer   ?: boolean
   }
 
   export interface CredentialRegistry {
@@ -105,7 +106,7 @@ export namespace ObopayHttpsClient {
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
     headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
 
-    const encProvider = new HttpsEncProvider(privateKey)
+    const encProvider = new HttpsEncProvider(privateKey, requestServer.nodeServer)
     
     headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeRequestKey(syncHash)
     headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(wo.ts)
@@ -116,6 +117,10 @@ export namespace ObopayHttpsClient {
     encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
                              : headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
     
+    rc.isDebug() && rc.debug(CLASS_NAME,
+                             `http${unsecured ? '' : 's'} request headers.`,
+                             headers)
+
     const options : https.RequestOptions = {
       method   : POST,
       protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
@@ -153,6 +158,10 @@ export namespace ObopayHttpsClient {
       result.headers = resp.headers
       result.status  = resp.statusCode || 200
 
+      rc.isDebug() && rc.debug(CLASS_NAME,
+                               `http${unsecured ? '' : 's'} response headers.`,
+                               resp.headers)
+
       if(!result.headers[HTTP.HeaderKey.bodyEncoding])
         result.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 
@@ -161,10 +170,6 @@ export namespace ObopayHttpsClient {
       const readStreams = encProvider.decodeBody([resp],
                                                  result.headers[HTTP.HeaderKey.bodyEncoding],
                                                  true)
-
-      rc.isDebug() && rc.debug(CLASS_NAME,
-                               `http${unsecured ? '' : 's'} request response headers.`,
-                               resp.headers)
 
       const readUstream = new UStream.ReadStreams(rc, readStreams, readPromise)
       readUstream.read()
@@ -184,7 +189,7 @@ export namespace ObopayHttpsClient {
     writeUstream.write(dataStr)
 
     rc.isStatus() && rc.status(CLASS_NAME,
-                               `http${unsecured ? '' : 's'} request to server.`,
+                               `http${unsecured ? '' : 's'} request.`,
                                options)
 
     try {
@@ -192,10 +197,10 @@ export namespace ObopayHttpsClient {
                                                           readPromise.promise])
 
       rc.isStatus() && rc.status(CLASS_NAME,
-                                 `http${unsecured ? '' : 's'} request response.`,
-                                 output)
+                                 `http${unsecured ? '' : 's'} response.`,
+                                 output.toString())
 
-      result.output = output
+      result.output = JSON.parse(output.toString())
     } catch(err) {
       rc.isError() && rc.error(CLASS_NAME, err)
       result.error = err
@@ -204,9 +209,16 @@ export namespace ObopayHttpsClient {
     return result
   }
 
-  export function verifyClientRequest(rc       : RunContextServer,
-                                      headers  : Mubble.uObject<any>,
-                                      clientIp : string) : HttpsEncProvider {
+  export function getEncProvider() : HttpsEncProvider {
+    const encProvider = new HttpsEncProvider(privateKey)
+
+    return encProvider
+  }
+
+  export function verifyClientRequest(rc          : RunContextServer,
+                                      encProvider : HttpsEncProvider,
+                                      headers     : Mubble.uObject<any>,
+                                      clientIp    : string) {
 
     rc.isDebug() && rc.debug(CLASS_NAME,
                              'Verifying client request headers.',
@@ -219,29 +231,31 @@ export namespace ObopayHttpsClient {
        && clientCredentials.syncHash
        && clientCredentials.permittedIps.length) {
         
-      if(!verifyIp(clientCredentials.permittedIps, clientIp))
+      if(!verifyIp(clientCredentials.permittedIps, clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                                 'Client IP not permitted.')
+      }
 
-      if(!verifyVersion(headers[HTTP.HeaderKey.versionNumber]))
+      if(!verifyVersion(headers[HTTP.HeaderKey.versionNumber])) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_VERSION,
                                 `Request version : ${headers[HTTP.HeaderKey.versionNumber]},`
                                 + `Current version : ${HTTP.CurrentProtocolVersion}.`) 
+      }
 
       if(!headers[HTTP.HeaderKey.bodyEncoding])
         headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 
-      const encProvider = new HttpsEncProvider(privateKey),
-            requestTs   = encProvider.decodeRequestTs(clientCredentials.syncHash,
-                                                      headers[HTTP.HeaderKey.requestTs])
+      const requestTs = encProvider.decodeRequestTs(clientCredentials.syncHash,
+                                                    headers[HTTP.HeaderKey.requestTs])
 
       encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
 
-      if(!verifyRequestTs(requestTs))
+      if(!verifyRequestTs(requestTs)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_TS,
                                 'requestTs out of range.')
+      }
 
-      return encProvider
+      return true
     }
 
     throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
@@ -291,6 +305,4 @@ export namespace ObopayHttpsClient {
 
     return exists
   }
-
-
 }
