@@ -62,7 +62,7 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
     val uri   = data!!.data!!
 
     val base64    : String?
-    val md5       : String?
+    val checkSum  : String?
     val mimeType  : String?
 
     try {
@@ -73,17 +73,17 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
 
         val bm    = FileBase.getBitmapFromUri(uri)
         base64    = FileBase.getBase64Data(bm)
-        md5       = FileBase.md5(base64)
+        checkSum       = FileBase.getCheckSum(base64)
 
       } else { // User selected PDF
 
         base64    = FileBase.getBase64Data(uri)
-        md5       = FileBase.md5(base64)
+        checkSum  = FileBase.getCheckSum(base64)
       }
 
       val obj = JSONObject()
       obj.put("base64",   base64)
-      obj.put("md5",      md5)
+      obj.put("checkSum", checkSum)
       obj.put("mimeType", mimeType)
 
       listener(obj)

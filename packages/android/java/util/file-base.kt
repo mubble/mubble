@@ -298,12 +298,12 @@ object FileBase {
     }
   }
 
-  fun md5(s: String): String {
+  fun getCheckSum(s: String): String {
 
     try {
       // Create MD5 Hash
       val digest = java.security.MessageDigest
-          .getInstance("MD5")
+          .getInstance("SHA-256")
       digest.update(s.toByteArray())
       val messageDigest = digest.digest()
 
