@@ -10,10 +10,10 @@
     {{ message }}
   </div>
   <footer class="footer" [style.justifyContent]="negativeActText ? 'space-between' : 'center'">
-    <button *ngIf='negativeActText' class="button-primary-small btn" ncAllowSingleClick (ncClick)="onCancel()">
+    <button *ngIf='negativeActText' class="button-primary-small btn" (click)="onCancel()">
       {{ negativeActText }}
     </button>
-    <button class="button-primary-small btn" ncAllowSingleClick (ncClick)="onContinue()">
+    <button class="button-primary-small btn" (click)="onContinue()">
       {{ positiveActText }}
     </button>
   </footer>  
