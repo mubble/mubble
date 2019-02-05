@@ -18,6 +18,7 @@ import { HttpsEncProvider }     from './https-enc-provider'
 import { SecurityErrorCodes }   from './security-errors'
 import { UStream }              from '../util'
 import { RedisWrapper }         from '../cache'
+import { CredentialRegistry }   from './credential-registry'
 import * as https               from 'https'
 import * as http                from 'http'
 import * as fs                  from 'fs'
@@ -38,19 +39,6 @@ export namespace ObopayHttpsClient {
       credentialRegistry : CredentialRegistry,
       privateKey         : string,
       requestMem         : RedisWrapper
-
-  export type SyncCredentials = {
-    id            : string             // Client / Server identifier
-    syncHash      : string             // Client / Server public key
-    host          : string             // Server host
-    port          : number             // Server port
-    permittedIps  : Array<string>      // Permitted IPs for client
-    nodeServer   ?: boolean
-  }
-
-  export interface CredentialRegistry {
-    getCredential(id : string) : SyncCredentials
-  }
 
   export class ResultStruct {
     error   : null | Error        = null
@@ -121,6 +109,8 @@ export namespace ObopayHttpsClient {
                              `http${unsecured ? '' : 's'} request headers.`,
                              headers)
 
+    console.log('\n\nrequest headers : ' + JSON.stringify(headers) + '\n\n')
+
     const options : https.RequestOptions = {
       method   : POST,
       protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
@@ -157,6 +147,8 @@ export namespace ObopayHttpsClient {
     req.on('response', (resp : http.IncomingMessage) => {
       result.headers = resp.headers
       result.status  = resp.statusCode || 200
+
+      console.log('\n\nresponse headers : ' + JSON.stringify(resp.headers) + '\n\n')
 
       rc.isDebug() && rc.debug(CLASS_NAME,
                                `http${unsecured ? '' : 's'} response headers.`,
