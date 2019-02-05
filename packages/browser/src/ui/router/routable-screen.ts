@@ -17,8 +17,6 @@ import { Mubble }             from '@mubble/core'
 export abstract class RoutableScreen extends TrackableScreen {
 
   abstract onRouterInit(queryParams: Mubble.uObject<any>, firstInvocation: boolean): void
-  abstract canShowBottomBar() : boolean
-  abstract canShowNotiIcon()  : boolean
   
   constructor(protected rc: RunContextApp) {
     super(rc)
