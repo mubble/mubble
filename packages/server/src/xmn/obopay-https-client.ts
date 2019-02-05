@@ -162,6 +162,10 @@ export namespace ObopayHttpsClient {
                                `http${unsecured ? '' : 's'} response headers.`,
                                resp.headers)
 
+      rc.isAssert() && rc.assert(CLASS_NAME, 
+                                 result.headers[HTTP.HeaderKey.symmKey],
+                                 `${HTTP.HeaderKey.symmKey} missing in response headers.`)
+
       if(!result.headers[HTTP.HeaderKey.bodyEncoding])
         result.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 

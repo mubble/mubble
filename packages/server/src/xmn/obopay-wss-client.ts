@@ -16,17 +16,20 @@ import { WssEncProvider }     from './wss-enc-provider'
 
 export namespace ObopayWssClient {
 
-  export type WsProviderConfig = {
+  export type WssProviderConfig = {
     pingSecs      : number
     maxOpenSecs   : number
     toleranceSecs : number
-    key           : string
     custom        : Mubble.uObject<any>
   }
 
   let pingMs      : number,
       maxOpenTs   : number,
       toleranceMs : number
+
+  export function init(wsConfig : WssProviderConfig) {
+    
+  }
 
   export function obopayApi() {
     

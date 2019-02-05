@@ -98,7 +98,12 @@ export class HttpsEncProvider {
     const encKeyBuf = Buffer.from(encKey, BASE64),
           decKey    = crypto.publicDecrypt(publicKey, encKeyBuf)
     
+    console.log('\n\ndecKey : ' + decKey.toString(BASE64) + '\n\n')
+    console.log('\n\nreqAesKey : ' + this.reqAesKey.toString(BASE64) + '\n\n')
+
     this.respAesKey = this.decryptUsingReqAesKey(decKey)
+
+    console.log('\n\nrespAesKey : ' + this.respAesKey.toString(BASE64) + '\n\n')
 
     return this.respAesKey
   }
@@ -196,7 +201,6 @@ export class HttpsEncProvider {
 
   private getDecipher(key : Buffer) {
     const decipher = crypto.createDecipheriv(SYM_ALGO, key, IV)
-    if(!this.nodeServer) decipher.setAutoPadding(false)
 
     return decipher
   }
@@ -211,8 +215,11 @@ export class HttpsEncProvider {
 
   private decryptUsingReqAesKey(encData : Buffer) : Buffer {
     const decipher = this.getDecipher(this.reqAesKey),
-          buff1    = decipher.update(encData),
-          buff2    = decipher.final()
+          buff1    = decipher.update(encData)
+
+    if(!this.nodeServer) return buff1
+
+    const buff2    = decipher.final()
 
     return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
   }
