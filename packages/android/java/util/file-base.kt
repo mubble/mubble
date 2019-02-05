@@ -294,7 +294,7 @@ object FileBase {
   fun getCheckSum(s: String): String {
 
     try {
-      // Create MD5 Hash
+      // Create SHA-256 Hash
       val digest = java.security.MessageDigest
           .getInstance("SHA-256")
       digest.update(s.toByteArray())

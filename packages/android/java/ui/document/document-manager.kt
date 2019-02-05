@@ -64,6 +64,7 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
     val base64    : String?
     val checksum  : String?
     val mimeType  : String?
+    val fileSize  : Long?
 
     try {
 
@@ -73,18 +74,21 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
 
         val bm    = FileBase.getBitmapFromUri(uri)
         base64    = FileBase.getBase64Data(bm)
-        checksum       = FileBase.getCheckSum(base64)
+        checksum  = FileBase.getCheckSum(base64)
+        fileSize  = FileBase.getFileSize(uri)
 
       } else { // User selected PDF
 
         base64    = FileBase.getBase64Data(uri)
-        checkSum  = FileBase.getCheckSum(base64)
+        checksum  = FileBase.getCheckSum(base64)
+        fileSize  = FileBase.getFileSize(uri)
       }
 
       val obj = JSONObject()
       obj.put("base64",   base64)
       obj.put("checksum", checksum)
       obj.put("mimeType", mimeType)
+      obj.put("fileSize", fileSize)
 
       listener(obj)
 
