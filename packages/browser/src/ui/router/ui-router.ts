@@ -51,8 +51,9 @@ export enum NavMethod {NEXT = 1, CURRENT, POP}
 export type OUTLET = 'primary' | 'modal'
 
 export interface NcNavigationExtras extends NavigationExtras {
-  replaceIndex  ?: number
-  paramsId      ?: string
+  replaceIndex   ?: number
+  paramsId       ?: string,
+  replaceAllUrls ?: boolean
 }
 
 class StackItem {
@@ -123,12 +124,9 @@ export class UiRouter {
     })
   }
 
-  public async navigate(routeTo: string, extras ?: NcNavigationExtras, replaceAllUrls : boolean = false) {
+  public async navigate(routeTo: string, extras ?: NcNavigationExtras) {
 
-    if (replaceAllUrls) {
-      if (!extras) {
-        extras = {}
-      }
+    if (extras && extras.replaceAllUrls) {
       if (this.urlStack.length - 1 > 0) {
         extras.replaceIndex = 1
       }
