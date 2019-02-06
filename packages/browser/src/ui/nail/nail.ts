@@ -93,6 +93,7 @@ export class Nail  {
     this.pageWidth = document.body.clientWidth
 
     const panEventHandler = this.onNailEvent.bind(this)
+
     this.handlers.push(renderer.listen(element, TOUCH_EVENT.START, panEventHandler),
       renderer.listen(element, TOUCH_EVENT.MOVE, panEventHandler),
       renderer.listen(element, TOUCH_EVENT.END, panEventHandler),
