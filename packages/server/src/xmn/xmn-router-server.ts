@@ -107,7 +107,7 @@ export abstract class XmnRouterServer {
     const ar = this.piggyfrontMap.get(invData) || []
     if (!ar.length) this.piggyfrontMap.set(invData, ar)
     ar.push(we)
-    rc.isDebug() && rc.debug(rc.getName(this), 'queued event', we.name)
+    rc.isDebug() && rc.debug(rc.getName(this), 'queued event', invData.name, we.name)
   }
   
   public getIp(req: any) {
@@ -299,6 +299,8 @@ export abstract class XmnRouterServer {
       if (invData && ar.length) this.piggyfrontMap.delete(invData)
       
       ar.push(response)
+
+      invData && rc.isDebug() && rc.debug(rc.getName(this), 'sendToProvider', invData.name, ar)
       
       const err = (response as WireReqResp|WireEventResp).errorCode
       // Do not send piggy front events if error api execution fails
