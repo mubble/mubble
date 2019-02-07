@@ -148,9 +148,12 @@ export abstract class XmnRouterServer {
   
   async providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
     await this.connectionClosed(rc, ci)
-    if (ci.protocol === Protocol.WEBSOCKET) {
-      rc.finish(ci , null as any , null as any)
+
+    if(ci.protocol === Protocol.WEBSOCKET) {
+      rc.finish(ci, null as any, null as any)
     }
+
+    if(this.sessionInfo.provider) delete this.sessionInfo.provider
   }
 
   abstract connectionOpened(rc: RunContextServer, ci: ConnectionInfo, apiInfo: any): Promise<void>
@@ -169,7 +172,7 @@ export abstract class XmnRouterServer {
 
     try {
       const reqStruct = this.apiMap[wo.name] 
-      wo.name!=='httpecho' && rc.isDebug() && rc.debug(rc.getName(this), 'Routing Request', wo, reqStruct)
+      rc.isDebug() && rc.debug(rc.getName(this), 'Routing Request', wo, reqStruct)
       
       if (!reqStruct) {
         throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))

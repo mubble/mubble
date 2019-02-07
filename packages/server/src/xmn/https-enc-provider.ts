@@ -28,17 +28,13 @@ export class HttpsEncProvider {
   private reqAesKey  : Buffer
   private respAesKey : Buffer
   private privateKey : string
-  private nodeServer : boolean
 
-  public constructor(pk : string, node ?: boolean) {
+  public constructor(pk : string) {
     this.privateKey = pk
-
-    node ? this.nodeServer = node
-         : this.nodeServer = false
   }
 
   public encodeRequestKey(publicKey : string) : string {
-    if(!this.reqAesKey) this.reqAesKey = this.setKey()
+    if(!this.reqAesKey) this.reqAesKey = this.getNewAesKey()
 
     const encKeyBuf = (crypto.publicEncrypt(publicKey, this.reqAesKey)),
           encKey    = encKeyBuf.toString(BASE64)
@@ -85,7 +81,7 @@ export class HttpsEncProvider {
   }
 
   public encodeResponseKey() : string {
-    if(!this.respAesKey) this.respAesKey = this.setKey()
+    if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
 
     const encKeyBufTemp = this.encryptUsingReqAesKey(this.respAesKey),
           encKeyBufFin  = crypto.privateEncrypt(this.privateKey, encKeyBufTemp),
@@ -98,13 +94,7 @@ export class HttpsEncProvider {
     const encKeyBuf = Buffer.from(encKey, BASE64),
           decKey    = crypto.publicDecrypt(publicKey, encKeyBuf)
     
-    console.log('\n\ndecKey : ' + decKey.toString(BASE64) + '\n\n')
-    console.log('\n\nreqAesKey : ' + this.reqAesKey.toString(BASE64) + '\n\n')
-
     this.respAesKey = this.decryptUsingReqAesKey(decKey)
-
-    console.log('\n\nrespAesKey : ' + this.respAesKey.toString(BASE64) + '\n\n')
-
     return this.respAesKey
   }
 
@@ -148,8 +138,8 @@ export class HttpsEncProvider {
       contentLength = this.getFinalContentLength(jsonStr.length)
     }
 
-    if(!this.reqAesKey)  this.reqAesKey  = this.setKey()
-    if(!this.respAesKey) this.respAesKey = this.setKey()
+    if(!this.reqAesKey)  this.reqAesKey  = this.getNewAesKey()
+    if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
 
     const key = response ? this.respAesKey : this.reqAesKey
 
@@ -187,8 +177,8 @@ export class HttpsEncProvider {
     return streams
   }
 
-  private setKey(data ?: Buffer) : Buffer {
-    const key = data ? data : crypto.randomBytes(32)
+  private getNewAesKey() : Buffer {
+    const key = crypto.randomBytes(32)
 
     return key
   }
@@ -215,11 +205,8 @@ export class HttpsEncProvider {
 
   private decryptUsingReqAesKey(encData : Buffer) : Buffer {
     const decipher = this.getDecipher(this.reqAesKey),
-          buff1    = decipher.update(encData)
-
-    if(!this.nodeServer) return buff1
-
-    const buff2    = decipher.final()
+          buff1    = decipher.update(encData),
+          buff2    = decipher.final()
 
     return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
   }

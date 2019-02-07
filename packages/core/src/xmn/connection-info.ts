@@ -27,6 +27,7 @@ export interface ConnectionInfo {
   // Server fields. Not used by client
   msOffset        : number    // this is inferred by the server based on client's now field. Api/event need not use this
   lastEventTs     : number    // Must be set before an event is processed on server
+  lastRequestTs   : number
 
   customData      : Mubble.uObject<any>
 }

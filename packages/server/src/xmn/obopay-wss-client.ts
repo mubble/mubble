@@ -9,49 +9,49 @@
 
 import { 
          Mubble,
-         HTTP
+         HTTP,
+         WssProviderConfig
        }                        from '@mubble/core'
 import { RunContextServer }     from '../rc-server'
 import { WssEncProvider }       from './wss-enc-provider'
 import { CredentialRegistry }   from './credential-registry'
 import * as lo                  from 'lodash'
 
+const MICRO_MULT = 1000000
+
 export namespace ObopayWssClient {
 
   const CLASS_NAME = 'ObopayWssClient'
 
-  export type WssProviderConfig = {
+  export type DefaultWssConfig = {
     pingSecs      : number
     maxOpenSecs   : number
     toleranceSecs : number
-    custom        : Mubble.uObject<any>
   }
 
-  let selfId       : string,
-      pingMs       : number,
-      maxOpenTs    : number,
-      maxOpenSecs  : number,
-      toleranceMs  : number,
-      appId        : string,
-      credRegistry : CredentialRegistry,
-      privateKey   : string
+  let selfId        : string,
+      defaultConfig : DefaultWssConfig,
+      maxOpenTs     : number,
+      appId         : string,
+      credRegistry  : CredentialRegistry,
+      privateKey    : string
 
   export function init(rc             : RunContextServer,
                        selfIdentifier : string,
-                       wsConfig       : WssProviderConfig,
+                       wssConfig      : DefaultWssConfig,
                        appClientId    : string,
                        registry       : CredentialRegistry,
                        pk             : string) {
 
-    rc.isAssert() && rc.assert(CLASS_NAME, !selfId, 'Calling init twice!!!')
+    if(selfId) throw new Error('Calling init twice.')
 
-    selfId       = selfIdentifier
-    pingMs       = wsConfig.pingSecs * 1000
-    maxOpenSecs  = wsConfig.maxOpenSecs
-    toleranceMs  = wsConfig.toleranceSecs * 1000
-    appId        = appClientId
-    credRegistry = registry
-    privateKey   = pk
+    selfId        = selfIdentifier
+    defaultConfig = wssConfig
+    appId         = appClientId
+    credRegistry  = registry
+    privateKey    = pk
+
+    Object.freeze(defaultConfig)  // Default wss config cannot change
   }
 
   export function obopayApi() {
@@ -62,15 +62,28 @@ export namespace ObopayWssClient {
     
   }
 
-  export function getConfigData(openTs : number) : {
-                                                     pingMs      : number
-                                                     maxOpenSecs : number
-                                                     toleranceMs : number
-                                                   } {
+  export function getWssConfig(incomingConfig : WssProviderConfig,
+                               encProvider    : WssEncProvider) : WssProviderConfig {
 
-    maxOpenTs = openTs + (maxOpenSecs * 1000)
+    // TODO : Logic for pingSecs, maxOpenSecs and toleranceSecs
 
-    return {pingMs, maxOpenSecs, toleranceMs}
+    const wssConfig = {} as WssProviderConfig
+
+    wssConfig.pingSecs      = incomingConfig.pingSecs < defaultConfig.pingSecs
+                              ? incomingConfig.pingSecs
+                              : defaultConfig.pingSecs
+    wssConfig.maxOpenSecs   = incomingConfig.maxOpenSecs < defaultConfig.pingSecs
+                              ? incomingConfig.maxOpenSecs
+                              : defaultConfig.maxOpenSecs
+    wssConfig.toleranceSecs = incomingConfig.toleranceSecs
+    wssConfig.key           = encProvider.getRespAesKey()
+    wssConfig.custom        = incomingConfig.custom
+
+    return wssConfig
+  }
+
+  export function getEncProvider() : WssEncProvider {
+    return new WssEncProvider(privateKey)
   }
 
   export function verifyClientRequest(rc : RunContextServer, version : string, clientId : string) : boolean {
@@ -83,15 +96,11 @@ export namespace ObopayWssClient {
 
     if(!verifyClientId(clientId)) throw new Error(`Unknown clientId ${clientId}.`)
 
-    return true
+    return isAppClient(clientId)
   }
 
   export function verifyVersion(version : string) : boolean {
     return version === HTTP.CurrentProtocolVersion
-  }
-
-  export function isAppClient(clientId : string) : boolean {
-    return appId === clientId
   }
 
   export function verifyClientId(clientId : string) : boolean {
@@ -101,11 +110,26 @@ export namespace ObopayWssClient {
     return !!record.id
   }
 
-  export function verifyRequestTs(requestTs     : number,
-                                  lastRequestTs : number) : boolean {
+  export function isAppClient(clientId : string) : boolean {
+    return appId === clientId
+  }
 
-    const pingThreshold = lastRequestTs + pingMs + toleranceMs,
-          openThreshold = maxOpenTs - toleranceMs
+  export function getClientPublicKey(clientId : string) : string {
+    const record = credRegistry.getCredential(clientId)
+
+    if(!record.syncHash)
+      throw new Error(`Client ${clientId} doesn't have a public key in registry.`)
+
+    return record.syncHash
+  }
+
+  export function verifyRequestTs(requestTs     : number,
+                                  lastRequestTs : number,
+                                  wssConfig     : WssProviderConfig) : boolean {
+
+    const toleranceMicroS = wssConfig.toleranceSecs * MICRO_MULT,
+          pingThreshold   = lastRequestTs + (wssConfig.pingSecs * MICRO_MULT) + toleranceMicroS,
+          openThreshold   = maxOpenTs - toleranceMicroS
 
     return (requestTs < pingThreshold && requestTs < openThreshold)
   }

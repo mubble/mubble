@@ -13,7 +13,6 @@ export interface SyncCredentials {
   host          : string             // Server host
   port          : number             // Server port
   permittedIps  : Array<string>      // Permitted IPs for client
-  nodeServer   ?: boolean
 }
 
 export interface CredentialRegistry {

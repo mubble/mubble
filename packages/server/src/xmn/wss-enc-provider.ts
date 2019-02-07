@@ -9,123 +9,110 @@
 
 import { 
          WireObject,
-         Leader,
-         getLeaderByte,
-         getLeader,
+         DataLeader,
          Encoder,
-         Mubble
-       }                  from '@mubble/core'
-import * as crypto        from 'crypto'
-import * as zlib          from 'zlib'
+         Mubble,
+         WssProviderConfig
+       }                    from '@mubble/core'
+import { ObopayWssClient }  from './obopay-wss-client'
+import * as crypto          from 'crypto'
+import * as zlib            from 'zlib'
 
 const BASE64   = 'base64',
-      BINARY   = 'binary',
       SYM_ALGO = 'aes-256-cbc',
       IV       = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
-                               0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ])
+                               0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
+      TS_LEN   = 24
 
 export class WssEncProvider {
 
-  private aesKey : Buffer
+  private reqAesKey  : Buffer
+  private respAesKey : Buffer
 
   public constructor(private privateKey : string) {
 
   }
 
-  public encodeTsMicro(tsMicro : number, aes ?: boolean) : string {
-    const tsMicroStr  = tsMicro.toString(),
-          tsMicroBuff = Buffer.from(tsMicroStr)
+  public getRespAesKey() : string {
+    if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
 
-    if(aes) {
-      const encTsMicroBuff = this.encryptUsingAesKey(tsMicroBuff),
-            encTsMicroStr  = encTsMicroBuff.toString(BASE64)
-
-      return encTsMicroStr
-    }
-
-    const encTsMicroBuff = this.encryptUsingPrivateKey(tsMicroBuff),
-          encTsMicroStr  = encTsMicroBuff.toString(BASE64)
-
-    return encTsMicroStr
+    return this.respAesKey.toString(BASE64)
   }
 
-  public decodeTsMicro(encTsMicro : string, key : string, aes ?: boolean) : number {
-    const encTsMicroBuff = Buffer.from(encTsMicro, BASE64)
+  public encodeResponseConfig(wssConfig : WssProviderConfig) : string {
+    const encWssConfigBuf = this.encryptResponseConfig(wssConfig),
+          encWssConfigStr = encWssConfigBuf.toString(BASE64)
 
-    if(aes) {
-
-      const tsMicroBuff = this.decryptUsingAesKey(encTsMicroBuff, key),
-            tsMicroStr  = tsMicroBuff.toString(),
-            tsMicro     = Number(tsMicroStr)
-
-      return tsMicro
-    }
-
-    const tsMicroBuff    = this.decryptUsingPublicKey(encTsMicroBuff, key),
-          tsMicroStr     = tsMicroBuff.toString(),
-          tsMicro        = Number(tsMicroStr)
-
-    return tsMicro
+    return encWssConfigStr
   }
 
-  public async encodeBody(publicKey : string, wo : WireObject, msgType ?: string) : Promise<string> {
-    const strData = JSON.stringify(wo),
-          leader  = msgType || strData.length >= Encoder.MIN_SIZE_TO_COMPRESS
-                               ? Leader.DEF_JSON
-                               : Leader.JSON
+  public decodeRequestUrl(encData : string, publicKey ?: string) : {
+                                                                     tsMicro   : number
+                                                                     wssConfig : WssProviderConfig
+                                                                   } {
 
-    let woBuffer : Buffer = Buffer.from(strData)
-
-    switch(leader) {
-      case Leader.DEF_JSON :
-        woBuffer = await Mubble.uPromise.execFn(zlib.deflate, zlib, strData)
-        break
+    const encTsMicro      = encData.slice(0, TS_LEN),
+          encWssConfig    = encData.slice(TS_LEN),
+          encTsMicroBuf   = Buffer.from(encTsMicro, BASE64),
+          encWssConfigBuf = Buffer.from(encWssConfig, BASE64),
+          wssConfig       = this.decryptRequestConfig(encWssConfigBuf)
       
-      case Leader.BIN :
-        woBuffer = Buffer.from(strData, BINARY)
-        break
+    let tsMicro : number = 0
+        
+    if(wssConfig.key) {
+      this.reqAesKey = Buffer.from(wssConfig.key, BASE64)
+
+      tsMicro = Number(this.decryptUsingReqAesKey(encTsMicroBuf).toString())
+    } else if(publicKey) {
+      tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
     }
 
-    const leaderBuff  = Buffer.from(getLeaderByte(leader)),
-          dataBuff    = Buffer.concat([leaderBuff, woBuffer]),
-          encDataBuff = this.encryptUsingPublicKey(dataBuff, publicKey),
-          encDataStr  = encDataBuff.toString(BASE64)
+    if(!tsMicro) throw new Error('Could not decode timestamp.')
 
-    return encDataStr    
+    return {tsMicro, wssConfig}
   }
 
-  public async decodeBody(encDataStr : string) : Promise<WireObject> {
-    const encDataBuff = Buffer.from(encDataStr, BASE64),
-          dataBuff    = this.decryptyUsingPrivateKey(encDataBuff),
-          leader      = getLeader(dataBuff[0]),
-          woBuffer    = dataBuff.slice(1)
+  public async decodeBody(totalBuf : Buffer) : Promise<Array<WireObject>> {
+    const leaderBuf  = totalBuf.slice(0, 1),
+          encDataBuf = totalBuf.slice(1),
+          dataBuf    = this.decryptUsingRespAesKey(encDataBuf),
+          leader     = Number(leaderBuf.toString())
 
-    let strData : string = woBuffer.toString()
+    let dataStr = ''
 
     switch(leader) {
-      case Leader.DEF_JSON :
-        strData = (await Mubble.uPromise.execFn(zlib.inflate, zlib, woBuffer)).toString()
+      case DataLeader.DEF_JSON :
+        dataStr = (await Mubble.uPromise.execFn(zlib.inflate, zlib, dataBuf)).toString()
         break
 
-      case Leader.BIN :
-        strData = woBuffer.toString(BINARY)
+      case DataLeader.JSON     :
+        dataStr = dataBuf.toString()
         break
     }
 
-    const wo = JSON.parse(strData) as WireObject
-    return wo
+    const data = JSON.parse(dataStr)
+    return data
   }
-
-  public genereateNewAesKey() : string {
-    if(!this.aesKey) this.setAesKey()
-
-    return this.aesKey.toString(BASE64)
-  }
-
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    PRIVATE METHODS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+  private encryptResponseConfig(wssConfig : WssProviderConfig) : Buffer {
+    const wssConfigStr = JSON.stringify(wssConfig),
+          wssConfigBuf = Buffer.from(wssConfigStr),
+          encWssConfig = this.encryptUsingPrivateKey(wssConfigBuf)
+
+    return encWssConfig
+  }
+
+  private decryptRequestConfig(encWssConfig : Buffer) : WssProviderConfig {
+    const wssConfigBuf = this.decryptyUsingPrivateKey(encWssConfig),
+          wssConfigStr = wssConfigBuf.toString(),
+          wssConfig    = JSON.parse(wssConfigStr)
+
+    return wssConfig
+  }
 
   private encryptUsingPrivateKey(data : Buffer) : Buffer {
     const encData  = crypto.privateEncrypt(this.privateKey, data)
@@ -151,28 +138,41 @@ export class WssEncProvider {
     return data
   }
 
-  private encryptUsingAesKey(data : Buffer) : Buffer {
-    if(!this.aesKey) this.setAesKey()
+  private decryptUsingReqAesKey(encData : Buffer) : Buffer {
+    if(!this.reqAesKey) this.reqAesKey = this.getNewAesKey()
 
-    const cipher = crypto.createCipheriv(SYM_ALGO, this.aesKey, IV),
-          buff1  = cipher.update(data),
-          buff2  = cipher.final()
+    const decipher = this.getDecipher(this.reqAesKey),
+          buff1    = decipher.update(encData),
+          buff2    = decipher.final()
 
     return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
   }
+  
+  private decryptUsingRespAesKey(encData : Buffer) : Buffer {
+    if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
 
-  private decryptUsingAesKey(encData : Buffer, aesKey : string) : Buffer {
-    this.setAesKey(aesKey)
-
-    const decipher = crypto.createDecipheriv(SYM_ALGO, this.aesKey, IV),
+    const decipher = this.getDecipher(this.respAesKey),
           buff1    = decipher.update(encData),
           buff2    = decipher.final()
 
     return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
   }
 
-  private setAesKey(keyStr ?: string) {
-    this.aesKey = keyStr ? Buffer.from(keyStr, BASE64)
-                         : crypto.randomBytes(32)
+  private getCipher(key : Buffer) {
+    const cipher = crypto.createCipheriv(SYM_ALGO, key, IV)
+
+    return cipher
+  }
+
+  private getDecipher(key : Buffer) {
+    const decipher = crypto.createDecipheriv(SYM_ALGO, key, IV)
+
+    return decipher
+  }
+
+  private getNewAesKey() : Buffer {
+    const key = crypto.randomBytes(32)
+
+    return key
   }
 }

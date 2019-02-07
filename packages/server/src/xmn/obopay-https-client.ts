@@ -56,7 +56,7 @@ export namespace ObopayHttpsClient {
                        pk           : string,
                        requestRedis : RedisWrapper) {
 
-    rc.isAssert() && rc.assert(CLASS_NAME, !selfId, 'Calling init twice!!!')
+    if(selfId) throw new Error('Calling init twice.')
 
     selfId             = selfIdentity
     credentialRegistry = registry
@@ -71,13 +71,13 @@ export namespace ObopayHttpsClient {
                                   unsecured    ?: boolean,
                                   syncHashPath ?: string) : Promise<ResultStruct> {
 
-    rc.isAssert() && rc.assert(CLASS_NAME, selfId && credentialRegistry,
-                               'selfId or credentialRegistry not defined.')
+    if(!selfId || !credentialRegistry)
+      throw new Error('ObopayHttpsClient not initialized.')
 
     const requestServer = credentialRegistry.getCredential(serverId)
 
-    rc.isAssert() && rc.assert(CLASS_NAME, requestServer && requestServer.host && requestServer.port,
-                               'requestServer not defined.')
+    if(!requestServer || !requestServer.host || !requestServer.port)
+      throw new Error('requestServer not defined.')
 
     const syncHash   = syncHashPath ? fs.readFileSync(syncHashPath).toString()
                                     : requestServer.syncHash,
@@ -94,7 +94,7 @@ export namespace ObopayHttpsClient {
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
     headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
 
-    const encProvider = new HttpsEncProvider(privateKey, requestServer.nodeServer)
+    const encProvider = new HttpsEncProvider(privateKey)
     
     headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeRequestKey(syncHash)
     headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(wo.ts)
@@ -108,8 +108,6 @@ export namespace ObopayHttpsClient {
     rc.isDebug() && rc.debug(CLASS_NAME,
                              `http${unsecured ? '' : 's'} request headers.`,
                              headers)
-
-    console.log('\n\nrequest headers : ' + JSON.stringify(headers) + '\n\n')
 
     const options : https.RequestOptions = {
       method   : POST,
@@ -148,15 +146,8 @@ export namespace ObopayHttpsClient {
       result.headers = resp.headers
       result.status  = resp.statusCode || 200
 
-      console.log('\n\nresponse headers : ' + JSON.stringify(resp.headers) + '\n\n')
-
-      rc.isDebug() && rc.debug(CLASS_NAME,
-                               `http${unsecured ? '' : 's'} response headers.`,
-                               resp.headers)
-
-      rc.isAssert() && rc.assert(CLASS_NAME, 
-                                 result.headers[HTTP.HeaderKey.symmKey],
-                                 `${HTTP.HeaderKey.symmKey} missing in response headers.`)
+      if(!result.headers[HTTP.HeaderKey.symmKey])
+        throw new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
 
       if(!result.headers[HTTP.HeaderKey.bodyEncoding])
         result.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
@@ -206,9 +197,7 @@ export namespace ObopayHttpsClient {
   }
 
   export function getEncProvider() : HttpsEncProvider {
-    const encProvider = new HttpsEncProvider(privateKey)
-
-    return encProvider
+    return new HttpsEncProvider(privateKey)
   }
 
   export function verifyClientRequest(rc          : RunContextServer,
