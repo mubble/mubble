@@ -1,4 +1,8 @@
-<div class="loading-error-comp">
+<div class="loading-error-comp"
+[ngClass.xl]="['web-loading-error']"
+[ngClass.lg]="['web-loading-error']"
+[ngClass.md]="['web-loading-error']"
+[ngClass.sm]="['web-loading-error']">
   <div class="mu-loading-root">
     <div class="text-body-medium-normal error-text-cont">
       {{apiErrorText}}
