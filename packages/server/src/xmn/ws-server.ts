@@ -55,7 +55,7 @@ export class WsServer implements ActiveProviderCollection {
     return this.timerPing
   }
 
-  async onConnection(socket : any) {
+  async onConnection(socket : WebSocket, req : http.IncomingMessage) {
 
     try {
 
@@ -63,8 +63,7 @@ export class WsServer implements ActiveProviderCollection {
 
       rc.isDebug() && rc.debug(rc.getName(this), 'got a new connection')
 
-      const req       = socket.upgradeReq,
-            urlObj    = url.parse(req.url || ''),
+      const urlObj    = url.parse(req.url || ''),
             pathName  = urlObj.pathname || '', // it is like /engine.io/header/body
             mainUrls  = [
               WEB_SOCKET_URL.ENC_PUBLIC, 
@@ -88,7 +87,7 @@ export class WsServer implements ActiveProviderCollection {
 
       ci.protocol       = Protocol.WEBSOCKET
       ci.host           = host
-      ci.port           = port || (urlObj.protocol === 'wss' ? 443 : 80)
+      ci.port           = Number(port) || (urlObj.protocol === 'wss' ? 443 : 80)
       ci.url            = mainUrl
       ci.headers        = req.headers
       ci.ip             = this.router.getIp(req)
