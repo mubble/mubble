@@ -22,8 +22,8 @@
     "@types/reflect-metadata": "^0.0.5",
     "@types/request": "^2.0.0",
     "@types/semver": "^5.3.31",
-    "@types/ws": "^6.0.1",
-    "@types/lodash": "^4.14.118"
+    "@types/lodash": "^4.14.118",
+    "@types/ws": "^6.0.1"
   },
   "dependencies": {
     "@mubble/core": "file:../core",
@@ -37,6 +37,6 @@
     "repl.history": "^0.1.4",
     "request": "^2.81.0",
     "semver": "^5.3.0",
-    "ws": "^6.1.2"
+    "ws": "^6.1.3"
   }
 }
