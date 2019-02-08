@@ -6,29 +6,29 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
+
+import { 
+         Mubble,
+         ConnectionInfo,
+         SessionInfo,
+         Protocol,
+         XmnError,
+         WIRE_TYPE,
+         WireEvent,
+         WireEphEvent,
+         WireEventResp,
+         WireObject,
+         WireReqResp,
+         WireRequest,
+         WireSysEvent,
+         TimerInstance,
+         SYS_EVENT
+       }                      from '@mubble/core'
+import { RunContextBrowser }  from '../rc-browser'
+import { WsBrowser }          from './ws-browser'
+import { EventSystem }        from '../util'
 import * as lo                from 'lodash'
 import Dexie                  from 'dexie'
-
-import {  RunContextBrowser } from '../rc-browser'
-
-import {  Mubble,
-          ConnectionInfo,
-          Protocol,
-          XmnError,
-          WIRE_TYPE,
-          WireEvent,
-          WireEphEvent,
-          WireEventResp,
-          WireObject,
-          WireReqResp,
-          WireRequest,
-          WireSysEvent,
-          ClientIdentity,
-          TimerInstance,
-          SYS_EVENT }         from '@mubble/core'
-
-import {  WsBrowser }         from './ws-browser'
-import {  EventSystem }       from '../util'
 
 const TIMEOUT_MS          = 30000,
       SEND_RETRY_MS       = 1000,
@@ -36,13 +36,14 @@ const TIMEOUT_MS          = 30000,
       EVENT_SEND_DELAY    = 1000,
       MAX_EVENTS_TO_SEND  = 5
 
-export interface BrowserConnectionInfo extends  ConnectionInfo {
+export interface BrowserSessionInfo extends SessionInfo {
   provider : WsBrowser
-} 
+}
 
 export abstract class XmnRouterBrowser {
 
-  private ci              : BrowserConnectionInfo
+  private ci              : ConnectionInfo
+  private si              : BrowserSessionInfo
   private ongoingRequests : WireRequest[] = []
   private eventSubMap     : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
   
@@ -61,22 +62,24 @@ export abstract class XmnRouterBrowser {
   private lastEventSendTs  = 0
   private syncKey: Uint8Array
 
-  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, syncKey ?: string) {
+  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, si : SessionInfo, syncKey ?: string) {
 
     const urlParser     = document.createElement('a')
     urlParser.href      = serverUrl
 
-    this.ci             = ci as BrowserConnectionInfo
+    this.ci             = ci
+    this.si             = si as BrowserSessionInfo
+
     this.ci.protocol    = Protocol.WEBSOCKET
     this.ci.host        = urlParser.hostname
     this.ci.port        = Number(urlParser.port) || (urlParser.protocol === 'https:' ? 443 : 80)
     
     if (syncKey) {
-      this.ci.useEncryption = true
+      this.si.useEncryption = true
       const cls:any = Uint8Array
-      this.syncKey  = cls.from(atob(syncKey), c => c.charCodeAt(0))
+      this.syncKey  = cls.from(atob(syncKey), (c : any) => c.charCodeAt(0))
     } else {
-      this.ci.useEncryption = false
+      this.si.useEncryption = false
     }
 
     this.timerReqResend    = rc.timer.register('router-resend', this.cbTimerReqResend.bind(this))
@@ -87,10 +90,10 @@ export abstract class XmnRouterBrowser {
   }
 
   getSyncKey() { return this.syncKey }
-  abstract async upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: ClientIdentity)
+  abstract async upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: Mubble.uObject<any>) : Promise<any>
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
-  abstract getClientIdentity(rc: RunContextBrowser): ClientIdentity
+  abstract getClientIdentity(rc: RunContextBrowser): Mubble.uObject<any>
     
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
@@ -99,9 +102,9 @@ export abstract class XmnRouterBrowser {
       const wr = new WireRequest(apiName, data, 0, resolve, reject)
       this.ongoingRequests.push(wr)
 
-      if (!this.ci.provider) this.prepareConnection(rc)
+      if (!this.si.provider) this.prepareConnection(rc)
 
-      if (!this.ci.provider.send(rc, [wr])) {
+      if (!this.si.provider.send(rc, [wr])) {
         wr._isSent = true
         rc.isDebug() && rc.debug(rc.getName(this), 'sent request', wr)
         this.timerReqTimeout.tickAfter(TIMEOUT_MS)
@@ -114,8 +117,8 @@ export abstract class XmnRouterBrowser {
 
   protected async sendPersistentEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
-    if (!this.ci.provider) this.prepareConnection(rc)
-      const clientIdentity = this.ci.clientIdentity
+    if (!this.si.provider) this.prepareConnection(rc)
+      const clientIdentity = this.ci.customData
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendPersistentEvent', eventName, 
       'clientIdentity', clientIdentity && clientIdentity.clientId)
@@ -135,8 +138,8 @@ export abstract class XmnRouterBrowser {
 
   protected async sendEphemeralEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
-    if (!this.ci.provider) this.prepareConnection(rc)
-      const clientIdentity = this.ci.clientIdentity
+    if (!this.si.provider) this.prepareConnection(rc)
+      const clientIdentity = this.ci.customData
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendEphemeralEvent', eventName, 
       'clientIdentity', clientIdentity && clientIdentity.clientId)
@@ -145,7 +148,7 @@ export abstract class XmnRouterBrowser {
       'You cannot send events without clientId')
 
     const event      = new WireEphEvent(eventName, data)
-    this.ci.provider.sendEphemeralEvent(event)
+    this.si.provider.sendEphemeralEvent(event)
   }
 
   public subscribeEvent(eventName: string, eventHandler: 
@@ -156,22 +159,22 @@ export abstract class XmnRouterBrowser {
 
   prepareConnection(rc: RunContextBrowser) {
 
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.ci.provider)
-    this.ci.networkType     = this.getNetworkType(rc)
-    this.ci.location        = this.getLocation(rc)
-    this.ci.clientIdentity  = this.getClientIdentity(rc)
-    this.ci.publicRequest   = !this.ci.clientIdentity
-    if (!this.ci.provider) this.ci.provider = new WsBrowser(rc, this.ci, this)
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.si.provider)
+    this.ci.customData                 = this.getClientIdentity(rc)
+    this.si.publicRequest              = !this.ci.customData
+    this.ci.customData.networkType     = this.getNetworkType(rc)
+    this.ci.customData.location        = this.getLocation(rc)
+    if (!this.si.provider) this.si.provider = new WsBrowser(rc, this.ci, this.si, this)
   }
 
   private async initEvents() {
 
-    const clientIdentity = this.ci.clientIdentity
+    const clientIdentity = this.ci.customData
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'initEvents', !!this.db)
 
     if (!this.db && clientIdentity && clientIdentity.clientId) {
-      this.db = new XmnDb(this.ci.clientIdentity.clientId)
+      this.db = new XmnDb(this.ci.customData.clientId)
       await EventTable.removeOldByTs(this.rc, this.db, Date.now() - 7 * 24 * 3600000 /* 7 days */)
     }
     return !!this.db
@@ -179,9 +182,9 @@ export abstract class XmnRouterBrowser {
 
   private async trySendingEvents(rc: RunContextBrowser) {
 
-    if (!this.ci.networkType || this.lastEventTs) {
+    if (!this.ci.customData.networkType || this.lastEventTs) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Skipping sending event as not ready', {
-        networkType         : this.ci.networkType,
+        networkType         : this.ci.customData.networkType,
         lastEventTs         : this.lastEventTs
       })
       return
@@ -198,12 +201,12 @@ export abstract class XmnRouterBrowser {
 
     for (let index = 0; index < arEvent.length; index++) {
 
-      if (!this.ci.provider) this.prepareConnection(rc)
+      if (!this.si.provider) this.prepareConnection(rc)
       
       const eventTable = arEvent[index],
             wireEvent  = new WireEvent(eventTable.name, JSON.parse(eventTable.data), eventTable.ts)
 
-      if (this.ci.provider.send(rc, [wireEvent])) break // failed to send
+      if (this.si.provider.send(rc, [wireEvent])) break // failed to send
 
       rc.isDebug() && rc.debug(rc.getName(this), 'sent event', wireEvent)
       this.lastEventTs      = wireEvent.ts
@@ -217,7 +220,7 @@ export abstract class XmnRouterBrowser {
 
     this.cbTimerReqResend()
 
-    const clientIdentity = this.ci.clientIdentity
+    const clientIdentity = this.ci.customData
     if (clientIdentity && clientIdentity.clientId) {
       if (await this.initEvents()) this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
     }
@@ -296,19 +299,19 @@ export abstract class XmnRouterBrowser {
 
   private async processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
     if (se.name === SYS_EVENT.UPGRADE_CLIENT_IDENTITY) {
-      await this.upgradeClientIdentity(rc, se.data as ClientIdentity)
+      await this.upgradeClientIdentity(rc, se.data)
       this.prepareConnection(rc)
     } else {
-      await this.ci.provider.processSysEvent(this.rc, se)
+      await this.si.provider.processSysEvent(this.rc, se)
     }
   }
 
   private cbTimerReqResend(): number {
 
     const wr = this.ongoingRequests.find(wr => !wr._isSent)
-    if (!wr || !this.ci.provider) return 0
+    if (!wr || !this.si.provider) return 0
 
-    if (!this.ci.provider.send(this.rc, wr)) {
+    if (!this.si.provider.send(this.rc, wr)) {
 
       wr._isSent = true
       this.timerReqTimeout.tickAfter(TIMEOUT_MS)
@@ -380,6 +383,8 @@ export abstract class XmnRouterBrowser {
       rc.isStatus() && rc.status(rc.getName(this), 'Request failed with code', errorCode,
         wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
       
+      errorMessage = errorMessage ? errorMessage : errorCode
+
       wr.reject(new Mubble.uError(errorCode, errorMessage))
 
     } else {

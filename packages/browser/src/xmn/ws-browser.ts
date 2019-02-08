@@ -13,7 +13,9 @@
 
 ------------------------------------------------------------------------------*/
 
-import { ConnectionInfo,
+import { 
+         ConnectionInfo,
+         SessionInfo,
          XmnError,
          WEB_SOCKET_URL,
          SYS_EVENT,
@@ -25,34 +27,30 @@ import { ConnectionInfo,
          TimerInstance,
          WireObject,
          Leader,
-         XmnProvider}  from '@mubble/core'
-
-import { XmnRouterBrowser } from './xmn-router-browser'
-
-import {  
-  RunContextBrowser,
-  LOG_LEVEL
-} from '../rc-browser'
-
-import {  EncryptionBrowser } from './enc-provider-browser'         
+         XmnProvider
+       }                                from '@mubble/core'
+import { XmnRouterBrowser }             from './xmn-router-browser'
+import { RunContextBrowser }            from '../rc-browser'
+import { EncryptionBrowser }            from './enc-provider-browser'         
 
 export class WsBrowser implements XmnProvider {
 
-  private ws                : WebSocket
-  private encProvider       : EncryptionBrowser
-  private timerPing         : TimerInstance
+  private ws              : WebSocket
+  private encProvider     : EncryptionBrowser
+  private timerPing       : TimerInstance
   
-  private socketCreateTs    : number = 0
-  private lastMessageTs     : number = 0
-  private msPingInterval    : number = 29000 // Must be a valid number
-  private sending           : boolean = false
-  private configured        : boolean = false
-  private preConfigQueue    : MessageEvent[] = []
+  private socketCreateTs  : number         = 0
+  private lastMessageTs   : number         = 0
+  private msPingInterval  : number         = 29 * 1000  // Must be a valid number
+  private sending         : boolean        = false
+  private configured      : boolean        = false
+  private preConfigQueue  : MessageEvent[] = []
 
-  private ephemeralEvents   : WireEvent[] = []
+  private ephemeralEvents : WireEvent[]    = []
   
   constructor(private rc     : RunContextBrowser, 
-              private ci     : ConnectionInfo, 
+              private ci     : ConnectionInfo,
+              private si     : SessionInfo,
               private router : XmnRouterBrowser) {
 
     rc.setupLogger(this, 'WsBrowser')
@@ -60,13 +58,13 @@ export class WsBrowser implements XmnProvider {
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
-  private uiArToB64(ar) {
+  private uiArToB64(ar : any) {
     return btoa(String.fromCharCode(...ar))
   }
 
   public sendEphemeralEvent(event: WireEphEvent) {
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.ci.provider)
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.si.provider)
 
     if (this.ephemeralEvents.length >= 20) {
       this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'Too many ephemeralEvents. Sizing to 20')
@@ -116,12 +114,12 @@ export class WsBrowser implements XmnProvider {
     if (!this.ws) {
 
       if (!this.encProvider) {
-        this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getSyncKey())
+        this.encProvider = new EncryptionBrowser(rc, this.ci, this.si, this.router.getSyncKey())
         await this.encProvider.init()
       }
         
-      const dest    = this.ci.useEncryption ? (this.ci.publicRequest ? WEB_SOCKET_URL.ENC_PUBLIC : WEB_SOCKET_URL.ENC_PRIVATE) : 
-                      (this.ci.publicRequest ? WEB_SOCKET_URL.PLAIN_PUBLIC : WEB_SOCKET_URL.PLAIN_PRIVATE),
+      const dest    = this.si.useEncryption ? (this.si.publicRequest ? WEB_SOCKET_URL.ENC_PUBLIC : WEB_SOCKET_URL.ENC_PRIVATE) : 
+                      (this.si.publicRequest ? WEB_SOCKET_URL.PLAIN_PUBLIC : WEB_SOCKET_URL.PLAIN_PRIVATE),
             url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${dest}/`,
             header  = await this.encProvider.encodeHeader(rc),
             body    = await this.encProvider.encodeBody(rc, data)
@@ -179,7 +177,7 @@ export class WsBrowser implements XmnProvider {
 
   onError(err: any) {
     this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'Websocket onError()', err)
-    if (this.ci.provider) {
+    if (this.si.provider) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -187,7 +185,7 @@ export class WsBrowser implements XmnProvider {
 
   onClose() {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onClose()')
-    if (this.ci.provider) {
+    if (this.si.provider) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -212,13 +210,13 @@ export class WsBrowser implements XmnProvider {
       this.configured = true
       while (this.preConfigQueue.length) {
         const message = this.preConfigQueue.shift()
-        await this.onMessage(message)
+        await this.onMessage(message as MessageEvent)
       }
     } else if (se.name === SYS_EVENT.ERROR) {
 
       const errMsg = se.data as ConnectionError
       rc.isWarn() && rc.warn(rc.getName(this), 'processSysEvent' , errMsg)
-      if (this.ci.provider) {
+      if (this.si.provider) {
         this.cleanup()
         this.router.providerFailed(errMsg.code)
       }
@@ -232,7 +230,7 @@ export class WsBrowser implements XmnProvider {
 
   private cbTimerPing(): number {
 
-    if (!this.ci.provider) return 0
+    if (!this.si.provider) return 0
 
     const now   = Date.now(),
           diff  = this.lastMessageTs + this.msPingInterval - now
@@ -247,13 +245,13 @@ export class WsBrowser implements XmnProvider {
 
   private cleanup() {
 
-    if (!this.ci.provider) return
+    if (!this.si.provider) return
 
     try {
       this.timerPing.remove()
       
       this.encProvider  = null as any
-      this.ci.provider  = null
+      this.si.provider  = null as any
 
       if (this.ws) this.ws.close()
       this.ws           = null as any

@@ -119,7 +119,7 @@ export class WireObject {
     this.type = type
     this.name = name
     this.data = data
-    this.ts   = ts || Date.now()
+    this.ts   = ts || Date.now() * 1000
   }
 
   stringify(): string {
@@ -258,7 +258,7 @@ export const Encoder = {
 
 export interface XmnProvider {
   send(rc: RunContextBase , data: WireObject[]) : void
-  requestClose() : void
+  requestClose(rc : RunContextBase) : void
 }
 
 export interface ActiveProviderCollection {

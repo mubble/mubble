@@ -25,7 +25,8 @@ import * as https             from 'https'
 import * as http 							from 'http'
 import * as urlModule         from 'url'
 
-const SLASH_SEP = '/'
+const SLASH_SEP         = '/',
+      PING_FREQUENCY_MS = 29 * 1000 // 29 seconds
 
 export class WssServer {
 
@@ -42,6 +43,8 @@ export class WssServer {
 		})
 
     this.server.on('connection', this.establishHandshake.bind(this))
+
+    setInterval(this.cbTimerPing.bind(this), PING_FREQUENCY_MS)
 	}
 	
 	private async establishHandshake(socket : WebSocket, req : http.IncomingMessage) {
@@ -66,6 +69,7 @@ export class WssServer {
                                       : ObopayWssClient.getClientPublicKey(clientId),
             encProvider = ObopayWssClient.getEncProvider(),
             body        = encProvider.decodeRequestUrl(encData, publicKey),
+            diff        = Math.abs((Date.now() * 1000) - body.tsMicro), // ts difference in microseconds
             wssConfig   = ObopayWssClient.getWssConfig(body.wssConfig, encProvider),
             ci          = {} as ConnectionInfo,
             si          = {} as SessionInfo
@@ -77,8 +81,9 @@ export class WssServer {
       ci.url            = path
       ci.headers        = req.headers
       ci.ip             = this.router.getIp(req)
+      ci.msOffset       = diff > 5000000 ? diff : 0 // 5 seconds difference is negligible
       ci.lastEventTs    = 0
-      ci.lastRequestTs  = 0
+      ci.lastRequestTs  = body.tsMicro
       ci.customData     = wssConfig.custom
 
       si.publicRequest  = false
@@ -102,6 +107,23 @@ export class WssServer {
   public markClosed(wssProvider : WssServerProvider) {
     this.socketMap.delete(wssProvider)
   }
+
+  private cbTimerPing() {
+    const notBefore      = Date.now() - PING_FREQUENCY_MS - 5000, /* extra time for network delays */
+          notBeforeMicro = notBefore * 1000,
+          rc             = this.refRc,
+          len            = this.socketMap.size
+
+    for(const [webSocket, lastTs] of this.socketMap) {
+
+      if(lastTs < notBeforeMicro) {
+        rc.isDebug() && rc.debug(rc.getName(this), 'Cleaning up a connection as no ping or close.')
+        webSocket.requestClose(rc)
+      } else if(rc.isDebug() && len === 1) {
+        rc.isDebug() && rc.debug(rc.getName(this), 'Connection checked and found active.')
+      }
+    }
+  }
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,12 +146,18 @@ export class WssServerProvider implements XmnProvider {
     this.socket.onerror    = this.onError.bind(this)
   }
 
-  public send() {
+  public async send(rc : RunContextServer, woArr : Array<WireObject>) {
+    const data = await this.encProvider.encodeBody(woArr)
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
+
+    this.ci.lastRequestTs = woArr[woArr.length - 1].ts
+    this.socket.send(data)
   }
 
-  public requestClose() {
+  public requestClose(rc : RunContextServer) {
     this.socket.close()
+    this.closeInternal(rc)
   }
 
   private onOpen() {
@@ -149,23 +177,18 @@ export class WssServerProvider implements XmnProvider {
 
     const woArr = await this.encProvider.decodeBody(data)
 
-    woArr[0].name !== 'PING' && rc.isDebug() && rc.debug(rc.getName(this), 'processMessage', {
-      incomingLength  : data.length,
-      type            : data.constructor ? data.constructor.name : undefined,
-      key             : (<any>this.ci.headers)['sec-websocket-key'],
-      messages        : woArr.length,
-      firstMsg        : woArr[0].name
-    })
+    rc.isDebug() && rc.debug(rc.getName(this), 'processing', woArr)
 
-    const tsVerified = woArr.every((wo : WireObject) => {
-      return ObopayWssClient.verifyRequestTs(wo.ts, this.ci.lastRequestTs, this.wssConfig)
-    })
+    // TODO : Verify requestTs
+    // const tsVerified = woArr.every((wo : WireObject) => {
+    //   return ObopayWssClient.verifyRequestTs(wo.ts, this.ci.lastRequestTs, this.wssConfig)
+    // })
 
-    if(!tsVerified) {
-      this.socket.close(WssErrorCode.INVALID_REQUESTTS)
-      this.closeInternal(rc)
-      return
-    }
+    // if(!tsVerified) {
+    //   this.socket.close(WssErrorCode.INVALID_REQUESTTS)
+    //   this.closeInternal(rc)
+    //   return
+    // }
 
     this.router.providerMessage(rc, this.ci, woArr)
   }
@@ -177,16 +200,16 @@ export class WssServerProvider implements XmnProvider {
     this.closeInternal(rc)
   }
 
-  private closeInternal(rc : RunContextServer) {
-    this.wssServer.markClosed(this)
-    this.router.providerClosed(rc, this.ci)
-  }
-
   private onError(err : Error) {
     this.wssServer.markClosed(this)
 
     const rc = this.refRc.copyConstruct('', 'wss-request')
     rc.isError() && rc.error(rc.getName(this), 'WebSocket onerror()', err)
     this.router.providerFailed(rc, this.ci)
+  }
+
+  private closeInternal(rc : RunContextServer) {
+    this.wssServer.markClosed(this)
+    this.router.providerClosed(rc, this.ci)
   }
 }

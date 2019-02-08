@@ -264,7 +264,7 @@ export abstract class XmnRouterServer {
 
   closeConnection(rc : RunContextServer) {
     if(this.sessionInfo.provider) {
-      this.sessionInfo.provider.requestClose()
+      this.sessionInfo.provider.requestClose(rc)
     } else {
       rc.isDebug() && rc.debug(rc.getName(this), 'Cannot close the connection as provider is closed.')
     }

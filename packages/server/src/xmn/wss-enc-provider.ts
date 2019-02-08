@@ -14,7 +14,6 @@ import {
          Mubble,
          WssProviderConfig
        }                    from '@mubble/core'
-import { ObopayWssClient }  from './obopay-wss-client'
 import * as crypto          from 'crypto'
 import * as zlib            from 'zlib'
 
@@ -72,26 +71,52 @@ export class WssEncProvider {
     return {tsMicro, wssConfig}
   }
 
-  public async decodeBody(totalBuf : Buffer) : Promise<Array<WireObject>> {
-    const leaderBuf  = totalBuf.slice(0, 1),
-          encDataBuf = totalBuf.slice(1),
-          dataBuf    = this.decryptUsingRespAesKey(encDataBuf),
-          leader     = Number(leaderBuf.toString())
+  public async encodeBody(woArr : Array<WireObject>) : Promise<Buffer> {
+    const jsonStr   = JSON.stringify(woArr),
+          jsonBuf   = Buffer.from(jsonStr),
+          leader    = jsonStr.length >= Encoder.MIN_SIZE_TO_COMPRESS ? DataLeader.DEF_JSON
+                                                                     : DataLeader.JSON,
+          leaderBuf = Buffer.from(leader.toString())
 
     let dataStr = ''
 
     switch(leader) {
       case DataLeader.DEF_JSON :
-        dataStr = (await Mubble.uPromise.execFn(zlib.inflate, zlib, dataBuf)).toString()
+        dataStr = (await Mubble.uPromise.execFn(zlib.deflate, zlib, jsonBuf)).toString()
         break
 
-      case DataLeader.JSON     :
-        dataStr = dataBuf.toString()
+      case DataLeader.JSON :
+        dataStr = jsonStr
         break
     }
 
-    const data = JSON.parse(dataStr)
-    return data
+    const bodyBuf    = Buffer.from(dataStr),
+          dataBuf    = Buffer.concat([leaderBuf, bodyBuf]),
+          encDataBuf = this.encryptUsingRespAesKey(dataBuf)
+
+    return encDataBuf
+  }
+
+  public async decodeBody(encDataBuf : Buffer) : Promise<Array<WireObject>> {
+    const dataBuf   = this.decryptUsingRespAesKey(encDataBuf),
+          leaderBuf = dataBuf.slice(0, 1),
+          bodyBuf   = dataBuf.slice(1),
+          leader    = Number(leaderBuf.toString())
+
+    let bodyStr = ''
+
+    switch(leader) {
+      case DataLeader.DEF_JSON :
+        bodyStr = (await Mubble.uPromise.execFn(zlib.inflate, zlib, bodyBuf)).toString()
+        break
+
+      case DataLeader.JSON :
+        bodyStr = bodyBuf.toString()
+        break
+    }
+
+    const woArr = JSON.parse(bodyStr)
+    return woArr
   }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -144,6 +169,16 @@ export class WssEncProvider {
     const decipher = this.getDecipher(this.reqAesKey),
           buff1    = decipher.update(encData),
           buff2    = decipher.final()
+
+    return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
+  }
+
+  private encryptUsingRespAesKey(data : Buffer) : Buffer {
+    if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
+
+    const cipher = this.getCipher(this.respAesKey),
+          buff1  = cipher.update(data),
+          buff2  = cipher.final()
 
     return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
   }

@@ -11,14 +11,15 @@
   "author": "Raghvendra Varma",
   "license": "ISC",
   "devDependencies": {
+    "@mubble/core": "file:../core",
     "@types/dexie": "^1.3.1",
-    "@types/lodash": "^4.14.61",
-    "@types/hashids": "^1.0.30"
+    "@types/hashids": "^1.0.30",
+    "@types/lodash": "^4.14.61"
   },
   "peerDependencies": {
     "lodash": "^4.17.4",
     "hashids": "^1.1.4",
     "reflect-metadata": "^0.1.10",
-    "@mubble/core": "latest"
+    "@mubble/core": "file:../core"
   }
 }
