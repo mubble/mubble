@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Websocket based request handler
+   About      : WebSocket based request handler
    
    Created on : Fri Jan 04 2019
    Author     : Vishal Sinha

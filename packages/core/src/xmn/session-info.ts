@@ -14,10 +14,6 @@ export interface SessionInfo {
 
   protocolVersion : string        // Example: 'v2'
 
-  // Information passed by the client: to be used by Xmn internally
-  publicRequest   : boolean
-  useEncryption   : boolean
-
   // provider for this connection (WebSocket, Http etc.)
   provider        : XmnProvider   // The protocol provider keeps it's custom data here
 

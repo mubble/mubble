@@ -247,9 +247,12 @@ export const Leader = {
 }
 
 export const DataLeader = {
-  BINARY   : 0x01,
-  DEF_JSON : 0x02,
-  JSON     : 0x03
+  BINARY       : 0x01,
+  DEF_JSON     : 0x02,
+  JSON         : 0x03,
+  ENC_BINARY   : 0x04,
+  ENC_DEF_JSON : 0x05,
+  ENC_JSON     : 0x06
 }
 
 export const Encoder = {
