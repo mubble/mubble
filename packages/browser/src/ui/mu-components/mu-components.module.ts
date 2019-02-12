@@ -23,11 +23,14 @@ import { NcMaxLengthDirective,
          LongPressDirective, 
          NcStyleClassDirective,
          NextInpFocusDirective
-}                                           from './directives'
+       }                                    from './directives'
 
 import { TRANSLATION_PROVIDERS,
          TranslateService,
          TranslatePipe }                    from './translate'
+import { CustomBreakPointsProvider }        from './custom-breakpoints'
+
+
 
 @NgModule({
   imports: [
@@ -90,6 +93,9 @@ import { TRANSLATION_PROVIDERS,
     CommonModule,
     FlexLayoutModule
     
+  ],
+  providers: [
+    CustomBreakPointsProvider
   ]
 })
 

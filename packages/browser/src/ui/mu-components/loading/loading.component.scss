@@ -18,7 +18,10 @@
 }
 
 .web-content-div {
-   height: 90vh !important;
+
+  height: 90vh !important;
+  max-height: 90vh !important;
+
   .spinner-cont {
     margin-top: 30% !important;  
   }
