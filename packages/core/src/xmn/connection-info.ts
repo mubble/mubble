@@ -10,7 +10,6 @@
 import { Mubble }               from '../'
 import { Protocol }             from './xmn-core'
 
-
 export interface ConnectionInfo {
 
   // Client Public identifier
@@ -24,10 +23,11 @@ export interface ConnectionInfo {
   headers         : Mubble.uObject<any> // empty for client
   ip              : string    // ip address or host name of the client socket
 
+  location        : string // serialised JSON Object
+  networkType     : string
+
   // Server fields. Not used by client
   msOffset        : number    // this is inferred by the server based on client's now field. Api/event need not use this
   lastEventTs     : number    // Must be set before an event is processed on server
   lastRequestTs   : number
-
-  customData      : Mubble.uObject<any>
 }

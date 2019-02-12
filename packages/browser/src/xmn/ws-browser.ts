@@ -17,7 +17,6 @@ import {
          ConnectionInfo,
          SessionInfo,
          XmnError,
-         WEB_SOCKET_URL,
          SYS_EVENT,
          WireEvent,
          WireEphEvent,
@@ -31,30 +30,30 @@ import {
        }                                from '@mubble/core'
 import { XmnRouterBrowser }             from './xmn-router-browser'
 import { RunContextBrowser }            from '../rc-browser'
-import { EncryptionBrowser }            from './enc-provider-browser'         
+import { EncryptionBrowser }            from './enc-provider-browser'
 
 export class WsBrowser implements XmnProvider {
 
-  private ws              : WebSocket
-  private encProvider     : EncryptionBrowser
-  private timerPing       : TimerInstance
+  private ws                  : WebSocket
+  private encProvider         : EncryptionBrowser
+  private timerPing           : TimerInstance
   
-  private socketCreateTs  : number         = 0
-  private lastMessageTs   : number         = 0
-  private msPingInterval  : number         = 29 * 1000  // Must be a valid number
-  private sending         : boolean        = false
-  private configured      : boolean        = false
-  private preConfigQueue  : MessageEvent[] = []
+  private socketCreateTs      : number          = 0
+  private lastMessageTs       : number          = 0
+  private msPingInterval      : number          = 29 * 1000  // Must be a valid number
+  private sending             : boolean         = false
+  private configured          : boolean         = false
+  private preConfigQueue      : MessageEvent[]  = []
 
-  private ephemeralEvents : WireEvent[]    = []
-  
+  private ephemeralEvents     : WireEvent[]     = []
+
   constructor(private rc     : RunContextBrowser, 
               private ci     : ConnectionInfo,
               private si     : SessionInfo,
               private router : XmnRouterBrowser) {
 
     rc.setupLogger(this, 'WsBrowser')
-    this.timerPing       = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
+    this.timerPing = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
@@ -114,19 +113,17 @@ export class WsBrowser implements XmnProvider {
     if (!this.ws) {
 
       if (!this.encProvider) {
-        this.encProvider = new EncryptionBrowser(rc, this.ci, this.si, this.router.getSyncKey())
+        this.encProvider = new EncryptionBrowser(rc, this.ci, this.si, this.router.getPubKey())
         await this.encProvider.init()
       }
-        
-      const dest    = this.si.useEncryption ? (this.si.publicRequest ? WEB_SOCKET_URL.ENC_PUBLIC : WEB_SOCKET_URL.ENC_PRIVATE) : 
-                      (this.si.publicRequest ? WEB_SOCKET_URL.PLAIN_PUBLIC : WEB_SOCKET_URL.PLAIN_PRIVATE),
-            url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${dest}/`,
+
+      const url     = `wss://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}`,
             header  = await this.encProvider.encodeHeader(rc),
             body    = await this.encProvider.encodeBody(rc, data)
       
       messageBody = encodeURIComponent(this.uiArToB64(header)) + '/' + 
                     encodeURIComponent(this.uiArToB64(body))
-        
+
       this.ws  = new WebSocket(url + messageBody)
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url + messageBody)
   

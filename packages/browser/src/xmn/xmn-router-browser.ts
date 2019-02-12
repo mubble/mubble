@@ -42,14 +42,14 @@ export interface BrowserSessionInfo extends SessionInfo {
 
 export abstract class XmnRouterBrowser {
 
-  private ci              : ConnectionInfo
-  private si              : BrowserSessionInfo
-  private ongoingRequests : WireRequest[] = []
-  private eventSubMap     : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
+  private ci                : ConnectionInfo
+  private si                : BrowserSessionInfo
+  private ongoingRequests   : WireRequest[] = []
+  private eventSubMap       : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
   
-  private timerReqResend: TimerInstance
-  private timerReqTimeout: TimerInstance
-  private timerEventTimeout: TimerInstance
+  private timerReqResend    : TimerInstance
+  private timerReqTimeout   : TimerInstance
+  private timerEventTimeout : TimerInstance
 
   private db: XmnDb
 
@@ -60,9 +60,10 @@ export abstract class XmnRouterBrowser {
 
   private lastEventTs      = 0
   private lastEventSendTs  = 0
-  private syncKey: Uint8Array
+  private pubKey: Uint8Array
 
-  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, si : SessionInfo, syncKey ?: string) {
+  constructor(private rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, 
+                      si: SessionInfo, pubKey: string) {
 
     const urlParser     = document.createElement('a')
     urlParser.href      = serverUrl
@@ -74,14 +75,9 @@ export abstract class XmnRouterBrowser {
     this.ci.host        = urlParser.hostname
     this.ci.port        = Number(urlParser.port) || (urlParser.protocol === 'https:' ? 443 : 80)
     
-    if (syncKey) {
-      this.si.useEncryption = true
-      const cls:any = Uint8Array
-      this.syncKey  = cls.from(atob(syncKey), (c : any) => c.charCodeAt(0))
-    } else {
-      this.si.useEncryption = false
-    }
-
+    const cls :any      = Uint8Array
+    this.pubKey         = cls.from(atob(pubKey), (c : any) => c.charCodeAt(0))
+    
     this.timerReqResend    = rc.timer.register('router-resend', this.cbTimerReqResend.bind(this))
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
     this.timerEventTimeout = rc.timer.register('router-event-timeout', this.cbTimerEventTimeout.bind(this))
@@ -89,11 +85,10 @@ export abstract class XmnRouterBrowser {
     // rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
-  getSyncKey() { return this.syncKey }
-  abstract async upgradeClientIdentity(rc: RunContextBrowser, clientIdentity: Mubble.uObject<any>) : Promise<any>
+  getPubKey() { return this.pubKey }
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
-  abstract getClientIdentity(rc: RunContextBrowser): Mubble.uObject<any>
+  abstract getCustomData(rc: RunContextBrowser) : Mubble.uObject<any>
     
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
@@ -160,8 +155,7 @@ export abstract class XmnRouterBrowser {
   prepareConnection(rc: RunContextBrowser) {
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.si.provider)
-    this.ci.customData                 = this.getClientIdentity(rc)
-    this.si.publicRequest              = !this.ci.customData
+    this.ci.customData                 = this.getCustomData(rc)
     this.ci.customData.networkType     = this.getNetworkType(rc)
     this.ci.customData.location        = this.getLocation(rc)
     if (!this.si.provider) this.si.provider = new WsBrowser(rc, this.ci, this.si, this)
