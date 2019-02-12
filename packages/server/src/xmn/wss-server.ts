@@ -14,7 +14,10 @@ import {
          SessionInfo,
          Protocol,
          WssProviderConfig,
-         WssErrorCode
+         WssErrorCode,
+         WIRE_TYPE,
+         SYS_EVENT,
+         WireSysEvent
        }                      from '@mubble/core'
 import { RunContextServer }   from '../rc-server'
 import { XmnRouterServer } 		from './xmn-router-server'
@@ -86,15 +89,16 @@ export class WssServer {
       ci.lastRequestTs  = body.tsMicro
       ci.customData     = wssConfig.custom
 
-      si.publicRequest  = false
-      si.useEncryption  = true
-
       const wssProvider = new WssServerProvider(rc, socket, ci, this.router, encProvider, wssConfig, this)
       si.provider       = wssProvider
 
       await this.router.verifyConnection(rc, ci, si)
+      wssConfig.custom = ci.customData
 
-      const encConfig = encProvider.encodeResponseConfig(wssConfig)
+      const woJson    = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.WS_PROVIDER_CONFIG, data : wssConfig},
+            respWo    = WireObject.getWireObject(woJson) as WireSysEvent,
+            encConfig = await encProvider.encodeBody([respWo], false)
+
       socket.send(encConfig)
 
       this.socketMap.set(wssProvider, body.tsMicro)
@@ -147,7 +151,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
-    const data = await this.encProvider.encodeBody(woArr)
+    const data = await this.encProvider.encodeBody(woArr, true)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
 

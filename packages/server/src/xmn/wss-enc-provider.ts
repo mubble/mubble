@@ -71,51 +71,63 @@ export class WssEncProvider {
     return {tsMicro, wssConfig}
   }
 
-  public async encodeBody(woArr : Array<WireObject>) : Promise<Buffer> {
-    const jsonStr   = JSON.stringify(woArr),
-          jsonBuf   = Buffer.from(jsonStr),
-          leader    = jsonStr.length >= Encoder.MIN_SIZE_TO_COMPRESS ? DataLeader.DEF_JSON
-                                                                     : DataLeader.JSON,
-          leaderBuf = Buffer.from(leader.toString())
+  public async encodeBody(woArr : Array<WireObject>, useEncryption : boolean) : Promise<Buffer> {
+    const jsonStr     = JSON.stringify(woArr),
+          jsonBuf     = Buffer.from(jsonStr),
+          encJsonBuf  = useEncryption ? this.encryptUsingRespAesKey(jsonBuf) : jsonBuf,
+          compress    = encJsonBuf.length >= Encoder.MIN_SIZE_TO_COMPRESS,
+          leader      = this.getLeader(compress, useEncryption, false),
+          leaderBuf   = Buffer.from([leader])
 
     let dataStr = ''
 
     switch(leader) {
       case DataLeader.DEF_JSON :
-        dataStr = (await Mubble.uPromise.execFn(zlib.deflate, zlib, jsonBuf)).toString()
+      case DataLeader.ENC_DEF_JSON :
+        dataStr = (await Mubble.uPromise.execFn(zlib.deflate, zlib, encJsonBuf)).toString()
         break
 
       case DataLeader.JSON :
-        dataStr = jsonStr
+      case DataLeader.ENC_JSON :
+        dataStr = encJsonBuf.toString()
         break
     }
 
-    const bodyBuf    = Buffer.from(dataStr),
-          dataBuf    = Buffer.concat([leaderBuf, bodyBuf]),
-          encDataBuf = this.encryptUsingRespAesKey(dataBuf)
+    const dataBuf  = Buffer.from(dataStr),
+          totalBuf = Buffer.concat([leaderBuf, dataBuf])
 
-    return encDataBuf
+    return totalBuf
   }
 
-  public async decodeBody(encDataBuf : Buffer) : Promise<Array<WireObject>> {
-    const dataBuf   = this.decryptUsingRespAesKey(encDataBuf),
-          leaderBuf = dataBuf.slice(0, 1),
-          bodyBuf   = dataBuf.slice(1),
-          leader    = Number(leaderBuf.toString())
+  public async decodeBody(totalBuf : Buffer) : Promise<Array<WireObject>> {
+    const leaderBuf = totalBuf.slice(0, 1),
+          dataBuf   = totalBuf.slice(1),
+          leader    = [...leaderBuf][0]
 
-    let bodyStr = ''
+    let jsonStr = ''
 
     switch(leader) {
+      case DataLeader.ENC_DEF_JSON :
+        const encJsonBuf = await Mubble.uPromise.execFn(zlib.inflate, zlib, dataBuf),
+              jsonBuf    = this.decryptUsingRespAesKey(encJsonBuf)
+
+        jsonStr = jsonBuf.toString()
+        break
+
       case DataLeader.DEF_JSON :
-        bodyStr = (await Mubble.uPromise.execFn(zlib.inflate, zlib, bodyBuf)).toString()
+        jsonStr = (await Mubble.uPromise.execFn(zlib.inflate, zlib, dataBuf)).toString()
+        break
+
+      case DataLeader.ENC_JSON :
+        jsonStr = this.decryptUsingRespAesKey(dataBuf).toString()
         break
 
       case DataLeader.JSON :
-        bodyStr = bodyBuf.toString()
+        jsonStr = dataBuf.toString()
         break
     }
 
-    const woArr = JSON.parse(bodyStr)
+    const woArr = JSON.parse(jsonStr)
     return woArr
   }
 
@@ -209,5 +221,16 @@ export class WssEncProvider {
     const key = crypto.randomBytes(32)
 
     return key
+  }
+
+  private getLeader(compress : boolean, encrypt : boolean, binary : boolean) : number {
+    const leader = binary ? encrypt ? DataLeader.ENC_BINARY
+                                    : DataLeader.BINARY
+                          : compress ? encrypt ? DataLeader.ENC_DEF_JSON
+                                               : DataLeader.DEF_JSON
+                                     : encrypt ? DataLeader.ENC_JSON
+                                               : DataLeader.JSON
+
+    return leader
   }
 }

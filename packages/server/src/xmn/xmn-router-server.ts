@@ -63,10 +63,10 @@ export abstract class XmnRouterServer {
 
   abstract getPrivateKeyPem(rc : RunContextServer, ci : ConnectionInfo) : string
 
-  async verifyConnection(rc       : RunContextServer,
-                         ci       : ConnectionInfo,
-                         si       : SessionInfo,
-                         apiName ?: string) {
+  public async verifyConnection(rc       : RunContextServer,
+                                ci       : ConnectionInfo,
+                                si       : SessionInfo,
+                                apiName ?: string) {
 
     //const rc : RunContextNcServer = refRc.copyConstruct('', refRc.contextName)
     this.sessionInfo = si
@@ -178,7 +178,7 @@ export abstract class XmnRouterServer {
         throw(Error(rc.error(rc.getName(this), 'Unknown api called', wo.name)))
       }
       
-      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false, this.sessionInfo.publicRequest)
+      const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       wResp = new WireReqResp(ir.name, wo.ts, resp)
       await this.sendToProvider(rc, wResp, ir)
 
@@ -214,7 +214,7 @@ export abstract class XmnRouterServer {
         const eventStruct = this.eventMap[wo.name]
         if (!eventStruct) throw(Error(rc.error(rc.getName(this), 'Unknown event called', wo.name)))
 
-        await this.invokeXmnFunction(rc, ci, ie, eventStruct, true, this.sessionInfo.publicRequest)
+        await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
       }
 
       wResp = new WireEventResp(wo.name, wo.ts)
@@ -248,7 +248,7 @@ export abstract class XmnRouterServer {
         params  : wo.data
       } as InvocationData
 
-      await this.invokeXmnFunction(rc, ci, ie, eventStruct, true, this.sessionInfo.publicRequest)
+      await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
 
     } catch (err) {
       
@@ -274,10 +274,9 @@ export abstract class XmnRouterServer {
                           ci              : ConnectionInfo, 
                           invData         : InvocationData,
                           invStruct       : InvokeStruct,
-                          isEvent         : boolean,
-                          isPublicRequest : boolean) {
+                          isEvent         : boolean) {
 
-    return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent, isPublicRequest)
+    return await invStruct.executeFn(rc, ci, invData, invStruct, isEvent)
   }
 
   private async sendEventResponse(rc      : RunContextServer,

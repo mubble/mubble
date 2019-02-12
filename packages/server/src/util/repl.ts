@@ -15,7 +15,8 @@ import {
          XmnProvider,
          SessionInfo,
          HTTP,
-         Mubble
+         Mubble,
+         CustomData
        }                              from '@mubble/core'
 import { RunContextServer }           from '../rc-server'
 import { XmnRouterServer }            from '../xmn/xmn-router-server'
@@ -94,7 +95,7 @@ export abstract class Repl {
     this.print(pr)
   }
 
-  createNewConnectionInfo(clientIdentity : Mubble.uObject<any>) {
+  createNewConnectionInfo(clientIdentity : CustomData) {
     this.ci = this.getConnectionInfo ()
     this.ci.customData = clientIdentity
     this.provider = this.si.provider as ReplProvider
@@ -200,7 +201,7 @@ export class ReplProvider implements XmnProvider {
 
   sendOneMessage (rc: RunContextServer, wo: WireObject, idx: number) : void {
     if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == 'UPGRADE_CLIENT_IDENTITY') {
-      this.ci.customData = wo.data
+      this.ci.customData = wo.data as CustomData
       rc.isStatus() && rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.customData))
       return
     }

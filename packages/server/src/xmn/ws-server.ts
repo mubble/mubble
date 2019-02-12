@@ -95,15 +95,15 @@ export class WsServer implements ActiveProviderCollection {
       ci.ip             = this.router.getIp(req)
       ci.lastEventTs    = 0
 
-      si.publicRequest = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.PLAIN_PUBLIC
-      si.useEncryption = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.ENC_PRIVATE
+      // si.publicRequest = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.PLAIN_PUBLIC
+      // si.useEncryption = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.ENC_PRIVATE
       
       const encProvider    = new EncProviderServer(rc, ci, si),
             headerBuffer   = new Buffer(header, 'base64')
 
       encProvider.extractHeader(rc, headerBuffer)
 
-      const pk = si.useEncryption ? this.router.getPrivateKeyPem(rc, ci) : null
+      const pk = this.router.getPrivateKeyPem(rc, ci)
       encProvider.decodeHeader(rc, headerBuffer, pk)
 
       const webSocket = si.provider = new ServerWebSocket(rc,
@@ -197,7 +197,7 @@ export class ServerWebSocket implements XmnProvider {
 
     this.configSent = true
     
-    const {key, encKey} = this.si.useEncryption ? this.encProvider.getNewKey() : {key: '', encKey: new Buffer('')}
+    const {key, encKey} = this.encProvider.getNewKey()  // : {key: '', encKey: new Buffer('')}
     
     const config = {
       msPingInterval : PING_FREQUENCY_MS, 

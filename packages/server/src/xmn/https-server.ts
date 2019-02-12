@@ -70,8 +70,6 @@ export class HttpsServer {
     ci.msOffset       = 0
     ci.lastEventTs    = 0
 
-    si.publicRequest  = false
-
     try {
       await this.router.verifyConnection(rc, ci, si, apiName)
     } catch (err) {

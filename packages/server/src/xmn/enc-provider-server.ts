@@ -56,7 +56,7 @@ export class EncProviderServer {
   extractKey(rc: RunContextServer, data: Buffer, pk: string | null) {
 
     const startPtr  = 7
-    if (!this.si.useEncryption) return startPtr
+    // if (!this.si.useEncryption) return startPtr
 
     const endPtr    = 7 + 256,
           encKey    = data.slice(startPtr, endPtr)
@@ -124,7 +124,7 @@ export class EncProviderServer {
 
   private encrypt(buffer: Buffer) {
 
-    if (!this.si.useEncryption) return buffer
+    // if (!this.si.useEncryption) return buffer
     // console.log('encrypt', this.ci.syncKey.length, this.ci.syncKey)
 
     const cipher  = crypto.createCipheriv('aes-256-cbc', this.si.syncKey, IV),
@@ -141,7 +141,7 @@ export class EncProviderServer {
 
   private decrypt(buffer: Buffer) {
 
-    if (!this.si.useEncryption) return buffer
+    // if (!this.si.useEncryption) return buffer
 
     const decipher  = crypto.createDecipheriv('aes-256-cbc', this.si.syncKey, IV),
           outBuf1   = decipher.update(buffer),
@@ -170,6 +170,6 @@ export class EncProviderServer {
     ar.forEach(num => {
       if (num > 99) throw('setUniqueId: invalid data')
     })
-    this.ci.customData.uniqueId = ar.join('.')
+    // this.ci.customData.uniqueId = ar.join('.')
   }
 }
