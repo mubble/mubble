@@ -9,6 +9,7 @@
 
 import { Mubble, RunContextBase } from '..'
 import { XmnError }               from './xmn-error'
+import { CustomData }             from './custom-data'
 
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
@@ -220,7 +221,7 @@ export interface WssProviderConfig {
   maxOpenSecs   : number
   toleranceSecs : number
   key           : string
-  custom        : Mubble.uObject<any>
+  custom        : CustomData
 }
 
 export const WssErrorCode = {

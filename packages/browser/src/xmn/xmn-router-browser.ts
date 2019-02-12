@@ -23,7 +23,8 @@ import {
          WireSysEvent,
          TimerInstance,
          SYS_EVENT,
-         CustomData
+         CustomData,
+         WssProviderConfig
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 import { WsBrowser }          from './ws-browser'
@@ -90,6 +91,7 @@ export abstract class XmnRouterBrowser {
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
   abstract getCustomData(rc: RunContextBrowser) : CustomData
+  abstract updateCustomData(rc: RunContextBrowser, customData: CustomData)
     
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
@@ -135,12 +137,12 @@ export abstract class XmnRouterBrowser {
   protected async sendEphemeralEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
     if (!this.si.provider) this.prepareConnection(rc)
-      const clientIdentity = this.ci.customData
+      const customData = this.ci.customData
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendEphemeralEvent', eventName, 
-      'clientIdentity', clientIdentity && clientIdentity.clientId)
+      'customData', customData && customData.clientId)
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), customData && customData.clientId, 
       'You cannot send events without clientId')
 
     const event      = new WireEphEvent(eventName, data)
@@ -164,11 +166,11 @@ export abstract class XmnRouterBrowser {
 
   private async initEvents() {
 
-    const clientIdentity = this.ci.customData
+    const customData = this.ci.customData
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'initEvents', !!this.db)
 
-    if (!this.db && clientIdentity && clientIdentity.clientId) {
+    if (!this.db && customData && customData.clientId) {
       this.db = new XmnDb(this.ci.customData.clientId)
       await EventTable.removeOldByTs(this.rc, this.db, Date.now() - 7 * 24 * 3600000 /* 7 days */)
     }
@@ -215,8 +217,8 @@ export abstract class XmnRouterBrowser {
 
     this.cbTimerReqResend()
 
-    const clientIdentity = this.ci.customData
-    if (clientIdentity && clientIdentity.clientId) {
+    const customData = this.ci.customData
+    if (customData && customData.clientId) {
       if (await this.initEvents()) this.trySendingEvents(this.rc) // not awaiting as it will introduce delay
     }
   }
@@ -293,12 +295,14 @@ export abstract class XmnRouterBrowser {
   }
 
   private async processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
-    if (se.name === SYS_EVENT.UPGRADE_CLIENT_IDENTITY) {
-      //await this.upgradeClientIdentity(rc, se.data)
+
+    if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
+      const newConfig = se.data as WssProviderConfig
+      await this.updateCustomData(rc, newConfig.custom)
       this.prepareConnection(rc)
-    } else {
-      await this.si.provider.processSysEvent(this.rc, se)
-    }
+    } 
+    
+    await this.si.provider.processSysEvent(this.rc, se)
   }
 
   private cbTimerReqResend(): number {

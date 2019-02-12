@@ -26,7 +26,8 @@ import {
          TimerInstance,
          WireObject,
          Leader,
-         XmnProvider
+         XmnProvider,
+         WssProviderConfig
        }                                from '@mubble/core'
 import { XmnRouterBrowser }             from './xmn-router-browser'
 import { RunContextBrowser }            from '../rc-browser'
@@ -37,6 +38,7 @@ export class WsBrowser implements XmnProvider {
   private ws                  : WebSocket
   private encProvider         : EncryptionBrowser
   private timerPing           : TimerInstance
+  private wssProviderConfig   : WssProviderConfig
   
   private socketCreateTs      : number          = 0
   private lastMessageTs       : number          = 0
@@ -44,6 +46,7 @@ export class WsBrowser implements XmnProvider {
   private sending             : boolean         = false
   private configured          : boolean         = false
   private preConfigQueue      : MessageEvent[]  = []
+  private pendingMessage      : WireObject[] | WireObject
 
   private ephemeralEvents     : WireEvent[]     = []
 
@@ -112,17 +115,26 @@ export class WsBrowser implements XmnProvider {
 
     if (!this.ws) {
 
+      this.pendingMessage = data
+
       if (!this.encProvider) {
         this.encProvider = new EncryptionBrowser(rc, this.ci, this.si, this.router.getPubKey())
         await this.encProvider.init()
       }
 
-      const url     = `wss://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}`,
-            header  = await this.encProvider.encodeHeader(rc),
-            body    = await this.encProvider.encodeBody(rc, data)
-      
-      messageBody = encodeURIComponent(this.uiArToB64(header)) + '/' + 
-                    encodeURIComponent(this.uiArToB64(body))
+      if (!this.wssProviderConfig) {
+        this.wssProviderConfig = {
+          pingSecs        : 29,
+          maxOpenSecs     : 5 * 60,
+          toleranceSecs   : 29,
+          key             : this.encProvider.getSyncKey(),
+          custom          : this.ci.customData
+        }
+      }
+
+      const url         = `wss://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
+            header      = await this.encProvider.encodeHeader(this.wssProviderConfig)
+            messageBody = encodeURIComponent(this.uiArToB64(header))
 
       this.ws  = new WebSocket(url + messageBody)
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url + messageBody)
@@ -137,7 +149,7 @@ export class WsBrowser implements XmnProvider {
       this.socketCreateTs = Date.now()
         
     } else {
-      messageBody = await this.encProvider.encodeBody(rc, data)
+      messageBody = await this.encProvider.encodeBody(data)
       this.ws.send(messageBody)
     }
     
@@ -168,7 +180,7 @@ export class WsBrowser implements XmnProvider {
         return
       }
     }
-    const messages = await this.encProvider.decodeBody(this.rc, data)
+    const messages = await this.encProvider.decodeBody(data)
     await this.router.providerMessage(this.rc, messages)
   }
 
@@ -192,14 +204,15 @@ export class WsBrowser implements XmnProvider {
 
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
 
-      const config: WebSocketConfig = se.data as WebSocketConfig,
-            msPing = config.msPingInterval
+      const config: WssProviderConfig = se.data as WssProviderConfig,
+            msPingSecs = config.pingSecs
 
-      this.msPingInterval = msPing
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-                            msPing && Number.isInteger(msPing), msPing)
-      
-      if (config.syncKey) await this.encProvider.setNewKey(rc, config.syncKey)
+          msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
+
+      this.msPingInterval = msPingSecs * 1000
+          
+      if (config.key) await this.encProvider.setNewKey(config.key)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
       'First message in', Date.now() - this.socketCreateTs, 'ms')
@@ -209,6 +222,12 @@ export class WsBrowser implements XmnProvider {
         const message = this.preConfigQueue.shift()
         await this.onMessage(message as MessageEvent)
       }
+
+      if (this.pendingMessage) {
+        await this.send(this.rc, this.pendingMessage)
+        this.pendingMessage = null
+      }
+
     } else if (se.name === SYS_EVENT.ERROR) {
 
       const errMsg = se.data as ConnectionError

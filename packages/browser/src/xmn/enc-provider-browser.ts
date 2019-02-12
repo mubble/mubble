@@ -13,7 +13,8 @@ import {
          WireObject,
          Leader,
          Encoder,
-         SessionInfo
+         SessionInfo,
+         WssProviderConfig
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 
@@ -27,7 +28,8 @@ let pwc         : PakoWorkerClient
 
 export class EncryptionBrowser {
 
-  constructor(rc: RunContextBrowser, private ci: ConnectionInfo, private si : SessionInfo, private syncKey: Uint8Array) {
+  constructor(private rc: RunContextBrowser, private ci: ConnectionInfo, 
+              private si : SessionInfo, private syncKey: Uint8Array) {
 
     rc.setupLogger(this, 'EncryptionBrowser')
 
@@ -36,42 +38,29 @@ export class EncryptionBrowser {
     if (!pwc)         pwc = new PakoWorkerClient(rc)
   }
 
-  async init() {
-    await this.ensureSyncKey()
+  async init(key ?: string) {
+    await this.ensureSyncKey(key)
   }
 
   // Should return binary buffer
-  async encodeHeader(rc: RunContextBrowser) {
+  async encodeHeader(wssConfig: WssProviderConfig) {
     
-    const encKey = await this.encryptSymKey(),
-          obj    = {
-            networkType : this.ci.networkType,
-            location    : this.ci.location,
-            now         : Date.now()
-          }
+    const now       = Date.now() / 1000, // microseconds
+          buffer    = await this.encrypt(this.strToUnit8Ar(now.toString())),
+          encTs     = new Uint8Array(buffer)
 
-    Object.assign(obj, this.ci.customData)
+    const config    = await this.encrypt(this.syncKey, this.strToUnit8Ar(JSON.stringify(wssConfig))),
+          encConfig = new Uint8Array(config)
 
-    const header    = this.strToUnit8Ar(JSON.stringify(obj)),
-          encHeader = await this.encrypt(header)
-
-    const arOut = new Uint8Array(arShortCode.length + arUniqueId.length + encKey.byteLength + encHeader.byteLength)
+    const arOut = new Uint8Array(encTs.length + encConfig.length)
     let copied = 0
 
-    arOut.set(arShortCode)
-    copied += arShortCode.length
+    arOut.set(encTs)
+    copied += encTs.length
 
-    arOut.set(arUniqueId, copied)
-    copied += arUniqueId.length
+    arOut.set(encConfig, copied)
+    copied += encConfig.length
 
-    if (this.si.syncKey) {
-      arOut.set(new Uint8Array(encKey), copied)
-      copied += encKey.byteLength
-    }
-    
-    arOut.set(new Uint8Array(encHeader), copied)
-    copied += encHeader.byteLength
-    
     return arOut
   }
 
@@ -88,8 +77,8 @@ export class EncryptionBrowser {
     return encKey
   }
 
-  private async encrypt(ar: Uint8Array): Promise<ArrayBuffer> {
-    return await crypto.subtle.encrypt(SYM_ALGO, this.si.syncKey, ar)
+  private async encrypt(ar: Uint8Array, key ?: any): Promise<ArrayBuffer> {
+    return await crypto.subtle.encrypt(SYM_ALGO, key || this.si.syncKey, ar)
   }
 
   private async decrypt(ar: Uint8Array): Promise<ArrayBuffer> {
@@ -101,7 +90,7 @@ export class EncryptionBrowser {
     return ar.buffer.slice(ar.byteOffset, ar.byteOffset + ar.byteLength) as ArrayBuffer
   }
 
-  async encodeBody(rc: RunContextBrowser, data: WireObject[]): Promise<Uint8Array> {
+  async encodeBody(data: WireObject[]): Promise<Uint8Array> {
 
     const str = this.stringifyWireObjects(data)
     let   firstPassArray,
@@ -120,14 +109,13 @@ export class EncryptionBrowser {
       leader         = Leader.JSON
     }
 
-    // await this.ensureSyncKey()
     const secondPassArray = new Uint8Array(await this.encrypt(firstPassArray)),
           arOut = new Uint8Array(secondPassArray.byteLength + 1)
 
     arOut.set([leader.charCodeAt(0)])
     arOut.set(secondPassArray, 1)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeBody', {
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'encodeBody', {
       first       : data[0].name,
       messages    : data.length, 
       json        : str.length, 
@@ -144,7 +132,7 @@ export class EncryptionBrowser {
     return `[${strArray.join(', ')}]`
   }
 
-  async decodeBody(rc: RunContextBrowser, data: ArrayBuffer): Promise<[WireObject]> {
+  async decodeBody(data: ArrayBuffer): Promise<[WireObject]> {
 
     // await this.ensureSyncKey()
     const inAr    = new Uint8Array(data, 1),
@@ -182,7 +170,7 @@ export class EncryptionBrowser {
       }
     }
   
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeBody', {
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'decodeBody', {
       first       : arData[0].name, 
       messages    : arData.length, 
       wire        : data.byteLength, 
@@ -194,7 +182,7 @@ export class EncryptionBrowser {
     return arData as [WireObject]
   }
 
-  public async setNewKey(rc : RunContextBrowser, syncKey: string) {
+  public async setNewKey(syncKey: string) {
 
     //rc.isAssert() && rc.assert(rc.getName(this), this.si.useEncryption)
 
@@ -204,14 +192,16 @@ export class EncryptionBrowser {
     this.si.syncKey = await crypto.subtle.importKey('raw', arNewKey, SYM_ALGO, true, ['encrypt', 'decrypt'])
   }
 
-  private async ensureSyncKey() {
+  getSyncKey() {
+    return this.si.syncKey
+  }
 
-    //if (!this.si.useEncryption) return
+  private async ensureSyncKey(key ?: string) {
 
-    if (!this.si.syncKey) {
+    if (key) {
+      await this.setNewKey(key)
+    } else if (!this.si.syncKey) {
       this.si.syncKey = await crypto.subtle.generateKey(SYM_ALGO, true, ['encrypt', 'decrypt'])
-    // } else if (typeof this.ci.syncKey === 'string') {
-    //   await this.decryptNewKey(this.ci.syncKey)
     }
   }
 
