@@ -158,9 +158,9 @@ export abstract class XmnRouterBrowser {
   prepareConnection(rc: RunContextBrowser) {
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.si.provider)
-    this.ci.customData  = this.getCustomData(rc)
-    this.ci.networkType = this.getNetworkType(rc)
-    this.ci.location    = this.getLocation(rc)
+    this.ci.customData              = this.getCustomData(rc)
+    this.ci.customData.networkType  = this.getNetworkType(rc)
+    this.ci.customData.networkType  = this.getLocation(rc)
     if (!this.si.provider) this.si.provider = new WsBrowser(rc, this.ci, this.si, this)
   }
 
@@ -179,9 +179,9 @@ export abstract class XmnRouterBrowser {
 
   private async trySendingEvents(rc: RunContextBrowser) {
 
-    if (!this.ci.networkType || this.lastEventTs) {
+    if (!this.ci.customData.networkType || this.lastEventTs) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Skipping sending event as not ready', {
-        networkType         : this.ci.networkType,
+        networkType         : this.ci.customData.networkType,
         lastEventTs         : this.lastEventTs
       })
       return
@@ -301,7 +301,7 @@ export abstract class XmnRouterBrowser {
       await this.updateCustomData(rc, newConfig.custom)
       this.prepareConnection(rc)
     } 
-    
+
     await this.si.provider.processSysEvent(this.rc, se)
   }
 

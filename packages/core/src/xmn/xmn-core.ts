@@ -240,13 +240,6 @@ export interface InvocationData {
   params  : object
 }
 
-export const Leader = {
-  BIN         : 'B',
-  CONFIG      : 'C',
-  DEF_JSON    : 'D',
-  JSON        : 'J'
-}
-
 export const DataLeader = {
   BINARY       : 0x01,
   DEF_JSON     : 0x02,

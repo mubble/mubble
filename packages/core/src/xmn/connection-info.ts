@@ -15,7 +15,6 @@ export interface ConnectionInfo {
 
   // Client Public identifier
   shortName       : string    // max four character name (only alpha-numeric)
-  uniqueId        : string
 
   // Connection attributes
   protocol        : Protocol
@@ -24,9 +23,6 @@ export interface ConnectionInfo {
   url             : string    // /api/getTopics Or connectUrl (for WS)
   headers         : Mubble.uObject<any> // empty for client
   ip              : string    // ip address or host name of the client socket
-
-  location        : string // serialised JSON Object
-  networkType     : string
 
   // Server fields. Not used by client
   msOffset        : number    // this is inferred by the server based on client's now field. Api/event need not use this

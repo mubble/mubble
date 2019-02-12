@@ -25,13 +25,17 @@ import {
          ConnectionError,
          TimerInstance,
          WireObject,
-         Leader,
+         DataLeader,
          XmnProvider,
          WssProviderConfig
        }                                from '@mubble/core'
 import { XmnRouterBrowser }             from './xmn-router-browser'
 import { RunContextBrowser }            from '../rc-browser'
 import { EncryptionBrowser }            from './enc-provider-browser'
+
+const PING_SECS       = 29,
+      MAX_OPEN_SECS   = 20 * 60,
+      TOLERANCE_SECS  = 5
 
 export class WsBrowser implements XmnProvider {
 
@@ -42,10 +46,8 @@ export class WsBrowser implements XmnProvider {
   
   private socketCreateTs      : number          = 0
   private lastMessageTs       : number          = 0
-  private msPingInterval      : number          = 29 * 1000  // Must be a valid number
   private sending             : boolean         = false
   private configured          : boolean         = false
-  private preConfigQueue      : MessageEvent[]  = []
   private pendingMessage      : WireObject[] | WireObject
 
   private ephemeralEvents     : WireEvent[]     = []
@@ -124,9 +126,9 @@ export class WsBrowser implements XmnProvider {
 
       if (!this.wssProviderConfig) {
         this.wssProviderConfig = {
-          pingSecs        : 29,
-          maxOpenSecs     : 5 * 60,
-          toleranceSecs   : 29,
+          pingSecs        : PING_SECS,
+          maxOpenSecs     : MAX_OPEN_SECS,
+          toleranceSecs   : TOLERANCE_SECS,
           key             : this.encProvider.getSyncKey(),
           custom          : this.ci.customData
         }
@@ -149,6 +151,14 @@ export class WsBrowser implements XmnProvider {
       this.socketCreateTs = Date.now()
         
     } else {
+      
+      if (!this.isConnWithinPing(Date.now())) { // Connection expired
+        rc.isDebug() && rc.debug(rc.getName(this), `Connection expired..re-connecting`)
+        this.cleanup()
+        await this.send(rc, data)
+        return
+      }
+      
       messageBody = await this.encProvider.encodeBody(data)
       this.ws.send(messageBody)
     }
@@ -168,18 +178,6 @@ export class WsBrowser implements XmnProvider {
   async onMessage(msgEvent: MessageEvent) {
 
     const data = msgEvent.data
-
-    if (!this.configured) {
-
-      const ar      = new Uint8Array(data, 0, 1),
-            leader  = String.fromCharCode(ar[0])
-
-      if (leader !== Leader.CONFIG) {
-        this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Queued message length:', data.byteLength)
-        this.preConfigQueue.push(msgEvent)
-        return
-      }
-    }
     const messages = await this.encProvider.decodeBody(data)
     await this.router.providerMessage(this.rc, messages)
   }
@@ -210,19 +208,15 @@ export class WsBrowser implements XmnProvider {
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
           msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
 
-      this.msPingInterval = msPingSecs * 1000
-          
+      Object.assign(this.wssProviderConfig, config)
+
       if (config.key) await this.encProvider.setNewKey(config.key)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
       'First message in', Date.now() - this.socketCreateTs, 'ms')
 
       this.configured = true
-      while (this.preConfigQueue.length) {
-        const message = this.preConfigQueue.shift()
-        await this.onMessage(message as MessageEvent)
-      }
-
+      
       if (this.pendingMessage) {
         await this.send(this.rc, this.pendingMessage)
         this.pendingMessage = null
@@ -239,9 +233,18 @@ export class WsBrowser implements XmnProvider {
     }
   }
 
+  private isConnWithinPing(requestTs: number) {
+
+    const wsConfig = this.wssProviderConfig,
+          pingTh   = this.lastMessageTs + wsConfig.pingSecs * 1000 + wsConfig.toleranceSecs * 1000,
+          openTh   = this.socketCreateTs + wsConfig.maxOpenSecs * 1000 - wsConfig.toleranceSecs * 1000
+
+    return requestTs < pingTh && requestTs < openTh
+  }
+
   private setupTimer(rc: RunContextBrowser) {
     this.lastMessageTs = Date.now()
-    this.timerPing.tickAfter(this.msPingInterval, true)
+    this.timerPing.tickAfter(this.wssProviderConfig.pingSecs * 1000, true)
   }
 
   private cbTimerPing(): number {
@@ -249,11 +252,11 @@ export class WsBrowser implements XmnProvider {
     if (!this.si.provider) return 0
 
     const now   = Date.now(),
-          diff  = this.lastMessageTs + this.msPingInterval - now
+          diff  = this.lastMessageTs + this.wssProviderConfig.pingSecs * 1000 - now
 
     if (diff <= 0) {
       this.send(this.rc, [new WireSysEvent(SYS_EVENT.PING, {})])
-      return this.msPingInterval
+      return this.wssProviderConfig.pingSecs * 1000
     } else {
       return diff
     }

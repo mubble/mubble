@@ -11,7 +11,7 @@ import {
          Mubble,
          ConnectionInfo,
          WireObject,
-         Leader,
+         DataLeader,
          Encoder,
          SessionInfo,
          WssProviderConfig
@@ -34,7 +34,7 @@ export class EncryptionBrowser {
     rc.setupLogger(this, 'EncryptionBrowser')
 
     if (!arShortCode) this.extractShortCode(rc, ci.shortName)
-    if (!arUniqueId)  this.extractUniqueId(rc, ci.uniqueId)
+    if (!arUniqueId)  this.extractUniqueId(rc, ci.customData.uniqueId)
     if (!pwc)         pwc = new PakoWorkerClient(rc)
   }
 
@@ -43,13 +43,13 @@ export class EncryptionBrowser {
   }
 
   // Should return binary buffer
-  async encodeHeader(wssConfig: WssProviderConfig) {
+  async encodeHeader(wsConfig: WssProviderConfig) {
     
-    const now       = Date.now() / 1000, // microseconds
+    const now       = Date.now() * 1000, // microseconds
           buffer    = await this.encrypt(this.strToUnit8Ar(now.toString())),
           encTs     = new Uint8Array(buffer)
 
-    const config    = await this.encrypt(this.syncKey, this.strToUnit8Ar(JSON.stringify(wssConfig))),
+    const config    = await this.encrypt(this.syncKey, this.strToUnit8Ar(JSON.stringify(wsConfig))),
           encConfig = new Uint8Array(config)
 
     const arOut = new Uint8Array(encTs.length + encConfig.length)
@@ -94,25 +94,25 @@ export class EncryptionBrowser {
 
     const str = this.stringifyWireObjects(data)
     let   firstPassArray,
-          leader = ''
+          leader = 0
 
     if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
       const ar = await pwc.deflate(str)
       if (ar.length < str.length) {
         firstPassArray = ar
-        leader         = Leader.DEF_JSON
+        leader         = DataLeader.DEF_JSON
       }
     }
 
     if (!firstPassArray) {
       firstPassArray = this.strToUnit8Ar(str)
-      leader         = Leader.JSON
+      leader         = DataLeader.JSON
     }
 
     const secondPassArray = new Uint8Array(await this.encrypt(firstPassArray)),
-          arOut = new Uint8Array(secondPassArray.byteLength + 1)
+          arOut           = new Uint8Array(secondPassArray.byteLength + 1)
 
-    arOut.set([leader.charCodeAt(0)])
+    arOut.set([leader])
     arOut.set(secondPassArray, 1)
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'encodeBody', {
@@ -121,7 +121,7 @@ export class EncryptionBrowser {
       json        : str.length, 
       wire        : arOut.byteLength,
       encrypted   : true,
-      compressed  : leader === Leader.DEF_JSON,
+      compressed  : leader === DataLeader.DEF_JSON,
     })
     return arOut
   }
@@ -134,15 +134,15 @@ export class EncryptionBrowser {
 
   async decodeBody(data: ArrayBuffer): Promise<[WireObject]> {
 
-    // await this.ensureSyncKey()
+    //await this.ensureSyncKey()
     const inAr    = new Uint8Array(data, 1),
           ar      = new Uint8Array(data, 0, 1),
-          leader  = String.fromCharCode(ar[0]),
+          leader  = ar[0],
           temp    = new Uint8Array(await this.decrypt(inAr))
 
     let arData, index, decLen
 
-    if (leader === Leader.BIN) {
+    if (leader === DataLeader.BINARY) {
 
       const newLineCode = '\n'.charCodeAt(0)
       for (index = 0; index < temp.length; index++) if (temp[index] === newLineCode) break
@@ -157,7 +157,7 @@ export class EncryptionBrowser {
 
     } else {
 
-      const inJsonStr = leader === Leader.DEF_JSON ? await pwc.inflate(temp)
+      const inJsonStr = leader === DataLeader.DEF_JSON ? await pwc.inflate(temp)
                                                    : this.uint8ArToStr(temp)
 
       const inJson    = JSON.parse(inJsonStr)
@@ -175,8 +175,7 @@ export class EncryptionBrowser {
       messages    : arData.length, 
       wire        : data.byteLength, 
       message     : decLen,
-      encrypted   : true, // TODO: check leader
-      compressed  : leader === Leader.BIN ? 'binary' : leader === Leader.DEF_JSON
+      encrypted   : leader === DataLeader.ENC_JSON || leader === DataLeader.ENC_BINARY || leader === DataLeader.ENC_DEF_JSON,compressed  : leader === DataLeader.BINARY ? 'binary' : leader === DataLeader.DEF_JSON
     })
 
     return arData as [WireObject]

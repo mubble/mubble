@@ -18,4 +18,8 @@ export interface CustomData {
   // only available when client is issued an identity
   clientId      : number
   userLinkId    : string
+  uniqueId      : string
+
+  location      : string // serialised JSON Object
+  networkType   : string
 }
