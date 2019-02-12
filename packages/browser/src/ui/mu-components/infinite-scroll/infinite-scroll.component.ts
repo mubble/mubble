@@ -18,7 +18,7 @@ import { Component,
          Renderer2
        }                from '@angular/core'
 import { DomHelper }    from '@mubble/browser/util/dom-helper';
-import { ListItem }     from 'lister/lister.component';
+//import { ListItem }     from 'lister/lister.component';
 // import { DomHelper }    from '@mubble/browser'
 // import { ListItem }     from 'shared'
 
@@ -32,7 +32,7 @@ const SCROLL_EVENT  = 'scroll'
 
 export class InfiniteScrollComponent {
 
-  @Input() items            : ListItem[]  = []         //Items that have to be loaded into html in chunks
+  @Input() items            : any[]  = []         //Items that have to be loaded into html in chunks
   @Input() upperBufferCount : number  = 50  //min no. of elements that should be loaded at the top before we start removing items
   @Input() lowerBufferCount : number  = 10  //min no. of elements that should be loaded at the bottom
 

@@ -22,7 +22,8 @@ import {
          WireRequest,
          WireSysEvent,
          TimerInstance,
-         SYS_EVENT
+         SYS_EVENT,
+         CustomData
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 import { WsBrowser }          from './ws-browser'
@@ -88,7 +89,7 @@ export abstract class XmnRouterBrowser {
   getPubKey() { return this.pubKey }
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
-  abstract getCustomData(rc: RunContextBrowser) : Mubble.uObject<any>
+  abstract getCustomData(rc: RunContextBrowser) : CustomData
     
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
@@ -113,12 +114,12 @@ export abstract class XmnRouterBrowser {
   protected async sendPersistentEvent(rc: RunContextBrowser, eventName: string, data: object) {
     
     if (!this.si.provider) this.prepareConnection(rc)
-      const clientIdentity = this.ci.customData
+      const customData = this.ci.customData
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'sendPersistentEvent', eventName, 
-      'clientIdentity', clientIdentity && clientIdentity.clientId)
+      'customData', customData && customData.clientId)
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), clientIdentity && clientIdentity.clientId, 
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), customData && customData.clientId, 
       'You cannot send events without clientId')
 
     if (await this.initEvents()) {
@@ -155,9 +156,9 @@ export abstract class XmnRouterBrowser {
   prepareConnection(rc: RunContextBrowser) {
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.si.provider)
-    this.ci.customData                 = this.getCustomData(rc)
-    this.ci.customData.networkType     = this.getNetworkType(rc)
-    this.ci.customData.location        = this.getLocation(rc)
+    this.ci.customData  = this.getCustomData(rc)
+    this.ci.networkType = this.getNetworkType(rc)
+    this.ci.location    = this.getLocation(rc)
     if (!this.si.provider) this.si.provider = new WsBrowser(rc, this.ci, this.si, this)
   }
 
@@ -176,9 +177,9 @@ export abstract class XmnRouterBrowser {
 
   private async trySendingEvents(rc: RunContextBrowser) {
 
-    if (!this.ci.customData.networkType || this.lastEventTs) {
+    if (!this.ci.networkType || this.lastEventTs) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Skipping sending event as not ready', {
-        networkType         : this.ci.customData.networkType,
+        networkType         : this.ci.networkType,
         lastEventTs         : this.lastEventTs
       })
       return
@@ -293,7 +294,7 @@ export abstract class XmnRouterBrowser {
 
   private async processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
     if (se.name === SYS_EVENT.UPGRADE_CLIENT_IDENTITY) {
-      await this.upgradeClientIdentity(rc, se.data)
+      //await this.upgradeClientIdentity(rc, se.data)
       this.prepareConnection(rc)
     } else {
       await this.si.provider.processSysEvent(this.rc, se)
