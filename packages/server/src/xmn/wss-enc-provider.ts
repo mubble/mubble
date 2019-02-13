@@ -21,7 +21,7 @@ const BASE64      = 'base64',
       SYM_ALGO    = 'aes-256-cbc',
       IV          = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
                                   0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
-      TS_LEN      = 24,
+      TS_LEN      = 44,
       REQ_KEY_LEN = 344
 
 export class WssEncProvider {
@@ -58,20 +58,19 @@ export class WssEncProvider {
           encReqKeyBuf    = Buffer.from(encReqKey, BASE64),
           encWssConfigBuf = Buffer.from(encWssConfig, BASE64)
 
-
     this.reqAesKey = this.decryptyUsingPrivateKey(encReqKeyBuf)
 
     const wssConfig = this.decryptRequestConfig(encWssConfigBuf)
       
     let tsMicro   : number = 0
         
-    if(wssConfig.key) {
-      this.reqAesKey = Buffer.from(wssConfig.key, BASE64)
+    // if(wssConfig.key) {
+    //   this.reqAesKey = Buffer.from(wssConfig.key, BASE64)
 
       tsMicro = Number(this.decryptUsingReqAesKey(encTsMicroBuf).toString())
-    } else if(publicKey) {
-      tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
-    }
+    // } else if(publicKey) {
+    //   tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
+    // }
 
     if(!tsMicro) throw new Error('Could not decode timestamp.')
 
@@ -237,7 +236,7 @@ export class WssEncProvider {
                                                : DataLeader.DEF_JSON
                                      : encrypt ? DataLeader.ENC_JSON
                                                : DataLeader.JSON
-
+console.log('\nleader : ' + leader + '\n')
     return leader
   }
 }

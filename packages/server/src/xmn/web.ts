@@ -52,7 +52,7 @@ export class Web {
   private httpServer      : http.Server 
   private wsHttpServer    : http.Server
   private httpsServer     : https.Server
-  private wssServer       : https.Server
+  private wssServer       : http.Server
 
   private router          : XmnRouterServer
 
@@ -107,10 +107,10 @@ export class Web {
     }
 
     if(this.wssConfig) {
-      let wssServer : https.Server
+      let wssServer : http.Server
 
-      if(this.httpsConfig && this.httpsConfig.port === this.wssConfig.port) wssServer = this.httpsServer
-      else wssServer = this.wssServer = https.createServer(this.wssConfig)
+      if(this.httpConfig && this.httpConfig.port === this.wssConfig.port) wssServer = this.httpServer
+      else wssServer = this.wssServer = http.createServer()
 
       this.wssReqManager = new WssServer(rc, router, wssServer)
     }

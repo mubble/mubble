@@ -48,34 +48,24 @@ export class EncryptionBrowser {
    * Timestamp micro encrypted with AES key 
    * WsConfig encrypted with RSA pub key
    */
-  async encodeHeader(wsConfig: WssProviderConfig): Promise<Uint8Array> {
+  async encodeHeader(wsConfig: WssProviderConfig): Promise<string> {
 
     console.log(`Came to encode`)
 
     const now           = Date.now() * 1000, // microseconds
           tsBuffer      = await this.encrypt(this.strToUnit8Ar(now.toString())),
-          encTs         = new Uint8Array(tsBuffer)
+          encTs         = new Uint8Array(tsBuffer) as any,
+          tsB64         = btoa(String.fromCharCode(...encTs))
 
     const keyBuffer     = await this.encryptSymKey(),
-          encKey        = new Uint8Array(keyBuffer)
+          encKey        = new Uint8Array(keyBuffer) as any,
+          keyB64        = btoa(String.fromCharCode(...encKey))
 
-    const configStr     = JSON.stringify(wsConfig),
-          configBuffer  = await this.encrypt(this.strToUnit8Ar(configStr)),
-          encConfig     = new Uint8Array(configBuffer)
+    const configBuffer  = await this.encrypt(this.strToUnit8Ar(JSON.stringify(wsConfig))),
+          encConfig     = new Uint8Array(configBuffer) as any,
+          configB64     = btoa(String.fromCharCode(...encConfig))
 
-    const arOut         = new Uint8Array(encTs.length + encKey.length + encConfig.length)
-    let copied          = 0
-
-    arOut.set(encTs)
-    copied += encTs.length
-
-    arOut.set(encKey, copied)
-    copied += encKey.length
-
-    arOut.set(encConfig, copied)
-    copied += encConfig.length
-
-    return arOut
+    return `${tsB64}${keyB64}${configB64}`
   }
 
   private async encryptHeader(data: Uint8Array): Promise<ArrayBuffer> {
@@ -219,9 +209,9 @@ export class EncryptionBrowser {
   async getSyncKeyB64(): Promise<string> {
 
     const buffer = await crypto.subtle.exportKey('raw', this.syncKey),
-          arr    = new Uint8Array(buffer)
+          arr    = new Uint8Array(buffer) as any
 
-    return btoa(String.fromCharCode(...Array.from(arr)))   
+    return btoa(String.fromCharCode(...arr))   
   }
 
   private async ensureSyncKey(key ?: string) {

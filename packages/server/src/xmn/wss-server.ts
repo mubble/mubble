@@ -38,7 +38,7 @@ export class WssServer {
 
   constructor(private refRc  : RunContextServer,
               private router : XmnRouterServer,
-              httpsServer    : https.Server) {
+              httpsServer    : http.Server) {
 
     this.socketMap = new Map()            
 		this.server    = new ws.Server({
@@ -63,7 +63,8 @@ export class WssServer {
             path         = url.pathname || '',
             [host, port] = (req.headers.host || '').split(':')
 
-      const [, version, clientId, encData] = path.split(SLASH_SEP)
+      const [, version, clientId, encDataUri] = path.split(SLASH_SEP),
+            encData                           = decodeURIComponent(encDataUri)
 
       if(!version || !clientId || !encData) throw new Error(`Invalid URL path ${path}.`)
 
@@ -99,12 +100,13 @@ export class WssServer {
             respWo    = WireObject.getWireObject(woJson) as WireSysEvent,
             encConfig = await encProvider.encodeBody([respWo], false)
 
+      rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo)
       socket.send(encConfig)
 
       this.socketMap.set(wssProvider, body.tsMicro)
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), 'Error in establishing handshake.', err)
-      socket.close(WssErrorCode.HANDSHAKE_FAILURE)
+      socket.close()
     }
   }
   

@@ -136,12 +136,12 @@ export class WsBrowser implements XmnProvider {
 
       console.log(`Test`, this.wsProviderConfig)
 
-      const url         = `wss://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
+      const url         = `ws://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
             header      = await this.encProvider.encodeHeader(this.wsProviderConfig)
       
       console.log(`After`)
 
-      messageBody = encodeURIComponent(this.uiArToB64(header))
+      messageBody = encodeURIComponent(header)
 
       this.ws  = new WebSocket(url + messageBody)
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url + messageBody)
@@ -208,7 +208,7 @@ export class WsBrowser implements XmnProvider {
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
 
       const config: WssProviderConfig = se.data as WssProviderConfig,
-            msPingSecs = config.pingSecs
+            msPingSecs = config.pingSecs      
 
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
           msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
