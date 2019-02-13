@@ -42,13 +42,13 @@ export class WsBrowser implements XmnProvider {
   private ws                  : WebSocket
   private encProvider         : EncryptionBrowser
   private timerPing           : TimerInstance
-  private wssProviderConfig   : WssProviderConfig
+  private wsProviderConfig    : WssProviderConfig
+  private pendingMessage      : WireObject[] | WireObject
   
   private socketCreateTs      : number          = 0
   private lastMessageTs       : number          = 0
   private sending             : boolean         = false
   private configured          : boolean         = false
-  private pendingMessage      : WireObject[] | WireObject
 
   private ephemeralEvents     : WireEvent[]     = []
 
@@ -124,19 +124,24 @@ export class WsBrowser implements XmnProvider {
         await this.encProvider.init()
       }
 
-      if (!this.wssProviderConfig) {
-        this.wssProviderConfig = {
+      if (!this.wsProviderConfig) {
+        this.wsProviderConfig = {
           pingSecs        : PING_SECS,
           maxOpenSecs     : MAX_OPEN_SECS,
           toleranceSecs   : TOLERANCE_SECS,
-          key             : this.encProvider.getSyncKey(),
+          key             : await this.encProvider.getSyncKeyB64(),
           custom          : this.ci.customData
         }
       }
 
+      console.log(`Test`, this.wsProviderConfig)
+
       const url         = `wss://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
-            header      = await this.encProvider.encodeHeader(this.wssProviderConfig)
-            messageBody = encodeURIComponent(this.uiArToB64(header))
+            header      = await this.encProvider.encodeHeader(this.wsProviderConfig)
+      
+      console.log(`After`)
+
+      messageBody = encodeURIComponent(this.uiArToB64(header))
 
       this.ws  = new WebSocket(url + messageBody)
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url + messageBody)
@@ -208,12 +213,12 @@ export class WsBrowser implements XmnProvider {
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
           msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
 
-      Object.assign(this.wssProviderConfig, config)
+      Object.assign(this.wsProviderConfig, config)
 
       if (config.key) await this.encProvider.setNewKey(config.key)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
-      'First message in', Date.now() - this.socketCreateTs, 'ms')
+        'First message in', Date.now() - this.socketCreateTs, 'ms')
 
       this.configured = true
       
@@ -235,7 +240,7 @@ export class WsBrowser implements XmnProvider {
 
   private isConnWithinPing(requestTs: number) {
 
-    const wsConfig = this.wssProviderConfig,
+    const wsConfig = this.wsProviderConfig,
           pingTh   = this.lastMessageTs + wsConfig.pingSecs * 1000 + wsConfig.toleranceSecs * 1000,
           openTh   = this.socketCreateTs + wsConfig.maxOpenSecs * 1000 - wsConfig.toleranceSecs * 1000
 
@@ -244,7 +249,7 @@ export class WsBrowser implements XmnProvider {
 
   private setupTimer(rc: RunContextBrowser) {
     this.lastMessageTs = Date.now()
-    this.timerPing.tickAfter(this.wssProviderConfig.pingSecs * 1000, true)
+    this.timerPing.tickAfter(this.wsProviderConfig.pingSecs * 1000, true)
   }
 
   private cbTimerPing(): number {
@@ -252,11 +257,11 @@ export class WsBrowser implements XmnProvider {
     if (!this.si.provider) return 0
 
     const now   = Date.now(),
-          diff  = this.lastMessageTs + this.wssProviderConfig.pingSecs * 1000 - now
+          diff  = this.lastMessageTs + this.wsProviderConfig.pingSecs * 1000 - now
 
     if (diff <= 0) {
       this.send(this.rc, [new WireSysEvent(SYS_EVENT.PING, {})])
-      return this.wssProviderConfig.pingSecs * 1000
+      return this.wsProviderConfig.pingSecs * 1000
     } else {
       return diff
     }

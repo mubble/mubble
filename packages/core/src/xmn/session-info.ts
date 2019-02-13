@@ -16,6 +16,4 @@ export interface SessionInfo {
 
   // provider for this connection (WebSocket, Http etc.)
   provider        : XmnProvider   // The protocol provider keeps it's custom data here
-
-  syncKey         : any
 }
