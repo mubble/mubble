@@ -15,6 +15,7 @@ import {
         SessionInfo,
         WIRE_TYPE,
         WireEphEvent,
+        WireEvent,
         WireEventResp,
         WireObject,
         WireReqResp,
@@ -321,7 +322,7 @@ export abstract class XmnRouterServer {
     if (updated) {
       lo.assign(ci.customData , data)
       this.insertIntoPiggyfrontMap(rc, 
-        new WireSysEvent(SYS_EVENT.UPGRADE_CLIENT_IDENTITY, ci.customData), 
+        new WireEvent('UPDATE_CUSTOM_DATA', ci.customData), 
         invData)
     }
   }
