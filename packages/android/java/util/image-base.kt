@@ -90,4 +90,9 @@ object ImageBase {
 
   }
 
+  fun compressImage(imageUri: String) {
+
+
+  }
+
 }
