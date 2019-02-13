@@ -20,7 +20,6 @@ import {
         ConnectionError,
         WireSysEvent,
         SYS_EVENT,
-        Leader,
         WEB_SOCKET_URL,
         XmnProvider,
         ActiveProviderCollection,
@@ -205,7 +204,7 @@ export class ServerWebSocket implements XmnProvider {
     } as WebSocketConfig
 
     await this.sendInternal(rc, [new WireSysEvent(SYS_EVENT.WS_PROVIDER_CONFIG, 
-      config)], Leader.CONFIG)
+      config)], true)
 
     // Update the key to new key
     this.si.syncKey = key
@@ -267,10 +266,10 @@ export class ServerWebSocket implements XmnProvider {
     await this.sendInternal(rc, data)
   }
 
-  private async sendInternal(rc: RunContextServer, data: WireObject[], msgType ?: string) {
+  private async sendInternal(rc: RunContextServer, data: WireObject[], config ?: boolean) {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', data)
-    const msg = await this.encProvider.encodeBody(rc, data, msgType)
+    const msg = await this.encProvider.encodeBody(rc, data, config)
 
     this.ws.send(msg)
   }

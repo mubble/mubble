@@ -10,7 +10,7 @@
 import { RunContextServer }     from '../rc-server'
 import { 
          WireObject,
-         Leader,
+         DataLeader,
          Mubble,
          Encoder,
          SessionInfo,
@@ -69,9 +69,9 @@ export class EncProviderServer {
 
   async decodeBody(rc: RunContextServer, data: Buffer): Promise<[WireObject]> {
 
-    const leader    = String.fromCharCode(data[0]),
+    const leader    = Number(data[0]),
           outBuff   = this.decrypt(data.slice(1)),
-          jsonStr   = leader !== Leader.DEF_JSON ? outBuff.toString() :
+          jsonStr   = leader !== DataLeader.DEF_JSON ? outBuff.toString() :
                       (await Mubble.uPromise.execFn(zlib.inflate, zlib, outBuff)).toString(),
                       // a = console.log(jsonStr),
           inJson    = JSON.parse(jsonStr),
@@ -89,7 +89,7 @@ export class EncProviderServer {
   }
 
   // Should return binary buffer
-  async encodeBody(rc: RunContextServer, arData: WireObject[], msgType ?: string) {
+  async encodeBody(rc: RunContextServer, arData: WireObject[], config ?: boolean) {
 
     const arStrData = []
     for (const data of arData) {
@@ -103,18 +103,18 @@ export class EncProviderServer {
 
     const str = arStrData.length === 1 ? arStrData[0] : JSON.stringify(arStrData)
     let   firstPassBuffer,
-          leader = msgType || Leader.JSON
+          leader = DataLeader.JSON
 
-    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && msgType !== Leader.CONFIG) {
+    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && !config) {
       const buf = await Mubble.uPromise.execFn(zlib.deflate, zlib, str)
       if (buf.length < str.length) {
         firstPassBuffer = buf
-        leader = Leader.DEF_JSON
+        leader = DataLeader.DEF_JSON
       }
     }
 
     if (!firstPassBuffer) firstPassBuffer = new Buffer(str)
-    return Buffer.concat([new Buffer(leader), this.encrypt(firstPassBuffer)])
+    return Buffer.concat([new Buffer([leader]), this.encrypt(firstPassBuffer)])
   }
 
   public getNewKey() {
@@ -136,7 +136,7 @@ export class EncProviderServer {
 
   private encodeBinaryBody(rc: RunContextServer, data: WireObject) {
     const encData = this.encrypt(Buffer.concat([new Buffer(data.stringify() + '\n'), data.data as Buffer])) 
-    return Buffer.concat([new Buffer(Leader.BIN), encData])
+    return Buffer.concat([new Buffer(DataLeader.BINARY), encData])
   }
 
   private decrypt(buffer: Buffer) {

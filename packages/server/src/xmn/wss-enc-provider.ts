@@ -17,11 +17,12 @@ import {
 import * as crypto          from 'crypto'
 import * as zlib            from 'zlib'
 
-const BASE64   = 'base64',
-      SYM_ALGO = 'aes-256-cbc',
-      IV       = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
-                               0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
-      TS_LEN   = 24
+const BASE64      = 'base64',
+      SYM_ALGO    = 'aes-256-cbc',
+      IV          = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
+                                  0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
+      TS_LEN      = 24,
+      REQ_KEY_LEN = 344
 
 export class WssEncProvider {
 
@@ -51,12 +52,18 @@ export class WssEncProvider {
                                                                    } {
 
     const encTsMicro      = encData.slice(0, TS_LEN),
-          encWssConfig    = encData.slice(TS_LEN),
+          encReqKey       = encData.slice(TS_LEN, TS_LEN + REQ_KEY_LEN),
+          encWssConfig    = encData.slice(TS_LEN + REQ_KEY_LEN),
           encTsMicroBuf   = Buffer.from(encTsMicro, BASE64),
-          encWssConfigBuf = Buffer.from(encWssConfig, BASE64),
-          wssConfig       = this.decryptRequestConfig(encWssConfigBuf)
+          encReqKeyBuf    = Buffer.from(encReqKey, BASE64),
+          encWssConfigBuf = Buffer.from(encWssConfig, BASE64)
+
+
+    this.reqAesKey = this.decryptyUsingPrivateKey(encReqKeyBuf)
+
+    const wssConfig = this.decryptRequestConfig(encWssConfigBuf)
       
-    let tsMicro : number = 0
+    let tsMicro   : number = 0
         
     if(wssConfig.key) {
       this.reqAesKey = Buffer.from(wssConfig.key, BASE64)
@@ -144,7 +151,7 @@ export class WssEncProvider {
   }
 
   private decryptRequestConfig(encWssConfig : Buffer) : WssProviderConfig {
-    const wssConfigBuf = this.decryptyUsingPrivateKey(encWssConfig),
+    const wssConfigBuf = this.decryptUsingReqAesKey(encWssConfig),
           wssConfigStr = wssConfigBuf.toString(),
           wssConfig    = JSON.parse(wssConfigStr)
 
