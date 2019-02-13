@@ -18,7 +18,7 @@ import {
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 
-const IV                    = new Uint8Array(16),
+const IV                    = new Uint8Array([0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00]),
       SYM_ALGO              = {name: "AES-CBC", iv: IV, length: 256},
       ASYM_ALGO             = {name: 'RSA-OAEP', hash: {name: 'SHA-1'}}
 
