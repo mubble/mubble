@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.MediaStore
 import android.support.v4.content.FileProvider
 import core.BaseApp
+import core.ImageCompressionTask
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
 import util.FileBase
@@ -61,6 +62,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
       when (requestCode) {
 
         REQUEST_TAKE_PHOTO -> {
+          // TODO: compress fileUri
           bm = FileBase.getBitmapFromUri(fileUri)
           galleryImgBase64 = FileBase.getBase64Data(bm)
           cropCapturedImage(fileUri)
@@ -72,22 +74,21 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
             return
           }
 
-          val selectedImageUri = data.data
-          bm = FileBase.getBitmapFromUri(selectedImageUri)
-          galleryImgBase64 = FileBase.getBase64Data(bm)
+          bm                = FileBase.getBitmapFromUri(data.data)
+          galleryImgBase64  = FileBase.getBase64Data(bm)
 
-          val baos = ByteArrayOutputStream()
-          bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
-          val b = baos.toByteArray()
+          val byteArr       = FileBase.getByteArray(bm)
 
-          val storageDir = File(BaseApp.instance.filesDir, USERS)
+          val storageDir    = File(BaseApp.instance.filesDir, USERS)
           if (!storageDir.exists()) storageDir.mkdirs()
 
-          output = File(storageDir, OUTPUT_FILENAME)
-          val stream = FileOutputStream(output!!)
-          stream.write(b)
+          output            = File(storageDir, OUTPUT_FILENAME)
+          val stream        = FileOutputStream(output!!)
+          stream.write(byteArr)
 
-          fileUri = FileProvider.getUriForFile(BaseApp.instance, AUTHORITY, output!!)
+          fileUri           = FileProvider.getUriForFile(BaseApp.instance, AUTHORITY, output!!)
+
+          // TODO: compress fileUri
           cropCapturedImage(fileUri)
         }
 
@@ -215,7 +216,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     } else {
       parentActivity.startActivityForResult(Intent
           .createChooser(cropIntent, "Crop Using"), REQUEST_CROP_PHOTO)
-
     }
   }
 
@@ -226,7 +226,8 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
   private fun respondWithSuccess(base64: String?, cropped: Boolean) {
 
-    onPictureResult(true, base64, MIME_TYPE, cropped, null)
+    val b64 = if (base64 != null) ImageCompressionTask().compressImage(base64) else base64
+    onPictureResult(true, b64, MIME_TYPE, cropped, null)
   }
 
   private fun onPictureResult(success: Boolean, base64: String?, mimeType: String?,
