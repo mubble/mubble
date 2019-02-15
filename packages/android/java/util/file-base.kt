@@ -52,6 +52,12 @@ object FileBase {
         ConstBase.InternalStorage.Code.NAME
   }
 
+  fun getUsersPath(context: Context): String {
+
+    return getLocalStoragePath(context) + File.separator +
+        ConstBase.InternalStorage.Users.NAME
+  }
+
   fun getJsUpgradePath(context: Context): String {
 
     return getLocalStoragePath(context) + File.separator +
@@ -346,10 +352,15 @@ object FileBase {
 
   fun getBase64Data(bm: Bitmap): String {
 
-    val baos = ByteArrayOutputStream()
-    bm.compress(Bitmap.CompressFormat.JPEG, 70, baos)
-    val b = baos.toByteArray()
+    val b = getByteArray(bm)
     return Base64.encodeToString(b, Base64.NO_WRAP)
+  }
+
+  fun getByteArray(bm: Bitmap): ByteArray {
+
+    val baos = ByteArrayOutputStream()
+    bm.compress(Bitmap.CompressFormat.JPEG, 100, baos) // No compression
+    return baos.toByteArray()
   }
 
 }
