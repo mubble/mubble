@@ -63,7 +63,7 @@ export abstract class XmnRouterServer {
   }
 
   abstract getPrivateKeyPem(rc : RunContextServer, ci : ConnectionInfo) : string
-
+  
   public async verifyConnection(rc       : RunContextServer,
                                 ci       : ConnectionInfo,
                                 si       : SessionInfo,
@@ -308,22 +308,6 @@ export abstract class XmnRouterServer {
 
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')
-    }
-  }
-
-  upgradeClientIdentity(rc      : RunContextServer, 
-                        ci      : ConnectionInfo, 
-                        data    : Mubble.uChildObject<any>,
-                        invData : InvocationData) {
-    
-    rc.isAssert() && rc.assert(rc.getName(this), ci.customData)
-    let updated = !lo.isEqual(data , lo.pick(ci.customData , Object.keys(data)))
-
-    if (updated) {
-      lo.assign(ci.customData , data)
-      this.insertIntoPiggyfrontMap(rc, 
-        new WireEvent('UPDATE_CUSTOM_DATA', ci.customData), 
-        invData)
     }
   }
 

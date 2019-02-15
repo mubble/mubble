@@ -30,10 +30,10 @@ export class StorageProvider {
       const storageKey = `${CONFIG_PREFIX}.${entry.category}|${entry.key}`
       localStorage.setItem(storageKey, JSON.stringify(entry.value))
 
-      if (rc && rc.isDebug) {
-        rc.isDebug() && rc.debug('GcConfigKeyValue', 
-          `Saved key ${storageKey}=${JSON.stringify(entry.value)}`)
-      }
+      // if (rc && rc.isDebug) {
+      //   rc.isDebug() && rc.debug('GcConfigKeyValue', 
+      //     `Saved key ${storageKey}=${JSON.stringify(entry.value)}`)
+      // }
     })
   }
 

@@ -34,7 +34,6 @@ import { RunContextBrowser }            from '../rc-browser'
 import { EncryptionBrowser }            from './enc-provider-browser'
 
 const PING_SECS       = 29,
-      MAX_OPEN_SECS   = 20 * 60,
       TOLERANCE_SECS  = 5
 
 export class WsBrowser implements XmnProvider {
@@ -127,7 +126,7 @@ export class WsBrowser implements XmnProvider {
       if (!this.wsProviderConfig) {
         this.wsProviderConfig = {
           pingSecs        : PING_SECS,
-          maxOpenSecs     : MAX_OPEN_SECS,
+          maxOpenSecs     : this.router.getMaxOpenSecs(),
           toleranceSecs   : TOLERANCE_SECS,
           key             : await this.encProvider.getSyncKeyB64(),
           custom          : this.ci.customData
@@ -206,8 +205,6 @@ export class WsBrowser implements XmnProvider {
 
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
 
-      console.log(`Got provider config msg`);
-      
       const config: WssProviderConfig = se.data as WssProviderConfig,
             msPingSecs = config.pingSecs      
 
@@ -218,14 +215,13 @@ export class WsBrowser implements XmnProvider {
 
       if (config.key) await this.encProvider.setNewKey(config.key)
 
-      console.log(`New key is set`)
-
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
         'First message in', Date.now() - this.socketCreateTs, 'ms')
 
       this.configured = true
       
       if (this.pendingMessage) {
+        this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `Sending Pending Message...`)
         await this.send(this.rc, this.pendingMessage)
         this.pendingMessage = null
       }
@@ -244,20 +240,29 @@ export class WsBrowser implements XmnProvider {
   private isConnWithinPing(requestTs: number) {
 
     const wsConfig = this.wsProviderConfig,
-          pingTh   = this.lastMessageTs + wsConfig.pingSecs * 1000 + wsConfig.toleranceSecs * 1000,
-          openTh   = this.socketCreateTs + wsConfig.maxOpenSecs * 1000 - wsConfig.toleranceSecs * 1000
+          pingTh   = this.lastMessageTs  + (wsConfig.pingSecs + wsConfig.toleranceSecs)    * 1000,
+          openTh   = this.socketCreateTs + (wsConfig.maxOpenSecs - wsConfig.toleranceSecs) * 1000
 
     return requestTs < pingTh && requestTs < openTh
   }
 
   private setupTimer(rc: RunContextBrowser) {
+
+    console.log(`Came to setupTimer`);
+    
     this.lastMessageTs = Date.now()
+
+    console.log(`TickAfter ${this.wsProviderConfig.pingSecs * 1000}`)
+
     this.timerPing.tickAfter(this.wsProviderConfig.pingSecs * 1000, true)
   }
 
   private cbTimerPing(): number {
 
     if (!this.si.provider) return 0
+
+    console.log(`Test came for ping`);
+    
 
     const now   = Date.now(),
           diff  = this.lastMessageTs + this.wsProviderConfig.pingSecs * 1000 - now
@@ -271,6 +276,8 @@ export class WsBrowser implements XmnProvider {
   }
 
   private cleanup() {
+
+    console.log(`Came to cleanup`)
 
     if (!this.si.provider) return
 

@@ -90,6 +90,7 @@ export abstract class XmnRouterBrowser {
   getPubKey() { return this.pubKey }
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
+  abstract getMaxOpenSecs() : number
   abstract getCustomData(rc: RunContextBrowser) : CustomData
   abstract updateCustomData(rc: RunContextBrowser, customData: CustomData)
     
