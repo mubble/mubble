@@ -235,6 +235,10 @@ export class UiRouter {
     return !!params.nc_paramsId
   }
 
+  public getUrlStackLength() {
+    return this.urlStack.length
+  }
+
   public getCurrentComponent(outlet = PRIMARY_OUTLET): any {
     return this.curCompMap[outlet]
   }
