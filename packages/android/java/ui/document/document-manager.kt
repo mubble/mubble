@@ -2,7 +2,9 @@ package ui.document
 
 import android.app.Activity
 import android.content.Intent
+import android.util.Base64
 import core.BaseApp
+import core.ImageCompressionTask
 import core.MubbleLogger
 import org.jetbrains.anko.info
 import org.json.JSONObject
@@ -59,36 +61,45 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
       return
     }
 
-    val uri   = data!!.data!!
-
-    val base64    : String?
-    val checksum  : String?
-    val mimeType  : String?
-    val fileSize  : Long?
-
     try {
 
-      mimeType  = BaseApp.instance.contentResolver.getType(uri)
+      val uri       = data!!.data!!
+      val mimeType  = BaseApp.instance.contentResolver.getType(uri)
 
-      if (checkMimeType(mimeType, MIME_TYPE.IMG)) { // User selected an Image
+      val bm        = FileBase.getBitmapFromUri(uri)
+      val base64    = FileBase.getBase64Data(bm)
+      val cmpB64    = ImageCompressionTask().compressImage(base64)!!
 
-        val bm    = FileBase.getBitmapFromUri(uri)
-        base64    = FileBase.getBase64Data(bm)
-        checksum  = FileBase.getCheckSum(base64)
-        fileSize  = FileBase.getFileSize(uri)
+      val checksum  = FileBase.getCheckSum(cmpB64)
 
-      } else { // User selected PDF
+      info { "Test ${bm.height} ${bm.width} ${bm.allocationByteCount}" }
 
-        base64    = FileBase.getBase64Data(uri)
-        checksum  = FileBase.getCheckSum(base64)
-        fileSize  = FileBase.getFileSize(uri)
-      }
+//      var base64    : String
+//      val checksum  : String?
+//      val mimeType  : String?
+//      val fileSize  : Long?
+//
+//      mimeType  = BaseApp.instance.contentResolver.getType(uri)
+//
+//      if (checkMimeType(mimeType, MIME_TYPE.IMG)) { // User selected an Image
+//
+//        val bm    = FileBase.getBitmapFromUri(uri)
+//        base64    = FileBase.getBase64Data(bm)
+//        fileSize  = FileBase.getFileSize(uri)
+//
+//      } else { // User selected PDF
+//
+//        base64    = FileBase.getBase64Data(uri)
+//        fileSize  = FileBase.getFileSize(uri)
+//      }
+//
+//      //base64    = ImageCompressionTask().compressImage(base64)!!
+//      checksum  = FileBase.getCheckSum(base64)
 
       val obj = JSONObject()
-      obj.put("base64",   base64)
+      obj.put("base64",   cmpB64)
       obj.put("checksum", checksum)
       obj.put("mimeType", mimeType)
-      obj.put("fileSize", fileSize)
 
       listener(obj)
 

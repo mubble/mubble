@@ -4,8 +4,6 @@ import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.graphics.Matrix
-import android.media.ExifInterface
 import android.net.Uri
 import android.util.Base64
 import core.BaseApp
@@ -156,42 +154,6 @@ object FileBase {
     fileOrDirectory.delete()
   }
 
-  fun convertContentUriToBase64(contentUri: Uri): String? {
-
-    val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
-    return convertStreamToBase64(inputStream)
-  }
-
-  fun convertFileToBase64(f: File): String? {
-
-    val inputStream = FileInputStream(f)
-    return convertStreamToBase64(inputStream)
-  }
-
-  fun convertStreamToBase64(inputStream: InputStream): String? {
-
-    try {
-
-      val bos = ByteArrayOutputStream()
-      val b   = ByteArray(1024 * 11)
-
-      var bytesRead = inputStream.read(b)
-      while (bytesRead != -1) {
-        bos.write(b, 0, bytesRead)
-        bytesRead = inputStream.read(b)
-      }
-
-      val byteArray = bos.toByteArray()
-      return Base64.encodeToString(byteArray, Base64.NO_WRAP)
-    } catch (e: IOException) {
-      e.printStackTrace()
-    } catch (e: FileNotFoundException) {
-      e.printStackTrace()
-    }
-
-    return null
-  }
-
   fun getFileSize(contentUri: Uri): Long? {
 
     var cursor: Cursor? = null
@@ -215,6 +177,10 @@ object FileBase {
 
     val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
     return calculateMD5(inputStream)
+  }
+
+  fun calculateMD5(file: File): String? {
+    return calculateMD5(FileInputStream(file))
   }
 
   fun calculateMD5(fullFilePath: String, fileName: String): String? {
@@ -251,12 +217,6 @@ object FileBase {
     }
 
     return calculateMD5(inputStream)
-  }
-
-
-  fun calculateMD5(file: File): String? {
-
-    return calculateMD5(FileInputStream(file))
   }
 
   fun calculateMD5(inputStream: InputStream): String? {
@@ -334,7 +294,6 @@ object FileBase {
     return image
   }
 
-
   @Throws(FileNotFoundException::class)
   fun getBase64Data(uri: Uri?): String {
 
@@ -352,8 +311,44 @@ object FileBase {
   fun getByteArray(bm: Bitmap): ByteArray {
 
     val baos = ByteArrayOutputStream()
-    bm.compress(Bitmap.CompressFormat.JPEG, 100, baos) // No compression
+    bm.compress(Bitmap.CompressFormat.JPEG, 70, baos) // No compression
     return baos.toByteArray()
+  }
+
+  fun convertContentUriToBase64(contentUri: Uri): String? {
+
+    val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
+    return convertStreamToBase64(inputStream)
+  }
+
+  fun convertFileToBase64(f: File): String? {
+
+    val inputStream = FileInputStream(f)
+    return convertStreamToBase64(inputStream)
+  }
+
+  fun convertStreamToBase64(inputStream: InputStream): String? {
+
+    try {
+
+      val bos = ByteArrayOutputStream()
+      val b   = ByteArray(1024 * 11)
+
+      var bytesRead = inputStream.read(b)
+      while (bytesRead != -1) {
+        bos.write(b, 0, bytesRead)
+        bytesRead = inputStream.read(b)
+      }
+
+      val byteArray = bos.toByteArray()
+      return Base64.encodeToString(byteArray, Base64.NO_WRAP)
+    } catch (e: IOException) {
+      e.printStackTrace()
+    } catch (e: FileNotFoundException) {
+      e.printStackTrace()
+    }
+
+    return null
   }
 
 }

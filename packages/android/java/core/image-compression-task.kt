@@ -1,13 +1,12 @@
 package core
 
 import android.graphics.*
-import android.support.media.ExifInterface
 import android.util.Base64
 import com.obopay.mobilemoney.core.App
 import util.FileBase
 import java.lang.Exception
 
-class ImageCompressionTask {
+class ImageCompressionTask: MubbleLogger {
 
   fun compressImage(base64Data: String): String? {
 
@@ -26,8 +25,8 @@ class ImageCompressionTask {
 
       var actualHeight = options.outHeight
       var actualWidth  = options.outWidth
-      val maxHeight    = 816.0f
-      val maxWidth     = 612.0f
+      val maxHeight    = 800.0f
+      val maxWidth     = 800.0f
       var imgRatio     = actualWidth * 1f / actualHeight
       val maxRatio     = maxWidth * 1f / maxHeight
 
@@ -80,15 +79,15 @@ class ImageCompressionTask {
       canvas.matrix = scaleMatrix
       canvas.drawBitmap(bmp, middleX - bmp.width/2, middleY - bmp.height/2, Paint(Paint.FILTER_BITMAP_FLAG))
 
-      val exif        = ExifInterface(imgUri)
-      val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0)
+      //val exif        = ExifInterface(imgUri)
+      //val orientation = exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, 0)
       val matrix      = Matrix()
 
-      when (orientation) {
-        0 -> matrix.postRotate(90f)
-        3 -> matrix.postRotate(180f)
-        8 -> matrix.postRotate(270f)
-      }
+//      when (orientation) {
+//        0 -> matrix.postRotate(90f)
+//        3 -> matrix.postRotate(180f)
+//        8 -> matrix.postRotate(270f)
+//      }
 
       scaledBitmap = Bitmap.createBitmap(scaledBitmap, 0, 0,scaledBitmap.width, scaledBitmap.height, matrix, true)
 

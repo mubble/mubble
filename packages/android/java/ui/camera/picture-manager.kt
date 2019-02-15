@@ -10,6 +10,7 @@ import android.provider.MediaStore
 import android.support.v4.content.FileProvider
 import core.BaseApp
 import core.ImageCompressionTask
+import core.MubbleLogger
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
 import util.FileBase
@@ -21,7 +22,7 @@ import java.io.*
  */
 
 class PictureManager(private val parentActivity: MubbleBaseActivity,
-                     private val listener: (JSONObject) -> Unit) {
+                     private val listener: (JSONObject) -> Unit) : MubbleLogger {
 
   private var fileUri           : Uri?    = null
   private var galleryImgBase64  : String? = null
@@ -46,12 +47,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
 
     if (resultCode != RESULT_OK) {
-
-//      if (requestCode == REQUEST_CROP_PHOTO && galleryImgBase64 != null) {
-//        respondWithSuccess(galleryImgBase64, false)
-//        return
-//      }
-
       respondWithFailure(ERROR_ACT_RESULT_FAIL)
       return
     }
@@ -62,7 +57,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
       when (requestCode) {
 
         REQUEST_TAKE_PHOTO -> {
-          // TODO: compress fileUri
           bm = FileBase.getBitmapFromUri(fileUri)
           galleryImgBase64 = FileBase.getBase64Data(bm)
           cropCapturedImage(fileUri)
@@ -88,7 +82,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
 
           fileUri           = FileProvider.getUriForFile(BaseApp.instance, AUTHORITY, output!!)
 
-          // TODO: compress fileUri
           cropCapturedImage(fileUri)
         }
 
