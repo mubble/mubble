@@ -207,7 +207,7 @@ export class ServerWebSocket implements XmnProvider {
       config)], true)
 
     // Update the key to new key
-    this.si.syncKey = key
+    //this.si.syncKey = key -> Updated in enc-provider directly
   }
 
   onOpen() {

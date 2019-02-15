@@ -134,13 +134,9 @@ export class WsBrowser implements XmnProvider {
         }
       }
 
-      console.log(`Test`, this.wsProviderConfig)
-
       const url         = `ws://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
             header      = await this.encProvider.encodeHeader(this.wsProviderConfig)
       
-      console.log(`After`)
-
       messageBody = encodeURIComponent(header)
 
       this.ws  = new WebSocket(url + messageBody)
@@ -166,10 +162,10 @@ export class WsBrowser implements XmnProvider {
       
       messageBody = await this.encProvider.encodeBody(data)
       this.ws.send(messageBody)
+
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sent message', {msgLen: messageBody.length, 
+        messages: data.length, firstMsg: data[0].name})  
     }
-    
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sent message', {msgLen: messageBody.length, 
-      messages: data.length, firstMsg: data[0].name})
 
     this.setupTimer(rc)
     this.sending = false
@@ -181,6 +177,9 @@ export class WsBrowser implements XmnProvider {
   }
 
   async onMessage(msgEvent: MessageEvent) {
+
+    console.log(`Recieved message`);
+    
 
     const data = msgEvent.data
     const messages = await this.encProvider.decodeBody(data)
@@ -207,6 +206,8 @@ export class WsBrowser implements XmnProvider {
 
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
 
+      console.log(`Got provider config msg`);
+      
       const config: WssProviderConfig = se.data as WssProviderConfig,
             msPingSecs = config.pingSecs      
 
@@ -216,6 +217,8 @@ export class WsBrowser implements XmnProvider {
       Object.assign(this.wsProviderConfig, config)
 
       if (config.key) await this.encProvider.setNewKey(config.key)
+
+      console.log(`New key is set`)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
         'First message in', Date.now() - this.socketCreateTs, 'ms')

@@ -198,7 +198,6 @@ export class WireEventResp extends WireObject {
 }
 
 export const SYS_EVENT = {
-  UPGRADE_CLIENT_IDENTITY : 'UPGRADE_CLIENT_IDENTITY',
   WS_PROVIDER_CONFIG      : 'WS_PROVIDER_CONFIG',
   ERROR                   : 'ERROR',
   PING                    : 'PING'

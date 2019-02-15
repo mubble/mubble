@@ -84,7 +84,7 @@ export abstract class XmnRouterBrowser {
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
     this.timerEventTimeout = rc.timer.register('router-event-timeout', this.cbTimerEventTimeout.bind(this))
 
-    // rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
+    rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
   getPubKey() { return this.pubKey }

@@ -78,6 +78,8 @@ export class WssServer {
             ci          = {} as ConnectionInfo,
             si          = {} as SessionInfo
 
+      console.log(`WssConfig from client ${JSON.stringify(body.wssConfig)}`);
+      
       ci.shortName      = clientId
       ci.protocol       = Protocol.WEBSOCKET
       ci.host           = host
@@ -98,9 +100,9 @@ export class WssServer {
 
       const woJson    = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.WS_PROVIDER_CONFIG, data : wssConfig},
             respWo    = WireObject.getWireObject(woJson) as WireSysEvent,
-            encConfig = await encProvider.encodeBody([respWo], false)
+            encConfig = await encProvider.encodeHandshakeMsg(respWo)
 
-      rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo)
+      rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo, `encConfig: ${encConfig.length}`)
       socket.send(encConfig)
 
       this.socketMap.set(wssProvider, body.tsMicro)
@@ -153,7 +155,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
-    const data = await this.encProvider.encodeBody(woArr, true)
+    const data = await this.encProvider.encodeBody(rc, woArr, true)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
 

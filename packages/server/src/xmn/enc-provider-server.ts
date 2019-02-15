@@ -24,6 +24,8 @@ const IV = Buffer.alloc(16)
 
 export class EncProviderServer {
 
+  private syncKey : any
+
   constructor(rc: RunContextServer, private ci: ConnectionInfo, private si : SessionInfo) {
 
   }
@@ -53,6 +55,10 @@ export class EncProviderServer {
     this.ci.customData  = headers
   }
 
+  setNewKey(syncKey: any) {
+
+  }
+
   extractKey(rc: RunContextServer, data: Buffer, pk: string | null) {
 
     const startPtr  = 7
@@ -63,7 +69,7 @@ export class EncProviderServer {
 
     rc.isAssert() && rc.assert(rc.getName(this), data.length !== 256, 'Incorrect header')
 
-    if (pk) this.si.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
+    if (pk) this.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
     return endPtr
   } 
 
@@ -119,6 +125,7 @@ export class EncProviderServer {
 
   public getNewKey() {
     const key = crypto.randomBytes(32)
+    this.syncKey = key
     return {key, encKey: this.encrypt(key)}
   }
 
@@ -127,7 +134,7 @@ export class EncProviderServer {
     // if (!this.si.useEncryption) return buffer
     // console.log('encrypt', this.ci.syncKey.length, this.ci.syncKey)
 
-    const cipher  = crypto.createCipheriv('aes-256-cbc', this.si.syncKey, IV),
+    const cipher  = crypto.createCipheriv('aes-256-cbc', this.syncKey, IV),
           outBuf1 = cipher.update(buffer),
           outBuf2 = cipher.final()
 
@@ -143,7 +150,7 @@ export class EncProviderServer {
 
     // if (!this.si.useEncryption) return buffer
 
-    const decipher  = crypto.createDecipheriv('aes-256-cbc', this.si.syncKey, IV),
+    const decipher  = crypto.createDecipheriv('aes-256-cbc', this.syncKey, IV),
           outBuf1   = decipher.update(buffer),
           outBuf2   = decipher.final()
 

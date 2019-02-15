@@ -16,6 +16,7 @@ import {
        }                    from '@mubble/core'
 import * as crypto          from 'crypto'
 import * as zlib            from 'zlib'
+import { RunContextServer } from '../rc-server';
 
 const BASE64      = 'base64',
       SYM_ALGO    = 'aes-256-cbc',
@@ -26,7 +27,7 @@ const BASE64      = 'base64',
 
 export class WssEncProvider {
 
-  private reqAesKey  : Buffer
+  private reqAesKey  : Buffer  
   private respAesKey : Buffer
 
   public constructor(private privateKey : string) {
@@ -61,7 +62,7 @@ export class WssEncProvider {
     this.reqAesKey = this.decryptyUsingPrivateKey(encReqKeyBuf)
 
     const wssConfig = this.decryptRequestConfig(encWssConfigBuf)
-      
+
     let tsMicro   : number = 0
         
     // if(wssConfig.key) {
@@ -77,32 +78,81 @@ export class WssEncProvider {
     return {tsMicro, wssConfig}
   }
 
-  public async encodeBody(woArr : Array<WireObject>, useEncryption : boolean) : Promise<Buffer> {
-    const jsonStr     = JSON.stringify(woArr),
-          jsonBuf     = Buffer.from(jsonStr),
-          encJsonBuf  = useEncryption ? this.encryptUsingRespAesKey(jsonBuf) : jsonBuf,
-          compress    = encJsonBuf.length >= Encoder.MIN_SIZE_TO_COMPRESS,
-          leader      = this.getLeader(compress, useEncryption, false),
-          leaderBuf   = Buffer.from([leader])
+  public async encodeHandshakeMsg(wo: WireObject) {
 
-    let dataStr = ''
+    console.log(`Came to encodeHandshakeMsg`)
 
-    switch(leader) {
-      case DataLeader.DEF_JSON :
-      case DataLeader.ENC_DEF_JSON :
-        dataStr = (await Mubble.uPromise.execFn(zlib.deflate, zlib, encJsonBuf)).toString()
-        break
+    const woStr = wo.stringify()
+    let   firstPassBuffer,
+          leader = DataLeader.ENC_JSON
 
-      case DataLeader.JSON :
-      case DataLeader.ENC_JSON :
-        dataStr = encJsonBuf.toString()
-        break
+    if (woStr.length > Encoder.MIN_SIZE_TO_COMPRESS) {
+      const buf = await Mubble.uPromise.execFn(zlib.deflate, zlib, woStr)
+
+      if (buf.length < woStr.length) {
+        firstPassBuffer = buf
+        leader          = DataLeader.ENC_DEF_JSON
+      }
     }
 
-    const dataBuf  = Buffer.from(dataStr),
-          totalBuf = Buffer.concat([leaderBuf, dataBuf])
+    if (!firstPassBuffer) firstPassBuffer = new Buffer(woStr)
+    return Buffer.concat([new Buffer([leader]), this.encryptUsingReqAesKey(firstPassBuffer)])
+  }
 
-    return totalBuf
+  public async encodeBody(rc: RunContextServer, woArr : Array<WireObject>, 
+                          useEncryption : boolean) : Promise<Buffer> {
+
+    const woArrData = []
+    for (const wo of woArr) {
+      if (wo.data instanceof Buffer) {
+        rc.isAssert() && rc.assert(rc.getName(this), woArr.length === 1, 
+          'Binary data cannot be sent as array of messages')
+        return this.encodeBinaryBody(rc, wo)
+      }
+      woArrData.push(wo.stringify())
+    }
+
+    const str = woArrData.length === 1 ? woArrData[0] : JSON.stringify(woArrData)
+    let   buffer,
+          deflate = false
+
+    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
+      const buf = await Mubble.uPromise.execFn(zlib.deflate, zlib, str)
+      if (buf.length < str.length) {
+        buffer  = buf
+        deflate = true
+      }
+    }
+
+    if (!buffer) buffer = new Buffer(str)
+    const leader = deflate ? DataLeader.ENC_DEF_JSON : DataLeader.ENC_JSON
+    return Buffer.concat([new Buffer([leader]), this.encryptUsingRespAesKey(buffer)])
+
+    // const jsonStr     = JSON.stringify(woArr),
+    //       jsonBuf     = Buffer.from(jsonStr),
+    //       encJsonBuf  = useEncryption ? this.encryptUsingRespAesKey(jsonBuf) : jsonBuf,
+    //       compress    = encJsonBuf.length >= Encoder.MIN_SIZE_TO_COMPRESS,
+    //       leader      = this.getLeader(compress, useEncryption, false),
+    //       leaderBuf   = Buffer.from([leader])
+
+    // let dataStr = ''
+
+    // switch(leader) {
+    //   case DataLeader.DEF_JSON :
+    //   case DataLeader.ENC_DEF_JSON :
+    //     dataStr = (await Mubble.uPromise.execFn(zlib.deflate, zlib, encJsonBuf)).toString()
+    //     break
+
+    //   case DataLeader.JSON :
+    //   case DataLeader.ENC_JSON :
+    //     dataStr = encJsonBuf.toString()
+    //     break
+    // }
+
+    // const dataBuf  = Buffer.from(dataStr),
+    //       totalBuf = Buffer.concat([leaderBuf, dataBuf])
+
+    // return totalBuf
   }
 
   public async decodeBody(totalBuf : Buffer) : Promise<Array<WireObject>> {
@@ -191,9 +241,18 @@ export class WssEncProvider {
     return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
   }
 
+  // ????? Convert to async
+  private encryptUsingReqAesKey(data : Buffer) : Buffer {
+
+    const cipher = this.getCipher(this.reqAesKey),
+          buff1  = cipher.update(data),
+          buff2  = cipher.final()
+
+    return buff2.length ? Buffer.concat([buff1, buff2]) : buff1
+  }
+
   private encryptUsingRespAesKey(data : Buffer) : Buffer {
     if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
-
     const cipher = this.getCipher(this.respAesKey),
           buff1  = cipher.update(data),
           buff2  = cipher.final()
@@ -239,4 +298,10 @@ export class WssEncProvider {
 console.log('\nleader : ' + leader + '\n')
     return leader
   }
+
+  private encodeBinaryBody(rc: RunContextServer, data: WireObject) {
+    const encData = this.encryptUsingRespAesKey(Buffer.concat([new Buffer(data.stringify() + '\n'), data.data as Buffer])) 
+    return Buffer.concat([new Buffer(DataLeader.BINARY), encData])
+  }
+
 }

@@ -18,7 +18,8 @@ import {
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 
-const IV                    = new Uint8Array([0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00]),
+const IV                    = new Uint8Array([0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 
+                                              0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00]),
       SYM_ALGO              = {name: "AES-CBC", iv: IV, length: 256},
       ASYM_ALGO             = {name: 'RSA-OAEP', hash: {name: 'SHA-1'}}
 
@@ -28,7 +29,7 @@ let pwc         : PakoWorkerClient
 
 export class EncryptionBrowser {
 
-  private syncKey: any
+  private syncKey: any // can be sent as null by server
 
   constructor(private rc: RunContextBrowser, private ci: ConnectionInfo, 
               private si : SessionInfo, private rsaPubKey: Uint8Array) {
@@ -40,17 +41,11 @@ export class EncryptionBrowser {
     if (!pwc)         pwc = new PakoWorkerClient(rc)
   }
 
-  async init(key ?: string) {
-    await this.ensureSyncKey(key)
+  async init() {
+    this.syncKey = await crypto.subtle.generateKey(SYM_ALGO, true, ['encrypt', 'decrypt'])
   }
 
-  /**
-   * Timestamp micro encrypted with AES key 
-   * WsConfig encrypted with RSA pub key
-   */
   async encodeHeader(wsConfig: WssProviderConfig): Promise<string> {
-
-    console.log(`Came to encode`)
 
     const now           = Date.now() * 1000, // microseconds
           tsBuffer      = await this.encrypt(this.strToUnit8Ar(now.toString())),
@@ -66,17 +61,6 @@ export class EncryptionBrowser {
           configB64     = btoa(String.fromCharCode(...encConfig))
 
     return `${tsB64}${keyB64}${configB64}`
-  }
-
-  private async encryptHeader(data: Uint8Array): Promise<ArrayBuffer> {
-
-    console.log(`Data`, data);
-
-    const key = await crypto.subtle.importKey('spki', this.rsaPubKey, ASYM_ALGO , false, ['encrypt'])
-
-    console.log(`Key`, key)
-   
-    return await crypto.subtle.encrypt(ASYM_ALGO, key, data)
   }
 
   private async encryptSymKey() {
@@ -109,23 +93,25 @@ export class EncryptionBrowser {
 
     const str = this.stringifyWireObjects(data)
     let   firstPassArray,
-          leader = 0
+          leader  = -1,
+          deflate = false
 
     if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
       const ar = await pwc.deflate(str)
       if (ar.length < str.length) {
         firstPassArray = ar
-        leader         = DataLeader.DEF_JSON
+        deflate        = true
       }
     }
 
     if (!firstPassArray) {
       firstPassArray = this.strToUnit8Ar(str)
-      leader         = DataLeader.JSON
     }
 
     const secondPassArray = new Uint8Array(await this.encrypt(firstPassArray)),
           arOut           = new Uint8Array(secondPassArray.byteLength + 1)
+
+    leader = deflate ? DataLeader.ENC_DEF_JSON : DataLeader.ENC_JSON
 
     arOut.set([leader])
     arOut.set(secondPassArray, 1)
@@ -136,7 +122,7 @@ export class EncryptionBrowser {
       json        : str.length, 
       wire        : arOut.byteLength,
       encrypted   : true,
-      compressed  : leader === DataLeader.DEF_JSON,
+      compressed  : deflate,
     })
     return arOut
   }
@@ -149,13 +135,14 @@ export class EncryptionBrowser {
 
   async decodeBody(data: ArrayBuffer): Promise<[WireObject]> {
 
-    //await this.ensureSyncKey()
+    console.log(`Came to decodeBody`)
+
     const inAr    = new Uint8Array(data, 1),
           ar      = new Uint8Array(data, 0, 1),
           leader  = ar[0],
           temp    = new Uint8Array(await this.decrypt(inAr))
-
-    let arData, index, decLen
+    
+    let arData, index, decLen, deflated = false
 
     if (leader === DataLeader.BINARY) {
 
@@ -172,11 +159,10 @@ export class EncryptionBrowser {
 
     } else {
 
-      const inJsonStr = leader === DataLeader.DEF_JSON ? await pwc.inflate(temp)
-                                                   : this.uint8ArToStr(temp)
+      deflated        = leader === DataLeader.DEF_JSON || leader === DataLeader.ENC_DEF_JSON
+      const inJsonStr = deflated ? await pwc.inflate(temp) : this.uint8ArToStr(temp),
+            inJson    = JSON.parse(inJsonStr)
 
-      const inJson    = JSON.parse(inJsonStr)
-            
       decLen = inJsonStr.length
       arData = Array.isArray(inJson) ? inJson: [inJsonStr]
       
@@ -190,7 +176,7 @@ export class EncryptionBrowser {
       messages    : arData.length, 
       wire        : data.byteLength, 
       message     : decLen,
-      encrypted   : leader === DataLeader.ENC_JSON || leader === DataLeader.ENC_BINARY || leader === DataLeader.ENC_DEF_JSON,compressed  : leader === DataLeader.BINARY ? 'binary' : leader === DataLeader.DEF_JSON
+      encrypted   : leader === DataLeader.ENC_JSON || leader === DataLeader.ENC_BINARY || leader === DataLeader.ENC_DEF_JSON,compressed  : leader === DataLeader.BINARY ? 'binary' : deflated
     })
 
     return arData as [WireObject]
@@ -198,12 +184,11 @@ export class EncryptionBrowser {
 
   public async setNewKey(syncKey: string) {
 
-    //rc.isAssert() && rc.assert(rc.getName(this), this.si.useEncryption)
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `Came to setKey oldKey: ${await this.getSyncKeyB64()},  newKey ${syncKey}`)
 
-    const arEncNewKey = this.binToUnit8Ar(atob(syncKey)),
-          arNewKey    = new Uint8Array(await this.decrypt(arEncNewKey))
-
-    this.syncKey      = await crypto.subtle.importKey('raw', arNewKey, SYM_ALGO, true, ['encrypt', 'decrypt'])
+    const arEncNewKey = this.binToUnit8Ar(atob(syncKey))
+    this.syncKey      = await crypto.subtle.importKey('raw', arEncNewKey, SYM_ALGO, true, ['encrypt', 'decrypt'])
   }
 
   async getSyncKeyB64(): Promise<string> {
@@ -212,15 +197,6 @@ export class EncryptionBrowser {
           arr    = new Uint8Array(buffer) as any
 
     return btoa(String.fromCharCode(...arr))   
-  }
-
-  private async ensureSyncKey(key ?: string) {
-
-    if (key) {
-      await this.setNewKey(key)
-    } else if (!this.syncKey) {
-      this.syncKey = await crypto.subtle.generateKey(SYM_ALGO, true, ['encrypt', 'decrypt'])
-    }
   }
 
   binToUnit8Ar(binStr : string): Uint8Array {
