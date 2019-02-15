@@ -62,13 +62,13 @@ export class NcPlatformLocation extends PlatformLocation {
   }
 
   pushState(state: any, title: string, url: string): void {
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), false, 
-      'pushState', 'First navigation was not done in root ngInit()')
+    // this.rc.isAssert() && this.rc.assert(this.rc.getName(this), false, 
+    //   'pushState', 'First navigation was not done in root ngInit()')
   }
 
   replaceState(state: any, title: string, url: string): void {
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), false, 'replaceState', 
-      'First navigation was not done in root ngInit()')
+    // this.rc.isAssert() && this.rc.assert(this.rc.getName(this), false, 'replaceState', 
+    //   'First navigation was not done in root ngInit()')
   }
 
   forward(): void { 
