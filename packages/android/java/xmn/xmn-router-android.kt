@@ -23,7 +23,7 @@ import java.net.URL
 ------------------------------------------------------------------------------*/
 
 abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInfo,
-                                val syncKey: ByteArray? = null) : MubbleLogger {
+                                private val si: SessionInfo, private val pubKey: ByteArray) : MubbleLogger {
 
   private var ongoingRequests : MutableList<RouterRequest> = mutableListOf()
 
@@ -33,10 +33,11 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   private var timerReqResend    : AdhocTimer?  = null
   private var timerReqTimeout   : AdhocTimer?  = null
 
-  abstract fun upgradeClientIdentity(wo: WireObject)
   abstract fun getNetworkType(): String
   abstract fun getLocation(): String
-  abstract fun getClientIdentity(): ClientIdentity?
+  abstract fun getMaxOpenSecs(): Int
+  abstract fun getCustomData(): CustomData?
+  abstract fun updateCustomDataFromConfig(wo: WireObject)
   abstract fun handleEphEvent(wo: WireObject)
   abstract fun onSocketAbnormalClose(code: Int)
 
@@ -51,23 +52,24 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     val url = URL(serverUrl)
 
-    this.ci.secure        = url.protocol == "https"
     this.ci.protocol      = Protocol.WEBSOCKET
     this.ci.host          = url.host
-    this.ci.port          = if (url.port != -1) url.port.toString() else ""
-    this.ci.useEncryption = syncKey != null
+    this.ci.port          = if (url.port != -1) url.port.toString() else { if (url.protocol == "https:") "443" else "80" }
+    this.ci.publicRequest = this.getCustomData() == null
 
-    val isPrivateConn = this.getClientIdentity() != null
-
-    if (isPrivateConn) {
+    if (!this.ci.publicRequest) {
       timerReqResend  = AdhocTimer("router-resend") { cbTimerReqResend() }
       timerReqTimeout = AdhocTimer("router-req-timeout") { cbTimerReqTimeout() }
     }
   }
 
+  fun getPubKey(): ByteArray? {
+    return this.pubKey
+  }
+
   open fun cleanup() {
 
-    if (this.ci.provider != null) this.ci.provider!!.cleanup()
+    if (this.si.provider != null) this.si.provider!!.cleanup()
     this.timerReqResend?.remove()
     this.timerReqTimeout?.remove()
   }
@@ -86,9 +88,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     this.ongoingRequests.add(RouterRequest(wr, cb, timeout))
 
-    if (this.ci.provider == null) this.prepareConnection()
+    if (this.si.provider == null) this.prepareConnection()
 
-    if (this.ci.provider!!.send(arrayOf(wr)) == null) {
+    if (this.si.provider!!.send(arrayOf(wr)) == null) {
       wr.isSent = true
       info { "Sent request ${wr.toJsonObject()}" }
       timerReqTimeout?.tickAfter(timeout, true)
@@ -101,43 +103,43 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
   fun sendPersistentEvent(eventName: String, data: JSONObject) {
 
-    if (this.ci.provider == null) this.prepareConnection()
-    val clientIdentity = this.ci.clientIdentity
+    if (this.si.provider == null) this.prepareConnection()
+    val customData = this.ci.customData
 
-    assert(clientIdentity != null && clientIdentity.clientId != 0L) {
+    assert(customData != null && customData.clientId != 0L) {
       "You cannot send Persistent events without clientId"
     }
 
     val event = WireEvent(eventName, data, System.currentTimeMillis())
 
-    if (this.ci.provider!!.send(arrayOf(event)) == null) {
+    if (this.si.provider!!.send(arrayOf(event)) == null) {
       info { "Sent event $event" }
     }
   }
 
   fun sendEphemeralEvent(eventName: String, data: JSONObject) {
 
-    if (this.ci.provider == null) this.prepareConnection()
-    val clientIdentity = this.ci.clientIdentity
+    if (this.si.provider == null) this.prepareConnection()
+    val customData = this.ci.customData
 
-    assert(clientIdentity != null && clientIdentity.clientId != 0L) {
+    assert(customData != null && customData.clientId != 0L) {
       "You cannot send Ephemeral events without clientId"
     }
 
     val event = WireEphEvent(eventName, data, System.currentTimeMillis())
-    this.ci.provider!!.sendEphemeralEvent(event)
+    this.si.provider!!.sendEphemeralEvent(event)
   }
 
   fun prepareConnection() {
 
-    info { "prepareConnection Provider: ${this.ci.provider != null}" }
+    info { "prepareConnection Provider: ${this.si.provider != null}" }
 
-    this.ci.networkType     = this.getNetworkType()
-    this.ci.location        = this.getLocation()
-    this.ci.clientIdentity  = this.getClientIdentity()
-    this.ci.publicRequest   = this.ci.clientIdentity == null
+    this.ci.customData              = this.getCustomData()
+    this.ci.customData?.location    = this.getLocation()
+    this.ci.customData?.networkType = this.getNetworkType()
+    this.ci.publicRequest           = this.ci.customData == null
 
-    if (this.ci.provider == null) this.ci.provider = WsAndroid(this.ci, this)
+    if (this.si.provider == null) this.si.provider = WsAndroid(this.ci, this.si, this)
   }
 
   fun providerReady() {
@@ -203,22 +205,21 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     info { "Came to processSysEvent ${se.toJsonObject()}" }
 
-    if (se.name == SysEvent.UPGRADE_CLIENT_IDENTITY) {
-      this.upgradeClientIdentity(se)
-      //this.prepareConnection() -> Happens from JS
-
-    } else {
-      this.ci.provider!!.processSysEvent(se)
+    if (se.name == SysEvent.WS_PROVIDER_CONFIG) {
+      this.updateCustomDataFromConfig(se)
+      this.prepareConnection()
     }
+
+    this.si.provider!!.processSysEvent(se)
   }
 
   private fun cbTimerReqResend(): Long {
 
     val wr = this.ongoingRequests.find { !it.wr.isSent }
-    if (wr == null || this.ci.provider == null) return 0
+    if (wr == null || this.si.provider == null) return 0
 
     when {
-      this.ci.provider!!.send(arrayOf(wr.wr)) == null -> {
+      this.si.provider!!.send(arrayOf(wr.wr)) == null -> {
         wr.wr.isSent = true
         this.timerReqTimeout?.tickAfter(wr.timeout, true)
       }

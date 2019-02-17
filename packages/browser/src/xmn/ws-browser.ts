@@ -177,9 +177,6 @@ export class WsBrowser implements XmnProvider {
 
   async onMessage(msgEvent: MessageEvent) {
 
-    console.log(`Recieved message`);
-    
-
     const data = msgEvent.data
     const messages = await this.encProvider.decodeBody(data)
     await this.router.providerMessage(this.rc, messages)
@@ -247,22 +244,14 @@ export class WsBrowser implements XmnProvider {
   }
 
   private setupTimer(rc: RunContextBrowser) {
-
-    console.log(`Came to setupTimer`);
     
     this.lastMessageTs = Date.now()
-
-    console.log(`TickAfter ${this.wsProviderConfig.pingSecs * 1000}`)
-
     this.timerPing.tickAfter(this.wsProviderConfig.pingSecs * 1000, true)
   }
 
   private cbTimerPing(): number {
 
     if (!this.si.provider) return 0
-
-    console.log(`Test came for ping`);
-    
 
     const now   = Date.now(),
           diff  = this.lastMessageTs + this.wsProviderConfig.pingSecs * 1000 - now
@@ -276,8 +265,6 @@ export class WsBrowser implements XmnProvider {
   }
 
   private cleanup() {
-
-    console.log(`Came to cleanup`)
 
     if (!this.si.provider) return
 

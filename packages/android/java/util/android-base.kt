@@ -499,7 +499,7 @@ object AndroidBase {
       bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
       val byteArray = byteArrayOutputStream.toByteArray()
 
-      Base64.encodeToString(byteArray, Base64.DEFAULT)
+      Base64.encodeToString(byteArray, Base64.NO_WRAP)
 
     } catch (e: Exception) {
       null

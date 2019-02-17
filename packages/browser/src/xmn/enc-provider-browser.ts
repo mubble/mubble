@@ -135,8 +135,6 @@ export class EncryptionBrowser {
 
   async decodeBody(data: ArrayBuffer): Promise<[WireObject]> {
 
-    console.log(`Came to decodeBody`)
-
     const inAr    = new Uint8Array(data, 1),
           ar      = new Uint8Array(data, 0, 1),
           leader  = ar[0],
@@ -183,9 +181,6 @@ export class EncryptionBrowser {
   }
 
   public async setNewKey(syncKey: string) {
-
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
-      `Came to setKey oldKey: ${await this.getSyncKeyB64()},  newKey ${syncKey}`)
 
     const arEncNewKey = this.binToUnit8Ar(atob(syncKey))
     this.syncKey      = await crypto.subtle.importKey('raw', arEncNewKey, SYM_ALGO, true, ['encrypt', 'decrypt'])

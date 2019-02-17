@@ -16,7 +16,7 @@ open class OkHttpWsClient(private val serverURI: URI, private val wsListener: Ws
 
   override fun connect() {
 
-    val request = Request.Builder().url(serverURI.toURL()).build()
+    val request = Request.Builder().url(serverURI.toString()).build()
     webSocket   = client.newWebSocket(request, this)
     client.dispatcher().executorService().shutdown()
   }
