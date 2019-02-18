@@ -38,7 +38,7 @@ export class WssServer {
 
   constructor(private refRc  : RunContextServer,
               private router : XmnRouterServer,
-              httpsServer    : http.Server) {
+              httpsServer    : http.Server | https.Server) {
 
     this.socketMap = new Map()            
 		this.server    = new ws.Server({
@@ -77,8 +77,6 @@ export class WssServer {
             wssConfig   = ObopayWssClient.getWssConfig(body.wssConfig, encProvider),
             ci          = {} as ConnectionInfo,
             si          = {} as SessionInfo
-
-      console.log(`WssConfig from client ${JSON.stringify(body.wssConfig)}`);
       
       ci.shortName      = clientId
       ci.protocol       = Protocol.WEBSOCKET
@@ -100,16 +98,20 @@ export class WssServer {
 
       const woJson    = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.WS_PROVIDER_CONFIG, data : wssConfig},
             respWo    = WireObject.getWireObject(woJson) as WireSysEvent,
-            encConfig = await encProvider.encodeHandshakeMsg(respWo)
+            encConfig = await encProvider.encodeHandshakeMessage(respWo)
 
-      rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo, `encConfig: ${encConfig.length}`)
+      rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo)
       socket.send(encConfig)
 
-      this.socketMap.set(wssProvider, body.tsMicro)
+      this.markActive(wssProvider)
     } catch(err) {
       rc.isError() && rc.error(rc.getName(this), 'Error in establishing handshake.', err)
       socket.close()
     }
+  }
+
+  public markActive(wssProvider : WssServerProvider) {
+    this.socketMap.set(wssProvider, Date.now() * 1000)
   }
   
   public markClosed(wssProvider : WssServerProvider) {
@@ -155,7 +157,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
-    const data = await this.encProvider.encodeBody(rc, woArr, true)
+    const data = await this.encProvider.encodeBody(woArr)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
 
@@ -193,11 +195,12 @@ export class WssServerProvider implements XmnProvider {
     // })
 
     // if(!tsVerified) {
-    //   this.socket.close(WssErrorCode.INVALID_REQUESTTS)
+    //   this.socket.close()
     //   this.closeInternal(rc)
     //   return
     // }
 
+    this.wssServer.markActive(this)
     this.router.providerMessage(rc, this.ci, woArr)
   }
 

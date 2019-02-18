@@ -111,6 +111,10 @@ export class WireObject {
     }
   }
 
+  static parseString(str : string) : WireObject {
+    return JSON.parse(str)
+  }
+
   type      : string
   name      : string
   ts        : number
