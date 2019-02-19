@@ -44,10 +44,11 @@ export namespace ObopayHttpsClient {
     error   : null | Error        = null
     headers : Mubble.uObject<any>
     status  : number
-    output  : {
-      error : null   | string
-      data  : number | Mubble.uObject<any>
-    }
+    output  : Mubble.uObject<any>
+    // output  : {
+    //   error : null   | string
+    //   data  : number | Mubble.uObject<any>
+    // }
   }
 
   export function init(rc           : RunContextServer,
@@ -145,6 +146,10 @@ export namespace ObopayHttpsClient {
     req.on('response', (resp : http.IncomingMessage) => {
       result.headers = resp.headers
       result.status  = resp.statusCode || 200
+
+      rc.isDebug() && rc.debug(CLASS_NAME,
+                               `http${unsecured ? '' : 's'} response headers.`,
+                               resp.headers)
 
       if(!result.headers[HTTP.HeaderKey.symmKey])
         throw new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)

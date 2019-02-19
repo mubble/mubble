@@ -115,8 +115,8 @@ export class EncProviderServer {
       }
     }
 
-    if (!firstPassBuffer) firstPassBuffer = new Buffer(str)
-    return Buffer.concat([new Buffer(leader), this.encrypt(firstPassBuffer)])
+    if (!firstPassBuffer) firstPassBuffer = Buffer.from(str)
+    return Buffer.concat([Buffer.from(leader), this.encrypt(firstPassBuffer)])
   }
 
   public getNewKey() {
@@ -137,8 +137,8 @@ export class EncProviderServer {
   }
 
   private encodeBinaryBody(rc: RunContextServer, data: WireObject) {
-    const encData = this.encrypt(Buffer.concat([new Buffer(data.stringify() + '\n'), data.data as Buffer])) 
-    return Buffer.concat([new Buffer(Leader.BIN), encData])
+    const encData = this.encrypt(Buffer.concat([Buffer.from(data.stringify() + '\n'), data.data as Buffer])) 
+    return Buffer.concat([Buffer.from(Leader.BIN), encData])
   }
 
   private decrypt(buffer: Buffer) {

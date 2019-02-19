@@ -97,7 +97,7 @@ export class WsServer implements ActiveProviderCollection {
       ci.useEncryption = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.ENC_PRIVATE
       
       const encProvider    = new EncProviderServer(rc, ci),
-            headerBuffer   = new Buffer(header, 'base64')
+            headerBuffer   = Buffer.from(header, 'base64')
 
       encProvider.extractHeader(rc, headerBuffer)
 
@@ -107,7 +107,7 @@ export class WsServer implements ActiveProviderCollection {
       const webSocket = ci.provider = new ServerWebSocket(rc, ci, encProvider, 
                                         this.router, socket, this)
       
-      webSocket.onMessage({data: new Buffer(body, 'base64')})
+      webSocket.onMessage({data: Buffer.from(body, 'base64')})
 
     } catch (e) {
       console.log(e)
@@ -189,7 +189,7 @@ export class ServerWebSocket implements XmnProvider {
 
     this.configSent = true
     
-    const {key, encKey} = this.ci.useEncryption ? this.encProvider.getNewKey() : {key: '', encKey: new Buffer('')}
+    const {key, encKey} = this.ci.useEncryption ? this.encProvider.getNewKey() : {key: '', encKey: Buffer.from('')}
     
     const config = {
       msPingInterval : PING_FREQUENCY_MS, 

@@ -20,6 +20,7 @@ const SYM_ALGO                = 'aes-256-cbc',
       IV                      = Buffer.from([ 0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
                                               0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00 ]),
       MIN_SIZE_TO_COMPRESS    = 1000,
+      AES_KEY_SIZE            = 32,
       BASE64                  = 'base64',
       SIXTEEN                 = 16
 
@@ -36,7 +37,7 @@ export class HttpsEncProvider {
   public encodeRequestKey(publicKey : string) : string {
     if(!this.reqAesKey) this.reqAesKey = this.getNewAesKey()
 
-    const encKeyBuf = (crypto.publicEncrypt(publicKey, this.reqAesKey)),
+    const encKeyBuf = crypto.publicEncrypt(publicKey, this.reqAesKey),
           encKey    = encKeyBuf.toString(BASE64)
 
     return encKey
@@ -178,7 +179,7 @@ export class HttpsEncProvider {
   }
 
   private getNewAesKey() : Buffer {
-    const key = crypto.randomBytes(32)
+    const key = crypto.randomBytes(AES_KEY_SIZE)
 
     return key
   }

@@ -16,24 +16,38 @@ export namespace HTTP {
   // normally these keys are written with uppercase, we are writing them in lowercase 
   // for compatibility
   export const HeaderKey = {
-    userAgent       : 'user-agent',
-    clientSecret    : 'x-client-secret',
-    contentType     : 'content-type',
-    contentLength   : 'content-length',
-    contentEncoding : 'content-encoding'
+    userAgent        : 'user-agent',
+    clientSecret     : 'x-client-secret',
+    contentType      : 'content-type',
+    contentLength    : 'content-length',
+    contentEncoding  : 'content-encoding',
+    clientId         : 'x-obopay-cid',
+    versionNumber    : 'x-obopay-version',
+    requestTs        : 'x-obopay-ts',
+    symmKey          : 'x-obopay-key',
+    requestType      : 'x-obopay-type',
+    bodyEncoding     : 'x-obopay-encoding',
+    transferEncoding : 'transfer-encoding'
   }
   
   /* HTTP Headers */
   export const HeaderValue = {
-    form    : 'application/x-www-form-urlencoded',
-    gzip    : 'gzip',
-    deflate : 'deflate'
+    form     : 'application/x-www-form-urlencoded',
+    stream   : 'application/octet-stream',
+    json     : 'application/json',
+    gzip     : 'gzip',
+    deflate  : 'deflate',
+    identity : 'identity',
+    version2 : 'v2',
+    chunked  : 'chunked'
   }
 
   export const Const = {
     protocolHttp  : 'http:',
     protocolHttps : 'https:'
   }
+
+  export const CurrentProtocolVersion = HTTP.HeaderValue.version2
 }
 
 export const NetworkType = {
