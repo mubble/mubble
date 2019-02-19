@@ -238,10 +238,10 @@ export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, 
             break
           }
           
-          let data = new Buffer('')
+          let data : Buffer
           outputStream.on('data', (chunk: Buffer) => {
-            //data += chunk
-            data = Buffer.concat([data , chunk])
+            if(!data) data = chunk
+            else      data = Buffer.concat([data , chunk])
           })
           outputStream.on('end', () => {
             // If encoding is not defined . default is utf8
