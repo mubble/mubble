@@ -91,6 +91,10 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     this.caller.setResult(this.getRouteName(), result)
   }
 
+  isNotDismissable() {
+    return true
+  }
+
   /*=====================================================================
                               HTML FUNCTIONS
   =====================================================================*/
