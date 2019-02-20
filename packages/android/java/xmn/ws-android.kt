@@ -70,7 +70,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
              "anotherSendInProgress  : ${this.sending}, \n" +
              "configured             : ${this.configured}, \n" +
              "readyState             : ${if (this.ws != null) this.ws!!.readyStateName() else "to be created"}, \n" +
-             "bufferedAmount         : ${ws!!.hasBufferedData()} " }
+             "bufferedAmount         : ${ws?.hasBufferedData()} " }
 
       return XmnError._NotReady
     }
@@ -120,6 +120,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
       if (!isConnWithinPing(System.currentTimeMillis())) {
         info { "Connection expired..re-connecting" }
+        this.sending = false
         this.cleanup()
         this.send(data)
         return

@@ -207,7 +207,7 @@ export abstract class XmnRouterBrowser {
       if (this.si.provider.send(rc, [wireEvent])) break // failed to send
 
       rc.isDebug() && rc.debug(rc.getName(this), 'sent event', wireEvent)
-      this.lastEventTs      = wireEvent.ts
+      this.lastEventTs      = wireEvent.ts / 1000
       this.lastEventSendTs  = Date.now()
       this.timerEventTimeout.tickAfter(TIMEOUT_MS, true)
       await Mubble.uPromise.delayedPromise(EVENT_SEND_DELAY)
@@ -260,10 +260,10 @@ export abstract class XmnRouterBrowser {
 
         case WIRE_TYPE.EVENT_RESP:
           const eventResp = wo as WireEventResp
-          rc.isAssert() && rc.assert(rc.getName(this), eventResp.ts)
+          rc.isAssert() && rc.assert(rc.getName(this), eventResp.ts / 1000)
 
-          await EventTable.removeOldByTs(rc, this.db, eventResp.ts)
-          if (this.lastEventTs === eventResp.ts) {
+          await EventTable.removeOldByTs(rc, this.db, eventResp.ts / 1000)
+          if (this.lastEventTs === eventResp.ts / 1000) {
             this.lastEventTs      = 0
             this.lastEventSendTs  = 0
             this.timerEventTimeout.remove()
@@ -278,7 +278,7 @@ export abstract class XmnRouterBrowser {
           if (index === -1) {
             this.rc.isStatus() && this.rc.status(this.rc.getName(this), 
               'Got response for request that is not in progress... timed-out?', 
-              resp.name, 'sent at', new Date(resp.ts))
+              resp.name, 'sent at', new Date(resp.ts / 1000))
             return
           }
 
@@ -316,7 +316,7 @@ export abstract class XmnRouterBrowser {
       wr._isSent = true
       this.timerReqTimeout.tickAfter(TIMEOUT_MS)
 
-    } else if ((Date.now() - wr.ts) > SEND_TIMEOUT) {
+    } else if ((Date.now() - wr.ts / 1000) > SEND_TIMEOUT) {
 
       this.finishRequest(this.rc, this.ongoingRequests.indexOf(wr), XmnError.SendTimedOut, null)
 
@@ -336,7 +336,7 @@ export abstract class XmnRouterBrowser {
     for (let index = 0; index < this.ongoingRequests.length; index++) {
 
       const wr        = this.ongoingRequests[index],
-            timeoutAt = wr.ts + TIMEOUT_MS
+            timeoutAt = wr.ts / 1000 + TIMEOUT_MS
 
       if (wr._isSent) {
         if (now >= timeoutAt) {
@@ -373,7 +373,7 @@ export abstract class XmnRouterBrowser {
     if (!wr.resolve) {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Trying to finish already finished request', errorCode,
-        wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
+        wr.name, 'created at', new Date(wr.ts/1000), 'timeTaken', now - wr.ts/1000, 'ms')
 
       return  
     }
@@ -381,7 +381,7 @@ export abstract class XmnRouterBrowser {
     if (errorCode) {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Request failed with code', errorCode,
-        wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
+        wr.name, 'created at', new Date(wr.ts/1000), 'timeTaken', now - wr.ts/1000, 'ms')
       
       errorMessage = errorMessage ? errorMessage : errorCode
 
@@ -390,7 +390,7 @@ export abstract class XmnRouterBrowser {
     } else {
 
       rc.isStatus() && rc.status(rc.getName(this), 'Request succeeded', 
-        wr.name, 'created at', new Date(wr.ts), 'timeTaken', now - wr.ts, 'ms')
+        wr.name, 'created at', new Date(wr.ts/1000), 'timeTaken', now - wr.ts/1000, 'ms')
 
       wr.resolve(data)  
     }
@@ -409,7 +409,7 @@ class EventTable {
 
   constructor(event ?: WireEvent) {
     if (!event) return
-    this.ts = event.ts
+    this.ts = event.ts/1000
     this.name = event.name
     this.data = JSON.stringify(event.data)
   }

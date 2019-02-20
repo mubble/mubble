@@ -171,8 +171,8 @@ data class WsProviderConfig(var pingSecs: Int, var maxOpenSecs: Int, var toleran
                             var key: String?, var custom: CustomData?): JsonSerializable {
 
   constructor(json: JSONObject) : this(json.optInt("pingSecs"), json.optInt("maxOpenSecs"),
-      json.optInt("toleranceSecs"), json.optString("key"),
-      CustomData(json.optJSONObject("custom")))
+                                       json.optInt("toleranceSecs"), json.optString("key"),
+                                       CustomData.fromJsonObject(json.optJSONObject("custom")))
 
   override fun toJsonObject(): JSONObject {
 

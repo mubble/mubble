@@ -6,8 +6,31 @@ import org.json.JSONObject
 data class CustomData(val appName: String, val channel: String,
                       val appVersion: String): JsonSerializable {
 
-  constructor(json: JSONObject)
-      : this(json.getString("appName"), json.getString("channel"), json.getString("appVersion"))
+  companion object {
+
+    fun fromJsonObject(obj: JSONObject): CustomData {
+
+      val appName     = obj.getString("appName")
+      val channel     = obj.getString("channel")
+      val appVersion  = obj.getString("appVersion")
+
+      val customData = CustomData(appName, channel, appVersion)
+
+      customData.jsVersion      = obj.optString("jsVersion")
+      customData.clientId       = obj.optLong("clientId")
+      customData.userLinkId     = obj.optString("userLinkId")
+      customData.uniqueId       = obj.optString("uniqueId")
+      customData.firstName      = obj.optString("firstName")
+      customData.lastName       = obj.optString("lastName")
+      customData.profilePicMd5  = obj.optString("profilePicMd5")
+      customData.settingsMd5    = obj.optString("settingsMd5")
+      customData.migMobileNo    = obj.optString("migMobileNo")
+      customData.location       = obj.optString("location")
+      customData.networkType    = obj.optString("networkType")
+
+      return customData
+    }
+  }
 
   var jsVersion       : String?     = null
 

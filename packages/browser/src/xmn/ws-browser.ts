@@ -155,6 +155,7 @@ export class WsBrowser implements XmnProvider {
       
       if (!this.isConnWithinPing(Date.now())) { // Connection expired
         rc.isDebug() && rc.debug(rc.getName(this), `Connection expired..re-connecting`)
+        this.sending = false
         this.cleanup()
         await this.send(rc, data)
         return
