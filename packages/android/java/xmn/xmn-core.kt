@@ -12,7 +12,8 @@ import org.json.JSONObject
 var lastReqId   : Long = 0L
 var lastEventId : Long = 0L
 
-const val PROTOCOL_VERSION = "v2"
+const val PROTOCOL_VERSION    = "v2"
+const val PROTOCOL_HANDSHAKE  = "__handshake__"
 
 object WebSocketUrl {
   const val ENC_PUBLIC    = "socket.io"

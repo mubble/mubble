@@ -103,7 +103,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
             this.encProvider!!.getSyncKeyB64(), this.ci.customData!!)
       }
 
-      val url     = "ws://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/"
+      val url     = "ws://${this.ci.host}:${this.ci.port}/$PROTOCOL_HANDSHAKE/${this.si.protocolVersion}/${this.ci.shortName}/"
       val header  = this.encProvider!!.encodeHeader(wsProviderConfig!!)
       val msgBody = URLEncoder.encode(header, "UTF-8")
 
