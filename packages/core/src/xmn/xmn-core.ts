@@ -13,6 +13,8 @@ import { CustomData }             from './custom-data'
 
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
+export const HANDSHAKE = '__handshake__'
+
 /* HTTP Headers */
 export namespace HTTP {
 

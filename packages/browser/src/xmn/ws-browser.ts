@@ -27,7 +27,8 @@ import {
          WireObject,
          DataLeader,
          XmnProvider,
-         WssProviderConfig
+         WssProviderConfig,
+         HANDSHAKE
        }                                from '@mubble/core'
 import { XmnRouterBrowser }             from './xmn-router-browser'
 import { RunContextBrowser }            from '../rc-browser'
@@ -133,7 +134,7 @@ export class WsBrowser implements XmnProvider {
         }
       }
 
-      const url         = `ws://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
+      const url         = `ws://${this.ci.host}:${this.ci.port}/__handshake__/${this.si.protocolVersion}/${this.ci.shortName}/`,
             header      = await this.encProvider.encodeHeader(this.wsProviderConfig)
       
       messageBody = encodeURIComponent(header)

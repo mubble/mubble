@@ -63,7 +63,7 @@ export class WssServer {
             path         = url.pathname || '',
             [host, port] = (req.headers.host || '').split(':')
 
-      const [, version, clientId, encDataUri] = path.split(SLASH_SEP),
+      const [, handshake, version, clientId, encDataUri] = path.split(SLASH_SEP),
             encData                           = decodeURIComponent(encDataUri)
 
       if(!version || !clientId || !encData) throw new Error(`Invalid URL path ${path}.`)
