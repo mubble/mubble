@@ -12,6 +12,8 @@ import org.json.JSONObject
 var lastReqId   : Long = 0L
 var lastEventId : Long = 0L
 
+const val PROTOCOL_VERSION = "v2"
+
 object WebSocketUrl {
   const val ENC_PUBLIC    = "socket.io"
   const val ENC_PRIVATE   = "engine.io"
@@ -29,7 +31,6 @@ object WireType {
 }
 
 object SysEvent {
-  const val UPGRADE_CLIENT_IDENTITY = "UPGRADE_CLIENT_IDENTITY"
   const val WS_PROVIDER_CONFIG      = "WS_PROVIDER_CONFIG"
   const val ERROR                   = "ERROR"
   const val PING                    = "PING"
@@ -39,11 +40,14 @@ object Encoder  {
   const val MIN_SIZE_TO_COMPRESS = 500
 }
 
-object Leader {
-  const val BIN       = 'B'
-  const val CONFIG    = 'C'
-  const val DEF_JSON  = 'D'
-  const val JSON      = 'J'
+object DataLeader {
+
+  const val BINARY       = 0x01
+  const val DEF_JSON     = 0x02
+  const val JSON         = 0x03
+  const val ENC_BINARY   = 0x04
+  const val ENC_DEF_JSON = 0x05
+  const val ENC_JSON     = 0x06
 }
 
 object XmnError {
@@ -159,7 +163,27 @@ class WireEphEvent(eventName: String, data: Any, ts : Long)
 class WebSocketConfig(data: Any) {
   val json            : JSONObject  = data as JSONObject
   val msPingInterval  : Long        = json.getLong("msPingInterval")
-  val syncKey         : String?     = json.optString("syncKey", null)
+  val syncKey         : String?     = json.optString("pubKey", null)
+}
+
+data class WsProviderConfig(var pingSecs: Int, var maxOpenSecs: Int, var toleranceSecs: Int,
+                            var key: String?, var custom: CustomData?): JsonSerializable {
+
+  constructor(json: JSONObject) : this(json.optInt("pingSecs"), json.optInt("maxOpenSecs"),
+      json.optInt("toleranceSecs"), json.optString("key"),
+      CustomData(json.optJSONObject("custom")))
+
+  override fun toJsonObject(): JSONObject {
+
+    val obj = JSONObject()
+    obj.put("pingSecs", pingSecs)
+    obj.put("maxOpenSecs", maxOpenSecs)
+    obj.put("toleranceSecs", toleranceSecs)
+    obj.put("key", key)
+    obj.put("custom", custom?.toJsonObject())
+
+    return obj
+  }
 }
 
 class ConnectionError(data: Any) {

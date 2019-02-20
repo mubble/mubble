@@ -2,25 +2,14 @@ package xmn
 
 enum class Protocol {HTTP, WEBSOCKET, HTTPS}
 
-open class ConnectionInfo(val shortName: String, val uniqueId: String) {
+open class ConnectionInfo(val shortName: String) {
 
   // Connection attributes
   var protocol            : Protocol = Protocol.WEBSOCKET
   var host                : String          = ""        // host name of the server
   var port                : String          = "80"      // port of the server
   var url                 : String          = ""        // /api/getTopics Or connectUrl (for WS)
-  var secure              : Boolean         = false
 
-  // Information passed by the client: to be used by Xmn internally
   var publicRequest       : Boolean         = false
-  var useEncryption       : Boolean         = false
-
-  // Information passed by the client used by
-  var location            : String          = ""        // it is in form of serialized json object
-  var networkType         : String          = ""
-  var clientIdentity      : ClientIdentity? = null
-
-  // provider for this connection (WebSocket, Http etc.)
-  var provider            : WsAndroid?      = null      // The protocol provider keeps it's custom data here
-  var syncKey             : ByteArray       = ByteArray(32)
+  var customData          : CustomData?     = null
 }

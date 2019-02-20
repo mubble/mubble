@@ -8,6 +8,9 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble, RunContextBase } from '..'
+import { XmnError }               from './xmn-error'
+import { CustomData }             from './custom-data'
+
 export enum Protocol {HTTP, WEBSOCKET, HTTPS}
 
 /* HTTP Headers */
@@ -108,6 +111,10 @@ export class WireObject {
     }
   }
 
+  static parseString(str : string) : WireObject {
+    return JSON.parse(str)
+  }
+
   type      : string
   name      : string
   ts        : number
@@ -117,7 +124,7 @@ export class WireObject {
     this.type = type
     this.name = name
     this.data = data
-    this.ts   = ts || Date.now()
+    this.ts   = ts || Date.now() * 1000
   }
 
   stringify(): string {
@@ -195,7 +202,6 @@ export class WireEventResp extends WireObject {
 }
 
 export const SYS_EVENT = {
-  UPGRADE_CLIENT_IDENTITY : 'UPGRADE_CLIENT_IDENTITY',
   WS_PROVIDER_CONFIG      : 'WS_PROVIDER_CONFIG',
   ERROR                   : 'ERROR',
   PING                    : 'PING'
@@ -213,6 +219,19 @@ export interface WebSocketConfig {
   syncKey         ?: string
 }
 
+export interface WssProviderConfig {
+  pingSecs      : number
+  maxOpenSecs   : number
+  toleranceSecs : number
+  key           : string
+  custom        : CustomData
+}
+
+export const WssErrorCode = {
+  HANDSHAKE_FAILURE : 501,
+  INVALID_REQUESTTS : 502
+}
+
 export interface ConnectionError {
   code : string
   msg  : string
@@ -224,11 +243,13 @@ export interface InvocationData {
   params  : object
 }
 
-export const Leader = {
-  BIN         : 'B',
-  CONFIG      : 'C',
-  DEF_JSON    : 'D',
-  JSON        : 'J'
+export const DataLeader = {
+  BINARY       : 0x01,
+  DEF_JSON     : 0x02,
+  JSON         : 0x03,
+  ENC_BINARY   : 0x04,
+  ENC_DEF_JSON : 0x05,
+  ENC_JSON     : 0x06
 }
 
 export const Encoder = {
@@ -237,7 +258,7 @@ export const Encoder = {
 
 export interface XmnProvider {
   send(rc: RunContextBase , data: WireObject[]) : void
-  requestClose() : void
+  requestClose(rc : RunContextBase) : void
 }
 
 export interface ActiveProviderCollection {

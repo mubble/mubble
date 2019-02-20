@@ -1,6 +1,5 @@
 package xmn
 
-import android.util.Base64
 import core.MubbleLogger
 import org.jetbrains.anko.info
 import org.jetbrains.anko.warn
@@ -15,32 +14,39 @@ import java.net.URLEncoder
  * https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/java/org/java_websocket/client/WebSocketClient.java
  *
  */
-class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAndroid)
-    : XmnProvider, MubbleLogger, WsListener {
+class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo, 
+                private val router: XmnRouterAndroid) : XmnProvider, MubbleLogger, WsListener {
 
-  private var ws                : WsClient? = null
+  private var ws                : WsClient?           = null
   private var encProvider       : EncProviderAndroid? = null
-  private var timerPing         : AdhocTimer? = null
+  private var pendingMessage    : Array<WireObject>?  = null
+  private var wsProviderConfig  : WsProviderConfig?   = null
+
+  private lateinit var timerPing         : AdhocTimer
 
   private var socketCreateTs    : Long    = 0
   private var lastMessageTs     : Long    = 0
-  private var msPingInterval    : Long    = 29000 // Must be a valid number
 
   private var sending           : Boolean = false
   private var configured        : Boolean = false
-  private var preConfigQueue    : MutableList<ByteArray> = mutableListOf()
 
   private var ephemeralEvents   : MutableList<WireEphEvent> = mutableListOf()
 
+  companion object {
+
+    private const val PING_SECS       = 29
+    private const val TOLERANCE_SECS  = 5
+  }
+
   init {
 
-    val isPrivateConn = router.getClientIdentity() != null
-    if (isPrivateConn) timerPing = AdhocTimer("ws-ping", { cbTimerPing() })
+    val isPrivateConn = router.getCustomData() != null
+    if (isPrivateConn) timerPing = AdhocTimer("ws-ping") { cbTimerPing() }
   }
 
   fun sendEphemeralEvent(event: WireEphEvent) {
 
-    assert(this.ci.provider != null)
+    assert(this.si.provider != null)
 
     if (ephemeralEvents.size >= 20) {
       warn { "Too many ephemeralEvents. Sizing to 20" }
@@ -74,11 +80,11 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
     info { "Request Made: ${data[0].toJsonObject()}" }
 
-    this.sendInternal(datas)
+    this.sendInternal(datas.toTypedArray())
     return null
   }
 
-  private fun sendInternal(data: MutableList<WireObject>) {
+  private fun sendInternal(data: Array<WireObject>) {
 
     this.sending = true
 
@@ -86,19 +92,20 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
     if (this.ws == null) {
 
+      this.pendingMessage = data
+
       if (this.encProvider == null) {
-        this.encProvider = EncProviderAndroid(router.syncKey
-            ?: ByteArray(0), this.ci)
+        this.encProvider = EncProviderAndroid(this.ci, router.getPubKey())
       }
 
-      val dest    = if (this.ci.publicRequest) WebSocketUrl.PLAIN_PUBLIC else WebSocketUrl.PLAIN_PRIVATE
-      val port    = if (!this.ci.port.isBlank()) ":${this.ci.port}" else ""
-      val url     = "${if (this.ci.secure) "https" else "http"}://${this.ci.host}$port/$dest/"
-      val header  = this.encProvider!!.encodeHeader()
-      val body    = this.encProvider!!.encodeBody(data)
+      if (this.wsProviderConfig == null) {
+        this.wsProviderConfig = WsProviderConfig(PING_SECS, this.router.getMaxOpenSecs(), TOLERANCE_SECS,
+            this.encProvider!!.getSyncKeyB64(), this.ci.customData!!)
+      }
 
-      val msgBody = URLEncoder.encode(Base64.encodeToString(header, Base64.DEFAULT), "UTF-8") + "/" +
-                    URLEncoder.encode(Base64.encodeToString(body, Base64.DEFAULT), "UTF-8")
+      val url     = "ws://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/"
+      val header  = this.encProvider!!.encodeHeader(wsProviderConfig!!)
+      val msgBody = URLEncoder.encode(header, "UTF-8")
 
       msgBodyLen = msgBody.length
 
@@ -110,19 +117,27 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
       this.socketCreateTs = System.currentTimeMillis()
 
     } else {
+
+      if (!isConnWithinPing(System.currentTimeMillis())) {
+        info { "Connection expired..re-connecting" }
+        this.cleanup()
+        this.send(data)
+        return
+      }
+
       val body   = this.encProvider!!.encodeBody(data)
       msgBodyLen = body.size
       this.ws!!.send(body)
+
+      info { "Sent message: \n" +
+          "msgLen   : $msgBodyLen, \n" +
+          "messages : ${data.size}, \n" +
+          "firstMsg : ${data[0].name}" }
     }
 
     this.lastMessageTs = System.currentTimeMillis()
 
-    info { "Sent message: \n" +
-            "msgLen   : $msgBodyLen, \n" +
-            "messages : ${data.size}, \n" +
-            "firstMsg : ${data[0].name}" }
-
-    this.timerPing?.tickAfter(this.msPingInterval, true)
+    this.timerPing.tickAfter(this.wsProviderConfig!!.pingSecs * 1000L, true)
     this.sending = false
   }
 
@@ -140,18 +155,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
     info { "onMessage" }
 
-    if (bytes == null || bytes.isEmpty() || this.ci.provider == null) return
-
-    if (!this.configured) {
-      val leader : Char = String(bytes)[0]
-
-      if (leader != Leader.CONFIG) {
-        info { "Queued message length: ${bytes.size}" }
-        this.preConfigQueue.add(bytes)
-        return
-      }
-    }
-
+    if (bytes == null || bytes.isEmpty() || this.si.provider == null) return
     val messages: MutableList<WireObject> = this.encProvider!!.decodeBody(bytes)
     this.router.providerMessage(messages)
   }
@@ -167,7 +171,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   override fun onClose(code: Int?, reason: String?) {
 
     info { "onClose $code" }
-    if (this.ci.provider != null) {
+    if (this.si.provider != null) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -180,7 +184,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
   override fun onError(ex: Exception?) {
 
     info { "onError ${ex?.message}" }
-    if (this.ci.provider != null) {
+    if (this.si.provider != null) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -192,33 +196,32 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
     if (se.name == SysEvent.WS_PROVIDER_CONFIG) {
 
-      val config  = WebSocketConfig(se.data)
-      val msPing  = config.msPingInterval
+      val config = WsProviderConfig(se.data as JSONObject)
 
-      this.msPingInterval = msPing
+      if (config.custom != null) this.wsProviderConfig!!.custom = config.custom
+      if (config.pingSecs != 0) this.wsProviderConfig!!.pingSecs = config.pingSecs
+      if (config.maxOpenSecs != 0) this.wsProviderConfig!!.maxOpenSecs = config.maxOpenSecs
+      if (config.toleranceSecs != 0) this.wsProviderConfig!!.toleranceSecs = config.toleranceSecs
 
-      assert(msPing > 0)
-
-      if (!config.syncKey.isNullOrBlank()) {
-        this.encProvider!!.setNewKey(config.syncKey)
+      if (!config.key.isNullOrBlank()) {
+        this.encProvider!!.setNewKey(config.key!!)
       }
 
       info { "First message in ${System.currentTimeMillis() - socketCreateTs} ms" }
 
       this.configured = true
 
-      for (i in 0 until this.preConfigQueue.size) {
-        val message = this.preConfigQueue[i]
-        this.onMessage(message)
+      if (this.pendingMessage != null) {
+        info { "Sending Pending Message..." }
+        this.send(this.pendingMessage!!)
+        this.pendingMessage = null
       }
-
-      this.preConfigQueue = mutableListOf()
 
     } else if (se.name == SysEvent.ERROR) {
 
       val errMsg = ConnectionError(se.data)
       warn { "processSysEvent $errMsg" }
-      if (this.ci.provider != null) {
+      if (this.si.provider != null) {
         this.cleanup()
         this.router.providerFailed(errMsg.code)
       }
@@ -227,29 +230,38 @@ class WsAndroid(private val ci: ConnectionInfo, private val router: XmnRouterAnd
 
   private fun cbTimerPing(): Long {
 
-    if (this.ci.provider == null) return 0
+    if (this.si.provider == null) return 0
 
     val now   = System.currentTimeMillis()
-    val diff  = this.lastMessageTs + this.msPingInterval - now
+    val diff  = this.lastMessageTs + this.wsProviderConfig!!.pingSecs * 1000L - now
 
     return if (diff <= 0) {
       this.send(arrayOf(WireSysEvent(SysEvent.PING, JSONObject())))
-      this.msPingInterval
+      this.wsProviderConfig!!.pingSecs * 1000L
 
     } else {
       diff
     }
   }
 
+  private fun isConnWithinPing(requestTs: Long): Boolean {
+
+    val wsConfig = this.wsProviderConfig!!
+    val pingTh   = this.lastMessageTs + (wsConfig.pingSecs + wsConfig.toleranceSecs) *1000
+    val openTh   = this.socketCreateTs + (wsConfig.maxOpenSecs - wsConfig.toleranceSecs) * 1000
+
+    return requestTs < pingTh && requestTs < openTh
+  }
+
   fun cleanup() {
 
-    if (this.ci.provider == null) return
+    if (this.si.provider == null) return
 
     try {
-      this.timerPing?.remove()
+      this.timerPing.remove()
 
       this.encProvider  = null
-      this.ci.provider  = null
+      this.si.provider  = null
 
       this.ws?.close()
       this.ws = null

@@ -7,23 +7,26 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {  RunContextServer } from '../rc-server'
-import {  ConnectionInfo,
-          WireObject,
-          Leader,
-          Mubble,
-          Encoder
-        } from '@mubble/core'
-
-import * as zlib from 'zlib'
-import * as crypto from 'crypto'
-import * as constants from 'constants'
+import { RunContextServer }     from '../rc-server'
+import { 
+         WireObject,
+         DataLeader,
+         Mubble,
+         Encoder,
+         SessionInfo,
+         ConnectionInfo
+       }                        from '@mubble/core'
+import * as zlib                from 'zlib'
+import * as crypto              from 'crypto'
+import * as constants           from 'constants'
 
 const IV = Buffer.alloc(16)
 
 export class EncProviderServer {
 
-  constructor(rc: RunContextServer, private ci: ConnectionInfo) {
+  private syncKey : any
+
+  constructor(rc: RunContextServer, private ci: ConnectionInfo, private si : SessionInfo) {
 
   }
 
@@ -39,41 +42,42 @@ export class EncProviderServer {
 
   decodeHeader(rc: RunContextServer, data: Buffer, pk: string | null): void {
 
-    const endPtr    = this.extractKey(rc, data, pk)
-    const headers   = JSON.parse(this.decrypt(data.slice(endPtr)).toString())
+    const endPtr  = this.extractKey(rc, data, pk),
+          headers = JSON.parse(this.decrypt(data.slice(endPtr)).toString()),
+          diff    = Date.now() - headers.now
 
-    this.ci.networkType     = headers.networkType
-    this.ci.location        = headers.location
-
-    const diff              = Date.now() - headers.now
-    this.ci.msOffset        = Math.abs(diff) > 5000 ? diff : 0
+    this.ci.msOffset = Math.abs(diff) > 5000 ? diff : 0
     
     delete headers.networkType
     delete headers.location
     delete headers.now
 
-    this.ci.clientIdentity  = headers
+    this.ci.customData  = headers
+  }
+
+  setNewKey(syncKey: any) {
+
   }
 
   extractKey(rc: RunContextServer, data: Buffer, pk: string | null) {
 
     const startPtr  = 7
-    if (!this.ci.useEncryption) return startPtr
+    // if (!this.si.useEncryption) return startPtr
 
     const endPtr    = 7 + 256,
           encKey    = data.slice(startPtr, endPtr)
 
     rc.isAssert() && rc.assert(rc.getName(this), data.length !== 256, 'Incorrect header')
 
-    if (pk) this.ci.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
+    if (pk) this.syncKey = crypto.privateDecrypt({key: pk, padding: constants.RSA_PKCS1_OAEP_PADDING}, encKey)
     return endPtr
   } 
 
   async decodeBody(rc: RunContextServer, data: Buffer): Promise<[WireObject]> {
 
-    const leader    = String.fromCharCode(data[0]),
+    const leader    = Number(data[0]),
           outBuff   = this.decrypt(data.slice(1)),
-          jsonStr   = leader !== Leader.DEF_JSON ? outBuff.toString() :
+          jsonStr   = leader !== DataLeader.DEF_JSON ? outBuff.toString() :
                       (await Mubble.uPromise.execFn(zlib.inflate, zlib, outBuff)).toString(),
                       // a = console.log(jsonStr),
           inJson    = JSON.parse(jsonStr),
@@ -91,7 +95,7 @@ export class EncProviderServer {
   }
 
   // Should return binary buffer
-  async encodeBody(rc: RunContextServer, arData: WireObject[], msgType ?: string) {
+  async encodeBody(rc: RunContextServer, arData: WireObject[], config ?: boolean) {
 
     const arStrData = []
     for (const data of arData) {
@@ -105,31 +109,32 @@ export class EncProviderServer {
 
     const str = arStrData.length === 1 ? arStrData[0] : JSON.stringify(arStrData)
     let   firstPassBuffer,
-          leader = msgType || Leader.JSON
+          leader = DataLeader.JSON
 
-    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && msgType !== Leader.CONFIG) {
+    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS && !config) {
       const buf = await Mubble.uPromise.execFn(zlib.deflate, zlib, str)
       if (buf.length < str.length) {
         firstPassBuffer = buf
-        leader = Leader.DEF_JSON
+        leader = DataLeader.DEF_JSON
       }
     }
 
     if (!firstPassBuffer) firstPassBuffer = Buffer.from(str)
-    return Buffer.concat([Buffer.from(leader), this.encrypt(firstPassBuffer)])
+    return Buffer.concat([Buffer.from([leader]), this.encrypt(firstPassBuffer)])
   }
 
   public getNewKey() {
     const key = crypto.randomBytes(32)
+    this.syncKey = key
     return {key, encKey: this.encrypt(key)}
   }
 
   private encrypt(buffer: Buffer) {
 
-    if (!this.ci.useEncryption) return buffer
+    // if (!this.si.useEncryption) return buffer
     // console.log('encrypt', this.ci.syncKey.length, this.ci.syncKey)
 
-    const cipher  = crypto.createCipheriv('aes-256-cbc', this.ci.syncKey, IV),
+    const cipher  = crypto.createCipheriv('aes-256-cbc', this.syncKey, IV),
           outBuf1 = cipher.update(buffer),
           outBuf2 = cipher.final()
 
@@ -138,14 +143,14 @@ export class EncProviderServer {
 
   private encodeBinaryBody(rc: RunContextServer, data: WireObject) {
     const encData = this.encrypt(Buffer.concat([Buffer.from(data.stringify() + '\n'), data.data as Buffer])) 
-    return Buffer.concat([Buffer.from(Leader.BIN), encData])
+    return Buffer.concat([Buffer.from([DataLeader.BINARY]), encData])
   }
 
   private decrypt(buffer: Buffer) {
 
-    if (!this.ci.useEncryption) return buffer
+    // if (!this.si.useEncryption) return buffer
 
-    const decipher  = crypto.createDecipheriv('aes-256-cbc', this.ci.syncKey, IV),
+    const decipher  = crypto.createDecipheriv('aes-256-cbc', this.syncKey, IV),
           outBuf1   = decipher.update(buffer),
           outBuf2   = decipher.final()
 
@@ -172,6 +177,6 @@ export class EncProviderServer {
     ar.forEach(num => {
       if (num > 99) throw('setUniqueId: invalid data')
     })
-    this.ci.uniqueId = ar.join('.')
+    // this.ci.customData.uniqueId = ar.join('.')
   }
 }

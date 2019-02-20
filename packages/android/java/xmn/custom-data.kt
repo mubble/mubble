@@ -3,13 +3,8 @@ package xmn
 import core.JsonSerializable
 import org.json.JSONObject
 
-/**
- * Created by
- * siddharthgarg on 04/04/18.
- */
-
-data class ClientIdentity(val appName: String, val channel: String,
-                          val appVersion: String): JsonSerializable {
+data class CustomData(val appName: String, val channel: String,
+                      val appVersion: String): JsonSerializable {
 
   constructor(json: JSONObject)
       : this(json.getString("appName"), json.getString("channel"), json.getString("appVersion"))
@@ -19,14 +14,17 @@ data class ClientIdentity(val appName: String, val channel: String,
   // only available when client is issued an identity
   var clientId        : Long?       = null
   var userLinkId      : String?     = null
-  var userName        : String?     = null
+  var uniqueId        : String?     = null
+
   var firstName       : String?     = null
   var lastName        : String?     = null
-  var migMobileNo     : String?     = null
 
-  var userRole        : String?     = null
   var profilePicMd5   : String?     = null
   var settingsMd5     : String?     = null
+  var migMobileNo     : String?     = null
+
+  var location        : String?     = null // Serialized JSONObject
+  var networkType     : String?     = null
 
   override fun toJsonObject(): JSONObject {
 
@@ -37,14 +35,15 @@ data class ClientIdentity(val appName: String, val channel: String,
     obj.put("appVersion",     appVersion)
     obj.put("jsVersion",      jsVersion)
     obj.put("clientId",       clientId)
-    obj.put("migMobileNo",    migMobileNo)
     obj.put("userLinkId",     userLinkId)
-    obj.put("userName",       userName)
+    obj.put("uniqueId",       uniqueId)
     obj.put("firstName",      firstName)
     obj.put("lastName",       lastName)
-    obj.put("userRole",       userRole)
     obj.put("profilePicMd5",  profilePicMd5)
     obj.put("settingsMd5",    settingsMd5)
+    obj.put("migMobileNo",    migMobileNo)
+    obj.put("location",       location)
+    obj.put("networkType",    networkType)
 
     return obj
   }

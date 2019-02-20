@@ -491,6 +491,21 @@ object AndroidBase {
     return bitmap
   }
 
+  fun convertBitmapToBase64(bitmap: Bitmap): String? {
+
+    return try {
+
+      val byteArrayOutputStream = ByteArrayOutputStream()
+      bitmap.compress(Bitmap.CompressFormat.JPEG, 70, byteArrayOutputStream)
+      val byteArray = byteArrayOutputStream.toByteArray()
+
+      Base64.encodeToString(byteArray, Base64.NO_WRAP)
+
+    } catch (e: Exception) {
+      null
+    }
+  }
+
   fun convertDrawableToBase64(drawable: Drawable): String? {
 
     val bitDw = drawable as BitmapDrawable

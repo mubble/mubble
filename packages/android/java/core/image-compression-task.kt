@@ -25,8 +25,10 @@ class ImageCompressionTask: MubbleLogger {
 
       var actualHeight = options.outHeight
       var actualWidth  = options.outWidth
+
       val maxHeight    = 800.0f
       val maxWidth     = 800.0f
+
       var imgRatio     = actualWidth * 1f / actualHeight
       val maxRatio     = maxWidth * 1f / maxHeight
 

@@ -13,6 +13,7 @@ import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
+
 /**
  * Created by
  * siddharthgarg on 16/05/17.
@@ -350,5 +351,4 @@ object FileBase {
 
     return null
   }
-
 }

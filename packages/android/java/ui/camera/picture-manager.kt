@@ -57,6 +57,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
       when (requestCode) {
 
         REQUEST_TAKE_PHOTO -> {
+          // TODO: compress fileUri
           bm = FileBase.getBitmapFromUri(fileUri)
           galleryImgBase64 = FileBase.getBase64Data(bm)
           cropCapturedImage(fileUri)

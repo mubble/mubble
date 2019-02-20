@@ -13,9 +13,10 @@
 
 ------------------------------------------------------------------------------*/
 
-import { ConnectionInfo,
+import { 
+         ConnectionInfo,
+         SessionInfo,
          XmnError,
-         WEB_SOCKET_URL,
          SYS_EVENT,
          WireEvent,
          WireEphEvent,
@@ -24,49 +25,49 @@ import { ConnectionInfo,
          ConnectionError,
          TimerInstance,
          WireObject,
-         Leader,
-         XmnProvider}  from '@mubble/core'
+         DataLeader,
+         XmnProvider,
+         WssProviderConfig
+       }                                from '@mubble/core'
+import { XmnRouterBrowser }             from './xmn-router-browser'
+import { RunContextBrowser }            from '../rc-browser'
+import { EncryptionBrowser }            from './enc-provider-browser'
 
-import { XmnRouterBrowser } from './xmn-router-browser'
-
-import {  
-  RunContextBrowser,
-  LOG_LEVEL
-} from '../rc-browser'
-
-import {  EncryptionBrowser } from './enc-provider-browser'         
+const PING_SECS       = 29,
+      TOLERANCE_SECS  = 5
 
 export class WsBrowser implements XmnProvider {
 
-  private ws                : WebSocket
-  private encProvider       : EncryptionBrowser
-  private timerPing         : TimerInstance
+  private ws                  : WebSocket
+  private encProvider         : EncryptionBrowser
+  private timerPing           : TimerInstance
+  private wsProviderConfig    : WssProviderConfig
+  private pendingMessage      : WireObject[] | WireObject
   
-  private socketCreateTs    : number = 0
-  private lastMessageTs     : number = 0
-  private msPingInterval    : number = 29000 // Must be a valid number
-  private sending           : boolean = false
-  private configured        : boolean = false
-  private preConfigQueue    : MessageEvent[] = []
+  private socketCreateTs      : number          = 0
+  private lastMessageTs       : number          = 0
+  private sending             : boolean         = false
+  private configured          : boolean         = false
 
-  private ephemeralEvents   : WireEvent[] = []
-  
+  private ephemeralEvents     : WireEvent[]     = []
+
   constructor(private rc     : RunContextBrowser, 
-              private ci     : ConnectionInfo, 
+              private ci     : ConnectionInfo,
+              private si     : SessionInfo,
               private router : XmnRouterBrowser) {
 
     rc.setupLogger(this, 'WsBrowser')
-    this.timerPing       = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
+    this.timerPing = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
   }
 
-  private uiArToB64(ar) {
+  private uiArToB64(ar : any) {
     return btoa(String.fromCharCode(...ar))
   }
 
   public sendEphemeralEvent(event: WireEphEvent) {
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.ci.provider)
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this.si.provider)
 
     if (this.ephemeralEvents.length >= 20) {
       this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'Too many ephemeralEvents. Sizing to 20')
@@ -115,20 +116,28 @@ export class WsBrowser implements XmnProvider {
 
     if (!this.ws) {
 
+      this.pendingMessage = data
+
       if (!this.encProvider) {
-        this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getSyncKey())
+        this.encProvider = new EncryptionBrowser(rc, this.ci, this.si, this.router.getPubKey())
         await this.encProvider.init()
       }
-        
-      const dest    = this.ci.useEncryption ? (this.ci.publicRequest ? WEB_SOCKET_URL.ENC_PUBLIC : WEB_SOCKET_URL.ENC_PRIVATE) : 
-                      (this.ci.publicRequest ? WEB_SOCKET_URL.PLAIN_PUBLIC : WEB_SOCKET_URL.PLAIN_PRIVATE),
-            url     = `${this.ci.port === 443 ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${dest}/`,
-            header  = await this.encProvider.encodeHeader(rc),
-            body    = await this.encProvider.encodeBody(rc, data)
+
+      if (!this.wsProviderConfig) {
+        this.wsProviderConfig = {
+          pingSecs        : PING_SECS,
+          maxOpenSecs     : this.router.getMaxOpenSecs(),
+          toleranceSecs   : TOLERANCE_SECS,
+          key             : await this.encProvider.getSyncKeyB64(),
+          custom          : this.ci.customData
+        }
+      }
+
+      const url         = `ws://${this.ci.host}:${this.ci.port}/${this.si.protocolVersion}/${this.ci.shortName}/`,
+            header      = await this.encProvider.encodeHeader(this.wsProviderConfig)
       
-      messageBody = encodeURIComponent(this.uiArToB64(header)) + '/' + 
-                    encodeURIComponent(this.uiArToB64(body))
-        
+      messageBody = encodeURIComponent(header)
+
       this.ws  = new WebSocket(url + messageBody)
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Opened socket with url', url + messageBody)
   
@@ -142,12 +151,20 @@ export class WsBrowser implements XmnProvider {
       this.socketCreateTs = Date.now()
         
     } else {
-      messageBody = await this.encProvider.encodeBody(rc, data)
+      
+      if (!this.isConnWithinPing(Date.now())) { // Connection expired
+        rc.isDebug() && rc.debug(rc.getName(this), `Connection expired..re-connecting`)
+        this.cleanup()
+        await this.send(rc, data)
+        return
+      }
+      
+      messageBody = await this.encProvider.encodeBody(data)
       this.ws.send(messageBody)
+
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sent message', {msgLen: messageBody.length, 
+        messages: data.length, firstMsg: data[0].name})  
     }
-    
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Sent message', {msgLen: messageBody.length, 
-      messages: data.length, firstMsg: data[0].name})
 
     this.setupTimer(rc)
     this.sending = false
@@ -161,25 +178,13 @@ export class WsBrowser implements XmnProvider {
   async onMessage(msgEvent: MessageEvent) {
 
     const data = msgEvent.data
-
-    if (!this.configured) {
-
-      const ar      = new Uint8Array(data, 0, 1),
-            leader  = String.fromCharCode(ar[0])
-
-      if (leader !== Leader.CONFIG) {
-        this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Queued message length:', data.byteLength)
-        this.preConfigQueue.push(msgEvent)
-        return
-      }
-    }
-    const messages = await this.encProvider.decodeBody(this.rc, data)
+    const messages = await this.encProvider.decodeBody(data)
     await this.router.providerMessage(this.rc, messages)
   }
 
   onError(err: any) {
     this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'Websocket onError()', err)
-    if (this.ci.provider) {
+    if (this.si.provider) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -187,7 +192,7 @@ export class WsBrowser implements XmnProvider {
 
   onClose() {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onClose()')
-    if (this.ci.provider) {
+    if (this.si.provider) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -197,49 +202,63 @@ export class WsBrowser implements XmnProvider {
 
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
 
-      const config: WebSocketConfig = se.data as WebSocketConfig,
-            msPing = config.msPingInterval
+      const config: WssProviderConfig = se.data as WssProviderConfig,
+            msPingSecs = config.pingSecs      
 
-      this.msPingInterval = msPing
       this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-                            msPing && Number.isInteger(msPing), msPing)
-      
-      if (config.syncKey) await this.encProvider.setNewKey(rc, config.syncKey)
+          msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
+
+      Object.assign(this.wsProviderConfig, config)
+
+      if (config.key) await this.encProvider.setNewKey(config.key)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
-      'First message in', Date.now() - this.socketCreateTs, 'ms')
+        'First message in', Date.now() - this.socketCreateTs, 'ms')
 
       this.configured = true
-      while (this.preConfigQueue.length) {
-        const message = this.preConfigQueue.shift()
-        await this.onMessage(message)
+      
+      if (this.pendingMessage) {
+        this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `Sending Pending Message...`)
+        await this.send(this.rc, this.pendingMessage)
+        this.pendingMessage = null
       }
+
     } else if (se.name === SYS_EVENT.ERROR) {
 
       const errMsg = se.data as ConnectionError
       rc.isWarn() && rc.warn(rc.getName(this), 'processSysEvent' , errMsg)
-      if (this.ci.provider) {
+      if (this.si.provider) {
         this.cleanup()
         this.router.providerFailed(errMsg.code)
       }
     }
   }
 
+  private isConnWithinPing(requestTs: number) {
+
+    const wsConfig = this.wsProviderConfig,
+          pingTh   = this.lastMessageTs  + (wsConfig.pingSecs + wsConfig.toleranceSecs)    * 1000,
+          openTh   = this.socketCreateTs + (wsConfig.maxOpenSecs - wsConfig.toleranceSecs) * 1000
+
+    return requestTs < pingTh && requestTs < openTh
+  }
+
   private setupTimer(rc: RunContextBrowser) {
+    
     this.lastMessageTs = Date.now()
-    this.timerPing.tickAfter(this.msPingInterval, true)
+    this.timerPing.tickAfter(this.wsProviderConfig.pingSecs * 1000, true)
   }
 
   private cbTimerPing(): number {
 
-    if (!this.ci.provider) return 0
+    if (!this.si.provider) return 0
 
     const now   = Date.now(),
-          diff  = this.lastMessageTs + this.msPingInterval - now
+          diff  = this.lastMessageTs + this.wsProviderConfig.pingSecs * 1000 - now
 
     if (diff <= 0) {
       this.send(this.rc, [new WireSysEvent(SYS_EVENT.PING, {})])
-      return this.msPingInterval
+      return this.wsProviderConfig.pingSecs * 1000
     } else {
       return diff
     }
@@ -247,13 +266,13 @@ export class WsBrowser implements XmnProvider {
 
   private cleanup() {
 
-    if (!this.ci.provider) return
+    if (!this.si.provider) return
 
     try {
       this.timerPing.remove()
       
       this.encProvider  = null as any
-      this.ci.provider  = null
+      this.si.provider  = null as any
 
       if (this.ws) this.ws.close()
       this.ws           = null as any
