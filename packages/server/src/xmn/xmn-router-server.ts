@@ -53,13 +53,13 @@ export abstract class XmnRouterServer {
   private apiMap             : {[index: string]: InvokeStruct} = {}
   private eventMap           : {[index: string]: InvokeStruct} = {}
   private piggyfrontMap                                        = new WeakMap<InvocationData, Array<WireEphEvent>>()
-  private providerCollection : ActiveProviderCollection
+  // private providerCollection : ActiveProviderCollection
   private sessionInfo        : SessionInfo
 
   constructor(rc: RunContextServer, ...apiProviders: any[]) {
     XmnRegistry.commitRegister(rc, this, apiProviders)
 
-    this.providerCollection = web.getActiveProviderCollection(rc)  
+    // this.providerCollection = web.getActiveProviderCollection(rc)  
   }
 
   abstract getPrivateKeyPem(rc : RunContextServer, ci : ConnectionInfo) : string
