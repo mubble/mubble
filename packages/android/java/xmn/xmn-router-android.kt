@@ -84,7 +84,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   open fun sendRequest(apiName: String, data: JSONObject, cb:((RouterResponse) -> Unit)?,
                        timeout: Long = TIMEOUT_MS) {
 
-    val wr = WireRequest(apiName, data, System.currentTimeMillis())
+    val wr = WireRequest(apiName, data, System.currentTimeMillis() * 1000)
 
     this.ongoingRequests.add(RouterRequest(wr, cb, timeout))
 
@@ -224,7 +224,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
         this.timerReqTimeout?.tickAfter(wr.timeout, true)
       }
 
-      (System.currentTimeMillis() - wr.wr.ts) > SEND_TIMEOUT -> {
+      (System.currentTimeMillis() - wr.wr.ts/1000) > SEND_TIMEOUT -> {
         this.finishRequest(this.ongoingRequests.indexOf(wr), XmnError.SendTimedOut)
       }
 
@@ -243,7 +243,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     var i = 0
     while (i < this.ongoingRequests.size) {
       val wr        = this.ongoingRequests[i].wr
-      val timeoutAt = wr.ts + this.ongoingRequests[i].timeout
+      val timeoutAt = wr.ts/1000 + this.ongoingRequests[i].timeout
 
       if (wr.isSent) {
         if (now >= timeoutAt) {
@@ -268,24 +268,24 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
       info { "Trying to finish already finished request, \n" +
              "ErrorCode $errorCode" +
-             "${routerReq.wr.name}, created at: ${routerReq.wr.ts}, \n" +
-             "timeTaken: ${now - routerReq.wr.ts} ms" }
+             "${routerReq.wr.name}, created at: ${routerReq.wr.ts/1000}, \n" +
+             "timeTaken: ${now - routerReq.wr.ts/1000} ms" }
       return
     }
 
     if (errorCode != null && errorCode != "null") {
 
       info { "Request failed with ErrorCode $errorCode, \n" +
-          "${routerReq.wr.name}, created at: ${routerReq.wr.ts}, \n" +
-          "timeTaken: ${now - routerReq.wr.ts} ms" }
+          "${routerReq.wr.name}, created at: ${routerReq.wr.ts/1000}, \n" +
+          "timeTaken: ${now - routerReq.wr.ts/1000} ms" }
 
       routerReq.cb!!(RouterResponse(errorCode, errorMessage))
 
     } else {
 
       info { "Request succeeded, \n" +
-          "${routerReq.wr.name}, created at: ${routerReq.wr.ts}, \n" +
-          "timeTaken: ${now - routerReq.wr.ts} ms"}
+          "${routerReq.wr.name}, created at: ${routerReq.wr.ts/1000}, \n" +
+          "timeTaken: ${now - routerReq.wr.ts/1000} ms"}
 
       routerReq.cb!!(RouterResponse(null, null, dataObj))
     }

@@ -15,13 +15,6 @@ var lastEventId : Long = 0L
 const val PROTOCOL_VERSION    = "v2"
 const val PROTOCOL_HANDSHAKE  = "__handshake__"
 
-object WebSocketUrl {
-  const val ENC_PUBLIC    = "socket.io"
-  const val ENC_PRIVATE   = "engine.io"
-  const val PLAIN_PUBLIC  = "rocket.io"
-  const val PLAIN_PRIVATE = "locket.io"
-}
-
 object WireType {
   const val REQUEST     = "REQUEST"
   const val EVENT       = "EVENT"
@@ -65,7 +58,7 @@ object XmnError {
 }
 
 open class WireObject(val type: String, val name: String, var data: Any,
-                      open var ts: Long = System.currentTimeMillis()): JsonSerializable {
+                      open var ts: Long = System.currentTimeMillis() * 1000): JsonSerializable {
 
   companion object {
 
@@ -80,11 +73,11 @@ open class WireObject(val type: String, val name: String, var data: Any,
 
       return when (type) {
 
-        WireType.REQUEST -> WireRequest(name, data, ts)
-        WireType.SYS_EVENT -> WireSysEvent(name, data)
-        WireType.REQ_RESP -> WireReqResp(name, data, ts, errorCode, errorMessage)
-        WireType.EPH_EVENT -> WireEphEvent(name, data, ts)
-        WireType.EVENT -> WireEvent(name, data, ts)
+        WireType.REQUEST    -> WireRequest(name, data, ts)
+        WireType.SYS_EVENT  -> WireSysEvent(name, data)
+        WireType.REQ_RESP   -> WireReqResp(name, data, ts, errorCode, errorMessage)
+        WireType.EPH_EVENT  -> WireEphEvent(name, data, ts)
+        WireType.EVENT      -> WireEvent(name, data, ts)
         WireType.EVENT_RESP -> WireEventResp(name, data, ts, errorCode, errorMessage)
         else                 -> null
       }
@@ -160,12 +153,6 @@ class WireSysEvent(name: String, data: Any)
 
 class WireEphEvent(eventName: String, data: Any, ts : Long)
   : WireObject(WireType.EPH_EVENT, eventName, data, ts)
-
-class WebSocketConfig(data: Any) {
-  val json            : JSONObject  = data as JSONObject
-  val msPingInterval  : Long        = json.getLong("msPingInterval")
-  val syncKey         : String?     = json.optString("pubKey", null)
-}
 
 data class WsProviderConfig(var pingSecs: Int, var maxOpenSecs: Int, var toleranceSecs: Int,
                             var key: String?, var custom: CustomData?): JsonSerializable {

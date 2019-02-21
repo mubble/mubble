@@ -217,10 +217,13 @@ export class WssEncProvider {
   }
 
   private parseWireObjectsString(str : string) : Array<WireObject> {
-    const strArr = str.slice(1, str.length - 1).split(', '),  // TODO : Fix this ??? JSON.parse(str) as Array<string>,
-          woArr  = strArr.map(s => WireObject.parseString(s))
 
-    return woArr
+    console.log(`Came to parse ${str}`)
+
+    const inJson    = JSON.parse(str),
+          arData    = Array.isArray(inJson) ? inJson : [inJson]
+
+    return arData
   }
 
 }
