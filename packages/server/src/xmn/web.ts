@@ -61,27 +61,18 @@ export class Web {
   init(rc               : RunContextServer,
        router           : XmnRouterServer,
        httpConfig      ?: HttpConfig, 
-       websocketConfig ?: WebsocketConfig, 
-       httpsConfig     ?: HttpsConfig) : void {
+       httpsConfig     ?: HttpsConfig,
+       websocketConfig ?: WebsocketConfig) : void {
 
     this.httpConfig      = httpConfig
-    this.websocketConfig = websocketConfig
     this.httpsConfig     = httpsConfig
+    this.websocketConfig = websocketConfig
+
     this.router          = router
 
     if (this.httpConfig) {
       const httpReqManager = new HttpsServer(rc, this.router)
       this.httpServer      = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
-    }
-
-    if (this.websocketConfig) {
-      let wsServer: http.Server 
-      if (this.httpConfig && this.httpConfig.port === this.websocketConfig.port) {
-        wsServer = this.httpServer
-      } else {
-        wsServer = this.wsHttpServer = http.createServer()
-      }
-      this.wsReqManager = new WssServer(rc, this.router, wsServer)
     }
 
     if (this.httpsConfig) {
@@ -91,12 +82,26 @@ export class Web {
       if (this.httpConfig && this.httpConfig.port === port) {
         throw('https port cannot be same as http port')
       }
-      if (this.websocketConfig && this.websocketConfig.port === port) {
-        throw('https port cannot be same as ws port')
-      }
+      // if (this.websocketConfig && this.websocketConfig.port === port) {
+      //   throw('https port cannot be same as ws port')
+      // }
 
       const httpReqManager = new HttpsServer(rc, this.router)
       this.httpsServer     = https.createServer(this.httpsConfig, httpReqManager.requestHandler.bind(httpReqManager))
+    }
+
+    if (this.websocketConfig) {
+      let wsServer : http.Server | https.Server
+
+      if(this.httpsConfig && this.httpsConfig.port === this.websocketConfig.port) {
+        wsServer = this.httpsServer
+      } else if(this.httpConfig && this.httpConfig.port === this.websocketConfig.port) {
+        wsServer = this.httpServer
+      } else {
+        wsServer = this.wsHttpServer = http.createServer()
+      }
+
+      this.wsReqManager = new WssServer(rc, this.router, wsServer)
     }
   }
 
