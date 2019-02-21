@@ -103,7 +103,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
     var firstPassArray  : ByteArray?  = null
     var deflate                       = false
 
-    //if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
+    if (str.length > Encoder.MIN_SIZE_TO_COMPRESS) {
 
       val byteArr = strToByteArray(str)
       val ar      = CryptoBase.deflate(byteArr)
@@ -112,7 +112,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
         firstPassArray  = ar
         deflate         = true
       }
-    //}
+    }
 
     if (firstPassArray == null) {
       firstPassArray  = strToByteArray(str)
@@ -231,7 +231,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
   private fun encryptKey(): ByteArray {
     val cipher = Cipher.getInstance("RSA/NONE/OAEPPADDING")
     val pubKeySpec = X509EncodedKeySpec(rsaPubKey)
-    val fact = KeyFactory.getInstance("RSA", "BC")
+    val fact = KeyFactory.getInstance("RSA")
     cipher.init(Cipher.ENCRYPT_MODE, fact.generatePublic(pubKeySpec))
     return cipher.doFinal(this.syncKey)
   }

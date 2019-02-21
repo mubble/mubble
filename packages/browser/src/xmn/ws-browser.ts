@@ -134,8 +134,8 @@ export class WsBrowser implements XmnProvider {
         }
       }
 
-      const url         = `ws://${this.ci.host}:${this.ci.port}/${HANDSHAKE}/${this.si.protocolVersion}/${this.ci.shortName}/`,
-            header      = await this.encProvider.encodeHeader(this.wsProviderConfig)
+      const url     = `ws://${this.ci.host}:${this.ci.port}/${HANDSHAKE}/${this.si.protocolVersion}/${this.ci.shortName}/`,
+            header  = await this.encProvider.encodeHeader(this.wsProviderConfig)
       
       messageBody = encodeURIComponent(header)
 
