@@ -119,8 +119,7 @@ export abstract class RunContextServer extends RunContextBase {
   protected getContextId(): string {
 
     const arRunIndex : number[] = this.runState.getRunIdIndex(),
-
-          contextId      : string   = CONS.charAt(arRunIndex[0]) + 
+          contextId  : string   = CONS.charAt(arRunIndex[0]) + 
                                   VOWS.charAt(arRunIndex[1]) + 
                                   CONS.charAt(arRunIndex[2]++)
 

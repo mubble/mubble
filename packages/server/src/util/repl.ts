@@ -13,7 +13,6 @@ import {
          Protocol,
          WIRE_TYPE,
          XmnProvider,
-         SessionInfo,
          HTTP,
          Mubble,
          CustomData
@@ -32,14 +31,12 @@ const replHistory: any = require('repl.history') // https://github.com/ohmu/node
 export abstract class Repl {
   
   protected ci         : ConnectionInfo
-  private si           : SessionInfo
   protected replServer : any
   protected provider   : ReplProvider
 
   constructor(protected rc: RunContextServer, private clientIdentity: Mubble.uObject<any>) {
     this.ci = this.getConnectionInfo()
-    this.si = this.getSessionInfo(this.ci)
-    this.provider = this.si.provider as ReplProvider
+    this.provider = this.ci.provider as ReplProvider
   }
 
   abstract async callApi(apiName: string, param: object , ncInstanceId ?: number , userLinkId ?: string) : Promise<any>
@@ -98,7 +95,7 @@ export abstract class Repl {
   createNewConnectionInfo(clientIdentity : CustomData) {
     this.ci = this.getConnectionInfo ()
     this.ci.customData = clientIdentity
-    this.provider = this.si.provider as ReplProvider
+    this.provider = this.ci.provider as ReplProvider
   }
 
   getConnectionInfo() {
@@ -112,24 +109,15 @@ export abstract class Repl {
       ip          : 'localhost',
       msOffset    : 0,
       lastEventTs : 0,
-      customData  : this.clientIdentity
+      customData  : this.clientIdentity,
+      protocolVersion : HTTP.CurrentProtocolVersion,
     } as ConnectionInfo
+
+    const provider = new ReplProvider (this.rc, ci, (<any>this.rc).router)
+
+    ci.provider = provider
     
     return ci
-  }
-
-  getSessionInfo(ci : ConnectionInfo) {
-
-    const provider = new ReplProvider (this.rc, ci, (<any>this.rc).router),
-          si       = {
-                      protocolVersion : HTTP.CurrentProtocolVersion,
-                      publicRequest   : false,
-                      useEncryption   : false,
-                      provider        : provider,
-                      syncKey         : null
-                     } as SessionInfo
-
-    return si
   }
 }
 

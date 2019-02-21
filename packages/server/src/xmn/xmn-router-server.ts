@@ -12,7 +12,6 @@ import {
        }                      from './xmn-registry'
 import { 
         ConnectionInfo,
-        SessionInfo,
         WIRE_TYPE,
         WireEphEvent,
         WireEvent,
@@ -54,7 +53,6 @@ export abstract class XmnRouterServer {
   private eventMap           : {[index: string]: InvokeStruct} = {}
   private piggyfrontMap                                        = new WeakMap<InvocationData, Array<WireEphEvent>>()
   // private providerCollection : ActiveProviderCollection
-  private sessionInfo        : SessionInfo
 
   constructor(rc: RunContextServer, ...apiProviders: any[]) {
     XmnRegistry.commitRegister(rc, this, apiProviders)
@@ -66,11 +64,9 @@ export abstract class XmnRouterServer {
   
   public async verifyConnection(rc       : RunContextServer,
                                 ci       : ConnectionInfo,
-                                si       : SessionInfo,
                                 apiName ?: string) {
 
     //const rc : RunContextNcServer = refRc.copyConstruct('', refRc.contextName)
-    this.sessionInfo = si
 
     const reqStruct = apiName ? this.apiMap[apiName] : null
     await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
@@ -83,19 +79,19 @@ export abstract class XmnRouterServer {
     
   }
   
-  public async sendEvent(rc : RunContextServer, eventName : string, data : object) {
+  public async sendEvent(rc : RunContextServer, ci : ConnectionInfo, eventName : string, data : object) {
 
-    if (!this.sessionInfo.provider) {
+    if (!ci.provider) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Could not send event as connection closed', eventName)
       return
     }
 
     const we = new WireEphEvent(eventName, data)
-    await this.sessionInfo.provider.send(rc, [we])
+    await ci.provider.send(rc, [we])
     rc.isDebug() && rc.debug(rc.getName(this), 'sendEvent', eventName)
   }
   
-  public async piggyfrontEvent(rc: RunContextServer, ci: ConnectionInfo, 
+  public piggyfrontEvent(rc: RunContextServer, ci: ConnectionInfo, 
     eventName: string, data: object, invData: InvocationData) {
     const we = new WireEphEvent(eventName, data)
     this.insertIntoPiggyfrontMap(rc, we, invData)
@@ -154,7 +150,7 @@ export abstract class XmnRouterServer {
       rc.finish(ci, null as any, null as any)
     }
 
-    if(this.sessionInfo.provider) delete this.sessionInfo.provider
+    if(ci.provider) delete ci.provider
   }
 
   abstract connectionOpened(rc: RunContextServer, ci: ConnectionInfo, apiInfo: any): Promise<void>
@@ -181,7 +177,7 @@ export abstract class XmnRouterServer {
       
       const resp = await this.invokeXmnFunction(rc, ci, ir, reqStruct, false)
       wResp = new WireReqResp(ir.name, wo.ts, resp)
-      await this.sendToProvider(rc, wResp, ir)
+      await this.sendToProvider(rc, ci, wResp, ir)
 
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
@@ -193,7 +189,7 @@ export abstract class XmnRouterServer {
 
       wResp = new WireReqResp(wo.name, wo.ts, data, err.code || err.name || err,
                               err.msg || err.message || err, err)
-      await this.sendToProvider(rc, wResp, ir)
+      await this.sendToProvider(rc, ci, wResp, ir)
     } finally {
       return wResp
     }
@@ -263,9 +259,9 @@ export abstract class XmnRouterServer {
     return true
   }
 
-  closeConnection(rc : RunContextServer) {
-    if(this.sessionInfo.provider) {
-      this.sessionInfo.provider.requestClose(rc)
+  closeConnection(rc : RunContextServer, ci : ConnectionInfo) {
+    if(ci.provider) {
+      ci.provider.requestClose(rc)
     } else {
       rc.isDebug() && rc.debug(rc.getName(this), 'Cannot close the connection as provider is closed.')
     }
@@ -286,14 +282,15 @@ export abstract class XmnRouterServer {
                                   invData : InvocationData ) {
 
     if (ci.lastEventTs < resp.ts) ci.lastEventTs = resp.ts // this is same as req.ts
-    await this.sendToProvider(rc, resp , invData)
+    await this.sendToProvider(rc, ci, resp, invData)
   }
 
   private async sendToProvider(rc       : RunContextServer,
+                               ci       : ConnectionInfo,
                                response : WireObject,
                                invData  : InvocationData | null) {
 
-    if (this.sessionInfo.provider) {
+    if (ci.provider) {
 
       const ar = invData && this.piggyfrontMap.get(invData) || []
       if (invData && ar.length) this.piggyfrontMap.delete(invData)
@@ -304,7 +301,7 @@ export abstract class XmnRouterServer {
       
       const err = (response as WireReqResp|WireEventResp).errorCode
       // Do not send piggy front events if error api execution fails
-      await this.sessionInfo.provider.send(rc, err? [response] : ar)
+      await ci.provider.send(rc, err? [response] : ar)
 
     } else {
       rc.isStatus() && rc.status(rc.getName(this), 'Not sending response as provider is closed')

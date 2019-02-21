@@ -13,7 +13,6 @@ import {
          DataLeader,
          Mubble,
          Encoder,
-         SessionInfo,
          ConnectionInfo
        }                        from '@mubble/core'
 import * as zlib                from 'zlib'
@@ -26,7 +25,7 @@ export class EncProviderServer {
 
   private syncKey : any
 
-  constructor(rc: RunContextServer, private ci: ConnectionInfo, private si : SessionInfo) {
+  constructor(rc: RunContextServer, private ci: ConnectionInfo) {
 
   }
 

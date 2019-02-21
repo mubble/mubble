@@ -11,7 +11,6 @@ import {
          WireObject,
          XmnProvider,
          ConnectionInfo,
-         SessionInfo,
          Protocol,
          WssProviderConfig,
          WssErrorCode,
@@ -52,7 +51,7 @@ export class WssServer {
 	
 	private async establishHandshake(socket : WebSocket, req : http.IncomingMessage) {
 
-    const rc = this.refRc.copyConstruct(undefined, 'handshake') as RunContextServer
+    const rc = this.refRc.copyConstruct('', 'handshake')
 
     rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new connection. Establishing handshake.')
 
@@ -64,7 +63,7 @@ export class WssServer {
             [host, port] = (req.headers.host || '').split(':')
 
       const [, handshake, version, clientId, encDataUri] = path.split(SLASH_SEP),
-            encData                           = decodeURIComponent(encDataUri)
+            encData                                      = decodeURIComponent(encDataUri)
 
       if(!version || !clientId || !encData) throw new Error(`Invalid URL path ${path}.`)
 
@@ -75,8 +74,7 @@ export class WssServer {
             body        = encProvider.decodeRequestUrl(encData, publicKey),
             diff        = Math.abs((Date.now() * 1000) - body.tsMicro), // ts difference in microseconds
             wssConfig   = ObopayWssClient.getWssConfig(body.wssConfig, encProvider),
-            ci          = {} as ConnectionInfo,
-            si          = {} as SessionInfo
+            ci          = {} as ConnectionInfo
       
       ci.shortName      = clientId
       ci.protocol       = Protocol.WEBSOCKET
@@ -91,14 +89,14 @@ export class WssServer {
       ci.customData     = wssConfig.custom
 
       const wssProvider = new WssServerProvider(rc, socket, ci, this.router, encProvider, wssConfig, this)
-      si.provider       = wssProvider
+      ci.provider       = wssProvider
 
-      await this.router.verifyConnection(rc, ci, si)
-      wssConfig.custom = ci.customData
+      await this.router.verifyConnection(rc, ci)
+      wssConfig.custom  = ci.customData
 
-      const woJson    = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.WS_PROVIDER_CONFIG, data : wssConfig},
-            respWo    = WireObject.getWireObject(woJson) as WireSysEvent,
-            encConfig = await encProvider.encodeHandshakeMessage(respWo)
+      const woJson      = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.WS_PROVIDER_CONFIG, data : wssConfig},
+            respWo      = WireObject.getWireObject(woJson) as WireSysEvent,
+            encConfig   = await encProvider.encodeHandshakeMessage(respWo)
 
       rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo)
       socket.send(encConfig)
@@ -110,18 +108,11 @@ export class WssServer {
     }
   }
 
-  public markActive(wssProvider : WssServerProvider) {
-
-    console.log(`Came to markActive ${JSON.stringify(wssProvider)}`);
-    
-
+  public markActive(wssProvider : WssServerProvider) {    
     this.socketMap.set(wssProvider, Date.now() * 1000)
   }
   
   public markClosed(wssProvider : WssServerProvider) {
-
-    console.log(`Came to markClosed ${JSON.stringify(wssProvider)}`);
-
     this.socketMap.delete(wssProvider)
   }
 

@@ -22,8 +22,7 @@ import {
         SYS_EVENT,
         WEB_SOCKET_URL,
         XmnProvider,
-        ActiveProviderCollection,
-        SessionInfo
+        ActiveProviderCollection
        }                              from '@mubble/core'
 import {
         RunContextServer
@@ -83,7 +82,6 @@ export class WsServer implements ActiveProviderCollection {
       body   = decodeURIComponent(body)
 
       const ci           = {} as ConnectionInfo,
-            si           = {} as SessionInfo,
             [host, port] = (req.headers.host || '').split(':')
 
       ci.protocol       = Protocol.WEBSOCKET
@@ -97,7 +95,7 @@ export class WsServer implements ActiveProviderCollection {
       // si.publicRequest = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.PLAIN_PUBLIC
       // si.useEncryption = mainUrl === WEB_SOCKET_URL.ENC_PUBLIC || mainUrl === WEB_SOCKET_URL.ENC_PRIVATE
       
-      const encProvider    = new EncProviderServer(rc, ci, si),
+      const encProvider    = new EncProviderServer(rc, ci),
             headerBuffer   = new Buffer(header, 'base64')
 
       encProvider.extractHeader(rc, headerBuffer)
@@ -105,9 +103,8 @@ export class WsServer implements ActiveProviderCollection {
       const pk = this.router.getPrivateKeyPem(rc, ci)
       encProvider.decodeHeader(rc, headerBuffer, pk)
 
-      const webSocket = si.provider = new ServerWebSocket(rc,
+      const webSocket = ci.provider = new ServerWebSocket(rc,
                                                           ci,
-                                                          si,
                                                           encProvider, 
                                                           this.router,
                                                           socket,
@@ -180,7 +177,6 @@ export class ServerWebSocket implements XmnProvider {
   
   constructor(private refRc       : RunContextServer, 
               public  ci          : ConnectionInfo, 
-              private si          : SessionInfo,
               private encProvider : EncProviderServer,
               private router      : XmnRouterServer,
               private ws          : WebSocket,
@@ -217,7 +213,7 @@ export class ServerWebSocket implements XmnProvider {
 
   public onMessage(msgEvent: any) {
 
-    if (!this.si.provider) return
+    if (!this.ci.provider) return
     
     const rc = this.refRc.copyConstruct('', 'ws-request')
     const data = msgEvent.data
@@ -240,7 +236,7 @@ export class ServerWebSocket implements XmnProvider {
     if (!this.connectionVerified) {
 
       try {
-        await this.router.verifyConnection(rc, this.ci, this.si)
+        await this.router.verifyConnection(rc, this.ci)
       } catch (e) {
 
         await this.send(rc, [new WireSysEvent(SYS_EVENT.ERROR, {
@@ -260,7 +256,7 @@ export class ServerWebSocket implements XmnProvider {
 
   public async send(rc: RunContextServer, data: WireObject[]) {
 
-    if (!this.si.provider) return
+    if (!this.ci.provider) return
     
     if (!this.configSent) await this.sendConfig(rc)
     await this.sendInternal(rc, data)
@@ -276,7 +272,7 @@ export class ServerWebSocket implements XmnProvider {
 
   public onError(err: any) {
 
-    if (!this.si.provider) return
+    if (!this.ci.provider) return
     this.wss.markClosed(this)
 
     const rc : RunContextServer = this.refRc.copyConstruct('', 'ws-request')
@@ -286,13 +282,13 @@ export class ServerWebSocket implements XmnProvider {
   }
 
   public requestClose() {
-    if (!this.si.provider) return
+    if (!this.ci.provider) return
     this.ws.close()
   }
 
   public onClose() {
 
-    if (!this.si.provider) return
+    if (!this.ci.provider) return
 
     this.wss.markClosed(this)
 
@@ -304,7 +300,7 @@ export class ServerWebSocket implements XmnProvider {
 
   public processSysEvent(rc: RunContextServer, se: WireSysEvent) {
 
-    if (!this.si.provider) return
+    if (!this.ci.provider) return
     
     if (se.name === SYS_EVENT.PING) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Received ping')
@@ -315,6 +311,6 @@ export class ServerWebSocket implements XmnProvider {
   }
 
   private cleanup() {
-    delete this.si.provider
+    delete this.ci.provider
   }
 }

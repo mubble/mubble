@@ -10,7 +10,6 @@
 import { 
          XmnError,
          ConnectionInfo,
-         SessionInfo,
          Protocol,
          HTTP,
          XmnProvider,
@@ -56,7 +55,6 @@ export class HttpsServer {
           apiName  = ar[0]
 
     const ci           = {} as ConnectionInfo,
-          si           = {} as SessionInfo,
           [host, port] = (req.headers.host || '').split(':')
 
     ci.protocol       = urlObj.protocol === 'https:' ? Protocol.HTTPS : Protocol.HTTP
@@ -71,7 +69,7 @@ export class HttpsServer {
     ci.lastEventTs    = 0
 
     try {
-      await this.router.verifyConnection(rc, ci, si, apiName)
+      await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
       res.writeHead(404, {
         [HTTP.HeaderKey.contentLength] : 0,
@@ -85,7 +83,7 @@ export class HttpsServer {
     const encProvider   = ObopayHttpsClient.getEncProvider(),
           httpsProvider = new HttpsServerProvider(rc, ci, this.router, res, encProvider, this)
 
-    si.provider = httpsProvider
+    ci.provider = httpsProvider
 
     const reqId     : number              = Date.now(),
           apiParams : Mubble.uObject<any> = {}
