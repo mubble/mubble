@@ -111,10 +111,17 @@ export class WssServer {
   }
 
   public markActive(wssProvider : WssServerProvider) {
+
+    console.log(`Came to markActive ${JSON.stringify(wssProvider)}`);
+    
+
     this.socketMap.set(wssProvider, Date.now() * 1000)
   }
   
   public markClosed(wssProvider : WssServerProvider) {
+
+    console.log(`Came to markClosed ${JSON.stringify(wssProvider)}`);
+
     this.socketMap.delete(wssProvider)
   }
 

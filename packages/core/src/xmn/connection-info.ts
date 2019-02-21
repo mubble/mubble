@@ -8,7 +8,9 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble }               from '../'
-import { Protocol }             from './xmn-core'
+import { Protocol, 
+         XmnProvider 
+       }                        from './xmn-core'
 import { CustomData }           from './custom-data'
 
 export interface ConnectionInfo {
@@ -28,6 +30,11 @@ export interface ConnectionInfo {
   msOffset        : number    // this is inferred by the server based on client's now field. Api/event need not use this
   lastEventTs     : number    // Must be set before an event is processed on server
   lastRequestTs   : number
+
+  protocolVersion : string        // Example: 'v2'
+
+  // provider for this connection (WebSocket, Http etc.)
+  provider        : XmnProvider   // The protocol provider keeps it's custom data here
 
   customData      : CustomData
 }

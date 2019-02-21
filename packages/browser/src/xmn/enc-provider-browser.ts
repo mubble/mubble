@@ -13,7 +13,6 @@ import {
          WireObject,
          DataLeader,
          Encoder,
-         SessionInfo,
          WssProviderConfig
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
@@ -32,7 +31,7 @@ export class EncryptionBrowser {
   private syncKey: any // can be sent as null by server
 
   constructor(private rc: RunContextBrowser, private ci: ConnectionInfo, 
-              private si : SessionInfo, private rsaPubKey: Uint8Array) {
+              private rsaPubKey: Uint8Array) {
 
     rc.setupLogger(this, 'EncryptionBrowser')
 
