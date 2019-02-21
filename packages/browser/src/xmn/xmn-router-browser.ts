@@ -23,7 +23,8 @@ import {
          TimerInstance,
          SYS_EVENT,
          CustomData,
-         WssProviderConfig
+         WssProviderConfig,
+         XmnProvider
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 import { WsBrowser }          from './ws-browser'
@@ -37,9 +38,13 @@ const TIMEOUT_MS          = 30000,
       EVENT_SEND_DELAY    = 1000,
       MAX_EVENTS_TO_SEND  = 5
 
+interface BrowserConnectionInfo extends ConnectionInfo {
+  provider : WsBrowser
+}
+
 export abstract class XmnRouterBrowser {
 
-  private ci                : ConnectionInfo
+  private ci                : BrowserConnectionInfo
   private ongoingRequests   : WireRequest[] = []
   private eventSubMap       : Mubble.uObject<(rc: RunContextBrowser, name: string, data: any)=>any> = {}
   
@@ -64,7 +69,7 @@ export abstract class XmnRouterBrowser {
     const urlParser     = document.createElement('a')
     urlParser.href      = serverUrl
 
-    this.ci             = ci
+    this.ci             = ci as BrowserConnectionInfo
 
     this.ci.protocol    = Protocol.WEBSOCKET
     this.ci.host        = urlParser.hostname
