@@ -81,4 +81,11 @@ abstract class UserKeyValue: MubbleLogger {
     return sharedPrefs.getString(key, null)
   }
 
+  fun clear() {
+
+    editor.remove(LAST_USER)
+    editor.remove(USERS)
+    editor.apply()
+  }
+
 }
