@@ -218,8 +218,6 @@ export class WssEncProvider {
 
   private parseWireObjectsString(str : string) : Array<WireObject> {
 
-    console.log(`Came to parse ${str}`)
-
     const inJson    = JSON.parse(str),
           arData    = Array.isArray(inJson) ? inJson : [inJson]
 
