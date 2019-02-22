@@ -13,6 +13,7 @@ export interface AlertDialogParams {
   message          : string
   positiveActText  : string
   negativeActText ?: string
+  contextId       ?: string //If same component is invoking this dialog with different contexts 
 }
 
 export enum RESULT {
@@ -21,7 +22,8 @@ export enum RESULT {
 }
 
 export interface AlertDialogResult {
-  result : RESULT
+  result     : RESULT
+  contextId ?: string
 }
 
 @Component({
@@ -36,6 +38,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
   private caller    : InjectionCaller
   private myParent  : InjectionParent
   private result    : RESULT
+  private contextId : string
 
   title           : string
   message         : string
@@ -44,7 +47,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { 
     super(rc)
-    window['alertdialog'] = this
+    
   }
 
   getWidth() {
@@ -70,6 +73,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     this.message          = queryParams['message']
     this.positiveActText  = queryParams['positiveActText']
     this.negativeActText  = queryParams['negativeActText'] || ''
+    this.contextId        = queryParams['contextId'] || ''
   }
 
   setCaller(caller: InjectionCaller) {
@@ -86,7 +90,8 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
 
   closeFromParent() {
     const result : AlertDialogResult = {
-      result : this.result
+      result   : this.result,
+      contextId: this.contextId
     }
     this.caller.setResult(this.getRouteName(), result)
   }
