@@ -26,7 +26,7 @@ import * as stream              from 'stream'
 import * as lo                  from 'lodash'
 
 const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro seconds
-      REQUEST_EXPIRY_SECS = 30 * 60,                  // 30 minutes in seconds,
+      REQUEST_EXPIRY_SECS = 30 * 60,                  // 30 minutes in seconds
       PIPE_SEP            = ' | ',
       SLASH_SEP           = '/'
 
