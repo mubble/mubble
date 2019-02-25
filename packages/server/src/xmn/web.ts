@@ -126,6 +126,7 @@ export class Web {
     if (this.httpServer) await this.listen(rc, this.httpServer, this.httpConfig as WebConfig)
     if (this.wsHttpServer) await this.listen(rc, this.wsHttpServer, this.websocketConfig as WebConfig)
     if (this.httpsServer) await this.listen(rc, this.httpsServer, this.httpsConfig as WebConfig)
+    if (this.thirdHttpsServer) await this.listen(rc, this.thirdHttpsServer, this.thirdHttpsConfig as WebConfig)
   }
 
   listen(rc: RunContextServer, httpServer: http.Server | https.Server , config: WebConfig) {

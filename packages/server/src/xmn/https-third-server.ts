@@ -43,7 +43,7 @@ export class HttpsThirdServer {
 
     const rc = this.refRc.copyConstruct('', 'https-request')
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Reieved third party https request.', req.url)
+    rc.isStatus() && rc.status(rc.getName(this), 'Recieved third party https request.', req.url)
 
     const urlObj         = urlModule.parse(req.url || ''),
           pathName       = urlObj.pathname || '',
