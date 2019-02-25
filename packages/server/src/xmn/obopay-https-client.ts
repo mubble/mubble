@@ -307,9 +307,9 @@ export namespace ObopayHttpsClient {
           encRequestPath = encodeURIComponent(requestPath),
           urlObj         = {
                              protocol : HTTP.Const.protocolHttps,
-                             host     : credentials.host,
+                             hostname : credentials.host,
                              port     : credentials.port,
-                             path     : SLASH_SEP + apiName + SLASH_SEP + encRequestPath
+                             pathname : SLASH_SEP + apiName + SLASH_SEP + encRequestPath
                            },
           url            = urlModule.format(urlObj)
 
