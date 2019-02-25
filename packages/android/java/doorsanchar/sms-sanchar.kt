@@ -36,8 +36,8 @@ class SmsSanchar private constructor(private var context: Context) {
     val jsonObj = JSONObject()
     jsonObj.put("hasSmsCode", false)
 
-    Log.i("SmsSanchar", "Got sms: " + event)
-    if (event == null || event.isEmpty()) return jsonObj
+    Log.i("SmsSanchar", "Got sms: $event")
+    if (event == null || event.isEmpty) return jsonObj
 
     val pdus = event.get("pdus") as Array<*>
 
