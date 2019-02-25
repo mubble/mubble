@@ -14,21 +14,15 @@ import {
         ConnectionInfo,
         WIRE_TYPE,
         WireEphEvent,
-        WireEvent,
         WireEventResp,
         WireObject,
         WireReqResp,
-        WireSysEvent,
-        SYS_EVENT,
         InvocationData,
         Protocol,
         Mubble,
-        ActiveProviderCollection,
         XmnProvider
        }                      from '@mubble/core'
 import {RunContextServer}     from '../rc-server'
-import {web}                  from './web'
-import * as lo                from 'lodash'
 
 export class InvokeStruct {
 
@@ -72,7 +66,7 @@ export abstract class XmnRouterServer {
     await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
     const apiname = 'verifyConnection'
     if (ci.customData) {
-      rc.finish(ci, null as any, null as any, apiname)
+      // rc.finish(ci, null as any, null as any, apiname)
     } else if (ci.protocol === Protocol.WEBSOCKET) {
       // TraceBase.sendTrace(rc, apiname , {type: 'NC_API'})
     }

@@ -18,12 +18,13 @@ import { HttpsEncProvider }     from './https-enc-provider'
 import { SecurityErrorCodes }   from './security-errors'
 import { UStream }              from '../util'
 import { RedisWrapper }         from '../cache'
-import { CredentialRegistry }   from './credential-registry'
+import { CredentialRegistry, SyncCredentials }   from './credential-registry'
 import * as https               from 'https'
 import * as http                from 'http'
 import * as fs                  from 'fs'
 import * as stream              from 'stream'
 import * as lo                  from 'lodash'
+import * as urlModule           from 'url'
 
 const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro seconds
       REQUEST_EXPIRY_SECS = 30 * 60,                  // 30 minutes in seconds
@@ -294,5 +295,26 @@ export namespace ObopayHttpsClient {
     const exists = await requestMem.redisCommand().exists(requestKey)
 
     return exists
+  }
+
+  export function getThirdPartyRequestUrl(rc          : RunContextServer,
+                                          credentials : SyncCredentials,
+                                          apiName     : string,
+                                          apiParams   : Mubble.uObject<any>) : string {
+
+    const encProvider    = getEncProvider(),
+          requestPath    = encProvider.encodeThirdPartyRequestPath(credentials.syncHash, apiParams),
+          encRequestPath = encodeURIComponent(requestPath),
+          urlObj         = {
+                             protocol : HTTP.Const.protocolHttps,
+                             host     : credentials.host,
+                             port     : credentials.port,
+                             path     : apiName + SLASH_SEP + encRequestPath
+                           },
+          url            = urlModule.format(urlObj)
+
+    rc.isStatus() && rc.status(CLASS_NAME, 'getThirdPartyRequestUrl', url)
+                
+    return url
   }
 }

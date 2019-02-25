@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : New https server
+   About      : Https server for other obopay servers
    
    Created on : Mon Dec 31 2018
    Author     : Vishal Sinha
