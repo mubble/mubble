@@ -154,6 +154,13 @@ export abstract class XmnRouterBrowser {
     this.eventSubMap[eventName] = eventHandler
   }
 
+  onConnectionExpiry(rc: RunContextBrowser, data: WireObject[]) {
+
+    this.ci.provider.requestClose()
+    this.ci.provider = new WsBrowser(rc, this.ci, this)
+    this.cbTimerReqResend() // TODO: rectify
+  }
+
   prepareConnection(rc: RunContextBrowser) {
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.ci.provider)
@@ -226,7 +233,7 @@ export abstract class XmnRouterBrowser {
   
     // finishRequest removed the item from ongoingRequests array
     while (this.ongoingRequests.length) {
-      const wr = this.ongoingRequests[0];
+      const wr = this.ongoingRequests[0]
       this.finishRequest(this.rc, 0, errCode || XmnError.ConnectionFailed, null)
     }
     this.ongoingRequests  = []

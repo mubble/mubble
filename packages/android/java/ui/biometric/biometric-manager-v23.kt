@@ -101,8 +101,8 @@ open class BiometricManagerV23 {
   }
 
   private fun generateKey() {
-    try {
 
+    try {
       keyStore = KeyStore.getInstance("AndroidKeyStore")
       keyStore!!.load(null)
 
@@ -146,12 +146,10 @@ open class BiometricManagerV23 {
     }
 
     try {
-      keyStore!!.load(
-          null)
+      keyStore!!.load(null)
       val key = keyStore!!.getKey(KEY_NAME, null) as SecretKey
       cipher!!.init(Cipher.ENCRYPT_MODE, key)
       return true
-
 
     } catch (e: KeyPermanentlyInvalidatedException) {
       return false

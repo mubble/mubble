@@ -20,11 +20,9 @@ import {
          WireEvent,
          WireEphEvent,
          WireSysEvent,
-         WebSocketConfig,
          ConnectionError,
          TimerInstance,
          WireObject,
-         DataLeader,
          XmnProvider,
          WssProviderConfig,
          HANDSHAKE
@@ -154,8 +152,7 @@ export class WsBrowser implements XmnProvider {
       if (!this.isConnWithinPing(Date.now())) { // Connection expired
         rc.isDebug() && rc.debug(rc.getName(this), `Connection expired..re-connecting`)
         this.sending = false
-        this.cleanup()
-        await this.send(rc, data)
+        this.router.onConnectionExpiry(rc, data)
         return
       }
       
@@ -209,7 +206,9 @@ export class WsBrowser implements XmnProvider {
           msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
 
       Object.assign(this.wsProviderConfig, config)
-
+      this.wsProviderConfig.maxOpenSecs = 20
+      this.wsProviderConfig.pingSecs    = 5
+      
       if (config.key) await this.encProvider.setNewKey(config.key)
 
       this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
