@@ -22,6 +22,7 @@ const SYM_ALGO                = 'aes-256-cbc',
       MIN_SIZE_TO_COMPRESS    = 1000,
       AES_KEY_SIZE            = 32,
       BASE64                  = 'base64',
+      HEX                     = 'hex',
       SIXTEEN                 = 16
 
 export class HttpsEncProvider {
@@ -103,13 +104,13 @@ export class HttpsEncProvider {
     const dataStr    = JSON.stringify(data),
           dataBuf    = Buffer.from(dataStr),
           encDataBuf = this.encryptUsingPublicKey(publicKey, dataBuf),
-          encDataStr = encDataBuf.toString(BASE64)
+          encDataStr = encDataBuf.toString(HEX)
 
     return encDataStr
   }
 
   public decodeThirdPartyRequestPath(encDataStr : string) : Mubble.uObject<any> {
-    const encDataBuf = Buffer.from(encDataStr, BASE64),
+    const encDataBuf = Buffer.from(encDataStr, HEX),
           dataBuf    = this.decryptUsingPrivateKey(encDataBuf),
           dataStr    = dataBuf.toString(),
           data       = JSON.parse(dataStr)
