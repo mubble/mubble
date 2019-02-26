@@ -37,7 +37,7 @@ export class HttpsEncProvider {
   public encodeRequestKey(publicKey : string) : string {
     if(!this.reqAesKey) this.reqAesKey = this.getNewAesKey()
 
-    const encKeyBuf = crypto.publicEncrypt(publicKey, this.reqAesKey),
+    const encKeyBuf = this.encryptUsingPublicKey(publicKey, this.reqAesKey),
           encKey    = encKeyBuf.toString(BASE64)
 
     return encKey
@@ -46,7 +46,7 @@ export class HttpsEncProvider {
   public decodeRequestKey(encKey : string) : Buffer {
     const encKeyBuf = Buffer.from(encKey, BASE64)
 
-    this.reqAesKey = crypto.privateDecrypt(this.privateKey, encKeyBuf)
+    this.reqAesKey = this.decryptUsingPrivateKey(encKeyBuf)
 
     return this.reqAesKey
   }
@@ -85,7 +85,7 @@ export class HttpsEncProvider {
     if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
 
     const encKeyBufTemp = this.encryptUsingReqAesKey(this.respAesKey),
-          encKeyBufFin  = crypto.privateEncrypt(this.privateKey, encKeyBufTemp),
+          encKeyBufFin  = this.encryptUsingPrivateKey(encKeyBufTemp),
           encKey        = encKeyBufFin.toString(BASE64)
 
     return encKey
@@ -93,10 +93,28 @@ export class HttpsEncProvider {
 
   public decodeResponseKey(publicKey : string, encKey : string) : Buffer {
     const encKeyBuf = Buffer.from(encKey, BASE64),
-          decKey    = crypto.publicDecrypt(publicKey, encKeyBuf)
+          decKey    = this.decryptUsingPublicKey(publicKey, encKeyBuf)
     
     this.respAesKey = this.decryptUsingReqAesKey(decKey)
     return this.respAesKey
+  }
+
+  public encodeThirdPartyRequestPath(publicKey : string, data : Mubble.uObject<any>) : string {
+    const dataStr    = JSON.stringify(data),
+          dataBuf    = Buffer.from(dataStr),
+          encDataBuf = this.encryptUsingPublicKey(publicKey, dataBuf),
+          encDataStr = encDataBuf.toString(BASE64)
+
+    return encDataStr
+  }
+
+  public decodeThirdPartyRequestPath(encDataStr : string) : Mubble.uObject<any> {
+    const encDataBuf = Buffer.from(encDataStr, BASE64),
+          dataBuf    = this.decryptUsingPrivateKey(encDataBuf),
+          dataStr    = dataBuf.toString(),
+          data       = JSON.parse(dataStr)
+
+    return data
   }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -105,14 +123,14 @@ export class HttpsEncProvider {
 
   private encryptRequestTs(tsMilli : number) : string {
     const tsMicro  = tsMilli * 1000,
-          encReqTs = crypto.privateEncrypt(this.privateKey, Buffer.from(tsMicro.toString()))
+          encReqTs = this.encryptUsingPrivateKey(Buffer.from(tsMicro.toString()))
 
     return encReqTs.toString(BASE64)
   }
 
   private decryptRequestTs(publicKey : string, encReqTs : string) : number {
     const encReqTsBuf = Buffer.from(encReqTs, BASE64),
-          reqTsBuf    = crypto.publicDecrypt(publicKey, encReqTsBuf),
+          reqTsBuf    = this.encryptUsingPublicKey(publicKey, encReqTsBuf),
           requestTs   = Number(reqTsBuf.toString())
 
     return requestTs
@@ -219,5 +237,28 @@ export class HttpsEncProvider {
     return finalLength
   }
 
+  private encryptUsingPublicKey(publicKey : string, data : Buffer) : Buffer {
+    const encData = crypto.publicEncrypt(publicKey, data)
+
+    return encData
+  }
+
+  private decryptUsingPublicKey(publicKey : string, encData : Buffer) : Buffer {
+    const data = crypto.publicDecrypt(publicKey, encData)
+
+    return data
+  }
+
+  private encryptUsingPrivateKey(data : Buffer) : Buffer {
+    const encData = crypto.privateEncrypt(this.privateKey, data)
+
+    return encData
+  }
+
+  private decryptUsingPrivateKey(encData : Buffer) : Buffer {
+    const data = crypto.privateDecrypt(this.privateKey, encData)
+
+    return data
+  }
 
 }

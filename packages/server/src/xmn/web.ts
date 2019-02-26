@@ -7,15 +7,16 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as http                    from 'http'
-import * as https                   from 'https'
+import * as http                      from 'http'
+import * as https                     from 'https'
 
-import {XmnRouterServer}            from './xmn-router-server'
-import {ActiveProviderCollection}   from '@mubble/core'
-import {HttpsServer}                from './https-server'
-import {WssServer}                  from './wss-server'
-import {RunContextServer}           from '../rc-server'
-import {clusterWorker}              from '../cluster/worker'
+import { XmnRouterServer }            from './xmn-router-server'
+import { ActiveProviderCollection }   from '@mubble/core'
+import { HttpsServer }                from './https-server'
+import { HttpsThirdServer }           from './https-third-server'
+import { WssServer }                  from './wss-server'
+import { RunContextServer }           from '../rc-server'
+import { clusterWorker }              from '../cluster/worker'
 
 
 export enum WEB_SERVER_TYPE {HTTP, HTTPS, WEB_SOCKET}
@@ -42,33 +43,37 @@ export interface HttpsConfig extends WebConfig {
 
 export class Web {
 
-  private httpConfig      : HttpConfig      | undefined
-  private websocketConfig : WebsocketConfig | undefined
-  private httpsConfig     : HttpsConfig     | undefined
+  private httpConfig        : HttpConfig      | undefined
+  private websocketConfig   : WebsocketConfig | undefined
+  private httpsConfig       : HttpsConfig     | undefined
+  private thirdHttpsConfig  : HttpsConfig     | undefined
 
-  private httpServer      : http.Server 
-  private wsHttpServer    : http.Server
-  private httpsServer     : https.Server
+  private httpServer        : http.Server 
+  private wsHttpServer      : http.Server
+  private httpsServer       : https.Server
+  private thirdHttpsServer  : https.Server
 
-  private router          : XmnRouterServer
+  private router            : XmnRouterServer
 
-  wsReqManager            : WssServer
+  wsReqManager              : WssServer
 
   constructor() {
     if (web) throw('Router is singleton. It cannot be instantiated again')
   }
 
-  init(rc               : RunContextServer,
-       router           : XmnRouterServer,
-       httpConfig      ?: HttpConfig, 
-       httpsConfig     ?: HttpsConfig,
-       websocketConfig ?: WebsocketConfig) : void {
+  init(rc                : RunContextServer,
+       router            : XmnRouterServer,
+       httpConfig       ?: HttpConfig, 
+       httpsConfig      ?: HttpsConfig,
+       websocketConfig  ?: WebsocketConfig,
+       thirdHttpsConfig ?: HttpsConfig) : void {
 
-    this.httpConfig      = httpConfig
-    this.httpsConfig     = httpsConfig
-    this.websocketConfig = websocketConfig
+    this.httpConfig        = httpConfig
+    this.httpsConfig       = httpsConfig
+    this.websocketConfig   = websocketConfig
+    this.thirdHttpsConfig  = thirdHttpsConfig
 
-    this.router          = router
+    this.router            = router
 
     if (this.httpConfig) {
       const httpReqManager = new HttpsServer(rc, this.router)
@@ -76,7 +81,6 @@ export class Web {
     }
 
     if (this.httpsConfig) {
-
       const port = this.httpsConfig.port
 
       if (this.httpConfig && this.httpConfig.port === port) {
@@ -103,12 +107,26 @@ export class Web {
 
       this.wsReqManager = new WssServer(rc, this.router, wsServer)
     }
+
+    if(this.thirdHttpsConfig) {
+      const port = this.thirdHttpsConfig.port
+
+      if(this.httpConfig && this.httpConfig.port === port)
+        throw('third party https port cannot be same as the http port')
+
+      if(this.httpsConfig && this.httpsConfig.port === port)
+        throw('third party https port cannot be same as the https port')
+
+      const httpReqManager  = new HttpsThirdServer(rc, this.router)
+      this.thirdHttpsServer = https.createServer(this.thirdHttpsConfig, httpReqManager.requestHandler.bind(httpReqManager))
+    }
   }
 
   async start(rc: RunContextServer) {
     if (this.httpServer) await this.listen(rc, this.httpServer, this.httpConfig as WebConfig)
     if (this.wsHttpServer) await this.listen(rc, this.wsHttpServer, this.websocketConfig as WebConfig)
     if (this.httpsServer) await this.listen(rc, this.httpsServer, this.httpsConfig as WebConfig)
+    if (this.thirdHttpsServer) await this.listen(rc, this.thirdHttpsServer, this.thirdHttpsConfig as WebConfig)
   }
 
   listen(rc: RunContextServer, httpServer: http.Server | https.Server , config: WebConfig) {
