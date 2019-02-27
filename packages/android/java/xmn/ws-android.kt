@@ -29,6 +29,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
   private var sending           : Boolean = false
   private var configured        : Boolean = false
+  private var connExpired       : Boolean = false
 
   private var ephemeralEvents   : MutableList<WireEphEvent> = mutableListOf()
 
@@ -119,10 +120,10 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
     } else {
 
       if (!isConnWithinPing(System.currentTimeMillis())) {
-        info { "Connection expired..re-connecting" }
-        this.sending = false
-        this.cleanup()
-        this.send(data)
+        info { "Connection expired..requesting socket close" }
+        this.sending      = false
+        this.connExpired  = true
+        this.requestClose()
         return
       }
 
@@ -174,7 +175,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
     info { "onClose $code" }
     if (this.si.provider != null) {
       this.cleanup()
-      this.router.providerFailed()
+      this.router.providerFailed(if (this.connExpired) XmnError._ConnectionExpired else null)
     }
 
     if (code != null && (code > 0 && code != 1000)) {
@@ -268,5 +269,12 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
       this.ws = null
 
     } catch (e: Exception) {}
+  }
+
+  fun requestClose() {
+
+    if (this.ws != null && this.ws!!.checkStateReady()) {
+      this.ws!!.close()
+    }
   }
 }

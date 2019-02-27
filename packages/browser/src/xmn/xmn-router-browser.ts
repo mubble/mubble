@@ -154,13 +154,6 @@ export abstract class XmnRouterBrowser {
     this.eventSubMap[eventName] = eventHandler
   }
 
-  onConnectionExpiry(rc: RunContextBrowser, data: WireObject[]) {
-
-    this.ci.provider.requestClose()
-    this.ci.provider = new WsBrowser(rc, this.ci, this)
-    this.cbTimerReqResend() // TODO: rectify
-  }
-
   prepareConnection(rc: RunContextBrowser) {
 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'prepareConnection', !!this.ci.provider)
@@ -368,7 +361,8 @@ export abstract class XmnRouterBrowser {
     return TIMEOUT_MS
   }
 
-  private finishRequest(rc: RunContextBrowser, index: number, errorCode: string | null, errorMessage: string | null, data ?: object) {
+  private finishRequest(rc: RunContextBrowser, index: number, errorCode: string | null, 
+                        errorMessage: string | null, data ?: object) {
 
     const wr  = this.ongoingRequests[index],
           now = Date.now()

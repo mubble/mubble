@@ -46,6 +46,7 @@ export class WsBrowser implements XmnProvider {
   private lastMessageTs       : number          = 0
   private sending             : boolean         = false
   private configured          : boolean         = false
+  private connExpired         : boolean         = false
 
   private ephemeralEvents     : WireEvent[]     = []
 
@@ -150,9 +151,10 @@ export class WsBrowser implements XmnProvider {
     } else {
       
       if (!this.isConnWithinPing(Date.now())) { // Connection expired
-        rc.isDebug() && rc.debug(rc.getName(this), `Connection expired..re-connecting`)
-        this.sending = false
-        this.router.onConnectionExpiry(rc, data)
+        rc.isDebug() && rc.debug(rc.getName(this), `Connection expired..requesting Socket close.`)
+        this.sending      = false
+        this.connExpired  = true
+        this.requestClose()
         return
       }
       
@@ -191,7 +193,7 @@ export class WsBrowser implements XmnProvider {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Websocket onClose()')
     if (this.ci.provider) {
       this.cleanup()
-      this.router.providerFailed()
+      this.router.providerFailed(this.connExpired ? XmnError._ConnectionExpired : null)
     }
   }
 
@@ -206,8 +208,6 @@ export class WsBrowser implements XmnProvider {
           msPingSecs && Number.isInteger(msPingSecs), msPingSecs)
 
       Object.assign(this.wsProviderConfig, config)
-      this.wsProviderConfig.maxOpenSecs = 20
-      this.wsProviderConfig.pingSecs    = 5
       
       if (config.key) await this.encProvider.setNewKey(config.key)
 

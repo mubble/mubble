@@ -279,7 +279,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
           "${routerReq.wr.name}, created at: ${routerReq.wr.ts/1000}, \n" +
           "timeTaken: ${now - routerReq.wr.ts/1000} ms" }
 
-      routerReq.cb!!(RouterResponse(errorCode, errorMessage))
+      if (errorCode != XmnError._ConnectionExpired) {
+        routerReq.cb!!(RouterResponse(errorCode, errorMessage))
+      }
 
     } else {
 

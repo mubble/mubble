@@ -151,8 +151,10 @@ export abstract class UserKeyValue {
   get clientId() {return this._clientId}
   set clientId(clientId : number) {
     if (clientId === this._clientId) return
-    if (this._clientId) throw('Cannot set clientId when it is already set: ' + 
-                        JSON.stringify({clientId, existing:this._clientId}))
+    if (this._clientId && this._userLinkId) {
+      throw('Cannot change clientId once userLinkId is already set: ' + 
+        JSON.stringify({new:clientId, existing:this._clientId, userLinkId: this._userLinkId}))
+    }
     this._clientId = clientId
   }
 

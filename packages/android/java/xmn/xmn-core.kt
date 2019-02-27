@@ -54,6 +54,7 @@ object XmnError {
   const val SendTimedOut        = "SendTimedOut"       // ideally means terribly slow connection
   const val UnAuthorized        = "UnAuthorized"       // When the client id is not valid (server to server)
 
+  const val _ConnectionExpired  = "_ConnectionExpired"
   const val _NotReady           = "_NotReady"
 }
 
