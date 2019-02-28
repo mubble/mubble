@@ -411,7 +411,9 @@ export class RedisWrapper {
 
   // This is not an async api
   publish(channel : string , data : any) {
+    console.log('publish called ????')
     this.redis.publish(channel , data)
+    console.log('publish failed ????')
   }
 
   redisCommand() : RedisCmds {
