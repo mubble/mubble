@@ -23,7 +23,7 @@ import java.net.URL
 ------------------------------------------------------------------------------*/
 
 abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInfo,
-                                private val si: SessionInfo, private val pubKey: ByteArray) : MubbleLogger {
+                                private val pubKey: ByteArray) : MubbleLogger {
 
   private var ongoingRequests : MutableList<RouterRequest> = mutableListOf()
 
@@ -69,7 +69,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
   open fun cleanup() {
 
-    if (this.si.provider != null) this.si.provider!!.cleanup()
+    if (this.ci.provider != null) this.ci.provider!!.cleanup()
     this.timerReqResend?.remove()
     this.timerReqTimeout?.remove()
   }
@@ -88,9 +88,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     this.ongoingRequests.add(RouterRequest(wr, cb, timeout))
 
-    if (this.si.provider == null) this.prepareConnection()
+    if (this.ci.provider == null) this.prepareConnection()
 
-    if (this.si.provider!!.send(arrayOf(wr)) == null) {
+    if (this.ci.provider!!.send(arrayOf(wr)) == null) {
       wr.isSent = true
       info { "Sent request ${wr.toJsonObject()}" }
       timerReqTimeout?.tickAfter(timeout, true)
@@ -103,7 +103,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
   fun sendPersistentEvent(eventName: String, data: JSONObject) {
 
-    if (this.si.provider == null) this.prepareConnection()
+    if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
     assert(customData != null && customData.clientId != 0L) {
@@ -112,14 +112,14 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     val event = WireEvent(eventName, data, System.currentTimeMillis())
 
-    if (this.si.provider!!.send(arrayOf(event)) == null) {
+    if (this.ci.provider!!.send(arrayOf(event)) == null) {
       info { "Sent event $event" }
     }
   }
 
   fun sendEphemeralEvent(eventName: String, data: JSONObject) {
 
-    if (this.si.provider == null) this.prepareConnection()
+    if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
     assert(customData != null && customData.clientId != 0L) {
@@ -127,19 +127,19 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     }
 
     val event = WireEphEvent(eventName, data, System.currentTimeMillis())
-    this.si.provider!!.sendEphemeralEvent(event)
+    this.ci.provider!!.sendEphemeralEvent(event)
   }
 
   fun prepareConnection() {
 
-    info { "prepareConnection Provider: ${this.si.provider != null}" }
+    info { "prepareConnection Provider: ${this.ci.provider != null}" }
 
     this.ci.customData              = this.getCustomData()
     this.ci.customData?.location    = this.getLocation()
     this.ci.customData?.networkType = this.getNetworkType()
     this.ci.publicRequest           = this.ci.customData == null
 
-    if (this.si.provider == null) this.si.provider = WsAndroid(this.ci, this.si, this)
+    if (this.ci.provider == null) this.ci.provider = WsAndroid(this.ci, this)
   }
 
   fun providerReady() {
@@ -210,16 +210,16 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
       this.prepareConnection()
     }
 
-    this.si.provider!!.processSysEvent(se)
+    this.ci.provider!!.processSysEvent(se)
   }
 
   private fun cbTimerReqResend(): Long {
 
     val wr = this.ongoingRequests.find { !it.wr.isSent }
-    if (wr == null || this.si.provider == null) return 0
+    if (wr == null || this.ci.provider == null) return 0
 
     when {
-      this.si.provider!!.send(arrayOf(wr.wr)) == null -> {
+      this.ci.provider!!.send(arrayOf(wr.wr)) == null -> {
         wr.wr.isSent = true
         this.timerReqTimeout?.tickAfter(wr.timeout, true)
       }

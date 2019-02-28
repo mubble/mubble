@@ -14,7 +14,7 @@ import java.net.URLEncoder
  * https://github.com/TooTallNate/Java-WebSocket/blob/master/src/main/java/org/java_websocket/client/WebSocketClient.java
  *
  */
-class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo, 
+class WsAndroid(private val ci: ConnectionInfo,
                 private val router: XmnRouterAndroid) : XmnProvider, MubbleLogger, WsListener {
 
   private var ws                : WsClient?           = null
@@ -47,7 +47,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
   fun sendEphemeralEvent(event: WireEphEvent) {
 
-    assert(this.si.provider != null)
+    assert(this.ci.provider != null)
 
     if (ephemeralEvents.size >= 20) {
       warn { "Too many ephemeralEvents. Sizing to 20" }
@@ -104,7 +104,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
             this.encProvider!!.getSyncKeyB64(), this.ci.customData!!)
       }
 
-      val url     = "ws://${this.ci.host}:${this.ci.port}/$PROTOCOL_HANDSHAKE/${this.si.protocolVersion}/${this.ci.shortName}/"
+      val url     = "ws://${this.ci.host}:${this.ci.port}/$PROTOCOL_HANDSHAKE/${this.ci.protocolVersion}/${this.ci.shortName}/"
       val header  = this.encProvider!!.encodeHeader(wsProviderConfig!!)
       val msgBody = URLEncoder.encode(header, "UTF-8")
 
@@ -157,7 +157,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
     info { "onMessage" }
 
-    if (bytes == null || bytes.isEmpty() || this.si.provider == null) return
+    if (bytes == null || bytes.isEmpty() || this.ci.provider == null) return
     val messages: MutableList<WireObject> = this.encProvider!!.decodeBody(bytes)
     this.router.providerMessage(messages)
   }
@@ -173,7 +173,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
   override fun onClose(code: Int?, reason: String?) {
 
     info { "onClose $code" }
-    if (this.si.provider != null) {
+    if (this.ci.provider != null) {
       this.cleanup()
       this.router.providerFailed(if (this.connExpired) XmnError._ConnectionExpired else null)
     }
@@ -186,7 +186,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
   override fun onError(ex: Exception?) {
 
     info { "onError ${ex?.message}" }
-    if (this.si.provider != null) {
+    if (this.ci.provider != null) {
       this.cleanup()
       this.router.providerFailed()
     }
@@ -223,7 +223,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
       val errMsg = ConnectionError(se.data)
       warn { "processSysEvent $errMsg" }
-      if (this.si.provider != null) {
+      if (this.ci.provider != null) {
         this.cleanup()
         this.router.providerFailed(errMsg.code)
       }
@@ -232,7 +232,7 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
   private fun cbTimerPing(): Long {
 
-    if (this.si.provider == null) return 0
+    if (this.ci.provider == null) return 0
 
     val now   = System.currentTimeMillis()
     val diff  = this.lastMessageTs + this.wsProviderConfig!!.pingSecs * 1000L - now
@@ -257,13 +257,13 @@ class WsAndroid(private val ci: ConnectionInfo, private val si: SessionInfo,
 
   fun cleanup() {
 
-    if (this.si.provider == null) return
+    if (this.ci.provider == null) return
 
     try {
       this.timerPing.remove()
 
       this.encProvider  = null
-      this.si.provider  = null
+      this.ci.provider  = null
 
       this.ws?.close()
       this.ws = null
