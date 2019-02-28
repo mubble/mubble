@@ -120,8 +120,8 @@ class WireReqResp(name: String, data: Any, ts: Long, val errorCode: String? = nu
   override fun toJsonObject(): JSONObject {
 
     val json = super.toJsonObject()
-    if (!errorCode.isNullOrBlank() && errorCode != "null") json.put("errorCode", errorCode)
-    if (!errorMessage.isNullOrBlank() && errorMessage != "null") json.put("errorCode", errorMessage)
+    if (!errorCode.isNullOrBlank()) json.put("errorCode", errorCode)
+    if (!errorMessage.isNullOrBlank()) json.put("errorMessage", errorMessage)
     return json
   }
 }
@@ -132,8 +132,8 @@ class WireEventResp(name: String, data: Any?, ts: Long, val errorCode: String? =
   override fun toJsonObject(): JSONObject {
 
     val json = super.toJsonObject()
-    if (!errorCode.isNullOrBlank() && errorCode != "null") json.put("errorCode", errorCode)
-    if (!errorMessage.isNullOrBlank() && errorMessage != "null") json.put("errorCode", errorMessage)
+    if (!errorCode.isNullOrBlank()) json.put("errorCode", errorCode)
+    if (!errorMessage.isNullOrBlank()) json.put("errorMessage", errorMessage)
     return json
   }
 }

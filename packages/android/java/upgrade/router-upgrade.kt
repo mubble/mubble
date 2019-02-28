@@ -8,7 +8,7 @@ import util.AndroidBase
 import xmn.*
 
 class UpgradeRouter(serverUrl: String, appShortName: String, jsVersion: String): XmnRouterAndroid(serverUrl,
-                                      ConnectionInfo(appShortName), SessionInfo(PROTOCOL_VERSION), PUB_KEY), MubbleLogger {
+                                      ConnectionInfo(appShortName, PROTOCOL_VERSION), PUB_KEY), MubbleLogger {
 
   companion object {
     private const val PUB_KEY_B64 = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA2k6OqKE66JAb1wZAwpzLe1J6tXnATpQZM5xG6pTgBeUUJA8zj8Klezsf5yqxjsVHA8SpDs9wwLnCcjbrrTEYPL/9H2Srq5gX+XUq0r6aKQzp6JA5/KaE1iyxNY15cVDK9vKPK6Pd/jyyHvyPdNGKTYXoCaDTRH3xn8ULKaP7Q03NMM4FK1eiaUxK71cxFdSYhm3jJT3kUEvR9VEzc0RgCLpejT1IUq2PuE4LDSs57pAQGd7HWlUdlcBLIPfibfla83VO1IzeY1gAZ9goytmfJpfwl3bPb1OtuPWZgMo78K2FRmZ9pfMiyGQb3OShYRzwIiMB73LwimiQVDYUFONJgwIDAQAB"
