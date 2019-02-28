@@ -198,7 +198,7 @@ export class RedisWrapper {
       })
 
       this.redis.on("error" , (error : any)=>{
-        redisLog(this.rc , this.name , 'Could not connect to redis ',url , error)
+        redisLog(this.rc , this.name , 'some error occurred', url , error)
         reject(error)
       })
     })
@@ -411,9 +411,7 @@ export class RedisWrapper {
 
   // This is not an async api
   publish(channel : string , data : any) {
-    console.log('publish called ????')
     this.redis.publish(channel , data)
-    console.log('publish failed ????')
   }
 
   redisCommand() : RedisCmds {
