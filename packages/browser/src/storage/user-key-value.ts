@@ -103,8 +103,6 @@ export abstract class UserKeyValue {
     rc.isAssert() && rc.assert(rc.getName(this), this._clientId, 
       'Came to save userKeyVal before clientId')
 
-    rc.isDebug() && rc.debug(rc.getName(this), `saving rc obj ${rc}`)
-
     if (!rc.userKeyVal.userLinkId) {
 
       rc.isStatus() && rc.status(rc.getName(this), `not saving rc, as user is 
@@ -112,6 +110,8 @@ export abstract class UserKeyValue {
       return
     }
     
+    rc.isDebug() && rc.debug(rc.getName(this), `saving rc obj ${rc}`)
+
     this.users[this._clientId] = this.serialize()
     await this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
 

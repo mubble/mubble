@@ -17,13 +17,16 @@ import { Component,
          NgZone,
          Renderer2
        }                from '@angular/core'
-import { DomHelper }    from '@mubble/browser/util/dom-helper';
-import { ListItem }     from 'lister/lister.component';
-// import { DomHelper }    from '@mubble/browser'
-// import { ListItem }     from 'shared'
-
-const SCROLL_EVENT  = 'scroll'
+import { DomHelper }    from '@mubble/browser/util/dom-helper'
+import { Mubble }       from '@mubble/core'
  
+const SCROLL_EVENT  = 'scroll'
+
+interface ListItem {
+  type    : string
+  params  : Mubble.uObject<any>
+}
+
 @Component({
   selector    : 'infinite-scroll',
   templateUrl : './infinite-scroll.component.html',

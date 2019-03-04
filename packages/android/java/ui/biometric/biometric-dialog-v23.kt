@@ -6,10 +6,20 @@ import android.widget.Button
 import android.widget.ImageView
 import android.widget.TextView
 import core.BaseApp
-import com.obopay.mobilemoney.R
 
-class BiometricDialogV23(private val biometricCallback: BiometricCallback) :
-    BottomSheetDialog(BaseApp.instance, R.style.BottomSheetDialogTheme), View.OnClickListener {
+data class DialogViewRes(val v23BotSheetThemeId  : Int) {
+
+  var botSheetViewId      : Int? = null
+  var btnCancelId         : Int? = null
+  var imgLogoId           : Int? = null
+  var itemTitleId         : Int? = null
+  var itemStatusId        : Int? = null
+  var itemSubtitleId      : Int? = null
+  var itemDescId          : Int? = null
+}
+
+class BiometricDialogV23(private val biometricCallback: BiometricCallback, private val dialogViewRes: DialogViewRes) :
+    BottomSheetDialog(BaseApp.instance, dialogViewRes.v23BotSheetThemeId), View.OnClickListener {
 
   private lateinit var btnCancel       : Button
   private lateinit var imgLogo         : ImageView
@@ -30,17 +40,18 @@ class BiometricDialogV23(private val biometricCallback: BiometricCallback) :
 
   private fun setDialogView() {
 
-    val bottomSheetView = layoutInflater.inflate(R.layout.view_bottom_sheet, null)
+
+    val bottomSheetView = layoutInflater.inflate(dialogViewRes.botSheetViewId!!, null)
     setContentView(bottomSheetView)
 
-    btnCancel = findViewById(R.id.btn_cancel)!!
+    btnCancel = findViewById(dialogViewRes.btnCancelId!!)!!
     btnCancel.setOnClickListener(this)
 
-    imgLogo         = findViewById(R.id.img_logo)!!
-    itemTitle       = findViewById(R.id.item_title)!!
-    itemStatus      = findViewById(R.id.item_status)!!
-    itemSubtitle    = findViewById(R.id.item_subtitle)!!
-    itemDescription = findViewById(R.id.item_description)!!
+    imgLogo         = findViewById(dialogViewRes.imgLogoId!!)!!
+    itemTitle       = findViewById(dialogViewRes.itemTitleId!!)!!
+    itemStatus      = findViewById(dialogViewRes.itemStatusId!!)!!
+    itemSubtitle    = findViewById(dialogViewRes.itemSubtitleId!!)!!
+    itemDescription = findViewById(dialogViewRes.itemDescId!!)!!
 
     updateLogo()
   }

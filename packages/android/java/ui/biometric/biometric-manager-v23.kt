@@ -37,7 +37,7 @@ open class BiometricManagerV23 {
     private val KEY_NAME = UUID.randomUUID().toString()
   }
 
-  fun displayBiometricPromptV23(biometricCallback: BiometricCallback, biometricFailMsg: String) {
+  fun displayBiometricPromptV23(biometricCallback: BiometricCallback, biometricFailMsg: String, dialogViewRes: DialogViewRes) {
 
     generateKey()
 
@@ -74,13 +74,13 @@ open class BiometricManagerV23 {
             }
           }, null)
 
-      displayBiometricDialog(biometricCallback)
+      displayBiometricDialog(biometricCallback, dialogViewRes)
     }
   }
 
-  private fun displayBiometricDialog(biometricCallback: BiometricCallback) {
+  private fun displayBiometricDialog(biometricCallback: BiometricCallback, dialogViewRes: DialogViewRes) {
 
-    biometricDialogV23 = BiometricDialogV23(biometricCallback)
+    biometricDialogV23 = BiometricDialogV23(biometricCallback, dialogViewRes)
     biometricDialogV23!!.setTitle(title)
     biometricDialogV23!!.setSubtitle(subtitle!!)
     biometricDialogV23!!.setDescription(description!!)

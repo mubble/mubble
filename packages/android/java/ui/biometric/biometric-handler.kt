@@ -22,7 +22,7 @@ class BiometricHandler : BiometricCallback {
   }
 
   fun showDialog(cb: ((JSONObject) -> Unit), title: String, subTitle: String,
-                 desc: String, negBtnText: String, failureMsg: String) {
+                 desc: String, negBtnText: String, failureMsg: String, dialogViewRes: DialogViewRes) {
 
     this.cb = cb
 
@@ -32,7 +32,7 @@ class BiometricHandler : BiometricCallback {
         .setDescription(desc)
         .setNegativeButtonText(negBtnText)
         .build()
-        .authenticate(this, failureMsg)
+        .authenticate(this, failureMsg, dialogViewRes)
   }
 
   override fun onSdkVersionNotSupported() {
