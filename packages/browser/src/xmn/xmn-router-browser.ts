@@ -382,9 +382,7 @@ export abstract class XmnRouterBrowser {
       rc.isStatus() && rc.status(rc.getName(this), 'Request failed with code', errorCode,
         wr.name, 'created at', new Date(wr.ts/1000), 'timeTaken', now - wr.ts/1000, 'ms')
       
-      errorMessage = errorMessage ? errorMessage : errorCode
-
-      wr.reject(new Mubble.uError(errorCode, errorMessage))
+      wr.reject(new Mubble.uError(errorCode, errorMessage || ''))
 
     } else {
 
