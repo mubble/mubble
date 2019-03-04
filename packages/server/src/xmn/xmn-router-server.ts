@@ -7,9 +7,6 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import {
-        XmnRegistry
-       }                      from './xmn-registry'
 import { 
         ConnectionInfo,
         WIRE_TYPE,
@@ -23,6 +20,18 @@ import {
         XmnProvider
        }                      from '@mubble/core'
 import {RunContextServer}     from '../rc-server'
+import {ConnectionMap}        from './connection-map'
+import {RedisWrapper}         from '../cache'
+import {XmnRegistry}          from './xmn-registry'
+
+const EVENT_QUEUE = 'event-queue:'
+
+export type ClientEventObject = {
+  workerId    : string
+  clientId    : number
+  eventName   : string
+  eventParams : Mubble.uObject<any> 
+}
 
 export class InvokeStruct {
 
@@ -46,10 +55,13 @@ export abstract class XmnRouterServer {
   private apiMap             : {[index: string]: InvokeStruct} = {}
   private eventMap           : {[index: string]: InvokeStruct} = {}
   private piggyfrontMap                                        = new WeakMap<InvocationData, Array<WireEphEvent>>()
+  private reqRedis           : RedisWrapper
+  private eventRedis         : RedisWrapper
   // private providerCollection : ActiveProviderCollection
 
-  constructor(rc: RunContextServer, ...apiProviders: any[]) {
+  constructor(rc: RunContextServer, reqRedis : RedisWrapper, ...apiProviders: any[]) {
     XmnRegistry.commitRegister(rc, this, apiProviders)
+    this.reqRedis = reqRedis
 
     // this.providerCollection = web.getActiveProviderCollection(rc)  
   }
@@ -355,5 +367,41 @@ export abstract class XmnRouterServer {
     //     (parent.prototype ? `'static ${pName}.${fnName}()'` : `'singleton ${lpName}.${fnName}()'`) : 
     //     `'new ${pName}().${fnName}()'`
     // )
+  }
+
+  public publishToEventQueue(rc : RunContextServer, eventObj : ClientEventObject) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'Publishing event to event queue.', eventObj)
+
+    const channel = EVENT_QUEUE + eventObj.workerId
+    this.reqRedis.publish(channel, JSON.stringify(eventObj))
+  }
+
+  public async subscribeToEventQueueRedis(rc : RunContextServer, redisUrl : string, workerId : string) {
+    const eventQueueChannel = EVENT_QUEUE + workerId,
+          channelArr        = [eventQueueChannel]
+
+    this.eventRedis = await RedisWrapper.connect(rc, 'evqRedis', redisUrl)
+
+    rc.isStatus() && rc.status(rc.getName(this), 'Subscribing evqRedis to event queue channels.', channelArr)
+
+    await this.eventRedis.subscribe(channelArr, async (ch : string, msg : string) => {
+      if(ch === eventQueueChannel) {
+        const eventObj = JSON.parse(msg) as ClientEventObject
+        await this.processEventObject(rc, eventObj)
+      }
+    })
+  }
+
+  public async stopEventQueueSubscription() {
+    await this.eventRedis.close()
+  }
+
+  private async processEventObject(refRc : RunContextServer, eventObj : ClientEventObject) {
+    const rc = refRc.copyConstruct('', 'app-event')
+
+    const ci = ConnectionMap.getActiveConnection(eventObj.clientId)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, !!ci)
+    
+    if(ci) await rc.router.sendEvent(rc, ci, eventObj.eventName, eventObj.eventParams)
   }
 }
