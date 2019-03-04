@@ -155,7 +155,15 @@ export class HttpsThirdServerProvider implements XmnProvider {
   send(rc : RunContextServer, data : any) {
     rc.isDebug() && rc.debug(rc.getName(this), 'not sending', data)
 
-    // TODO : Do something ???
+    this.res.writeHead(200)
+
+    if(!(data instanceof Buffer) || typeof data != 'string')
+      data = Buffer.from(JSON.stringify(data))
+
+    const streams = [this.res],
+          uStream = new UStream.WriteStreams(rc, streams)
+
+    uStream.write(data)
 
     this.server.markFinished(this)
     this.router.providerClosed(rc, this.ci)
