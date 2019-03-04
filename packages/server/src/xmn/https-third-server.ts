@@ -73,10 +73,14 @@ export class HttpsThirdServer {
       return
     }
 
-    const requestPath    = decodeURIComponent(encRequestPath),
-          encProvider    = ObopayHttpsClient.getEncProvider(),
-          apiParams      = encProvider.decodeThirdPartyRequestPath(requestPath),
-          httpsProvider  = new HttpsThirdServerProvider(rc, this.router, ci, req, res, this)
+    let apiParams = {}
+    if(encRequestPath) {
+      const requestPath  = decodeURIComponent(encRequestPath),
+            encProvider  = ObopayHttpsClient.getEncProvider()
+            apiParams    = encProvider.decodeThirdPartyRequestPath(requestPath)
+    }
+
+    const httpsProvider  = new HttpsThirdServerProvider(rc, this.router, ci, req, res, this)
 
     ci.provider          = httpsProvider
 
