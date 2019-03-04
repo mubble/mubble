@@ -152,8 +152,12 @@ export namespace ObopayHttpsClient {
                                `http${unsecured ? '' : 's'} response headers.`,
                                resp.headers)
 
-      if(!result.headers[HTTP.HeaderKey.symmKey])
-        throw new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
+      if(!result.headers[HTTP.HeaderKey.symmKey]) {
+        const err = new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
+        writePromise.reject(err)
+        readPromise.reject(err)
+        // throw err
+      }
 
       if(!result.headers[HTTP.HeaderKey.bodyEncoding])
         result.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
