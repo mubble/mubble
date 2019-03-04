@@ -2,7 +2,6 @@ package core
 
 import android.graphics.*
 import android.util.Base64
-import com.obopay.mobilemoney.core.App
 import util.FileBase
 import java.lang.Exception
 
@@ -10,10 +9,10 @@ class ImageCompressionTask: MubbleLogger {
 
   fun compressImage(base64Data: String): String? {
 
-    val filePath = FileBase.getUsersPath(App.instance)
+    val filePath = FileBase.getUsersPath(BaseApp.instance)
     val fileName = "temp.jpeg"
 
-    val file    = FileBase.writeFileToInternal(App.instance, filePath, fileName, Base64.decode(base64Data, Base64.NO_WRAP))
+    val file    = FileBase.writeFileToInternal(BaseApp.instance, filePath, fileName, Base64.decode(base64Data, Base64.NO_WRAP))
     val imgUri  = file.absolutePath
 
     try {

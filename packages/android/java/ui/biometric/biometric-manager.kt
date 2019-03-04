@@ -19,7 +19,7 @@ class BiometricManager constructor() : BiometricManagerV23() {
     this.negativeButtonText = biometricBuilder.negativeButtonText
   }
 
-  fun authenticate(biometricCallback: BiometricCallback, failMsg: String) {
+  fun authenticate(biometricCallback: BiometricCallback, failMsg: String, dialogViewRes: DialogViewRes) {
 
     if (title == null) {
       biometricCallback.onBiometricAuthenticationInternalError("Biometric Dialog title cannot be null")
@@ -56,15 +56,14 @@ class BiometricManager constructor() : BiometricManagerV23() {
       biometricCallback.onBiometricAuthenticationNotAvailable()
     }
 
-    displayBiometricDialog(biometricCallback, failMsg)
+    displayBiometricDialog(biometricCallback, failMsg, dialogViewRes)
   }
 
-
-  private fun displayBiometricDialog(biometricCallback: BiometricCallback, failMsg: String) {
+  private fun displayBiometricDialog(biometricCallback: BiometricCallback, failMsg: String, dialogViewRes: DialogViewRes) {
     if (BiometricUtils.isBiometricPromptEnabled()) {
       displayBiometricPrompt(biometricCallback)
     } else {
-      displayBiometricPromptV23(biometricCallback, failMsg)
+      displayBiometricPromptV23(biometricCallback, failMsg, dialogViewRes)
     }
   }
 
