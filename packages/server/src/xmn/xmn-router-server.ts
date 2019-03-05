@@ -76,9 +76,6 @@ export abstract class XmnRouterServer {
 
     const reqStruct = apiName ? this.apiMap[apiName] : null
     await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
-
-    if(ci && ci.customData && ci.customData.clientId)
-      ConnectionMap.addActiveConnection(ci.customData.clientId, ci)
   
     const apiname = 'verifyConnection'
     if (ci.customData) {
