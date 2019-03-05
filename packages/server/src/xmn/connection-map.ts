@@ -11,25 +11,25 @@ import { ConnectionInfo } from '@mubble/core'
 
 export namespace ConnectionMap {
 
-  const CdConnectionMap : Map<number, ConnectionInfo> = new Map()
+  const ActiveConnectionMap : Map<number, ConnectionInfo> = new Map()
 
   export function addActiveConnection(clientId : number, ci : ConnectionInfo) {
     if(isActiveConnection(clientId)) return
 
-    CdConnectionMap.set(clientId, ci)
+    ActiveConnectionMap.set(clientId, ci)
   }
 
   export function getActiveConnection(clientId : number) {
-    return CdConnectionMap.get(clientId)
+    return ActiveConnectionMap.get(clientId)
   }
 
   export function isActiveConnection(clientId : number) {
-    return CdConnectionMap.has(clientId)
+    return ActiveConnectionMap.has(clientId)
   }
 
   export function removeActiveConnection(clientId : number) {
     if(!isActiveConnection(clientId)) return
     
-    CdConnectionMap.delete(clientId)
+    ActiveConnectionMap.delete(clientId)
   }
 }

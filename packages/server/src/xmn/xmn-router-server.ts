@@ -76,6 +76,10 @@ export abstract class XmnRouterServer {
 
     const reqStruct = apiName ? this.apiMap[apiName] : null
     await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
+
+    if(ci && ci.customData && ci.customData.clientId)
+      ConnectionMap.addActiveConnection(ci.customData.clientId, ci)
+  
     const apiname = 'verifyConnection'
     if (ci.customData) {
       // rc.finish(ci, null as any, null as any, apiname)
@@ -145,11 +149,17 @@ export abstract class XmnRouterServer {
   }
 
   async providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
+    if(ci && ci.customData && ci.customData.clientId)
+      ConnectionMap.removeActiveConnection(ci.customData.clientId)
+
     await this.connectionClosed(rc, ci)
     rc.finish(ci , null as any , null as any)
   }
   
   async providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
+    if(ci && ci.customData && ci.customData.clientId)
+      ConnectionMap.removeActiveConnection(ci.customData.clientId)
+
     await this.connectionClosed(rc, ci)
 
     if(ci.protocol === Protocol.WEBSOCKET) {
