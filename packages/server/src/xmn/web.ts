@@ -32,13 +32,13 @@ export interface WebsocketConfig extends WebConfig {
 }
 
 export interface WssConfig extends WebConfig {
-  key  ?: string
-  cert ?: string
+  key  : string
+  cert : string
 }
 
 export interface HttpsConfig extends WebConfig {
-  key  ?: string
-  cert ?: string
+  key  : string
+  cert : string
 }
 
 export class Web {
@@ -118,7 +118,10 @@ export class Web {
         throw('third party https port cannot be same as the https port')
 
       const httpReqManager  = new HttpsThirdServer(rc, this.router)
-      this.thirdHttpsServer = https.createServer(this.thirdHttpsConfig, httpReqManager.requestHandler.bind(httpReqManager))
+
+      this.thirdHttpsServer = https.createServer(this.thirdHttpsConfig as HttpsConfig,
+                                                 httpReqManager.requestHandler.bind(httpReqManager))
+
     }
   }
 

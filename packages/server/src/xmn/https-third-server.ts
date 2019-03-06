@@ -153,7 +153,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
   }
 
   send(rc : RunContextServer, data : any) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'not sending', data)
+    rc.isDebug() && rc.debug(rc.getName(this), 'sending', data)
 
     this.res.writeHead(200)
 
