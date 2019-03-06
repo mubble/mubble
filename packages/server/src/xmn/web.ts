@@ -46,12 +46,12 @@ export class Web {
   private httpConfig        : HttpConfig      | undefined
   private websocketConfig   : WebsocketConfig | undefined
   private httpsConfig       : HttpsConfig     | undefined
-  private thirdHttpsConfig  : HttpsConfig     | undefined
+  private thirdHttpsConfig  : HttpConfig      | undefined
 
   private httpServer        : http.Server 
   private wsHttpServer      : http.Server
   private httpsServer       : https.Server
-  private thirdHttpsServer  : https.Server
+  private thirdHttpServer   : http.Server
 
   private router            : XmnRouterServer
 
@@ -66,12 +66,12 @@ export class Web {
        httpConfig       ?: HttpConfig, 
        httpsConfig      ?: HttpsConfig,
        websocketConfig  ?: WebsocketConfig,
-       thirdHttpsConfig ?: HttpsConfig) : void {
+       thirdHttpConfig  ?: HttpConfig) : void {
 
     this.httpConfig        = httpConfig
     this.httpsConfig       = httpsConfig
     this.websocketConfig   = websocketConfig
-    this.thirdHttpsConfig  = thirdHttpsConfig
+    this.thirdHttpsConfig  = thirdHttpConfig
 
     this.router            = router
 
@@ -119,8 +119,7 @@ export class Web {
 
       const httpReqManager  = new HttpsThirdServer(rc, this.router)
 
-      this.thirdHttpsServer = https.createServer(this.thirdHttpsConfig as HttpsConfig,
-                                                 httpReqManager.requestHandler.bind(httpReqManager))
+      this.thirdHttpServer = http.createServer(httpReqManager.requestHandler.bind(httpReqManager))
 
     }
   }
@@ -129,7 +128,7 @@ export class Web {
     if (this.httpServer) await this.listen(rc, this.httpServer, this.httpConfig as WebConfig)
     if (this.wsHttpServer) await this.listen(rc, this.wsHttpServer, this.websocketConfig as WebConfig)
     if (this.httpsServer) await this.listen(rc, this.httpsServer, this.httpsConfig as WebConfig)
-    if (this.thirdHttpsServer) await this.listen(rc, this.thirdHttpsServer, this.thirdHttpsConfig as WebConfig)
+    if (this.thirdHttpServer) await this.listen(rc, this.thirdHttpServer, this.thirdHttpsConfig as WebConfig)
   }
 
   listen(rc: RunContextServer, httpServer: http.Server | https.Server , config: WebConfig) {
