@@ -121,7 +121,6 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   @HostListener('click', ['$event.target']) onHostClick() {
     this.animateClose()
   }
-
   @HostListener('@routeAnimation.start', ['$event']) onRouteAnimationStart(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-start', event)
   }
@@ -129,8 +128,12 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   @HostListener('@routeAnimation.done', ['$event']) onRouteAnimationDone(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
     if (this.childRequestedClose &&  this.injectedComponent.closeFromParent) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
       this.injectedComponent.closeFromParent()
     } else if (this.backPressed && this.injectedComponent.onBackPressed) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
       this.injectedComponent.onBackPressed()
     }
   }
@@ -140,6 +143,7 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
 
   injectedComponent : ModalInterface
   private backPressed : boolean
+  private routeEndProcessed : boolean = false
   
   @Input() width:string = "75vw"
 
@@ -152,7 +156,7 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
 
     super(rc, router, componentFactoryResolver, route)
     
-    rc.setupLogger(this, 'ModalPopup', LOG_LEVEL.NONE)
+    rc.setupLogger(this, 'ModalPopup', LOG_LEVEL.DEBUG)
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'constructor')
   }
 
@@ -169,6 +173,11 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   onClick(event: any) {
     event.preventDefault()
     event.stopPropagation()
+  }
+
+  ignoreScroll(event : any) {
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   ngOnDestroy() {
