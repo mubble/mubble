@@ -21,8 +21,9 @@ import java.io.*
  * siddharthgarg on 31/08/17.
  */
 
-class PictureManager(private val parentActivity: MubbleBaseActivity,
-                     private val listener: (JSONObject) -> Unit) : MubbleLogger {
+class PictureManager(private val parentActivity : MubbleBaseActivity,
+                     private val listener       : (JSONObject) -> Unit,
+                     private val fileAuthority  : String) : MubbleLogger {
 
   private var fileUri           : Uri?    = null
   private var galleryImgBase64  : String? = null
@@ -81,7 +82,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
           val stream        = FileOutputStream(output!!)
           stream.write(byteArr)
 
-          fileUri           = FileProvider.getUriForFile(BaseApp.instance, AUTHORITY, output!!)
+          fileUri           = FileProvider.getUriForFile(BaseApp.instance, fileAuthority, output!!)
 
           cropCapturedImage(fileUri)
         }
@@ -114,7 +115,7 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     if (output!!.exists()) output!!.delete()
     else output!!.parentFile.mkdirs()
 
-    fileUri = FileProvider.getUriForFile(BaseApp.instance, AUTHORITY, output!!)
+    fileUri = FileProvider.getUriForFile(BaseApp.instance, fileAuthority, output!!)
 
     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri)
     takePictureIntent.putExtra("return-data", true)
@@ -250,7 +251,6 @@ class PictureManager(private val parentActivity: MubbleBaseActivity,
     const val REQUEST_CROP_PHOTO              = 2002
     const val REQUEST_SELECT_PHOTO            = 2003
 
-    private const val AUTHORITY               = "com.obopay.mobilemoney.fileprovider"
     private const val USERS                   = "users"
     private const val OUTPUT_FILENAME         = "output.jpeg"
     private const val MIME_TYPE               = "image/jpeg"

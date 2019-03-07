@@ -54,7 +54,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
     this.ci.protocol      = Protocol.WEBSOCKET
     this.ci.host          = url.host
-    this.ci.port          = if (url.port != -1) url.port.toString() else { if (url.protocol == "https:") "443" else "80" }
+    this.ci.port          = if (url.port != -1) url.port else { if (url.protocol == "https") 443 else 80 }
     this.ci.publicRequest = this.getCustomData() == null
 
     if (!this.ci.publicRequest) {

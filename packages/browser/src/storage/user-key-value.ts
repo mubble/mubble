@@ -9,6 +9,7 @@
 
 import { RunContextBrowser } from '../rc-browser'
 import { StorageProvider } from '.'
+import { Mubble } from '@mubble/core';
 
 const LAST_USER = 'lastUser'
 const USERS     = 'users'
@@ -152,7 +153,7 @@ export abstract class UserKeyValue {
   set clientId(clientId : number) {
     if (clientId === this._clientId) return
     if (this._clientId && this._userLinkId) {
-      throw('Cannot change clientId once userLinkId is already set: ' + 
+      throw new Mubble.uError('INVALID_CLIENT_ID', 'Cannot change clientId once userLinkId is already set: ' + 
         JSON.stringify({new:clientId, existing:this._clientId, userLinkId: this._userLinkId}))
     }
     this._clientId = clientId
@@ -162,8 +163,8 @@ export abstract class UserKeyValue {
   get userLinkId()  {return this._userLinkId}
   set userLinkId(userLinkId : string) {
     if (userLinkId === this._userLinkId) return
-    if (this._userLinkId && !userLinkId === null) throw('Cannot set userLinkId when it is already set: ' + 
-                        JSON.stringify({userLinkId, existing:this._userLinkId}))
+    if (this._userLinkId && !userLinkId === null) throw new Mubble.uError('INVALID_USER_LINK_ID', 
+      'Cannot set userLinkId when it is already set: ' + JSON.stringify({userLinkId, existing:this._userLinkId}))
     this._userLinkId = userLinkId
   }
 

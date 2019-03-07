@@ -104,9 +104,10 @@ class WsAndroid(private val ci: ConnectionInfo,
             this.encProvider!!.getSyncKeyB64(), this.ci.customData!!)
       }
 
-      val url     = "ws://${this.ci.host}:${this.ci.port}/$PROTOCOL_HANDSHAKE/${this.ci.protocolVersion}/${this.ci.shortName}/"
-      val header  = this.encProvider!!.encodeHeader(wsProviderConfig!!)
-      val msgBody = URLEncoder.encode(header, "UTF-8")
+      val protocol = if(this.ci.port == 443 ) "wss" else "ws"
+      val url      = "$protocol://${this.ci.host}:${this.ci.port}/$PROTOCOL_HANDSHAKE/${this.ci.protocolVersion}/${this.ci.shortName}/"
+      val header   = this.encProvider!!.encodeHeader(wsProviderConfig!!)
+      val msgBody  = URLEncoder.encode(header, "UTF-8")
 
       msgBodyLen = msgBody.length
 
