@@ -1,7 +1,8 @@
-<div class="modal-popup-comp">
+<div class="modal-popup-comp" (touchmove)="ignoreScroll($event)">
   <div class="modal-root-div component-container rounded-borders"
       [style.width]="width" 
       (click)="onClick($event)"
+      (touchmove)="ignoreScroll($event)"
       #componentContainer>
       
       <ng-template #injectAt></ng-template>
