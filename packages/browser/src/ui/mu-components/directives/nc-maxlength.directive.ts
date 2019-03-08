@@ -19,10 +19,11 @@ import {
        }                        from '@angular/core'
 
 
-const KEY_UP  = 'keyup',
-      PASTE   = 'paste',
-      CUT     = 'cut',
-      NUMERIC = 'numeric'
+const KEY_DOWN  = 'keydown',
+      PASTE     = 'paste',
+      CUT       = 'cut',
+      NUMERIC   = 'numeric',
+      BACKSPACE = 'Backspace'
 
 @Directive({
   selector: '[ncMaxLength]'
@@ -43,7 +44,7 @@ export class NcMaxLengthDirective {
   ngAfterViewInit() {
     this.maxLength  = Number(this.maxLength) 
     if (typeof this.maxLength !== 'number') return
-    this.eventHandlers.push(this.renderer.listen(this.element.nativeElement, KEY_UP, this.keyUpHandler.bind(this)),
+    this.eventHandlers.push(this.renderer.listen(this.element.nativeElement, KEY_DOWN, this.eventHandler.bind(this)),
     this.renderer.listen(this.element.nativeElement, PASTE, this.clipBoardEventHandler.bind(this)),
     this.renderer.listen(this.element.nativeElement, CUT, this.clipBoardEventHandler.bind(this)))
     
@@ -53,31 +54,22 @@ export class NcMaxLengthDirective {
     
     setTimeout(() => {
       this.ngZone.runOutsideAngular(() => {
-
-        const element = event.srcElement
-
-        if (element.value.length > this.maxLength) {
-          element.value = element.value.substring(0, this.maxLength)
-        } 
-
-        const scrollHeight  = element.scrollHeight,
-              clientHeight  = element.clientHeight
-        if ( scrollHeight > clientHeight && element.scrollTop !== scrollHeight - clientHeight ) {
-          element.scrollTop = scrollHeight - clientHeight
-        }
-        this.emitUpdatedValue(element.value)
+        this.eventHandler(event)
       })
     }, 0)
   } 
  
-  private keyUpHandler(event : any) { 
+  private eventHandler(event : any) { 
    
     this.ngZone.runOutsideAngular(() => {
 
       const element = event.srcElement
+
       if (element.inputMode) {
+
         const validInput : boolean =  element.inputMode === NUMERIC && element.value.trim().length 
                                       && !isNaN(element.value)
+
         if (validInput === false) {
           const currentValue  = element.value as string,
                 invalidIndex  = currentValue.indexOf(event.key)
@@ -87,8 +79,14 @@ export class NcMaxLengthDirective {
         }
       }
 
-      if (element.value.length > this.maxLength) {
-        element.value = element.value.substring(0, this.maxLength)
+      if (event.key === BACKSPACE) {
+        this.emitUpdatedValue(element.value)
+        return
+      }
+
+      if (element.value.length > this.maxLength-1) {
+        event.preventDefault()
+        event.stopPropagation()
       } 
 
       const scrollHeight  = element.scrollHeight,
