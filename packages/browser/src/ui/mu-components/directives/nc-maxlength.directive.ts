@@ -19,7 +19,7 @@ import {
        }                        from '@angular/core'
 
 
-const KEY_DOWN  = 'keydown',
+const KEY_DOWN  = 'keyup',
       PASTE     = 'paste',
       CUT       = 'cut',
       NUMERIC   = 'numeric',
@@ -84,9 +84,8 @@ export class NcMaxLengthDirective {
         return
       }
 
-      if (element.value.length > this.maxLength-1) {
-        event.preventDefault()
-        event.stopPropagation()
+      if (element.value.length > this.maxLength) { 
+        element.value = element.value.substring(0, this.maxLength)
       } 
 
       const scrollHeight  = element.scrollHeight,
