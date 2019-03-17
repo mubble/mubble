@@ -6,33 +6,24 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import { Injectable, Inject }   from '@angular/core'
-
-import {
-  CanActivate, Router,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  CanActivateChild,
-  NavigationExtras,
-  CanLoad, Route,
-  NavigationStart,
-  NavigationEnd,
-  UrlSegment,
-  UrlTree, 
-}                               from '@angular/router'
-
-import { Mubble }               from '@mubble/core'
-
+import { Router,
+         NavigationExtras,
+         NavigationEnd,
+         UrlSegment,
+         UrlTree,
+        }                       from '@angular/router'
 import { INJECTION_PARAM, 
-         InjectionCaller }      from '../mu-components/injection-interface'
+         InjectionCaller 
+       }                        from '../mu-components/injection-interface'
 
 import * as lo                  from 'lodash'
-
-import { DIRECTION }            from '../nail'
-import { RunContextBrowser }    from '../../rc-browser'
-import { ComponentRoutes }      from './shared-router-constants'
 import { AlertDialogParams,
-         AlertDialogComponent } from '../mu-components/alert-dialog/alert-dialog.component'
+         AlertDialogComponent 
+       }                        from '../mu-components/alert-dialog/alert-dialog.component'
+
+import { RunContextBrowser }    from '../../rc-browser'
+import { Mubble }               from '@mubble/core'
+import { ComponentRoutes }      from './shared-router-constants'
 
 const ROOT_URL     = '#/?launched=true'
 
@@ -84,9 +75,8 @@ export class UiRouter {
 
   private firstNavDone  : boolean   = false
   private browserStack  : string[]  = []
-  private urlPrefix     : string
-  
-  private lastNavMethod : NavMethod = 0
+
+  private lastNavMethod : NavMethod = 0 
   private lastPopIndex  : number    = -1
   private lastNavUrl    : string    = ''
   private lastGoingBack : boolean   = false
@@ -247,6 +237,10 @@ export class UiRouter {
 
     const topUrl: string = this.urlStack[this.urlStack.length-1].url
     return this.getRouteName(topUrl)
+  }
+
+  public onNavCancel() {
+    this.lastNavMethod  = 0
   }
 
   public getRouteName(url): string {
@@ -473,6 +467,7 @@ export class UiRouter {
 
   private onNavEnd(event ?: any) {
 
+
     if (!(event instanceof NavigationEnd)) {
       return
     }
@@ -490,7 +485,7 @@ export class UiRouter {
       const url     = location.href,
             hashPtr = url.indexOf('#')
 
-      this.urlPrefix   = hashPtr === -1 ? url : url.substr(0, hashPtr)
+      const urlPrefix   = hashPtr === -1 ? url : url.substr(0, hashPtr)
     }
 
     this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'NavigationEnd', {
