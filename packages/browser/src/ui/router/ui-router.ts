@@ -243,10 +243,17 @@ export class UiRouter {
     this.lastNavMethod  = 0
   }
 
-  public getRouteName(url): string {
+  public getRouteName(url : string): string {
 
     const urlTree: UrlTree        = this.router.parseUrl(url)
-    const segments: UrlSegment[]  = urlTree.root.children.primary.segments
+    const segments: UrlSegment[]  = urlTree.root.children.primary ? urlTree.root.children.primary.segments : undefined
+    
+    if (!segments) {
+      //we are adding dummy url (#/?launched=true) in the beginning.
+      this.rcBrowser.isWarn() && this.rcBrowser.warn(this.rcBrowser.getName(this), 
+      `received invalid url ${url}`)
+      return ''
+    }
 
     if (segments.length > 1) {
       let path = ''
