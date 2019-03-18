@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
-   About      : As we have implemented our own history wrapper, this class handles
-                prevent angulat from  mainpulating history 
+   About      : As we have implemented our own history wrapper, this class
+                prevents angular from  mainpulating history 
    
    Created on : Sun Mar 17 2019
    Author     : Aditya Baddur
