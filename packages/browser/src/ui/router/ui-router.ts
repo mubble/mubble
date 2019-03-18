@@ -397,6 +397,11 @@ export class UiRouter {
     if (index === -1) {
       
       if (!this.codePop) {
+
+        if (!this.canCompGoBack()) {
+          return
+        }
+
         if (this.warnedUser || this.runningInBrowser) {
           this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this),
             'onPopState: Exiting the app', this.historyWrapper.getLength())
@@ -424,11 +429,7 @@ export class UiRouter {
 
     } else {
 
-      if (!this.canGoBack() || this.isToolTipShown()) {
-        const lastIdx  = this.urlStack.length - 1,
-        lastItem = this.urlStack[lastIdx]
-        this.historyWrapper.pushState({index: lastIdx}, '', BASE_HREF + '#' + lastItem.url)
-        this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'not going back')
+      if (!this.canCompGoBack()) {
         return
       }
 
@@ -442,6 +443,18 @@ export class UiRouter {
 
       this.goBackInternal(goBackBy)
     }
+  }
+
+  private canCompGoBack() {
+    if (!this.canGoBack() || this.isToolTipShown()) {
+      const lastIdx  = this.urlStack.length - 1,
+      lastItem = this.urlStack[lastIdx]
+      this.historyWrapper.pushState({index: lastIdx}, '', BASE_HREF + '#' + lastItem.url)
+      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'not going back')
+      return false
+    }
+
+    return true
   }
 
   private onPopUpClosed() {
