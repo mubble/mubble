@@ -1,3 +1,5 @@
+import { HashidConverter } from './hashid-converter';
+
 /*------------------------------------------------------------------------------
    About      : Url sanitizer
    
@@ -24,6 +26,10 @@ export class UrlHelper {
     }
 
     return params
+  }
+
+  static decodeStringFromHashids(key: string, hashids: string): string {
+    return HashidConverter.decodeHashids(key, hashids)
   }
 
 }
