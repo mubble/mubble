@@ -13,12 +13,15 @@ import {
          WIRE_TYPE,
          HTTP
        }                        from '@mubble/core'
+import {
+         CredentialRegistry,
+         SyncCredentials
+       }                        from './credential-registry'
 import { RunContextServer }     from '../rc-server'
 import { HttpsEncProvider }     from './https-enc-provider'
 import { SecurityErrorCodes }   from './security-errors'
 import { UStream }              from '../util'
 import { RedisWrapper }         from '../cache'
-import { CredentialRegistry, SyncCredentials }   from './credential-registry'
 import * as https               from 'https'
 import * as http                from 'http'
 import * as fs                  from 'fs'
@@ -41,15 +44,14 @@ export namespace ObopayHttpsClient {
       privateKey         : string,
       requestMem         : RedisWrapper
 
-  export class ResultStruct {
-    error   : null | Error        = null
-    headers : Mubble.uObject<any>
-    status  : number
-    output  : Mubble.uObject<any>
-    // output  : {
-    //   error : null   | string
-    //   data  : number | Mubble.uObject<any>
-    // }
+  export type ResultStruct = {
+    // error   : null | Error        = null
+    // headers : Mubble.uObject<any>
+    // status  : number
+    // output  : Mubble.uObject<any>
+    
+    error : null   | string
+    data  : number | string | Mubble.uObject<any>
   }
 
   export function init(rc           : RunContextServer,
@@ -139,33 +141,30 @@ export namespace ObopayHttpsClient {
 
     const req          = unsecured ? http.request(options) : https.request(options),
           writePromise = new Mubble.uPromise(),
-          readPromise  = new Mubble.uPromise(),
-          result       = new ResultStruct()
+          readPromise  = new Mubble.uPromise()
 
     writeStreams.push(req)
 
     req.on('response', (resp : http.IncomingMessage) => {
-      result.headers = resp.headers
-      result.status  = resp.statusCode || 200
 
       rc.isDebug() && rc.debug(CLASS_NAME,
                                `http${unsecured ? '' : 's'} response headers.`,
                                resp.headers)
 
-      if(!result.headers[HTTP.HeaderKey.symmKey]) {
+      if(!resp.headers[HTTP.HeaderKey.symmKey]) {
         const err = new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
         writePromise.reject(err)
         readPromise.reject(err)
         // throw err
       }
 
-      if(!result.headers[HTTP.HeaderKey.bodyEncoding])
-        result.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
+      if(!resp.headers[HTTP.HeaderKey.bodyEncoding])
+        resp.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 
-      encProvider.decodeResponseKey(serverPubKey, result.headers[HTTP.HeaderKey.symmKey])
+      encProvider.decodeResponseKey(serverPubKey, resp.headers[HTTP.HeaderKey.symmKey] as string)
 
       const readStreams = encProvider.decodeBody([resp],
-                                                 result.headers[HTTP.HeaderKey.bodyEncoding],
+                                                 resp.headers[HTTP.HeaderKey.bodyEncoding] as string,
                                                  true)
 
       const readUstream = new UStream.ReadStreams(rc, readStreams, readPromise)
@@ -189,20 +188,14 @@ export namespace ObopayHttpsClient {
                                `http${unsecured ? '' : 's'} request.`,
                                options)
 
-    try {
-      const [ , output] : Array<any> = await Promise.all([writePromise.promise,
-                                                          readPromise.promise])
+    const [ , output] : Array<any> = await Promise.all([writePromise.promise,
+                                                        readPromise.promise])
 
-      rc.isStatus() && rc.status(CLASS_NAME,
-                                 `http${unsecured ? '' : 's'} response.`,
-                                 output.toString())
+    rc.isStatus() && rc.status(CLASS_NAME,
+                                `http${unsecured ? '' : 's'} response.`,
+                                output.toString())
 
-      result.output = JSON.parse(output.toString())
-    } catch(err) {
-      rc.isError() && rc.error(CLASS_NAME, err)
-      result.error = err
-    }
-
+    const result = JSON.parse(output.toString())
     return result
   }
 
@@ -221,6 +214,13 @@ export namespace ObopayHttpsClient {
                              clientIp)
 
     const clientCredentials = credentialRegistry.getCredential(headers[HTTP.HeaderKey.clientId])
+
+    if(!headers[HTTP.HeaderKey.symmKey]) {
+      throw new Mubble.uError(SecurityErrorCodes.AES_KEY_MISSING,
+                              `${HTTP.HeaderKey.symmKey} missing in response headers.`)
+    }
+
+    encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
 
     if(clientCredentials
        && clientCredentials.syncHash
@@ -242,6 +242,8 @@ export namespace ObopayHttpsClient {
 
       const requestTs = encProvider.decodeRequestTs(clientCredentials.syncHash,
                                                     headers[HTTP.HeaderKey.requestTs])
+
+      rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)
 
       encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
 

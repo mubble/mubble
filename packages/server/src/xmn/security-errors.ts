@@ -8,11 +8,12 @@
 ------------------------------------------------------------------------------*/
 
 export enum SecurityError {
-  INVALID_CLIENT,
+  INVALID_CLIENT = 1,
   INVALID_VERSION,
   INVALID_REQUEST_TS,
   INVALID_ENCODING,
   INVALID_REQUEST_METHOD,
+  AES_KEY_MISSING,
   REQUEST_REPLAY
 }
 
@@ -22,5 +23,6 @@ export const SecurityErrorCodes = {
   INVALID_REQUEST_TS     : 'INVALID_REQUEST_TS',
   INVALID_ENCODING       : 'INVALID_ENCODING',
   INVALID_REQUEST_METHOD : 'INVALID_REQUEST_METHOD',
+  AES_KEY_MISSING        : 'AES_KEY_MISSING',
   REQUEST_REPLAY         : 'REQUEST_REPLAY'
 }

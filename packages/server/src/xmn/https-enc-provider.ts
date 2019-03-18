@@ -58,7 +58,7 @@ export class HttpsEncProvider {
     return encReqTs
   }
 
-  public decodeRequestTs(publicKey : string, encReqTs  : string) {
+  public decodeRequestTs(publicKey : string, encReqTs : string) {
     const requestTs = this.decryptRequestTs(publicKey, encReqTs)
 
     return requestTs
@@ -122,16 +122,15 @@ export class HttpsEncProvider {
    PRIVATE METHODS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
-  private encryptRequestTs(tsMilli : number) : string {
-    const tsMicro  = tsMilli * 1000,
-          encReqTs = this.encryptUsingPrivateKey(Buffer.from(tsMicro.toString()))
+  private encryptRequestTs(tsMicro : number) : string {
+    const encReqTs = this.encryptUsingPrivateKey(Buffer.from(tsMicro.toString()))
 
     return encReqTs.toString(BASE64)
   }
 
   private decryptRequestTs(publicKey : string, encReqTs : string) : number {
     const encReqTsBuf = Buffer.from(encReqTs, BASE64),
-          reqTsBuf    = this.encryptUsingPublicKey(publicKey, encReqTsBuf),
+          reqTsBuf    = this.decryptUsingPublicKey(publicKey, encReqTsBuf),
           requestTs   = Number(reqTsBuf.toString())
 
     return requestTs

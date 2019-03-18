@@ -49,6 +49,8 @@ export class HttpsServer {
 
     const rc = this.refRc.copyConstruct('', 'https-request')
 
+    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
+
     const urlObj   = urlModule.parse(req.url || ''),
           pathName = urlObj.pathname || '',
           ar       = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/'),
@@ -113,11 +115,12 @@ export class HttpsServer {
       this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
                                                'Error in verifying client request.',
                                                err)
-
       if(err.code in SecurityErrorCodes)
-        httpsProvider.sendProtocolErrorResponse(rc, err.code)
+        httpsProvider.sendProtocolErrorResponse(rc, err.code, apiName, reqId)
       else
-        httpsProvider.sendErrorResponse(rc, err.code)
+        httpsProvider.sendErrorResponse(rc, err.code, apiName, reqId)
+
+      return
     }
 
     httpsProvider.processRequest(rc, apiName, apiParams, reqId)
@@ -176,7 +179,8 @@ export class HttpsServerProvider implements XmnProvider {
             [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.stream
           }
 
-    const body       = {error : data.errorCode, data : data.data},
+    const body       = data.errorCode ? {error : data.errorCode, data : data.errorMessage}
+                                      : {error : null, data : data.data},
           encBodyObj = this.encProvider.encodeBody(body, true)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
@@ -208,20 +212,20 @@ export class HttpsServerProvider implements XmnProvider {
     this.router.providerMessage(rc, this.ci, [this.wireRequest])
   }
 
-  sendErrorResponse(rc : RunContextServer, errorCode : string) {
+  sendErrorResponse(rc : RunContextServer, errorCode : string, apiName ?: string, reqId ?: number) {
 
-    const wo = new WireReqResp(this.wireRequest.name,
-                               this.wireRequest.ts,
+    const wo = new WireReqResp(apiName || this.wireRequest.name,
+                               reqId || this.wireRequest.ts,
                                {},
                                errorCode)
 
     this.send(rc, [wo])
   }
 
-  sendProtocolErrorResponse(rc : RunContextServer, errorCode : SecurityError) {
+  sendProtocolErrorResponse(rc : RunContextServer, errorCode : SecurityError, apiName ?: string, reqId ?: number) {
 
-    const wo = new WireReqResp(this.wireRequest.name,
-                               this.wireRequest.ts,
+    const wo = new WireReqResp(apiName || this.wireRequest.name,
+                               reqId || this.wireRequest.ts,
                                SecurityError[errorCode] as any,
                                SUCCESS)
 
