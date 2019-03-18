@@ -9,8 +9,6 @@
 
 import {
          Mubble,
-         WireObject,
-         WIRE_TYPE,
          HTTP
        }                        from '@mubble/core'
 import {
@@ -83,16 +81,12 @@ export namespace ObopayHttpsClient {
     if(!requestServer || !requestServer.host || !requestServer.port)
       throw new Error('requestServer not defined.')
 
-    const syncHash   = syncHashPath ? fs.readFileSync(syncHashPath).toString()
-                                    : requestServer.syncHash,
-          json       = {
-                         type : WIRE_TYPE.REQUEST,
-                         name : apiName,
-                         data : params
-                       },
-          wo         = WireObject.getWireObject(json) as WireObject
-    
-    const headers : Mubble.uObject<any> = {}
+    const syncHash                      = syncHashPath ? fs.readFileSync(syncHashPath).toString()
+                                                       : requestServer.syncHash,
+          requestTs                     = Date.now() * 1000,
+          headers : Mubble.uObject<any> = {}
+
+    rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)
 
     headers[HTTP.HeaderKey.clientId]      = selfId
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
@@ -101,9 +95,9 @@ export namespace ObopayHttpsClient {
     const encProvider = new HttpsEncProvider(privateKey)
     
     headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeRequestKey(syncHash)
-    headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(wo.ts)
+    headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(requestTs)
 
-    const encBodyObj = encProvider.encodeBody(wo.data, false)
+    const encBodyObj = encProvider.encodeBody(params, false)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
     encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
@@ -118,7 +112,7 @@ export namespace ObopayHttpsClient {
       protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
       host     : requestServer.host,
       port     : requestServer.port,
-      path     : SLASH_SEP + wo.name,
+      path     : SLASH_SEP + apiName,
       headers  : headers
     }
 
