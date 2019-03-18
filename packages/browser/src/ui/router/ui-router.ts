@@ -243,6 +243,10 @@ export class UiRouter {
     this.lastNavMethod  = 0
   }
 
+  public getCurQueryParams() {
+    return this.curQueryParam
+  }
+
   public getRouteName(url : string): string {
 
     const urlTree: UrlTree        = this.router.parseUrl(url)
