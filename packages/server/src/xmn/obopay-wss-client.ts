@@ -8,19 +8,16 @@
 ------------------------------------------------------------------------------*/
 
 import { 
+         Mubble,
          HTTP,
          WssProviderConfig
        }                        from '@mubble/core'
-import {
-         CredentialRegistry,
-         AppRegistry
-       }                        from './credential-registry'
 import { RunContextServer }     from '../rc-server'
 import { WssEncProvider }       from './wss-enc-provider'
+import { CredentialRegistry }   from './credential-registry'
+import * as lo                  from 'lodash'
 
 const MICRO_MULT = 1000000
-
-export const HANDSHAKE = '__handshake__'
 
 export namespace ObopayWssClient {
 
@@ -32,27 +29,27 @@ export namespace ObopayWssClient {
     toleranceSecs : number
   }
 
-  let selfId         : string,
-      defaultConfig  : DefaultWssConfig,
-      maxOpenTs      : number,
-      serverRegistry : CredentialRegistry,
-      appRegistry    : AppRegistry,
-      privateKey     : string
+  let selfId        : string,
+      defaultConfig : DefaultWssConfig,
+      maxOpenTs     : number,
+      appId         : string,
+      credRegistry  : CredentialRegistry,
+      privateKey    : string
 
   export function init(rc             : RunContextServer,
                        selfIdentifier : string,
                        wssConfig      : DefaultWssConfig,
-                       aRegistry      : AppRegistry,
-                       sRegistry      : CredentialRegistry,
+                       appClientId    : string,
+                       registry       : CredentialRegistry,
                        pk             : string) {
 
     if(selfId) throw new Error('Calling init twice.')
 
-    selfId         = selfIdentifier
-    defaultConfig  = wssConfig
-    appRegistry    = aRegistry
-    serverRegistry = sRegistry
-    privateKey     = pk
+    selfId        = selfIdentifier
+    defaultConfig = wssConfig
+    appId         = appClientId
+    credRegistry  = registry
+    privateKey    = pk
 
     Object.freeze(defaultConfig)  // Default wss config cannot change
   }
@@ -107,25 +104,20 @@ export namespace ObopayWssClient {
   }
 
   export function verifyClientId(clientId : string) : boolean {
-    return (isAppClient(clientId) || isServerClient(clientId))
+    if(appId === clientId) return true
+    
+    const record = credRegistry.getCredential(clientId)
+    return !!record.id
   }
 
   export function isAppClient(clientId : string) : boolean {
-    const record = appRegistry.getCredential(clientId)
-
-    return !!(record && record.appShortName)
-  }
-
-  export function isServerClient(clientId : string) : boolean {
-    const record = serverRegistry.getCredential(clientId)
-
-    return !!(record && record.id)
+    return appId === clientId
   }
 
   export function getClientPublicKey(clientId : string) : string {
-    const record = serverRegistry.getCredential(clientId)
+    const record = credRegistry.getCredential(clientId)
 
-    if(!record || !record.syncHash)
+    if(!record.syncHash)
       throw new Error(`Client ${clientId} doesn't have a public key in registry.`)
 
     return record.syncHash

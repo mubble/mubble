@@ -13,7 +13,7 @@ import {
        }                        from '@mubble/core'
 import {
          CredentialRegistry,
-         ServerCredentials
+         SyncCredentials
        }                        from './credential-registry'
 import { RunContextServer }     from '../rc-server'
 import { HttpsEncProvider }     from './https-enc-provider'
@@ -298,7 +298,7 @@ export namespace ObopayHttpsClient {
   }
 
   export function getThirdPartyRequestUrl(rc          : RunContextServer,
-                                          credentials : ServerCredentials,
+                                          credentials : SyncCredentials,
                                           apiName     : string,
                                           apiParams   : Mubble.uObject<any>) : string {
 
