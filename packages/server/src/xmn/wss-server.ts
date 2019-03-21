@@ -18,9 +18,12 @@ import {
          SYS_EVENT,
          WireSysEvent
        }                      from '@mubble/core'
+import { 
+         ObopayWssClient,
+         HANDSHAKE
+       }                      from './obopay-wss-client'
 import { RunContextServer }   from '../rc-server'
 import { XmnRouterServer } 		from './xmn-router-server'
-import { ObopayWssClient }    from './obopay-wss-client'
 import { WssEncProvider }     from './wss-enc-provider'
 import * as ws                from 'ws'
 import * as https             from 'https'
@@ -65,7 +68,8 @@ export class WssServer {
       const [, handshake, version, clientId, encDataUri] = path.split(SLASH_SEP),
             encData                                      = decodeURIComponent(encDataUri)
 
-      if(!version || !clientId || !encData) throw new Error(`Invalid URL path ${path}.`)
+      if(!handshake || handshake != HANDSHAKE || !version || !clientId || !encData)
+        throw new Error(`Invalid URL path ${path}.`)
 
       const isAppClient = ObopayWssClient.verifyClientRequest(rc, version, clientId),
             publicKey   = isAppClient ? undefined
