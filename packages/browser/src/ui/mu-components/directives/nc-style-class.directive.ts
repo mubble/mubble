@@ -15,19 +15,19 @@ import {
        }                        from '@angular/core'
 
 @Directive({
-  selector: '[ncStyleClass]'
+  selector: '[ncClass]'
 })
 
 export class NcStyleClassDirective {
 
-  @Input('ncStyleClass') ncStyleClass : string 
+  @Input('ncClass') ncClass : string 
 
   constructor(private element   : ElementRef,
               private renderer  : Renderer2) {
   }
 
   ngAfterViewInit() {
-    this.renderer.addClass(this.element.nativeElement, this.ncStyleClass)
+    this.renderer.addClass(this.element.nativeElement, this.ncClass)
   }
 
 }
