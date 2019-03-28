@@ -142,7 +142,4 @@ export namespace ObopayWssClient {
     return (requestTs < pingThreshold && requestTs < openThreshold)
   }
 
-
-
-
 }

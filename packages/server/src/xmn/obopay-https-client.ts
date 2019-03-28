@@ -207,6 +207,8 @@ export namespace ObopayHttpsClient {
                              headers,
                              clientIp)
 
+    encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
+
     const clientCredentials = credentialRegistry.getCredential(headers[HTTP.HeaderKey.clientId])
 
     if(!headers[HTTP.HeaderKey.symmKey]) {
@@ -216,6 +218,7 @@ export namespace ObopayHttpsClient {
 
     if(clientCredentials
        && clientCredentials.syncHash
+       && clientCredentials.permittedIps
        && clientCredentials.permittedIps.length) {
         
       if(!verifyIp(clientCredentials.permittedIps, clientIp)) {
@@ -237,8 +240,6 @@ export namespace ObopayHttpsClient {
 
       rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)
 
-      encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
-
       if(!verifyRequestTs(requestTs)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_TS,
                                 'requestTs out of range.')
@@ -253,8 +254,8 @@ export namespace ObopayHttpsClient {
 
   export function verifyIp(permittedIps : Array<string>, ip : string) : boolean {
     permittedIps.forEach((permittedIp) => permittedIps.push('::ffff:' + permittedIp))
-    
-    return lo.includes(permittedIps, ip) || lo.includes(permittedIps, ip)
+
+    return lo.includes(permittedIps, ip)
   }
 
   export function verifyVersion(version : string) : boolean {
