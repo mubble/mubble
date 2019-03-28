@@ -214,8 +214,6 @@ export namespace ObopayHttpsClient {
                               `${HTTP.HeaderKey.symmKey} missing in response headers.`)
     }
 
-    encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
-
     if(clientCredentials
        && clientCredentials.syncHash
        && clientCredentials.permittedIps.length) {
@@ -254,7 +252,9 @@ export namespace ObopayHttpsClient {
   }
 
   export function verifyIp(permittedIps : Array<string>, ip : string) : boolean {
-    return lo.includes(permittedIps, ip)
+    permittedIps.forEach((permittedIp) => permittedIps.push('::ffff:' + permittedIp))
+    
+    return lo.includes(permittedIps, ip) || lo.includes(permittedIps, ip)
   }
 
   export function verifyVersion(version : string) : boolean {

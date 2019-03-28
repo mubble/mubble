@@ -138,7 +138,7 @@ export class HttpsServer {
     for (const [provider, lastTs] of this.providerMap) {
       if (lastTs < notBefore) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Timing out a request')
-        provider.sendErrorResponse(rc, XmnError.RequestTimedOut)
+        provider.sendErrorResponse(rc, XmnError.RequestTimedOut, 'REQUEST_TIMED_OUT', lastTs)
       } else if (len === 1) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Requests checked and found active')
       }
