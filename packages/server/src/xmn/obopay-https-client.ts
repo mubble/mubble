@@ -88,14 +88,12 @@ export namespace ObopayHttpsClient {
 
     rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)
 
-    headers[HTTP.HeaderKey.clientId]      = selfId
-    headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
-    headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
 
     const encProvider = new HttpsEncProvider(privateKey)
-    
-    headers[HTTP.HeaderKey.symmKey]   = encProvider.encodeRequestKey(syncHash)
-    headers[HTTP.HeaderKey.requestTs] = encProvider.encodeRequestTs(requestTs)
+
+    headers[HTTP.HeaderKey.contentType] = HTTP.HeaderValue.stream
+    headers[HTTP.HeaderKey.symmKey]     = encProvider.encodeRequestKey(syncHash)
+    headers[HTTP.HeaderKey.requestTs]   = encProvider.encodeRequestTs(requestTs)
 
     const encBodyObj = encProvider.encodeBody(params, false)
 
@@ -112,7 +110,7 @@ export namespace ObopayHttpsClient {
       protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
       host     : requestServer.host,
       port     : requestServer.port,
-      path     : SLASH_SEP + apiName,
+      path     : `/${HTTP.CurrentProtocolVersion}/${selfId}/${apiName}`,
       headers  : headers
     }
 
@@ -198,6 +196,7 @@ export namespace ObopayHttpsClient {
   }
 
   export function verifyClientRequest(rc          : RunContextServer,
+                                      clientId    : string,
                                       encProvider : HttpsEncProvider,
                                       headers     : Mubble.uObject<any>,
                                       clientIp    : string) {
@@ -207,14 +206,13 @@ export namespace ObopayHttpsClient {
                              headers,
                              clientIp)
 
+    if(!headers[HTTP.HeaderKey.symmKey]) {
+      throw new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
+    }
+                        
     encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
 
-    const clientCredentials = credentialRegistry.getCredential(headers[HTTP.HeaderKey.clientId])
-
-    if(!headers[HTTP.HeaderKey.symmKey]) {
-      throw new Mubble.uError(SecurityErrorCodes.AES_KEY_MISSING,
-                              `${HTTP.HeaderKey.symmKey} missing in response headers.`)
-    }
+    const clientCredentials = credentialRegistry.getCredential(clientId)
 
     if(clientCredentials
        && clientCredentials.syncHash
@@ -224,12 +222,6 @@ export namespace ObopayHttpsClient {
       if(!verifyIp(clientCredentials.permittedIps, clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                                 'Client IP not permitted.')
-      }
-
-      if(!verifyVersion(headers[HTTP.HeaderKey.versionNumber])) {
-        throw new Mubble.uError(SecurityErrorCodes.INVALID_VERSION,
-                                `Request version : ${headers[HTTP.HeaderKey.versionNumber]},`
-                                + `Current version : ${HTTP.CurrentProtocolVersion}.`) 
       }
 
       if(!headers[HTTP.HeaderKey.bodyEncoding])
@@ -250,6 +242,12 @@ export namespace ObopayHttpsClient {
 
     throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                             'Client not found in registry.')
+  }
+
+  export function verifyClientId(clientId : string) : boolean {
+    const clientCredentials = credentialRegistry.getCredential(clientId)
+
+    return !!clientCredentials
   }
 
   export function verifyIp(permittedIps : Array<string>, ip : string) : boolean {

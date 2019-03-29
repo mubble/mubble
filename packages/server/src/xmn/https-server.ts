@@ -52,9 +52,30 @@ export class HttpsServer {
     rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
 
     const urlObj   = urlModule.parse(req.url || ''),
-          pathName = urlObj.pathname || '',
-          ar       = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/'),
-          apiName  = ar[0]
+          pathName = urlObj.pathname || ''
+
+    const [version, clientId, apiName] = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/')
+
+    try {
+      if(!ObopayHttpsClient.verifyVersion(version))
+        throw new Error('Invalid version in request url ' + version)
+
+      if(!ObopayHttpsClient.verifyClientId(clientId))
+        throw new Error('Invalid clientId in request url ' + clientId)
+
+    } catch(err) {
+      this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
+                                               'Error in verifying client request.',
+                                               err)
+
+      res.writeHead(404, {
+        [HTTP.HeaderKey.contentLength] : 0,
+        connection                     : 'close' 
+      })
+
+      res.end()
+      return
+    }
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -98,7 +119,7 @@ export class HttpsServer {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_METHOD,
                                 `${req.method} not supported.`)
 
-      ObopayHttpsClient.verifyClientRequest(rc, encProvider, ci.headers, ci.ip)
+      ObopayHttpsClient.verifyClientRequest(rc, clientId, encProvider, ci.headers, ci.ip)
 
       const streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
