@@ -44,9 +44,10 @@ export class WssEncProvider {
                                                                      wssConfig : WssProviderConfig
                                                                    } {
 
-    const encTsMicro      = encData.slice(0, TS_LEN),
-          encReqKey       = encData.slice(TS_LEN, TS_LEN + REQ_KEY_LEN),
-          encWssConfig    = encData.slice(TS_LEN + REQ_KEY_LEN),
+    const tsLen           = publicKey ? REQ_KEY_LEN : TS_LEN,
+          encTsMicro      = encData.slice(0, tsLen),
+          encReqKey       = encData.slice(tsLen, tsLen + REQ_KEY_LEN),
+          encWssConfig    = encData.slice(tsLen + REQ_KEY_LEN),
           encTsMicroBuf   = Buffer.from(encTsMicro, BASE64),
           encReqKeyBuf    = Buffer.from(encReqKey, BASE64),
           encWssConfigBuf = Buffer.from(encWssConfig, BASE64)
