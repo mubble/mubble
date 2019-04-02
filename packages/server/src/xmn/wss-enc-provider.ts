@@ -53,18 +53,15 @@ export class WssEncProvider {
 
     this.reqAesKey = this.decryptyUsingPrivateKey(encReqKeyBuf)
 
-    const wssConfig = this.decryptRequestConfig(encWssConfigBuf),
-          tsMicro   = Number(this.decryptUsingAesKey(this.reqAesKey, encTsMicroBuf).toString())
+    const wssConfig = this.decryptRequestConfig(encWssConfigBuf)
 
-    // if(wssConfig.key) {
-    //   this.reqAesKey = Buffer.from(wssConfig.key, BASE64)
+    let tsMicro : number
 
-    //   tsMicro = Number(this.decryptUsingAesKey(this.reqAesKey, encTsMicroBuf).toString())
-    // } else if(publicKey) {
-    //   tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
-    // }
-
-    // if(!tsMicro) throw new Error('Could not decode timestamp.')
+    if(publicKey) {
+      tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
+    } else {
+      tsMicro = Number(this.decryptUsingAesKey(this.reqAesKey, encTsMicroBuf).toString())
+    }
 
     return {tsMicro, wssConfig}
   }
