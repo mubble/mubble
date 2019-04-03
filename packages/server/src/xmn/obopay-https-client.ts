@@ -91,9 +91,11 @@ export namespace ObopayHttpsClient {
 
     const encProvider = new HttpsEncProvider(privateKey)
 
-    headers[HTTP.HeaderKey.contentType] = HTTP.HeaderValue.stream
-    headers[HTTP.HeaderKey.symmKey]     = encProvider.encodeRequestKey(syncHash)
-    headers[HTTP.HeaderKey.requestTs]   = encProvider.encodeRequestTs(requestTs)
+    headers[HTTP.HeaderKey.clientId]      = selfId
+    headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
+    headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
+    headers[HTTP.HeaderKey.symmKey]       = encProvider.encodeRequestKey(syncHash)
+    headers[HTTP.HeaderKey.requestTs]     = encProvider.encodeRequestTs(requestTs)
 
     const encBodyObj = encProvider.encodeBody(params, false)
 
@@ -110,7 +112,7 @@ export namespace ObopayHttpsClient {
       protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
       host     : requestServer.host,
       port     : requestServer.port,
-      path     : `/${HTTP.CurrentProtocolVersion}/${selfId}/${apiName}`,
+      path     : `/${apiName}`,
       headers  : headers
     }
 
@@ -207,7 +209,7 @@ export namespace ObopayHttpsClient {
                              clientIp)
 
     if(!headers[HTTP.HeaderKey.symmKey]) {
-      throw new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
+      throw new Error(`${HTTP.HeaderKey.symmKey} missing in request headers.`)
     }
                         
     encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
