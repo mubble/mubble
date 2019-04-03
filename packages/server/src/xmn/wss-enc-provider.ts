@@ -44,27 +44,25 @@ export class WssEncProvider {
                                                                      wssConfig : WssProviderConfig
                                                                    } {
 
-    const encTsMicro      = encData.slice(0, TS_LEN),
-          encReqKey       = encData.slice(TS_LEN, TS_LEN + REQ_KEY_LEN),
-          encWssConfig    = encData.slice(TS_LEN + REQ_KEY_LEN),
+    const tsLen           = publicKey ? REQ_KEY_LEN : TS_LEN,
+          encTsMicro      = encData.slice(0, tsLen),
+          encReqKey       = encData.slice(tsLen, tsLen + REQ_KEY_LEN),
+          encWssConfig    = encData.slice(tsLen + REQ_KEY_LEN),
           encTsMicroBuf   = Buffer.from(encTsMicro, BASE64),
           encReqKeyBuf    = Buffer.from(encReqKey, BASE64),
           encWssConfigBuf = Buffer.from(encWssConfig, BASE64)
 
     this.reqAesKey = this.decryptyUsingPrivateKey(encReqKeyBuf)
 
-    const wssConfig = this.decryptRequestConfig(encWssConfigBuf),
-          tsMicro   = Number(this.decryptUsingAesKey(this.reqAesKey, encTsMicroBuf).toString())
+    const wssConfig = this.decryptRequestConfig(encWssConfigBuf)
 
-    // if(wssConfig.key) {
-    //   this.reqAesKey = Buffer.from(wssConfig.key, BASE64)
+    let tsMicro : number
 
-    //   tsMicro = Number(this.decryptUsingAesKey(this.reqAesKey, encTsMicroBuf).toString())
-    // } else if(publicKey) {
-    //   tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
-    // }
-
-    // if(!tsMicro) throw new Error('Could not decode timestamp.')
+    if(publicKey) {
+      tsMicro = Number(this.decryptUsingPublicKey(encTsMicroBuf, publicKey).toString())
+    } else {
+      tsMicro = Number(this.decryptUsingAesKey(this.reqAesKey, encTsMicroBuf).toString())
+    }
 
     return {tsMicro, wssConfig}
   }

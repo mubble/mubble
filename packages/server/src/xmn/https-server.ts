@@ -52,9 +52,30 @@ export class HttpsServer {
     rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
 
     const urlObj   = urlModule.parse(req.url || ''),
-          pathName = urlObj.pathname || '',
-          ar       = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/'),
-          apiName  = ar[0]
+          pathName = urlObj.pathname || ''
+
+    const [version, clientId, apiName] = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/')
+
+    try {
+      if(!ObopayHttpsClient.verifyVersion(version))
+        throw new Error('Invalid version in request url ' + version)
+
+      if(!ObopayHttpsClient.verifyClientId(clientId))
+        throw new Error('Invalid clientId in request url ' + clientId)
+
+    } catch(err) {
+      this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
+                                               'Error in verifying client request.',
+                                               err)
+
+      res.writeHead(404, {
+        [HTTP.HeaderKey.contentLength] : 0,
+        connection                     : 'close' 
+      })
+
+      res.end()
+      return
+    }
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -98,7 +119,7 @@ export class HttpsServer {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_METHOD,
                                 `${req.method} not supported.`)
 
-      ObopayHttpsClient.verifyClientRequest(rc, encProvider, ci.headers, ci.ip)
+      ObopayHttpsClient.verifyClientRequest(rc, clientId, encProvider, ci.headers, ci.ip)
 
       const streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
@@ -115,10 +136,16 @@ export class HttpsServer {
       this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
                                                'Error in verifying client request.',
                                                err)
-      if(err.code in SecurityErrorCodes)
+      if(err.code in SecurityErrorCodes) {
         httpsProvider.sendProtocolErrorResponse(rc, err.code, apiName, reqId)
-      else
-        httpsProvider.sendErrorResponse(rc, err.code, apiName, reqId)
+      } else {
+        res.writeHead(500, {
+          [HTTP.HeaderKey.contentLength] : 0,
+          connection                     : 'close' 
+        })
+  
+        res.end()
+      }
 
       return
     }
@@ -138,7 +165,9 @@ export class HttpsServer {
     for (const [provider, lastTs] of this.providerMap) {
       if (lastTs < notBefore) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Timing out a request')
-        provider.sendErrorResponse(rc, XmnError.RequestTimedOut)
+
+
+        provider.sendErrorResponse(rc, XmnError.RequestTimedOut, 'REQUEST_TIMED_OUT', lastTs)
       } else if (len === 1) {
         rc.isDebug() && rc.debug(rc.getName(this), 'Requests checked and found active')
       }
@@ -165,10 +194,10 @@ export class HttpsServerProvider implements XmnProvider {
   }
 
   send(rc : RunContextServer, woArr : Array<WireObject>) {
-    const data = woArr[0] as WireReqResp
+    const wo = woArr[0] as WireReqResp
 
     if(this.finished) {
-      rc.isWarn() && rc.warn(rc.getName(this), `Request ${data.name} already processed.`)
+      rc.isWarn() && rc.warn(rc.getName(this), `Request ${wo.name} already processed.`)
       return
     }
 
@@ -179,8 +208,9 @@ export class HttpsServerProvider implements XmnProvider {
             [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.stream
           }
 
-    const body       = data.errorCode ? {error : data.errorCode, data : data.errorMessage}
-                                      : {error : null, data : data.data},
+    const body       = wo.errorCode ? wo.errorCode === SUCCESS ? {error : wo.errorCode, data : wo.data}
+                                                               : {error : wo.errorCode, data : wo.errorMessage}
+                                    : {error : null, data : wo.data},
           encBodyObj = this.encProvider.encodeBody(body, true)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
