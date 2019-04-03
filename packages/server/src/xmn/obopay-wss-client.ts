@@ -107,7 +107,7 @@ export namespace ObopayWssClient {
     if(appId === clientId) return true
     
     const record = credRegistry.getCredential(clientId)
-    return !!record.id
+    return !!record
   }
 
   export function isAppClient(clientId : string) : boolean {
@@ -117,7 +117,7 @@ export namespace ObopayWssClient {
   export function getClientPublicKey(clientId : string) : string {
     const record = credRegistry.getCredential(clientId)
 
-    if(!record.syncHash)
+    if(!record || !record.syncHash)
       throw new Error(`Client ${clientId} doesn't have a public key in registry.`)
 
     return record.syncHash
