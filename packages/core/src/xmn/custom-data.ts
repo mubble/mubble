@@ -10,16 +10,18 @@
 export interface CustomData {
 
   // only valid when request is from Mubble (web)app
-  appName       : string
-  channel       : string
-  appVersion    : string
-  jsVersion     : string
+  appName         : string
+  channel         : string
+  appVersion      : string
+  jsVersion       : string
 
   // only available when client is issued an identity
-  clientId      : number
-  userLinkId    : string
-  uniqueId      : string
+  clientId        : number
+  userLinkId      : string
+  uniqueId        : string
 
-  location      : string // serialised JSON Object
-  networkType   : string
+  location        : string // serialised JSON Object
+  networkType     : string
+
+  publicRequest  ?: boolean
 }

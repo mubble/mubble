@@ -94,7 +94,25 @@ export class WssServer {
       const wssProvider = new WssServerProvider(rc, socket, ci, this.router, encProvider, wssConfig, this)
       ci.provider       = wssProvider
 
-      await this.router.verifyConnection(rc, ci)
+      try {
+        await this.router.verifyConnection(rc, ci)
+      
+      } catch(e) {
+        
+        const errData = {
+          code : e.code || e.message,
+          msg  : e.code ? e.message : ''
+        }
+
+        const woJson      = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.ERROR, data : errData},
+              respWo      = WireObject.getWireObject(woJson) as WireSysEvent,
+              encConfig   = await encProvider.encodeHandshakeMessage(respWo)
+
+        rc.isDebug() && rc.debug(rc.getName(this), 'sending', respWo)
+        socket.send(encConfig)
+        return
+      }
+
       wssConfig.custom  = ci.customData
 
       const woJson      = {type : WIRE_TYPE.SYS_EVENT, name : SYS_EVENT.WS_PROVIDER_CONFIG, data : wssConfig},
