@@ -7,8 +7,7 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { 
-         Directive,
+import { Directive,
          ElementRef,  
          Input, 
          Renderer2, 

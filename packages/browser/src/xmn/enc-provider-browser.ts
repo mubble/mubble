@@ -16,6 +16,7 @@ import {
          WssProviderConfig
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
+import { TextEncDec }         from './text-enc-dec'
 
 const IV                    = new Uint8Array([0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 
                                               0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00]),
@@ -200,12 +201,12 @@ export class EncryptionBrowser {
 
   strToUnit8Ar(str : string): Uint8Array {
     const TextEncoder = (window as any).TextEncoder
-    return new TextEncoder('utf-8').encode(str)
+    return TextEncoder ?  new TextEncoder('utf-8').encode(str) : new TextEncDec('utf-8').encode(str)
   }
 
   uint8ArToStr(uar : Uint8Array): string {
     const TextDecoder = (window as any).TextDecoder
-    return new TextDecoder('utf-8').decode(uar)
+    return TextDecoder ? new TextDecoder('utf-8').decode(uar) : new TextEncDec('utf-8').decode(uar)
   }
 
   private extractShortCode(rc: RunContextBrowser, code: string) {

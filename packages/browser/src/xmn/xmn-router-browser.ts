@@ -24,7 +24,6 @@ import {
          SYS_EVENT,
          CustomData,
          WssProviderConfig,
-         XmnProvider
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
 import { WsBrowser }          from './ws-browser'

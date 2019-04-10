@@ -477,7 +477,10 @@ export class UiRouter {
    
     if (!lastItem) return true
     const comp = this.curCompMap[lastItem.outlet]
-    if (!comp || !comp.component.canGoBack) return true
+    if (!comp || !comp.component.canGoBack) {
+      this.removeOverlayIfExists()
+      return true
+    }
     if (!comp.component.canGoBack()) {
       this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
         'Skipping back as component dis-allowed back press')
@@ -687,6 +690,11 @@ export class UiRouter {
   public isToolTipShown() : boolean {
     return true
   }
+
+  public removeOverlayIfExists() {
+
+  }
+
 }
 
 class HistoryWrapper {
