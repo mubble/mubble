@@ -58,6 +58,8 @@ export namespace ObopayHttpsClient {
                        pk           : string,
                        requestRedis : RedisWrapper) {
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'Initializing ObopayHttpsClient.')
+                    
     if(selfId) throw new Error('Calling init twice.')
 
     selfId             = selfIdentity
@@ -78,7 +80,7 @@ export namespace ObopayHttpsClient {
 
     const requestServer = credentialRegistry.getCredential(serverId)
 
-    if(!requestServer || !requestServer.host || !requestServer.port)
+    if(!requestServer || !requestServer.syncHash || !requestServer.host || !requestServer.port)
       throw new Error('requestServer not defined.')
 
     const syncHash                      = syncHashPath ? fs.readFileSync(syncHashPath).toString()
