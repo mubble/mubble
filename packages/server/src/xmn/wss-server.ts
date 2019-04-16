@@ -13,7 +13,6 @@ import {
          ConnectionInfo,
          Protocol,
          WssProviderConfig,
-         WssErrorCode,
          WIRE_TYPE,
          SYS_EVENT,
          WireSysEvent

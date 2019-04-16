@@ -216,23 +216,25 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
 
   private fun respondWithFailure(failureCode: String) {
 
-    onPictureResult(false, null, null, null, failureCode)
+    onPictureResult(false, null, null, null,null, failureCode)
   }
 
   private fun respondWithSuccess(base64: String?, cropped: Boolean) {
 
-    val b64 = if (base64 != null) ImageCompressionTask().compressImage(base64) else base64
-    onPictureResult(true, b64, MIME_TYPE, cropped, null)
+    val b64       = if (base64 != null) ImageCompressionTask().compressImage(base64) else base64
+    val checkSum  = if (b64 != null) FileBase.getCheckSum(b64) else null
+    onPictureResult(true, b64, MIME_TYPE, cropped, checkSum, null)
   }
 
   private fun onPictureResult(success: Boolean, base64: String?, mimeType: String?,
-                               cropped: Boolean?, failureCode: String?) {
+                               cropped: Boolean?, checkSum: String?, failureCode: String?) {
 
     val jsonObject = JSONObject()
     jsonObject.put("success", success)
     jsonObject.put("base64", base64)
     jsonObject.put("mimeType", mimeType)
     jsonObject.put("cropped", cropped)
+    jsonObject.put("checksum", checkSum)
     jsonObject.put("failureCode", failureCode)
 
     listener(jsonObject)
