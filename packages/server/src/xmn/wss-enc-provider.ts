@@ -102,14 +102,15 @@ export class WssEncProvider {
 
   public async decodeHandshakeMessage(totalBuf : Buffer) : Promise<WireObject> {
     const leaderBuf  = totalBuf.slice(0, 1),
-          encDataBuf = totalBuf.slice(1, totalBuf.length),
+          encDataBuf = totalBuf.slice(1),
           leader     = leaderBuf[0]
 
-    let dataBuf = encDataBuf
+    let dataBuf = this.decryptUsingAesKey(this.reqAesKey, encDataBuf)
+
     if (leader === DataLeader.ENC_DEF_JSON) {
       dataBuf = await Mubble.uPromise.execFn(zlib.inflate, zlib, encDataBuf)
     }
-
+    
     const woStr = dataBuf.toString(),
           wo    = JSON.parse(woStr)
 

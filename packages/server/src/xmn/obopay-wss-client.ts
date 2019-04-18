@@ -10,8 +10,7 @@
 import { 
          HTTP,
          WssProviderConfig,
-         Mubble,
-         CustomData
+         Mubble
        }                        from '@mubble/core'
 import {
          CredentialRegistry,
@@ -47,7 +46,7 @@ export namespace ObopayWssClient {
                        sRegistry      : CredentialRegistry,
                        pk             : string) {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Initializing ObopayWssClient.')
+    rc.isDebug() && rc.debug(CLASS_NAME, 'Initializing ObopayWssClient.')
 
     if(selfId) throw new Error('Calling init twice.')
 
@@ -76,10 +75,13 @@ export namespace ObopayWssClient {
     custom = custom || {}
 
     if (!wssClient) {
-      const wsConfig      = defaultConfig as WssProviderConfig,
+      const wsConfig      = {
+                              maxOpenSecs   : defaultConfig.maxOpenSecs,
+                              pingSecs      : defaultConfig.pingSecs,
+                              toleranceSecs : defaultConfig.toleranceSecs,
+                              custom        : custom
+                            } as WssProviderConfig,
             requestServer = serverRegistry.getCredential(serverId)
-
-      wsConfig.custom = custom as CustomData
 
       if(!requestServer || !requestServer.syncHash || !requestServer.host || !requestServer.port)
         throw new Error('requestServer not defined.')

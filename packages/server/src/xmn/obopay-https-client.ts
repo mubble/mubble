@@ -58,7 +58,7 @@ export namespace ObopayHttpsClient {
                        pk           : string,
                        requestRedis : RedisWrapper) {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Initializing ObopayHttpsClient.')
+    rc.isDebug() && rc.debug(CLASS_NAME, 'Initializing ObopayHttpsClient.')
                     
     if(selfId) throw new Error('Calling init twice.')
 
@@ -262,6 +262,12 @@ export namespace ObopayHttpsClient {
 
   export function verifyVersion(version : string) : boolean {
     return version === HTTP.CurrentProtocolVersion
+  }
+
+  export function verifyModule(module : string, apiName : string) : boolean {
+    // TODO : Add module and apiName check
+
+    return true
   }
 
   export function verifyRequestTs(requestTs : number) : boolean {

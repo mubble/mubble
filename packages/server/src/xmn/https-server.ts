@@ -33,7 +33,8 @@ import * as urlModule         from 'url'
 const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
       HTTP_TIMEOUT_MS    = 60 * 1000,  // timeout in ms
       POST               = 'POST',
-      SUCCESS            = 'success'
+      SUCCESS            = 'success',
+      API_STR            = 'api'
 
 export class HttpsServer {
 
@@ -54,28 +55,7 @@ export class HttpsServer {
     const urlObj   = urlModule.parse(req.url || ''),
           pathName = urlObj.pathname || ''
 
-    const [version, clientId, apiName] = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/')
-
-    try {
-      if(!ObopayHttpsClient.verifyVersion(version))
-        throw new Error('Invalid version in request url ' + version)
-
-      if(!ObopayHttpsClient.verifyClientId(clientId))
-        throw new Error('Invalid clientId in request url ' + clientId)
-
-    } catch(err) {
-      this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
-                                               'Error in verifying client request.',
-                                               err)
-
-      res.writeHead(404, {
-        [HTTP.HeaderKey.contentLength] : 0,
-        connection                     : 'close' 
-      })
-
-      res.end()
-      return
-    }
+    const [ apiStr, moduleName, apiName] = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/')
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -86,12 +66,25 @@ export class HttpsServer {
     ci.url            = req.url || ''
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)
-    
-    // Following fields are unrelated / irrelevant for 3rd party
     ci.msOffset       = 0
     ci.lastEventTs    = 0
 
+    const clientId = ci.headers[HTTP.HeaderKey.clientId],
+          version  = ci.headers[HTTP.HeaderKey.versionNumber] 
+
     try {
+      if(apiStr !== API_STR) 
+        throw new Error('Invalid path in request url ' + apiStr)
+
+      if(!ObopayHttpsClient.verifyModule(moduleName, apiName))
+        throw new Error('Invalid module ' + moduleName + ' or api ' + apiName)
+
+      if(!ObopayHttpsClient.verifyVersion(version))
+        throw new Error('Invalid version in request url ' + version)
+
+      if(!ObopayHttpsClient.verifyClientId(clientId))
+        throw new Error('Invalid clientId in request url ' + clientId)
+
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
       res.writeHead(404, {
