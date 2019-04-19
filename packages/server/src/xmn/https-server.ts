@@ -29,9 +29,11 @@ import { HttpsEncProvider }   from './https-enc-provider'
 import { UStream }            from '../util'
 import * as http              from 'http'
 import * as urlModule         from 'url'
+import * as querystring       from 'querystring'
 
 const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
       HTTP_TIMEOUT_MS    = 60 * 1000,  // timeout in ms
+      GET                = 'GET',
       POST               = 'POST',
       SUCCESS            = 'success',
       API_STR            = 'api'
@@ -52,10 +54,18 @@ export class HttpsServer {
 
     rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
 
-    const urlObj   = urlModule.parse(req.url || ''),
-          pathName = urlObj.pathname || ''
+    const urlObj      = urlModule.parse(req.url || ''),
+          pathNameRaw = urlObj.pathname || '',
+          pathName    = pathNameRaw.startsWith('/') ? pathNameRaw.substr(1) : pathNameRaw
 
-    const [ apiStr, moduleName, apiName] = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/')
+    console.log(pathName)
+
+    if(pathName === 'raghuEcho') {
+      await raghuEcho(req, res, urlObj)
+      return
+    }
+
+    const [ apiStr, moduleName, apiName] = pathName.split('/')
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -254,4 +264,70 @@ export class HttpsServerProvider implements XmnProvider {
 
     this.send(rc, [wo])
   }
+}
+
+async function raghuEcho(req : http.IncomingMessage, res : http.ServerResponse, urlObj : urlModule.UrlWithStringQuery) {
+
+  const query       = urlObj.query || '',
+        contentType = req.headers[HTTP.HeaderKey.contentType] as string
+
+  let data = {} as any
+
+  switch (req.method) {
+    case GET :
+      data = querystring.parse(query)
+      break
+
+    case POST :
+      data = await parseBody(req, contentType)
+      break
+  }
+
+  res.writeHead(200, req.headers)
+  res.end(data)
+}
+
+async function parseBody(req : http.IncomingMessage, contentType : string) {
+  
+  const data = (await readData(req)).toString()
+  
+  switch (contentType) {
+    case 'application/x-www-form-urlencoded' :
+      return querystring.parse(data)
+
+    default :
+      try {
+        return JSON.parse(data)
+      } catch (err) {
+        console.log('Could not parse data as JSON.', data, err)
+        return {data}
+      }
+  }
+}
+
+async function readData(req : http.IncomingMessage) {
+
+  const buf = await new Promise<Buffer>((resolve, reject) => {
+    let data : Buffer | string
+
+    req.addListener('data', (chunk : Buffer | string) => {
+      if(!data) {
+        data = chunk
+      } else {
+        if(chunk instanceof Buffer) data = Buffer.concat([data as Buffer, chunk])
+        else data = data + chunk
+      }
+    })
+
+    req.addListener('end', () => {
+      if(typeof data === 'string') resolve(Buffer.from(data))
+      resolve(data as Buffer)
+    })
+
+    req.addListener('error', (err : any) => {
+      reject(err)
+    })
+  })
+
+  return buf
 }
