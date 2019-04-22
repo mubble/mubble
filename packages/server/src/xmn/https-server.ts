@@ -58,10 +58,17 @@ export class HttpsServer {
           pathNameRaw = urlObj.pathname || '',
           pathName    = pathNameRaw.startsWith('/') ? pathNameRaw.substr(1) : pathNameRaw
 
-    console.log(pathName)
-
     if(pathName === 'raghuEcho') {
-      await raghuEcho(req, res, urlObj)
+      const data = await raghuEcho(req, urlObj)
+
+      rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', pathName, data)
+
+      res.writeHead(200, {
+        [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.json,
+        connection                   : 'close'
+      })
+
+      res.end(JSON.stringify(data))
       return
     }
 
@@ -266,7 +273,7 @@ export class HttpsServerProvider implements XmnProvider {
   }
 }
 
-async function raghuEcho(req : http.IncomingMessage, res : http.ServerResponse, urlObj : urlModule.UrlWithStringQuery) {
+async function raghuEcho(req : http.IncomingMessage, urlObj : urlModule.UrlWithStringQuery) {
 
   const query       = urlObj.query || '',
         contentType = req.headers[HTTP.HeaderKey.contentType] as string
@@ -283,8 +290,7 @@ async function raghuEcho(req : http.IncomingMessage, res : http.ServerResponse, 
       break
   }
 
-  res.writeHead(200, req.headers)
-  res.end(data)
+  return data
 }
 
 async function parseBody(req : http.IncomingMessage, contentType : string) {
@@ -292,7 +298,7 @@ async function parseBody(req : http.IncomingMessage, contentType : string) {
   const data = (await readData(req)).toString()
   
   switch (contentType) {
-    case 'application/x-www-form-urlencoded' :
+    case HTTP.HeaderValue.form :
       return querystring.parse(data)
 
     default :
