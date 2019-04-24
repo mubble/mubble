@@ -201,6 +201,7 @@ export namespace ObopayHttpsClient {
 
   export function verifyClientRequest(rc          : RunContextServer,
                                       clientId    : string,
+                                      version     : string,
                                       encProvider : HttpsEncProvider,
                                       headers     : Mubble.uObject<any>,
                                       clientIp    : string) {
@@ -223,6 +224,16 @@ export namespace ObopayHttpsClient {
        && clientCredentials.permittedIps
        && clientCredentials.permittedIps.length) {
         
+      if(!ObopayHttpsClient.verifyVersion(version)) {
+        throw new Mubble.uError(SecurityErrorCodes.INVALID_VERSION,
+                                'Invalid protocol version : ' + version)
+      }
+
+      if(!ObopayHttpsClient.verifyClientId(clientId)) {
+        throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
+                                'Invalid clientId ' + clientId)
+      }
+
       if(!verifyIp(clientCredentials.permittedIps, clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                                 'Client IP not permitted.')

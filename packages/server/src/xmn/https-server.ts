@@ -96,12 +96,6 @@ export class HttpsServer {
       if(!ObopayHttpsClient.verifyModule(moduleName, apiName))
         throw new Error('Invalid module ' + moduleName + ' or api ' + apiName)
 
-      if(!ObopayHttpsClient.verifyVersion(version))
-        throw new Error('Invalid version in request url ' + version)
-
-      if(!ObopayHttpsClient.verifyClientId(clientId))
-        throw new Error('Invalid clientId in request url ' + clientId)
-
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
       res.writeHead(404, {
@@ -129,7 +123,7 @@ export class HttpsServer {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_METHOD,
                                 `${req.method} not supported.`)
 
-      ObopayHttpsClient.verifyClientRequest(rc, clientId, encProvider, ci.headers, ci.ip)
+      ObopayHttpsClient.verifyClientRequest(rc, clientId, version, encProvider, ci.headers, ci.ip)
 
       const streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
