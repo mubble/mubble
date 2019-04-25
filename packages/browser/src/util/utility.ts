@@ -112,7 +112,7 @@ export class BaseUtility {
     return hexCode
   }
 
-  getCompressedImage(file : any) {
+  async getCompressedImage(file : any) {
 
     return new Promise((resolve, reject) => {
       
@@ -126,35 +126,64 @@ export class BaseUtility {
         image.src = readerEvent.target.result
         
         image.onload = (imageEvent : any) => {
+          
 
-          const canvas  = document.createElement('canvas'),
+          const exif  = window['EXIF']
+
+          // if (!exif) 
+ 
+          exif.getData(file, function() {
+            const orientation = this.exifdata.Orientation
+
+            const canvas  = document.createElement('canvas'),
+                ctx     = canvas.getContext('2d'),
                 maxSize = 800
               
-          let width = image.width,
-              height = image.height;
+                let width   = image.width,
+                    height  = image.height
 
-          if (width > height) {
-            if (width > maxSize) {
-              height *= maxSize / width
-              width   = maxSize
-            }
-          } else if (height > maxSize) {
-            width *= maxSize / height
-            height = maxSize
-          }
+                ctx.save()
+
+                if (width > height) {
+
+                  if (width > maxSize) {
+
+                    height *= maxSize / width
+                    width   = maxSize
+                  }
+                } else if (height > maxSize) {
+                  width *= maxSize / height
+                  height = maxSize
+                }
+
+                if (orientation) {
+                  if (orientation > 4) {
+                    canvas.width  = height; 
+                    canvas.height = width;
+                  }
+                  switch (orientation) {
+                  case 2: ctx.translate(width, 0);     ctx.scale(-1,1); break;
+                  case 3: ctx.translate(width,height); ctx.rotate(Math.PI); break;
+                  case 4: ctx.translate(0,height);     ctx.scale(1,-1); break;
+                  case 5: ctx.rotate(0.5 * Math.PI);   ctx.scale(1,-1); break;
+                  case 6: ctx.rotate(0.5 * Math.PI);   ctx.translate(0,-height); break;
+                  case 7: ctx.rotate(0.5 * Math.PI);   ctx.translate(width,-height); ctx.scale(-1,1); break;
+                  case 8: ctx.rotate(-0.5 * Math.PI);  ctx.translate(-width,0); break;
+                  }
+                }
+            
+                ctx.drawImage(image, 0, 0, width, height)
+                ctx.restore()
+                resizedImage = canvas.toDataURL('image/jpeg', 0.7)
+                resolve(resizedImage)
+                
+          })
           
-          canvas.width  = width
-          canvas.height = height
-
-          canvas.getContext('2d').drawImage(image, 0, 0, width, height)
-          resizedImage = canvas.toDataURL('image/jpeg', 0.7)
-          resolve(resizedImage)
         }
+
       }
       reader.onerror = error => reject(error)
     })
   }
-
-
 
 }
