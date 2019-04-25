@@ -29,11 +29,14 @@ import { HttpsEncProvider }   from './https-enc-provider'
 import { UStream }            from '../util'
 import * as http              from 'http'
 import * as urlModule         from 'url'
+import * as querystring       from 'querystring'
 
 const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
       HTTP_TIMEOUT_MS    = 60 * 1000,  // timeout in ms
+      GET                = 'GET',
       POST               = 'POST',
-      SUCCESS            = 'success'
+      SUCCESS            = 'success',
+      API_STR            = 'api'
 
 export class HttpsServer {
 
@@ -51,31 +54,25 @@ export class HttpsServer {
 
     rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
 
-    const urlObj   = urlModule.parse(req.url || ''),
-          pathName = urlObj.pathname || ''
+    const urlObj      = urlModule.parse(req.url || ''),
+          pathNameRaw = urlObj.pathname || '',
+          pathName    = pathNameRaw.startsWith('/') ? pathNameRaw.substr(1) : pathNameRaw
 
-    const [version, clientId, apiName] = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/')
+    if(pathName === 'raghuEcho') {
+      const data = await raghuEcho(req, urlObj)
 
-    try {
-      if(!ObopayHttpsClient.verifyVersion(version))
-        throw new Error('Invalid version in request url ' + version)
+      rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', pathName, data)
 
-      if(!ObopayHttpsClient.verifyClientId(clientId))
-        throw new Error('Invalid clientId in request url ' + clientId)
-
-    } catch(err) {
-      this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
-                                               'Error in verifying client request.',
-                                               err)
-
-      res.writeHead(404, {
-        [HTTP.HeaderKey.contentLength] : 0,
-        connection                     : 'close' 
+      res.writeHead(200, {
+        [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.json,
+        connection                   : 'close'
       })
 
-      res.end()
+      res.end(JSON.stringify(data))
       return
     }
+
+    const [ apiStr, moduleName, apiName] = pathName.split('/')
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -86,12 +83,19 @@ export class HttpsServer {
     ci.url            = req.url || ''
     ci.headers        = req.headers
     ci.ip             = this.router.getIp(req)
-    
-    // Following fields are unrelated / irrelevant for 3rd party
     ci.msOffset       = 0
     ci.lastEventTs    = 0
 
+    const clientId = ci.headers[HTTP.HeaderKey.clientId],
+          version  = ci.headers[HTTP.HeaderKey.versionNumber] 
+
     try {
+      if(apiStr !== API_STR) 
+        throw new Error('Invalid path in request url ' + apiStr)
+
+      if(!ObopayHttpsClient.verifyModule(moduleName, apiName))
+        throw new Error('Invalid module ' + moduleName + ' or api ' + apiName)
+
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
       res.writeHead(404, {
@@ -119,7 +123,7 @@ export class HttpsServer {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_METHOD,
                                 `${req.method} not supported.`)
 
-      ObopayHttpsClient.verifyClientRequest(rc, clientId, encProvider, ci.headers, ci.ip)
+      ObopayHttpsClient.verifyClientRequest(rc, clientId, version, encProvider, ci.headers, ci.ip)
 
       const streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
@@ -261,4 +265,69 @@ export class HttpsServerProvider implements XmnProvider {
 
     this.send(rc, [wo])
   }
+}
+
+async function raghuEcho(req : http.IncomingMessage, urlObj : urlModule.UrlWithStringQuery) {
+
+  const query       = urlObj.query || '',
+        contentType = req.headers[HTTP.HeaderKey.contentType] as string
+
+  let data = {} as any
+
+  switch (req.method) {
+    case GET :
+      data = querystring.parse(query)
+      break
+
+    case POST :
+      data = await parseBody(req, contentType)
+      break
+  }
+
+  return data
+}
+
+async function parseBody(req : http.IncomingMessage, contentType : string) {
+  
+  const data = (await readData(req)).toString()
+  
+  switch (contentType) {
+    case HTTP.HeaderValue.form :
+      return querystring.parse(data)
+
+    default :
+      try {
+        return JSON.parse(data)
+      } catch (err) {
+        console.log('Could not parse data as JSON.', data, err)
+        return {data}
+      }
+  }
+}
+
+async function readData(req : http.IncomingMessage) {
+
+  const buf = await new Promise<Buffer>((resolve, reject) => {
+    let data : Buffer | string
+
+    req.addListener('data', (chunk : Buffer | string) => {
+      if(!data) {
+        data = chunk
+      } else {
+        if(chunk instanceof Buffer) data = Buffer.concat([data as Buffer, chunk])
+        else data = data + chunk
+      }
+    })
+
+    req.addListener('end', () => {
+      if(typeof data === 'string') resolve(Buffer.from(data))
+      resolve(data as Buffer)
+    })
+
+    req.addListener('error', (err : any) => {
+      reject(err)
+    })
+  })
+
+  return buf
 }

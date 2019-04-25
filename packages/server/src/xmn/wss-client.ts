@@ -61,7 +61,7 @@ export class WssClient {
       return
     }
 
-    if (!this.socket && (this.socket != WebSocket.OPEN || !this.handshakeEstablished)) {
+    if (!this.socket && (this.socket != ws.OPEN || !this.handshakeEstablished)) {
       rc.isDebug() && rc.debug(rc.getName(this), 'Handshake not established.', this.handshakeEstablished)
 
       this.establishHandshake(rc)
@@ -102,9 +102,10 @@ export class WssClient {
 
     rc.isStatus() && rc.status(rc.getName(this), `Establishing handshake with ${this.requestServer.id}.`)
 
-    const encProvider = ObopayWssClient.getEncProvider(),
-          tsMicro     = Date.now() * 1000,
-          encData     = encProvider.encodeRequestUrl(tsMicro, this.wssConfig, this.requestServer.syncHash),
+    this.encProvider = ObopayWssClient.getEncProvider()
+
+    const tsMicro     = Date.now() * 1000,
+          encData     = this.encProvider.encodeRequestUrl(tsMicro, this.wssConfig, this.requestServer.syncHash),
           encDataUri  = encodeURIComponent(encData),
           urlPath     = `${this.unsecured ? 'ws' : 'wss'}://${this.requestServer.host}:${this.requestServer.port}/`
                         + `${HANDSHAKE}/${HTTP.CurrentProtocolVersion}/${this.selfId}/${encDataUri}`
@@ -211,7 +212,7 @@ export class WssClient {
   private cleanUp(rc : RunContextServer) {
     rc.isStatus() && rc.status(rc.getName(this), 'Cleaning up connection.')
 
-    if(this.socket && this.socket.readyState === WebSocket.OPEN) this.socket.close()
+    if(this.socket && this.socket.readyState === ws.OPEN) this.socket.close()
 
     this.socket               = null as any
     this.encProvider          = null as any

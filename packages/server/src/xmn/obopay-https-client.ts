@@ -58,7 +58,7 @@ export namespace ObopayHttpsClient {
                        pk           : string,
                        requestRedis : RedisWrapper) {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Initializing ObopayHttpsClient.')
+    rc.isDebug() && rc.debug(CLASS_NAME, 'Initializing ObopayHttpsClient.')
                     
     if(selfId) throw new Error('Calling init twice.')
 
@@ -201,6 +201,7 @@ export namespace ObopayHttpsClient {
 
   export function verifyClientRequest(rc          : RunContextServer,
                                       clientId    : string,
+                                      version     : string,
                                       encProvider : HttpsEncProvider,
                                       headers     : Mubble.uObject<any>,
                                       clientIp    : string) {
@@ -223,6 +224,16 @@ export namespace ObopayHttpsClient {
        && clientCredentials.permittedIps
        && clientCredentials.permittedIps.length) {
         
+      if(!ObopayHttpsClient.verifyVersion(version)) {
+        throw new Mubble.uError(SecurityErrorCodes.INVALID_VERSION,
+                                'Invalid protocol version : ' + version)
+      }
+
+      if(!ObopayHttpsClient.verifyClientId(clientId)) {
+        throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
+                                'Invalid clientId ' + clientId)
+      }
+
       if(!verifyIp(clientCredentials.permittedIps, clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                                 'Client IP not permitted.')
@@ -262,6 +273,12 @@ export namespace ObopayHttpsClient {
 
   export function verifyVersion(version : string) : boolean {
     return version === HTTP.CurrentProtocolVersion
+  }
+
+  export function verifyModule(module : string, apiName : string) : boolean {
+    // TODO : Add module and apiName check
+
+    return true
   }
 
   export function verifyRequestTs(requestTs : number) : boolean {
