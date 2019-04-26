@@ -214,7 +214,7 @@ export class HttpsServerProvider implements XmnProvider {
 
     const body       = wo.errorCode ? wo.errorCode === SUCCESS ? {error : wo.errorCode, data : wo.data}
                                                                : {error : wo.errorCode, data : wo.errorMessage}
-                                    : {error : null, data : wo.data},
+                                    : {data : wo.data},
           encBodyObj = this.encProvider.encodeBody(body, true)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
