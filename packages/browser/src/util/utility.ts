@@ -124,14 +124,16 @@ export class BaseUtility {
 
         const image = new Image()
         image.src = readerEvent.target.result
-        
+      
         image.onload = (imageEvent : any) => {
           
           const exif  = window['EXIF']
 
           if (exif) {
-            exif.getData(file,function() {
-              const orientation = this.exifdata.Orientation
+            // this.rc.isAssert() && this.rc.assert(this.rc.getName(this), )
+            exif.getData(file, () =>  {
+              const orientation = file.exifdata.Orientation
+              console.log({orientation})
               return resolve(this.getCanvasImage(image, orientation))
             })
           } else {
@@ -200,19 +202,16 @@ export class BaseUtility {
   }
 
   getCanvasImage(image : any, orientation ?: number) {
-    const canvas  = document.createElement('canvas'),
-    ctx     = canvas.getContext('2d'),
-    maxSize = 800
-  
-    let width   = image.width,
-        height  = image.height
 
-    ctx.save()
+    const canvas  = document.createElement('canvas'),
+          ctx     = canvas.getContext('2d'),
+          maxSize = 800
+                  
+    let width = image.width,
+        height = image.height;
 
     if (width > height) {
-
       if (width > maxSize) {
-
         height *= maxSize / width
         width   = maxSize
       }
@@ -220,33 +219,43 @@ export class BaseUtility {
       width *= maxSize / height
       height = maxSize
     }
-
-    canvas.width  = height
-    canvas.height = width
-
-    console.log({orientation})
+              
+    canvas.width  = width
+    canvas.height = height
 
     if (orientation) {
       // if (orientation > 4) {
-        canvas.width  = height; 
-        canvas.height = width;
+        // canvas.width  = height; 
+        // canvas.height = width;
       // }
       switch (orientation) {
-      case 2: ctx.translate(width, 0);     ctx.scale(-1,1); break;
-      case 3: ctx.translate(width,height); ctx.rotate(Math.PI); break;
-      case 4: ctx.translate(0,height);     ctx.scale(1,-1); break;
-      case 5: ctx.rotate(0.5 * Math.PI);   ctx.scale(1,-1); break;
-      case 6: ctx.rotate(0.5 * Math.PI);   ctx.translate(0,-height); break;
-      case 7: ctx.rotate(0.5 * Math.PI);   ctx.translate(width,-height); ctx.scale(-1,1); break;
-      case 8: ctx.rotate(-0.5 * Math.PI);  ctx.translate(-width,0); break;
+        case 2: ctx.translate(width, 0);     ctx.scale(-1,1); break;
+        case 3: ctx.translate(width,height); ctx.rotate(Math.PI); break;
+        case 4: ctx.translate(0,height);     ctx.scale(1,-1); break;
+        case 5: ctx.rotate(0.5 * Math.PI);   ctx.scale(1,-1); break;
+        case 6: ctx.rotate(0.5 * Math.PI);   ctx.translate(0,-height); break;
+        case 7: ctx.rotate(0.5 * Math.PI);   ctx.translate(width,-height); ctx.scale(-1,1); break;
+        case 8: ctx.rotate(-0.5 * Math.PI);  ctx.translate(-width,0); break;
       }
-    }
 
+    }
+    
     ctx.drawImage(image, 0, 0, width, height)
     ctx.restore()
+
+    const backgroundColor     = 'white'
+    const compositeOperation  = ctx.globalCompositeOperation
+    
+		ctx.globalCompositeOperation = "destination-over"
+
+		ctx.fillStyle = backgroundColor
+    ctx.fillRect(0,0,width,height)
+    ctx.globalCompositeOperation = compositeOperation
+
+
     const resizedImage = canvas.toDataURL('image/jpeg', 0.7)
     return resizedImage
-    
+  
   }
 
 }
