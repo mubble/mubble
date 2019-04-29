@@ -24,7 +24,6 @@ import { NcMaxLengthDirective,
          NcStyleClassDirective,
          NextInpFocusDirective
        }                                    from './directives'
-
 import { TRANSLATION_PROVIDERS,
          TranslateService,
          TranslatePipe }                    from './translate'
@@ -37,8 +36,7 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    FlexLayoutModule,
-    
+    FlexLayoutModule,    
     MuComponentsRoutingModule
   ],
 

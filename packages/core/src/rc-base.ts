@@ -21,8 +21,8 @@ import { Timer } from './util/timer'
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
-export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
-export enum RUN_MODE {DEV, PROD, LOAD}
+export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE }
+export enum RUN_MODE { DEV, QA, PRE_PROD, PROD, LOAD }
 
 export abstract class ExternalLogger {
   

@@ -218,7 +218,7 @@ export class ClusterMaster {
     }
 
     const instances = conf.INSTANCES || 
-                      (rc.getRunMode() === RUN_MODE.PROD ? os.cpus().length : 1)
+                      ((rc.getRunMode() === RUN_MODE.PROD || rc.getRunMode() === RUN_MODE.PRE_PROD) ? os.cpus().length : 1)
 
     for (let workerIndex: number = 0; workerIndex < instances; workerIndex++) {
       const workerInfo : WorkerInfo = new WorkerInfo(rc, this, workerIndex)

@@ -201,4 +201,10 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   onBackPressed() {
     this.backPressed = true
   }
+
+  canGoBack() {
+    const childComponent  = this.injectedComponent
+    return childComponent.canGoBack ? childComponent.canGoBack() : true
+  }
+
 }

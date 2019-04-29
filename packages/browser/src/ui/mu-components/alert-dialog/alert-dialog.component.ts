@@ -13,7 +13,8 @@ export interface AlertDialogParams {
   message          : string
   positiveActText  : string
   negativeActText ?: string
-  contextId       ?: string //If same component is invoking this dialog with different contexts 
+  contextId       ?: string //If same component is invoking this dialog with different contexts
+  canGoBack       ?: boolean
 }
 
 export enum RESULT {
@@ -39,6 +40,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
   private myParent  : InjectionParent
   private result    : RESULT
   private contextId : string
+  private allowBack : boolean
 
   title           : string
   message         : string
@@ -74,6 +76,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     this.positiveActText  = queryParams['positiveActText']
     this.negativeActText  = queryParams['negativeActText'] || ''
     this.contextId        = queryParams['contextId'] || ''
+    this.allowBack        = queryParams['canGoBack']
   }
 
   setCaller(caller: InjectionCaller) {
@@ -100,6 +103,13 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     return true
   }
 
+  canGoBack() {
+    const canGoBack = this.allowBack !== undefined
+
+    return canGoBack ? this.allowBack : true
+
+  }
+
   /*=====================================================================
                               HTML FUNCTIONS
   =====================================================================*/
@@ -109,7 +119,8 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
   }
 
   onContinue() {
-    this.result  = RESULT.YES
+    this.result     = RESULT.YES
+    this.allowBack  = true
     this.close()
   }
 

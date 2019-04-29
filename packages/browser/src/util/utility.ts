@@ -116,8 +116,6 @@ export class BaseUtility {
 
     return new Promise((resolve, reject) => {
       
-      let resizedImage
-
       const reader = new FileReader()
       reader.readAsDataURL(file)
       reader.onload = (readerEvent : any) => {

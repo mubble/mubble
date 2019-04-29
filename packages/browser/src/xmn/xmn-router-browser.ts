@@ -91,6 +91,9 @@ export abstract class XmnRouterBrowser {
   abstract getMaxOpenSecs() : number
   abstract getCustomData(rc: RunContextBrowser) : CustomData
   abstract updateCustomData(rc: RunContextBrowser, customData: CustomData)
+  abstract canStrtLastReqTimer(rc : RunContextBrowser) : boolean
+  abstract getSessionTimeOutSecs(rc: RunContextBrowser)
+  abstract sessionTimedOut(rc: RunContextBrowser)
     
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
 
@@ -203,7 +206,6 @@ export abstract class XmnRouterBrowser {
             wireEvent  = new WireEvent(eventTable.name, JSON.parse(eventTable.data), eventTable.ts)
 
       if (this.ci.provider.send(rc, [wireEvent])) break // failed to send
-
       rc.isDebug() && rc.debug(rc.getName(this), 'sent event', wireEvent)
       this.lastEventTs      = wireEvent.ts / 1000
       this.lastEventSendTs  = Date.now()

@@ -39,7 +39,7 @@ export class InitConfigBrowser extends InitConfig {
 
     super(logLevel, logLevel !== LOG_LEVEL.NONE, tzMin)
 
-    if (runMode === RUN_MODE.PROD && logLevel !== LOG_LEVEL.NONE) {
+    if ((runMode === RUN_MODE.PROD || runMode === RUN_MODE.PRE_PROD) && logLevel !== LOG_LEVEL.NONE) {
       console.log('You must turn off logging in production mode')
     }
   }
