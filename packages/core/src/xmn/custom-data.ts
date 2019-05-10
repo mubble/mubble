@@ -9,9 +9,6 @@
 
 export interface CustomData {
  
-  //should be sent from all the native platforms
-  deviceId        : string
-
   // only valid when request is from Mubble (web)app
   appName       : string
   channel       : string
