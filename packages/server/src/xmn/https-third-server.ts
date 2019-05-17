@@ -166,7 +166,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
     uStream.write(data)
 
     this.server.markFinished(this)
-    this.router.providerClosed(rc, this.ci)
+    // this.router.providerClosed(rc, this.ci)
   }
 
   requestClose() {
