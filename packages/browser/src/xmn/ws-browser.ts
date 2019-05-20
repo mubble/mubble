@@ -65,7 +65,6 @@ export class WsBrowser implements XmnProvider {
     this.lastRequestTimer = rc.timer.register('ws-request', this.cbRequestTimer.bind(this))
 
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
-    window['wsBrowser'] = this
 
   }
 
