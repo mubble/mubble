@@ -11,12 +11,14 @@
 - Moved deviceId to custom data for Android and IOS.
 - Implemented canGo Back for modal popups.
 - Created BaseClass for common utility App code
+- Added wss-client server side.
+- Added raghuEcho health check.
 
 ## Bug Fixes
 - None
 
 ## Improvements
-- None
+- Protocol level changes for http(s). Version and ClientId comes in headers now.
 
 ## Upgrade Steps
 - None
