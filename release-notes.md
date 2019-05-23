@@ -10,13 +10,15 @@
 - Added Session timeout for web.
 - Moved deviceId to custom data for Android.
 - Implemented canGo Back for modal popups.
-- Created BaseClass for common utility code.  
+- Created BaseClass for common utility code.
+- Added wss-client server side.
+- Added raghuEcho health check.
 
 ## Bug Fixes
 - None
 
 ## Improvements
-- None
+- Protocol level changes for http(s). Version and ClientId comes in headers now.
 
 ## Upgrade Steps
 - None
