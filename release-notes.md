@@ -17,7 +17,7 @@
 - Added setex function in redis.
 
 ## Bug Fixes
-- None
+- Connection opened on verfiy connection
 
 ## Improvements
 - Protocol level changes for http(s). Version and ClientId comes in headers now.
