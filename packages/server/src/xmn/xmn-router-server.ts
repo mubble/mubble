@@ -76,7 +76,7 @@ export abstract class XmnRouterServer {
     //const rc : RunContextNcServer = refRc.copyConstruct('', refRc.contextName)
 
     const reqStruct = apiName ? this.apiMap[apiName] : null
-    // await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
+    await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
   
     const apiname = 'verifyConnection'
     if (ci.customData) {
