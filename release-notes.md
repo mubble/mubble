@@ -14,6 +14,7 @@
 - Created BaseClass for common utility App code
 - Added wss-client server side.
 - Added raghuEcho health check.
+- Added setex function in redis.
 
 ## Bug Fixes
 - None
