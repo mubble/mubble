@@ -2,7 +2,7 @@
 
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
-| 1.3.0 | Raghvendra Varma | 2019-05-24| |
+| 1.3.0 | Raghvendra Varma | 2019-05-24| | Approved |
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
 
 # Version 1.3.0
