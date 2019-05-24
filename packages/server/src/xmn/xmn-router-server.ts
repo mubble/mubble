@@ -28,7 +28,7 @@ const EVENT_QUEUE = 'event-queue:'
 
 export type ClientEventObject = {
   workerId    : string
-  clientId    : number
+  clientId    : number | string
   eventName   : string
   eventParams : Mubble.uObject<any> 
 }

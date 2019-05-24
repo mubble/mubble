@@ -11,23 +11,23 @@ import { ConnectionInfo } from '@mubble/core'
 
 export namespace ConnectionMap {
 
-  const ActiveConnectionMap : Map<number, ConnectionInfo> = new Map()
+  const ActiveConnectionMap : Map<number | string, ConnectionInfo> = new Map()
 
-  export function addActiveConnection(clientId : number, ci : ConnectionInfo) {
+  export function addActiveConnection(clientId : number | string, ci : ConnectionInfo) {
     if(isActiveConnection(clientId)) return
 
     ActiveConnectionMap.set(clientId, ci)
   }
 
-  export function getActiveConnection(clientId : number) {
+  export function getActiveConnection(clientId : number | string) {
     return ActiveConnectionMap.get(clientId)
   }
 
-  export function isActiveConnection(clientId : number) {
+  export function isActiveConnection(clientId : number | string) {
     return ActiveConnectionMap.has(clientId)
   }
 
-  export function removeActiveConnection(clientId : number) {
+  export function removeActiveConnection(clientId : number | string) {
     if(!isActiveConnection(clientId)) return
     
     ActiveConnectionMap.delete(clientId)
