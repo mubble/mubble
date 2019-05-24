@@ -2,9 +2,10 @@
 
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
-| 1.0.0 | Raghvendra Varma | | |
+| 1.3.0 | Raghvendra Varma | 2019-05-24| |
+| 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
 
-# Version 1.0.0
+# Version 1.3.0
 
 ## Features
 - Added Session timeout for web.
@@ -19,6 +20,27 @@
 
 ## Improvements
 - Protocol level changes for http(s). Version and ClientId comes in headers now.
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
+
+
+# Version 1.0.0
+
+## Features
+- Initial packages - core, server, browser and android
+
+## Bug Fixes
+- None
+
+## Improvements
+- None
 
 ## Upgrade Steps
 - None
