@@ -78,6 +78,8 @@ export class RedisCmds {
   incr      (...args : string[]) : Promise<void> {return true as any}
   watch     (...args : string[] ) : Promise<string []> {return true as any}
 
+  setex     (key : string, seconds : number, value : any) : Promise<string> {return true as any}
+
   mget      (...args : string[]) : Promise<string []> {return true as any}
   mset      (...args : string[]) : Promise<string> {return true as any}
 
