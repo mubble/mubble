@@ -9,7 +9,8 @@
 
 import { 
          HTTP,
-         WssProviderConfig
+         WssProviderConfig,
+         Mubble
        }                        from '@mubble/core'
 import {
          CredentialRegistry,
@@ -17,8 +18,7 @@ import {
        }                        from './credential-registry'
 import { RunContextServer }     from '../rc-server'
 import { WssEncProvider }       from './wss-enc-provider'
-
-const MICRO_MULT = 1000000
+import { WssClient }            from './wss-client'
 
 export const HANDSHAKE = '__handshake__'
 
@@ -32,12 +32,12 @@ export namespace ObopayWssClient {
     toleranceSecs : number
   }
 
-  let selfId         : string,
-      defaultConfig  : DefaultWssConfig,
-      maxOpenTs      : number,
-      serverRegistry : CredentialRegistry,
-      appRegistry    : AppRegistry,
-      privateKey     : string
+  let selfId               : string,
+      defaultConfig        : DefaultWssConfig,
+      serverRegistry       : CredentialRegistry,
+      appRegistry          : AppRegistry,
+      privateKey           : string,
+      wssClient            : WssClient
 
   export function init(rc             : RunContextServer,
                        selfIdentifier : string,
@@ -46,23 +46,57 @@ export namespace ObopayWssClient {
                        sRegistry      : CredentialRegistry,
                        pk             : string) {
 
+    rc.isDebug() && rc.debug(CLASS_NAME, 'Initializing ObopayWssClient.')
+
     if(selfId) throw new Error('Calling init twice.')
 
-    selfId         = selfIdentifier
-    defaultConfig  = wssConfig
-    appRegistry    = aRegistry
-    serverRegistry = sRegistry
-    privateKey     = pk
+    selfId               = selfIdentifier
+    defaultConfig        = wssConfig
+    appRegistry          = aRegistry
+    serverRegistry       = sRegistry
+    privateKey           = pk
 
     Object.freeze(defaultConfig)  // Default wss config cannot change
   }
 
-  export function obopayApi() {
+  export async function obopayApi(rc         : RunContextServer,
+                                  serverId   : string,
+                                  apiName    : string,
+                                  params     : Mubble.uObject<any>,
+                                  custom    ?: Mubble.uObject<any>,
+                                  unsecured ?: boolean) {
     
+    rc.isStatus() && rc.status(CLASS_NAME, 'obopayApi', serverId, apiName, params)
+
+    if (!selfId && !defaultConfig && !serverRegistry && !privateKey) {
+      throw new Error('ObopayWssClient not initialized.')
+    }
+
+    custom = custom || {}
+
+    if (!wssClient) {
+      const wsConfig      = {
+                              maxOpenSecs   : defaultConfig.maxOpenSecs,
+                              pingSecs      : defaultConfig.pingSecs,
+                              toleranceSecs : defaultConfig.toleranceSecs,
+                              custom        : custom
+                            } as WssProviderConfig,
+            requestServer = serverRegistry.getCredential(serverId)
+
+      if(!requestServer || !requestServer.syncHash || !requestServer.host || !requestServer.port)
+        throw new Error('requestServer not defined.')
+  
+      wssClient = new WssClient(rc, requestServer, wsConfig, selfId, unsecured)
+    }
+
+    return await wssClient.sendRequest(rc, apiName, params)
   }
 
-  export function establishHandshake() {
-    
+  export function closeConnection(rc : RunContextServer) {
+    rc.isStatus() && rc.status(CLASS_NAME, 'closeConnection')
+
+    wssClient.closeConnection(rc)
+    wssClient = null as any
   }
 
   export function getWssConfig(incomingConfig : WssProviderConfig,
@@ -86,6 +120,8 @@ export namespace ObopayWssClient {
   }
 
   export function getEncProvider() : WssEncProvider {
+    if(!privateKey) throw new Error('ObopayWssClient not initialized.')
+
     return new WssEncProvider(privateKey)
   }
 
@@ -131,15 +167,15 @@ export namespace ObopayWssClient {
     return record.syncHash
   }
 
-  export function verifyRequestTs(requestTs     : number,
-                                  lastRequestTs : number,
-                                  wssConfig     : WssProviderConfig) : boolean {
+  // export function verifyRequestTs(requestTs     : number,
+  //                                 lastRequestTs : number,
+  //                                 wssConfig     : WssProviderConfig) : boolean {
 
-    const toleranceMicroS = wssConfig.toleranceSecs * MICRO_MULT,
-          pingThreshold   = lastRequestTs + (wssConfig.pingSecs * MICRO_MULT) + toleranceMicroS,
-          openThreshold   = maxOpenTs - toleranceMicroS
+  //   const toleranceMicroS = wssConfig.toleranceSecs * MICRO_MULT,
+  //         pingThreshold   = lastRequestTs + (wssConfig.pingSecs * MICRO_MULT) + toleranceMicroS,
+  //         openThreshold   = maxOpenTs - toleranceMicroS
 
-    return (requestTs < pingThreshold && requestTs < openThreshold)
-  }
+  //   return (requestTs < pingThreshold && requestTs < openThreshold)
+  // }
 
 }

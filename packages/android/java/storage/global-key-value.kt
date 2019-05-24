@@ -90,5 +90,11 @@ abstract class GlobalKeyValue: MubbleLogger {
     return sharedPrefs.getLong("lastUpgradeRunTs", -1)
   }
 
+  fun clear() {
+
+   editor.clear()
+   editor.apply()
+  }
+
 }
 

@@ -1,5 +1,3 @@
-import { HashidConverter } from './hashid-converter';
-
 /*------------------------------------------------------------------------------
    About      : Url sanitizer
    
@@ -8,6 +6,9 @@ import { HashidConverter } from './hashid-converter';
    
    Copyright (c) 2018 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
+import { HashidConverter } from './hashid-converter'
+
+
 
 export class UrlHelper {
 
@@ -31,5 +32,10 @@ export class UrlHelper {
   static decodeStringFromHashids(key: string, hashids: string): string {
     return HashidConverter.decodeHashids(key, hashids)
   }
+
+  static encodeStringAsHashids(key: string, hashids: string): string {
+    return HashidConverter.encodeString(key, hashids)
+  }
+
 
 }

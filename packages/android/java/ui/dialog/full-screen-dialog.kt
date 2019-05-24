@@ -6,6 +6,7 @@ import android.content.Context
 import android.os.Bundle
 import android.support.v4.app.DialogFragment
 import android.support.v4.app.Fragment
+import android.view.KeyEvent
 import android.view.ViewGroup
 import android.view.Window
 import core.BaseApp
@@ -21,6 +22,7 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
   private var stayTime    : Long?    = null
 
   abstract fun getScreenName(): String
+  abstract fun onBackPressed()
 
   override fun onAttach(activity: Activity?) {
     super.onAttach(activity)
@@ -54,6 +56,15 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
 
     val dialog = super.onCreateDialog(savedInstanceState)
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
+
+    dialog.setOnKeyListener { _, keyCode, event ->
+
+      if (keyCode == KeyEvent.KEYCODE_BACK) {
+        onBackPressed()
+      }
+      true
+    }
+
     return dialog
   }
 

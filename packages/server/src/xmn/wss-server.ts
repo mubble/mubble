@@ -64,13 +64,13 @@ export class WssServer {
             path         = url.pathname || '',
             [host, port] = (req.headers.host || '').split(':')
 
-      const [, handshake, version, clientId, encDataUri] = path.split(SLASH_SEP),
-            encData                                      = decodeURIComponent(encDataUri)
+      const [, handshake, version, clientId, encDataUri] = path.split(SLASH_SEP)
 
-      if(!handshake || handshake != HANDSHAKE || !version || !clientId || !encData)
+      if(!handshake || handshake != HANDSHAKE || !version || !clientId || !encDataUri)
         throw new Error(`Invalid URL path ${path}.`)
 
-      const isAppClient = ObopayWssClient.verifyClientRequest(rc, version, clientId),
+      const encData     = decodeURIComponent(encDataUri),
+            isAppClient = ObopayWssClient.verifyClientRequest(rc, version, clientId),
             publicKey   = isAppClient ? undefined
                                       : ObopayWssClient.getClientPublicKey(clientId),
             encProvider = ObopayWssClient.getEncProvider(),
@@ -91,7 +91,7 @@ export class WssServer {
       ci.lastRequestTs  = body.tsMicro
       ci.customData     = wssConfig.custom
 
-      const wssProvider = new WssServerProvider(rc, socket, ci, this.router, encProvider, wssConfig, this)
+      const wssProvider = new WssServerProvider(rc, socket, ci, this.router, encProvider, wssConfig, isAppClient, this)
       ci.provider       = wssProvider
 
       try {
@@ -167,6 +167,7 @@ export class WssServerProvider implements XmnProvider {
                      private router      : XmnRouterServer,
                      private encProvider : WssEncProvider,
                      private wssConfig   : WssProviderConfig,
+                     private appClient   : boolean,
                      private wssServer   : WssServer) {
 
     this.socket.onopen     = this.onOpen.bind(this)
@@ -176,7 +177,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
-    const data = await this.encProvider.encodeBody(woArr)
+    const data = await this.encProvider.encodeBody(woArr, this.appClient)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
 
@@ -204,7 +205,7 @@ export class WssServerProvider implements XmnProvider {
 
   private async processMessage(rc : RunContextServer, data : Buffer) {
 
-    const woArr = await this.encProvider.decodeBody(data)
+    const woArr = await this.encProvider.decodeBody(data, this.appClient)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'processing', woArr)
 

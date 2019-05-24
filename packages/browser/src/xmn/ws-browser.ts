@@ -25,20 +25,24 @@ import {
          WireObject,
          XmnProvider,
          WssProviderConfig,
-         HANDSHAKE
+         HANDSHAKE,
+         WIRE_TYPE,
+         WireRequest
        }                                from '@mubble/core'
 import { XmnRouterBrowser }             from './xmn-router-browser'
 import { RunContextBrowser }            from '../rc-browser'
 import { EncryptionBrowser }            from './enc-provider-browser'
 
-const PING_SECS       = 29,
-      TOLERANCE_SECS  = 5
+const PING_SECS             = 29,
+      TOLERANCE_SECS        = 5,
+      RFRSH_LAST_REQ_SECS   = 60
 
 export class WsBrowser implements XmnProvider {
 
   private ws                  : WebSocket
   private encProvider         : EncryptionBrowser
   private timerPing           : TimerInstance
+  private lastRequestTimer    : TimerInstance
   private wsProviderConfig    : WssProviderConfig
   private pendingMessage      : WireObject[] | WireObject
   
@@ -47,16 +51,21 @@ export class WsBrowser implements XmnProvider {
   private sending             : boolean         = false
   private configured          : boolean         = false
   private connExpired         : boolean         = false
+  private lastRequestTs       : number          = 0
 
   private ephemeralEvents     : WireEvent[]     = []
+  private sessionTimedoutSecs : number    
 
   constructor(private rc     : RunContextBrowser, 
               private ci     : ConnectionInfo,
               private router : XmnRouterBrowser) {
 
     rc.setupLogger(this, 'WsBrowser')
-    this.timerPing = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
+    this.timerPing        = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))
+    this.lastRequestTimer = rc.timer.register('ws-request', this.cbRequestTimer.bind(this))
+
     rc.isDebug() && rc.debug(rc.getName(this), 'constructor')
+
   }
 
   private uiArToB64(ar : any) {
@@ -165,6 +174,12 @@ export class WsBrowser implements XmnProvider {
         messages: data.length, firstMsg: data[0].name})  
     }
 
+    const wireObjIsOfReq  = data.some(wireObject => { return wireObject.type === WIRE_TYPE.REQUEST })
+
+    if (wireObjIsOfReq && this.router.canStrtLastReqTimer(this.rc)) {
+      this.setLastReqTimer(rc)
+    }
+
     this.setupTimer(rc)
     this.sending = false
   }
@@ -242,10 +257,41 @@ export class WsBrowser implements XmnProvider {
     return requestTs < pingTh && requestTs < openTh
   }
 
+  private async setLastReqTimer(rc: RunContextBrowser) {
+
+    this.lastRequestTs  = Date.now()
+    this.lastRequestTimer.tickAfter(RFRSH_LAST_REQ_SECS * 1000, true)
+
+
+    if (!this.sessionTimedoutSecs) {
+      this.sessionTimedoutSecs  = await this.router.getSessionTimeOutSecs(rc)
+    }
+
+  }
+
   private setupTimer(rc: RunContextBrowser) {
     
     this.lastMessageTs = Date.now()
     this.timerPing.tickAfter(this.wsProviderConfig.pingSecs * 1000, true)
+  }
+
+  private cbRequestTimer() {
+
+    if (!this.ci.provider) return 0
+
+    const now   = Date.now(),
+          diff  = now - this.lastRequestTs
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `cbRequestTimer ${diff}, ${this.sessionTimedoutSecs}`)
+
+    if (diff >= (this.sessionTimedoutSecs * 1000)) {
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `Session timed out. Closing session`)
+      this.router.sessionTimedOut(this.rc)
+      this.requestClose()
+      return RFRSH_LAST_REQ_SECS * 1000
+    }
+
+    return diff
   }
 
   private cbTimerPing(): number {
@@ -258,9 +304,10 @@ export class WsBrowser implements XmnProvider {
     if (diff <= 0) {
       this.send(this.rc, [new WireSysEvent(SYS_EVENT.PING, {})])
       return this.wsProviderConfig.pingSecs * 1000
-    } else {
-      return diff
     }
+
+    return diff
+    
   }
 
   private cleanup() {
@@ -269,6 +316,7 @@ export class WsBrowser implements XmnProvider {
 
     try {
       this.timerPing.remove()
+      this.lastRequestTimer.remove()
       
       this.encProvider  = null as any
       this.ci.provider  = null as any

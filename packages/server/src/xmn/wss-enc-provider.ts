@@ -39,6 +39,20 @@ export class WssEncProvider {
     return this.respAesKey.toString(BASE64)
   }
 
+  public encodeRequestUrl(tsMicro : number, wssConfig : WssProviderConfig, publicKey : string) : string {
+
+    if(!this.reqAesKey) this.reqAesKey = this.getNewAesKey()
+
+    const encTsMicroBuf   = this.encryptUsingPrivateKey(Buffer.from(tsMicro.toString())),
+          encReqKeyBuf    = this.encryptUsingPublicKey(this.reqAesKey, publicKey),
+          encWssConfigBuf = this.encryptRequestConfig(wssConfig),
+          encTsMicro      = encTsMicroBuf.toString(BASE64),
+          encReqKey       = encReqKeyBuf.toString(BASE64),
+          encWssConfig    = encWssConfigBuf.toString(BASE64)
+
+    return `${encTsMicro}${encReqKey}${encWssConfig}`
+  }
+
   public decodeRequestUrl(encData : string, publicKey ?: string) : {
                                                                      tsMicro   : number
                                                                      wssConfig : WssProviderConfig
@@ -86,9 +100,28 @@ export class WssEncProvider {
     return totalBuf
   }
 
-  public async encodeBody(woArr : Array<WireObject>) : Promise<Buffer> {
+  public async decodeHandshakeMessage(totalBuf : Buffer) : Promise<WireObject> {
+    const leaderBuf  = totalBuf.slice(0, 1),
+          encDataBuf = totalBuf.slice(1),
+          leader     = leaderBuf[0]
 
-    const dataStr = this.stringifyWireObjects(woArr)
+    let dataBuf = this.decryptUsingAesKey(this.reqAesKey, encDataBuf)
+
+    if (leader === DataLeader.ENC_DEF_JSON) {
+      dataBuf = await Mubble.uPromise.execFn(zlib.inflate, zlib, encDataBuf)
+    }
+    
+    const woStr = dataBuf.toString(),
+          wo    = JSON.parse(woStr)
+
+    this.respAesKey = Buffer.from(wo.data.key, BASE64)
+
+    return wo
+  }
+
+  public async encodeBody(woArr : Array<WireObject>, app : boolean) : Promise<Buffer> {
+
+    const dataStr = app ? this.stringifyWireObjects(woArr) : JSON.stringify(woArr)
 
     let leader  = DataLeader.ENC_JSON,
         dataBuf = Buffer.from(dataStr)
@@ -105,7 +138,7 @@ export class WssEncProvider {
     return totalBuf
   }
 
-  public async decodeBody(totalBuf : Buffer) : Promise<Array<WireObject>> {
+  public async decodeBody(totalBuf : Buffer, app : boolean) : Promise<Array<WireObject>> {
 
     const leaderBuf = totalBuf.slice(0, 1),
           leader    = [...leaderBuf][0]
@@ -126,7 +159,7 @@ export class WssEncProvider {
     }
 
     const dataStr = dataBuf.toString(),
-          woArr   = this.parseWireObjectsString(dataStr)
+          woArr   = app ? this.parseWireObjectsString(dataStr) : JSON.parse(dataStr)
 
     return woArr
   }
@@ -134,6 +167,14 @@ export class WssEncProvider {
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
    PRIVATE METHODS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+
+  private encryptRequestConfig(wssConfig : WssProviderConfig) : Buffer {
+    const wssConfigStr = JSON.stringify(wssConfig),
+          wssConfigBuf = Buffer.from(wssConfigStr),
+          encWssConfig = this.encryptUsingAesKey(this.reqAesKey, wssConfigBuf)
+
+    return encWssConfig
+  }
 
   private decryptRequestConfig(encWssConfig : Buffer) : WssProviderConfig {
     const wssConfigBuf = this.decryptUsingAesKey(this.reqAesKey, encWssConfig),
@@ -221,5 +262,4 @@ export class WssEncProvider {
 
     return arData
   }
-
 }

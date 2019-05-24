@@ -25,6 +25,7 @@ export interface InjectedChild {
   setParam?(params: object) : void 
   closeFromParent?()        : void
   ngOnDestroy?()            : void
+  canGoBack?()              : boolean
 }
 
 export interface BottomInInterface extends InjectedChild {

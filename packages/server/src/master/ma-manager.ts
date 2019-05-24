@@ -196,7 +196,7 @@ export class MasterMgr {
       this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , sredisUrl )
       this.subRedis = await RedisWrapper.connect(rc , 'SubscriptionRedis' , sredisUrl )
       
-      assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
+      // assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
       
       this.buildDependencyMap(rc)
 

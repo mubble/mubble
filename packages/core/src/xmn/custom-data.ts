@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 export interface CustomData {
-
+ 
   // only valid when request is from Mubble (web)app
   appName         : string
   channel         : string

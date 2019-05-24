@@ -17,6 +17,7 @@ data class CustomData(val appName: String, val channel: String,
       val customData = CustomData(appName, channel, appVersion)
 
       customData.jsVersion      = obj.optString("jsVersion")
+      customData.deviceId       = obj.optString("deviceId")
       customData.clientId       = obj.optLong("clientId")
       customData.userLinkId     = obj.optString("userLinkId")
       customData.uniqueId       = obj.optString("uniqueId")
@@ -33,6 +34,7 @@ data class CustomData(val appName: String, val channel: String,
   }
 
   var jsVersion       : String?     = null
+  var deviceId        : String?     = null
 
   // only available when client is issued an identity
   var clientId        : Long?       = null
@@ -55,6 +57,7 @@ data class CustomData(val appName: String, val channel: String,
 
     obj.put("appName",        appName)
     obj.put("channel",        channel)
+    obj.put("deviceId",       deviceId)
     obj.put("appVersion",     appVersion)
     obj.put("jsVersion",      jsVersion)
     obj.put("clientId",       clientId)
