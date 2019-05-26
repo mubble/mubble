@@ -4,7 +4,13 @@
   [ngClass.md]="['web-alerts-dialog']"
   [ngClass.sm]="['web-alerts-dialog']">
   <header class="header txt-xl-bld-norm border">
-    {{ title }}
+    <div class="header-title">
+      {{ title }}
+    </div>
+    <div class="close-btn" *ngIf="showCloseBtn"
+      (click)="onCancel()">
+      <i class="fa fa-lg fa-times"></i>
+    </div>
   </header>
   <div class="content txt-xl-med-norm">
     {{ message }}

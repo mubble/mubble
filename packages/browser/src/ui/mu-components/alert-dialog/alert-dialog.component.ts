@@ -15,6 +15,7 @@ export interface AlertDialogParams {
   negativeActText ?: string
   contextId       ?: string //If same component is invoking this dialog with different contexts
   canGoBack       ?: boolean
+  showCloseBtn    ?: boolean
 }
 
 export enum RESULT {
@@ -42,6 +43,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
   private contextId : string
   private allowBack : boolean
 
+  showCloseBtn    : boolean
   title           : string
   message         : string
   positiveActText : string
@@ -77,6 +79,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     this.negativeActText  = queryParams['negativeActText'] || ''
     this.contextId        = queryParams['contextId'] || ''
     this.allowBack        = queryParams['canGoBack']
+    this.showCloseBtn     = queryParams['showCloseBtn'] || false
   }
 
   setCaller(caller: InjectionCaller) {
@@ -123,7 +126,5 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     this.allowBack  = true
     this.close()
   }
-
-
   
 }
