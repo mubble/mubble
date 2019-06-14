@@ -94,7 +94,9 @@ export abstract class XmnRouterBrowser {
   abstract getSessionTimeOutSecs(rc: RunContextBrowser)
   abstract sessionTimedOut(rc: RunContextBrowser)
     
-  async sendRequest(rc: RunContextBrowser, apiName: string, data: object): Promise<object> {
+  async sendRequest(rc: RunContextBrowser, apiName: string, data: object, timeoutMS ?: number): Promise<object> {
+
+    const timeout = timeoutMS || TIMEOUT_MS
 
     return new Promise((resolve, reject) => {
 
@@ -106,7 +108,7 @@ export abstract class XmnRouterBrowser {
       if (!this.ci.provider.send(rc, [wr])) {
         wr._isSent = true
         rc.isDebug() && rc.debug(rc.getName(this), 'sent request', wr)
-        this.timerReqTimeout.tickAfter(TIMEOUT_MS)
+        this.timerReqTimeout.tickAfter(timeout)
       } else {
         rc.isStatus() && rc.status(rc.getName(this), 'send to be retried', wr)
         this.timerReqResend.tickAfter(SEND_RETRY_MS)
