@@ -73,7 +73,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
                                                    0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00))
 
   init {
-    init(ci)
+    //init(ci)
     SecureRandom().nextBytes(this.syncKey)
   }
 

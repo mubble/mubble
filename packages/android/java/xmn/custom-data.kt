@@ -8,7 +8,9 @@ data class CustomData(val appName: String, val channel: String,
 
   companion object {
 
-    fun fromJsonObject(obj: JSONObject): CustomData {
+    fun fromJsonObject(obj : JSONObject?): CustomData? {
+
+      if (obj == null) return null
 
       val appName     = obj.getString("appName")
       val channel     = obj.getString("channel")

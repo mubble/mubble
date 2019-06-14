@@ -160,7 +160,7 @@ data class WsProviderConfig(var pingSecs: Int, var maxOpenSecs: Int, var toleran
 
   constructor(json: JSONObject) : this(json.optInt("pingSecs"), json.optInt("maxOpenSecs"),
                                        json.optInt("toleranceSecs"), json.optString("key"),
-                                       CustomData.fromJsonObject(json.optJSONObject("custom")))
+                                       if (json.optJSONObject("custom") != null) CustomData.fromJsonObject(json.optJSONObject("custom")) else null)
 
   override fun toJsonObject(): JSONObject {
 

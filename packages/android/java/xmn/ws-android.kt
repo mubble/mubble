@@ -22,7 +22,7 @@ class WsAndroid(private val ci: ConnectionInfo,
   private var pendingMessage    : Array<WireObject>?  = null
   private var wsProviderConfig  : WsProviderConfig?   = null
 
-  private lateinit var timerPing         : AdhocTimer
+  private var timerPing         : AdhocTimer?         = null
 
   private var socketCreateTs    : Long    = 0
   private var lastMessageTs     : Long    = 0
@@ -101,7 +101,7 @@ class WsAndroid(private val ci: ConnectionInfo,
 
       if (this.wsProviderConfig == null) {
         this.wsProviderConfig = WsProviderConfig(PING_SECS, this.router.getMaxOpenSecs(), TOLERANCE_SECS,
-            this.encProvider!!.getSyncKeyB64(), this.ci.customData!!)
+            this.encProvider!!.getSyncKeyB64(), this.ci.customData)
       }
 
       val protocol = if(this.ci.port == 443 ) "wss" else "ws"
@@ -140,7 +140,7 @@ class WsAndroid(private val ci: ConnectionInfo,
 
     this.lastMessageTs = System.currentTimeMillis()
 
-    this.timerPing.tickAfter(this.wsProviderConfig!!.pingSecs * 1000L, true)
+    this.timerPing?.tickAfter(this.wsProviderConfig!!.pingSecs * 1000L, true)
     this.sending = false
   }
 
@@ -261,7 +261,7 @@ class WsAndroid(private val ci: ConnectionInfo,
     if (this.ci.provider == null) return
 
     try {
-      this.timerPing.remove()
+      this.timerPing?.remove()
 
       this.encProvider  = null
       this.ci.provider  = null
