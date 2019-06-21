@@ -1,4 +1,6 @@
-import { NgModule, ModuleWithProviders }    from '@angular/core'
+import { NgModule,
+         ModuleWithProviders
+       }                                    from '@angular/core'
 
 import { CommonModule }                     from '@angular/common'
 
@@ -6,6 +8,11 @@ import { FormsModule,
          ReactiveFormsModule 
        }                                    from '@angular/forms'
 import { FlexLayoutModule }                 from '@angular/flex-layout'
+import { MatFormFieldModule,
+         MatDatepickerModule,
+         MatInputModule,
+         MatSelectModule
+       }                                    from '@angular/material'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -16,6 +23,7 @@ import { LoadingErrorComponent }            from './loading/loading-error/loadin
 import { LoadingOverlayComponent }          from './loading/loading-overlay/loading-overlay.component'
 import { ToastComponent }                   from './toast/toast.component'
 import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
+import { FilterTransComponent }             from './filter-trans/filter-trans.component'
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { NcMaxLengthDirective,
@@ -29,15 +37,17 @@ import { TRANSLATION_PROVIDERS,
          TranslatePipe }                    from './translate'
 import { CustomBreakPointsProvider }        from './custom-breakpoints'
 
-
-
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
     FlexLayoutModule,    
-    MuComponentsRoutingModule
+    MuComponentsRoutingModule,
+    MatFormFieldModule,
+    MatDatepickerModule,
+    MatInputModule,
+    MatSelectModule
   ],
 
   declarations: [
@@ -49,6 +59,7 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     ToastComponent,
     AlertDialogComponent,
     InfiniteScrollComponent,
+    FilterTransComponent,
 
 
     NcAutoFocusDirective,
@@ -77,6 +88,7 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     LoadingOverlayComponent,
     ToastComponent,
     InfiniteScrollComponent,
+    FilterTransComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,

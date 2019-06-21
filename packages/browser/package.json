@@ -19,6 +19,7 @@
   "peerDependencies": {
     "lodash": "^4.17.4",
     "hashids": "^1.1.4",
+    "moment": "^2.23.0",
     "reflect-metadata": "^0.1.10",
     "@mubble/core": "file:../core"
   }

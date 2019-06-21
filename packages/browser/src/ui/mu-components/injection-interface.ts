@@ -37,6 +37,5 @@ export interface BottomInInterface extends InjectedChild {
 export interface ModalInterface extends InjectedChild {
   getWidth()           : string
   isNotDismissable?()  : boolean
-  onBackPressed?() : void
+  onBackPressed?()     : void
 }
-
