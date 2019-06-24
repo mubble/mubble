@@ -26,6 +26,11 @@ export class NcPlatformLocation extends PlatformLocation {
     return location
   }
 
+
+  getState() {
+
+  }
+
   getBaseHrefFromDOM(): string {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'getBaseHrefFromDOM()')
     return '.'
@@ -40,6 +45,24 @@ export class NcPlatformLocation extends PlatformLocation {
     // this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onHashChange() ignored')
     // window.addEventListener('hashchange', fn, false);
   }
+
+
+  get hostname() {
+    return  location.hostname
+  }
+
+  get port() {
+    return  location.port
+  }
+
+  get href() {
+    return  location.href
+  }
+
+  get protocol() {
+    return  location.protocol
+  }
+
 
   get pathname(): string { 
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'get pathname()')

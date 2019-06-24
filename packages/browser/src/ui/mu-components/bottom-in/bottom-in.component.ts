@@ -114,11 +114,11 @@ export class BottomInComponent extends InjectionParentBase implements
     if (this.childRequestedClose && this.injectedComponent.closeFromParent) this.injectedComponent.closeFromParent()
   }
 
-  @ViewChild('main')                                main          : ElementRef
-  @ViewChild('header')                              header        : ElementRef
-  @ViewChild('compContainer')                       compContainer : ElementRef
+  @ViewChild('main', { static: true })                                main          : ElementRef
+  @ViewChild('header', { static: true })                              header        : ElementRef
+  @ViewChild('compContainer', { static: true })                       compContainer : ElementRef
 
-  @ViewChild('injectAt', {read: ViewContainerRef})  injectAt;
+  @ViewChild('injectAt', { read: ViewContainerRef, static: true })  injectAt;
 
   injectedComponent : BottomInInterface
 

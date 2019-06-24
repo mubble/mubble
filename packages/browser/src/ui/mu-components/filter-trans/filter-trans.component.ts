@@ -51,9 +51,9 @@ export interface SelectedFilter {
 
 export class FilterTransComponent {
 
-  @ViewChild(MatDatepicker) startPicker : MatDatepicker<Date>
-  @ViewChild(MatDatepicker) endPicker   : MatDatepicker<Date>
-  @ViewChild(MatDatepicker) picker      : MatDatepicker<Date>
+  @ViewChild(MatDatepicker, { static: false }) startPicker : MatDatepicker<Date>
+  @ViewChild(MatDatepicker, { static: false }) endPicker   : MatDatepicker<Date>
+  @ViewChild(MatDatepicker, { static: false }) picker      : MatDatepicker<Date>
 
   @Input()  filterItems     : FilterItem[] = []
   @Output() selectedFilter  = new EventEmitter<SelectedFilter[]>()
