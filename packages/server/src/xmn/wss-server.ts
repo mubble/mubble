@@ -129,12 +129,28 @@ export class WssServer {
     }
   }
 
-  public markActive(wssProvider : WssServerProvider) {    
+  public markActive(wssProvider : WssServerProvider) {
     this.socketMap.set(wssProvider, Date.now() * 1000)
   }
   
   public markClosed(wssProvider : WssServerProvider) {
     this.socketMap.delete(wssProvider)
+  }
+
+  public async sendEventToAll(rc : RunContextServer , wo: WireObject) {
+    for (const [webSocket, lastTs] of this.socketMap) {
+      webSocket.send(rc , [wo])
+    }
+  }
+
+  public async sendEventToUserLinkId(rc : RunContextServer, wo: WireObject, userLinkId: string) {
+
+    for (const [webSocket, lastTs] of this.socketMap) {
+      const socketUserLinkId = webSocket.getUserLinkId()
+      if (socketUserLinkId && socketUserLinkId === userLinkId) {
+        webSocket.send(rc, [wo])
+      }
+    }
   }
 
   private cbTimerPing() {
@@ -174,6 +190,10 @@ export class WssServerProvider implements XmnProvider {
     this.socket.onmessage  = this.onMessage.bind(this)
     this.socket.onclose    = this.onClose.bind(this)
     this.socket.onerror    = this.onError.bind(this)
+  }
+
+  public getUserLinkId(): string {
+    return this.ci.customData.userLinkId
   }
 
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
