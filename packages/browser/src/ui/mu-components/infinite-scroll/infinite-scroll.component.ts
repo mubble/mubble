@@ -42,8 +42,8 @@ export class InfiniteScrollComponent {
   @Output() listEnd       : EventEmitter<number>  = new EventEmitter<number>() // list ended event to the parent 
   @Output() activeElement : EventEmitter<number>  = new EventEmitter<number>() // active element event to the parent
  
-  @ViewChild('scrollCont')    scrollCont    : ElementRef // container inside which divs are manipulated 
-  @ViewChild('contentHolder') contentHolder : ElementRef // container holding scrollable div
+  @ViewChild('scrollCont', { static: true })    scrollCont    : ElementRef // container inside which divs are manipulated 
+  @ViewChild('contentHolder', { static: true }) contentHolder : ElementRef // container holding scrollable div
 
   viewPortItems     : any[]   = []  // these are the items that are loaded in html
 

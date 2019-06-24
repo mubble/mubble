@@ -138,8 +138,8 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
     }
   }
 
-  @ViewChild('componentContainer') componentContainer: ElementRef
-  @ViewChild('injectAt', {read: ViewContainerRef}) injectAt;
+  @ViewChild('componentContainer', { static: true }) componentContainer: ElementRef
+  @ViewChild('injectAt', { read: ViewContainerRef, static: true }) injectAt;
 
   injectedComponent : ModalInterface
   private backPressed : boolean

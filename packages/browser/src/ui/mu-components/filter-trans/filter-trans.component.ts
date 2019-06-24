@@ -18,7 +18,7 @@ import { Component,
        }                            from '@angular/core'
 import { TranslateService }         from '..'
 import { RunContextBrowser }        from '@mubble/browser/rc-browser'
-import { MatDatepicker }            from '@angular/material'
+import { MatDatepicker }            from '@angular/material/datepicker'
 import { LOG_LEVEL }                from 'framework'
 import { FormControl }              from '@angular/forms'
 
@@ -51,9 +51,9 @@ export interface SelectedFilter {
 
 export class FilterTransComponent {
 
-  @ViewChild(MatDatepicker) startPicker : MatDatepicker<Date>
-  @ViewChild(MatDatepicker) endPicker   : MatDatepicker<Date>
-  @ViewChild(MatDatepicker) picker      : MatDatepicker<Date>
+  @ViewChild(MatDatepicker, { static: false }) startPicker : MatDatepicker<Date>
+  @ViewChild(MatDatepicker, { static: false }) endPicker   : MatDatepicker<Date>
+  @ViewChild(MatDatepicker, { static: false }) picker      : MatDatepicker<Date>
 
   @Input()  filterItems     : FilterItem[] = []
   @Output() selectedFilter  = new EventEmitter<SelectedFilter[]>()

@@ -8,11 +8,10 @@ import { FormsModule,
          ReactiveFormsModule 
        }                                    from '@angular/forms'
 import { FlexLayoutModule }                 from '@angular/flex-layout'
-import { MatFormFieldModule,
-         MatDatepickerModule,
-         MatInputModule,
-         MatSelectModule
-       }                                    from '@angular/material'
+import { MatDatepickerModule }              from '@angular/material/datepicker'
+import { MatFormFieldModule }               from '@angular/material/form-field'
+import { MatInputModule }                   from '@angular/material/input'
+import { MatSelectModule }                  from '@angular/material/select'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
