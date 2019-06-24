@@ -103,7 +103,7 @@ export class FilterTransComponent {
         break
 
       case FILTER_TYPE.DROP_DOWN :
-        this.dropDownOpt = event.value
+        this.dropDownOpt          = event.value
         this.filters[index].value = this.dropDownOpt
         break
 
@@ -112,19 +112,21 @@ export class FilterTransComponent {
         break
 
       case FILTER_TYPE.TEXT :
-        this.textSearch = event.target.value + ''
+        this.textSearch           = event.target.value + ''
         this.filters[index].value = this.textSearch
         break
 
       case FILTER_TYPE.DATE_RANGE :
         const startDate = this.startDate.value ? this.startDate.value.unix() : undefined,
               endDate   = this.endDate.value   ? this.endDate.value.unix()   : undefined
+
         this.filters[index].value = [startDate, endDate]
         break
 
       case FILTER_TYPE.NUMBER_RANGE :
         const minAmount = this.minAmount.value ? this.minAmount.value : undefined,
               maxAmount = this.maxAmount.value ? this.maxAmount.value : undefined
+
         this.filters[index].value = [ minAmount, maxAmount ]
         break
     }
