@@ -219,10 +219,7 @@ export namespace ObopayHttpsClient {
 
     const clientCredentials = credentialRegistry.getCredential(clientId)
 
-    if(clientCredentials
-       && clientCredentials.syncHash
-       && clientCredentials.permittedIps
-       && clientCredentials.permittedIps.length) {
+    if(clientCredentials && clientCredentials.syncHash) {
         
       if(!ObopayHttpsClient.verifyVersion(version)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_VERSION,
@@ -266,6 +263,8 @@ export namespace ObopayHttpsClient {
   }
 
   export function verifyIp(permittedIps : Array<string>, ip : string) : boolean {
+    if(!permittedIps || !permittedIps.length) return true
+    
     permittedIps.forEach((permittedIp) => permittedIps.push('::ffff:' + permittedIp))
 
     return lo.includes(permittedIps, ip)
