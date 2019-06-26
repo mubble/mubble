@@ -18,7 +18,7 @@ import { Component,
        }                            from '@angular/core'
 import { TranslateService }         from '..'
 import { RunContextBrowser }        from '@mubble/browser/rc-browser'
-import { MatDatepicker }            from '@angular/material'
+import { MatDatepicker }            from '@angular/material/datepicker'
 import { LOG_LEVEL }                from 'framework'
 import { FormControl }              from '@angular/forms'
 
