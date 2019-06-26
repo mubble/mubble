@@ -16,6 +16,7 @@ export interface AlertDialogParams {
   contextId       ?: string //If same component is invoking this dialog with different contexts
   canGoBack       ?: boolean
   showCloseBtn    ?: boolean
+  positiveLink    ?: string
 }
 
 export enum RESULT {
@@ -24,8 +25,9 @@ export enum RESULT {
 }
 
 export interface AlertDialogResult {
-  result     : RESULT
-  contextId ?: string
+  result        : RESULT
+  contextId ?   : string
+  positiveLink ?: string
 }
 
 @Component({
@@ -48,6 +50,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
   message         : string
   positiveActText : string
   negativeActText : string
+  positiveLink    : string
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { 
     super(rc)
@@ -80,6 +83,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
     this.contextId        = queryParams['contextId'] || ''
     this.allowBack        = queryParams['canGoBack']
     this.showCloseBtn     = queryParams['showCloseBtn'] || false
+    this.positiveLink     = queryParams['positiveLink']
   }
 
   setCaller(caller: InjectionCaller) {
@@ -96,8 +100,9 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
 
   closeFromParent() {
     const result : AlertDialogResult = {
-      result   : this.result,
-      contextId: this.contextId
+      result      : this.result,
+      contextId   : this.contextId,
+      positiveLink: this.positiveLink
     }
     this.caller.setResult(this.getRouteName(), result)
   }
