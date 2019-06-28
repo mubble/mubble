@@ -1,6 +1,6 @@
-import { RunContextBrowser }  from '..'
-import { StorageProvider }    from '.'
-import { Mubble }             from '../../core'
+import { RunContextBrowser }  from '../rc-browser'
+import { StorageProvider }    from './storage-provider'
+import { Mubble }             from '@mubble/core'
 
 export class ConfigKeyVal {
 

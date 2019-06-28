@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble }                     from '../../core'
-import { RunContextBrowser }          from '..'
+import { RunContextBrowser }          from '../rc-browser'
 
 class AudioFile {
 
