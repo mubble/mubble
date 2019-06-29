@@ -1,0 +1,24 @@
+<div class="filter-comp nc-content-div" 
+  [ngClass.xl]="['web-content-div']" 
+  [ngClass.lg]="['web-content-div']" 
+  [ngClass.md]="['web-content-div']"
+  [ngClass.sm]="['web-content-div']" mweb>
+
+  <div class="filter-subtitle txt-xl-bld-dark primary-bg-light">{{ 'mu_fltr_sub_titl' | translate }}</div>
+
+  <div class="filter-content-body" *ngFor="let param of inputParams">
+    <input-container
+      [inputParams]="param"
+      [screen]="screen"
+      (value)="getFilterItems($event)"
+      #inputCont>
+    </input-container>
+  </div>
+
+  <footer class="glb-footer-cont web-footer-btn">
+    <button class="button-primary glb-footer-btn" (click)="applyFilters()">
+      {{ 'mu_fltr_btn_text' | translate }}
+    </button>
+  </footer>
+
+</div>

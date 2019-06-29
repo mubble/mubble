@@ -8,10 +8,20 @@
 ------------------------------------------------------------------------------*/
 
 import { InjectionToken }   from '@angular/core'
+import { muDictionary }     from './mu-dictionary'
 import { dictionary }       from '../../../../../framework/translations/dictionary'
 
 export const TRANSLATIONS = new InjectionToken('translations')
 
 export const TRANSLATION_PROVIDERS = [
-    { provide: TRANSLATIONS, useValue: dictionary },
-];
+  { provide: TRANSLATIONS, useValue: mergeDictionaries(muDictionary, dictionary) },
+]
+
+function mergeDictionaries(muDictionary, dictionary) {
+  Object.keys(muDictionary).forEach((key) => {
+    const value = muDictionary[key]
+    if (dictionary[key]) muDictionary[key] = Object.assign(value, dictionary[key])
+  })
+  
+  return muDictionary
+}

@@ -1,0 +1,47 @@
+.onb-input-box-cont {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-width: 2px;
+  border-style: solid;
+  margin: 2% 0;
+}
+
+.range-onb-input-box-cont {
+  position: relative;
+  display: flex;
+  align-items: center;
+  border-width: 2px;
+  border-style: solid;
+  margin: 2% 0%;
+  width: 46%
+}
+
+.range-onb-input-box-cont {
+  .input-cont {
+    position: relative;
+    width: 92%;
+    padding: 8% 4%;
+    border: 0;
+    background: none;
+  }
+}
+
+.input-cont {
+  position: relative;
+  width: 92%;
+  padding: 4%;
+  border: 0;
+  background: none;
+}
+
+.input-cont-comp {
+  position: relative;
+  margin: 2% 4%;
+}
+
+.range {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}

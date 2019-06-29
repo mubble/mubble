@@ -3,5 +3,5 @@ export const ComponentRoutes = {
   BottomIn                      : 'bottomIn',
   LoadingOverlay                : 'loadingOvr',
   Alert                         : 'alert',
-  FilterTransaction             : 'filterTrans'
+  Filter                        : 'filter'
 }

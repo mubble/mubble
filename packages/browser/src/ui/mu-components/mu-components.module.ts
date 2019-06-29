@@ -22,7 +22,8 @@ import { LoadingErrorComponent }            from './loading/loading-error/loadin
 import { LoadingOverlayComponent }          from './loading/loading-overlay/loading-overlay.component'
 import { ToastComponent }                   from './toast/toast.component'
 import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
-import { FilterTransComponent }             from './filter-trans/filter-trans.component'
+import { FilterComponent }                  from './filter/filter.component'
+import { InputContainerComponent}           from './input-container/input-container.component'
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { NcMaxLengthDirective,
@@ -58,7 +59,8 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     ToastComponent,
     AlertDialogComponent,
     InfiniteScrollComponent,
-    FilterTransComponent,
+    FilterComponent,
+    InputContainerComponent,
 
 
     NcAutoFocusDirective,
@@ -87,7 +89,8 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     LoadingOverlayComponent,
     ToastComponent,
     InfiniteScrollComponent,
-    FilterTransComponent,
+    FilterComponent,
+    InputContainerComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,

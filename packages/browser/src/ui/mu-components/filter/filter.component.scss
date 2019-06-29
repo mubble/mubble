@@ -1,0 +1,25 @@
+.filter-comp {
+  display: flex;
+  flex-direction: column;
+}
+
+.filter-subtitle {
+  padding: 2% 4%;
+}
+
+.web-content-div {
+  display: flex;
+  flex-direction: column;
+  max-height: 100% !important;
+
+  .filter-subtitle {
+    padding: 10px 22px;
+  }
+
+  .web-footer-btn {
+    position    : relative;
+    width       : 400px;
+    margin      : auto;
+  }
+}
+

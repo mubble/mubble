@@ -7,7 +7,7 @@ import { BottomInComponent }            from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }          from './modal-popup/modal-popup.component'
 import { ComponentRoutes }              from '../router/shared-router-constants'
 import { LoadingOverlayComponent }      from './loading/loading-overlay/loading-overlay.component'
-import { FilterTransComponent }         from './filter-trans/filter-trans.component'
+import { FilterComponent }              from './filter/filter.component'
 
 const routes: Routes = [
   {
@@ -25,8 +25,8 @@ const routes: Routes = [
     outlet    : 'modal'
   },
   {
-    path      : ComponentRoutes.FilterTransaction,
-    component : FilterTransComponent
+    path      : ComponentRoutes.Filter,
+    component : FilterComponent
   }
 ]
 
