@@ -7,9 +7,9 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { RunContextBrowser } from '../rc-browser'
-import { StorageProvider } from '.'
-import { Mubble } from '@mubble/core';
+import { RunContextBrowser }  from '../rc-browser'
+import { StorageProvider }    from './storage-provider'
+import { Mubble }             from '@mubble/core'
 
 const LAST_USER = 'lastUser'
 const USERS     = 'users'

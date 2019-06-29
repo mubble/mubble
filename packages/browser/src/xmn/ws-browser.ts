@@ -29,9 +29,9 @@ import {
          WIRE_TYPE,
          WireRequest
        }                                from '@mubble/core'
-import { XmnRouterBrowser }             from './xmn-router-browser'
 import { RunContextBrowser }            from '../rc-browser'
 import { EncryptionBrowser }            from './enc-provider-browser'
+import { XmnRouterBase }                from './xmn-router-base'
 
 const PING_SECS             = 29,
       TOLERANCE_SECS        = 5,
@@ -58,7 +58,7 @@ export class WsBrowser implements XmnProvider {
 
   constructor(private rc     : RunContextBrowser, 
               private ci     : ConnectionInfo,
-              private router : XmnRouterBrowser) {
+              private router : XmnRouterBase) {
 
     rc.setupLogger(this, 'WsBrowser')
     this.timerPing        = rc.timer.register('ws-ping', this.cbTimerPing.bind(this))

@@ -26,6 +26,7 @@ import {
          WssProviderConfig,
        }                      from '@mubble/core'
 import { RunContextBrowser }  from '../rc-browser'
+import { XmnRouterBase }      from './xmn-router-base'
 import { WsBrowser }          from './ws-browser'
 import { EventSystem }        from '../util'
 import * as lo                from 'lodash'
@@ -41,7 +42,7 @@ interface BrowserConnectionInfo extends ConnectionInfo {
   provider : WsBrowser
 }
 
-export abstract class XmnRouterBrowser {
+export abstract class XmnRouterBrowser implements XmnRouterBase {
 
   private ci                : BrowserConnectionInfo
   private ongoingRequests   : WireRequest[] = []

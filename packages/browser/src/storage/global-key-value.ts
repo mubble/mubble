@@ -37,8 +37,8 @@ Design
 
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
-import { RunContextBrowser } from '..'
-import { StorageProvider } from '.'
+import { RunContextBrowser }  from '../rc-browser'
+import { StorageProvider }    from './storage-provider'
 
 const META_KEY    = 'autoStore',
       VALID_TYPES = [String, Number, Boolean, Object]
