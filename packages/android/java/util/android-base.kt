@@ -20,7 +20,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.ContactsContract
-import android.support.annotation.ColorRes
+import androidx.annotation.ColorRes
 import android.telephony.TelephonyManager
 import android.text.Html
 import android.text.Spanned
@@ -197,7 +197,7 @@ object AndroidBase {
       val jsonArray = JSONArray()
 
       val phones: Cursor = context.contentResolver.query(ContactsContract
-          .CommonDataKinds.Phone.CONTENT_URI, null, null, null, null)
+          .CommonDataKinds.Phone.CONTENT_URI, null, null, null, null)!!
 
       while (phones.moveToNext()) {
 

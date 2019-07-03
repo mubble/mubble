@@ -128,7 +128,7 @@ object UtilBase {
 
     val clipboard = activity.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
     val clip = ClipData.newPlainText("Share", textToCopy)
-    clipboard.primaryClip = clip
+    clipboard.setPrimaryClip(clip)
   }
 
   fun openSoftInputKeyboard() {

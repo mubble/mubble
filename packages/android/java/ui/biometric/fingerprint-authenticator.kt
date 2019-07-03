@@ -9,9 +9,9 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
 import android.security.keystore.KeyProperties.*
-import android.support.annotation.RequiresApi
-import android.support.v4.content.ContextCompat
-import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
+import androidx.core.hardware.fingerprint.FingerprintManagerCompat
 import core.BaseApp
 import core.MubbleLogger
 import java.io.IOException

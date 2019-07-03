@@ -4,8 +4,8 @@ import android.app.Activity
 import android.app.Dialog
 import android.content.Context
 import android.os.Bundle
-import android.support.v4.app.DialogFragment
-import android.support.v4.app.Fragment
+import androidx.fragment.app.DialogFragment
+import androidx.fragment.app.Fragment
 import android.view.KeyEvent
 import android.view.ViewGroup
 import android.view.Window
@@ -24,9 +24,9 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
   abstract fun getScreenName(): String
   abstract fun onBackPressed()
 
-  override fun onAttach(activity: Activity?) {
+  override fun onAttach(activity: Activity) {
     super.onAttach(activity)
-    if (activity != null) onAttachInternal(activity)
+    onAttachInternal(activity)
   }
 
   override fun onAttach(context: Context) {
@@ -34,9 +34,9 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
     onAttachInternal(context)
   }
 
-  override fun onAttachFragment(childFragment: Fragment?) {
+  override fun onAttachFragment(childFragment: Fragment) {
     super.onAttachFragment(childFragment)
-    if (childFragment != null) onAttachInternal(BaseApp.instance)
+    onAttachInternal(BaseApp.instance)
   }
 
   override fun onStart() {
@@ -45,8 +45,8 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
     if (dialog != null) {
       val width = ViewGroup.LayoutParams.MATCH_PARENT
       val height = ViewGroup.LayoutParams.MATCH_PARENT
-      dialog.window!!.setLayout(width, height)
-      dialog.window!!.setBackgroundDrawable(null)
+      dialog!!.window!!.setLayout(width, height)
+      dialog!!.window!!.setBackgroundDrawable(null)
     }
 
     stayTime = System.currentTimeMillis()

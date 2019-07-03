@@ -3,8 +3,8 @@ package ui.biometric
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
-import android.support.v4.content.ContextCompat
-import android.support.v4.hardware.fingerprint.FingerprintManagerCompat
+import androidx.core.content.ContextCompat
+import androidx.core.hardware.fingerprint.FingerprintManagerCompat
 import core.BaseApp
 import org.json.JSONObject
 

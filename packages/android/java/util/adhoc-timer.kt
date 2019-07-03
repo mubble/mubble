@@ -33,7 +33,7 @@ class AdhocTimer(timerName: String, callback: () -> Long): MubbleLogger {
   override val customTag   : String  = "Adhoc:$timerName"
   private  var scheduledAt : Long    = 0L
   private  val logging     : Boolean = false
-  private  val looper      : Looper  = Looper.myLooper()
+  private  val looper      : Looper  = Looper.myLooper()!!
   private  val handler     : Handler = Handler(looper)
 
   private val runnable : Runnable = Runnable {

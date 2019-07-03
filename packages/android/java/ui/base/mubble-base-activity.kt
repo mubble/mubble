@@ -4,7 +4,7 @@ import android.app.ProgressDialog
 import android.content.Intent
 import android.os.Bundle
 import android.os.PersistableBundle
-import android.support.v7.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatActivity
 import core.BaseApp
 import core.MubbleLogger
 import ui.permission.AskedPermission
@@ -170,7 +170,7 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
   fun relaunchSelf() {
 
     val intent = Intent(this, this::class.java)
-    if (getIntent().extras != null) intent.putExtras(getIntent().extras)
+    if (getIntent().extras != null) intent.putExtras(getIntent().extras!!)
     intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
 
     finish()
