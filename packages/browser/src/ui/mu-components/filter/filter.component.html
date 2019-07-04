@@ -6,13 +6,15 @@
 
   <div class="filter-subtitle txt-xl-bld-dark primary-bg-light">{{ 'mu_fltr_sub_titl' | translate }}</div>
 
-  <div class="filter-content-body" *ngFor="let param of inputParams">
-    <input-container
-      [inputParams]="param"
-      [screen]="screen"
-      (value)="getFilterItems($event)"
-      #inputCont>
-    </input-container>
+  <div class="filter-input-body">
+    <div class="filter-content-body" *ngFor="let param of inputParams">
+      <input-container
+        [inputParams]="param"
+        [screen]="screen"
+        (value)="getFilterItems($event)"
+        #inputCont>
+      </input-container>
+    </div>
   </div>
 
   <footer class="footer">

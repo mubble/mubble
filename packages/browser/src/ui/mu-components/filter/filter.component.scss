@@ -5,7 +5,12 @@
   width: 100%;
 }
 
-.filter-comp::-webkit-scrollbar {
+.filter-input-body {
+  max-height: 70%;
+  overflow-y: auto;
+}
+
+.filter-input-body::-webkit-scrollbar {
   width: 5px;
 }
 
@@ -43,8 +48,4 @@
     display         : flex;
     justify-content : space-between;
   }
-}
-
-.web-filter-comp::-webkit-scrollbar {
-  width: 5px;
 }
