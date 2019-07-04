@@ -53,5 +53,8 @@
     background: mat-color($background, background);
   }
 
+  .filter-comp::-webkit-scrollbar-thumb {
+    background: lightgrey
+  }
 
 }

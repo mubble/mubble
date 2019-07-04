@@ -1,25 +1,45 @@
 .filter-comp {
   display: flex;
   flex-direction: column;
+  height: 100%;
+  width: 100%;
+}
+
+.filter-comp::-webkit-scrollbar {
+  width: 5px;
 }
 
 .filter-subtitle {
   padding: 2% 4%;
 }
 
-.web-content-div {
+.glb-footer-cont {
+  display         : flex;
+  justify-content : space-between;
+}
+
+.glb-footer-btn {
+  width : 43%;
+}
+
+.web-filter-comp {
   display: flex;
   flex-direction: column;
-  max-height: 100% !important;
+  overflow-y: auto;
 
   .filter-subtitle {
     padding: 10px 22px;
   }
 
-  .web-footer-btn {
-    position    : relative;
-    width       : 400px;
-    margin      : auto;
+  .web-footer-cont {
+    position        : relative;
+    width           : 92%;
+    margin          : auto;
+    display         : flex;
+    justify-content : space-between;
   }
 }
 
+.web-filter-comp::-webkit-scrollbar {
+  width: 5px;
+}

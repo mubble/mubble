@@ -67,7 +67,7 @@ export class InputContainerComponent {
   startDate     : FormControl
   endDate       : FormControl
   minAmount     : FormControl
-  maxAmount       : FormControl
+  maxAmount     : FormControl
   
   futureDateErr   : boolean = false
   startDateErr    : boolean = false

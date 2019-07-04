@@ -9,8 +9,7 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { DISPLAY_TYPE,
-         SelectionBoxParams,
+import { SelectionBoxParams,
          InputContainerComponent,
          InputParams,
          OutputParams
@@ -26,6 +25,7 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
+import { DISPLAY_TYPE }               from '../input-container'
 
 export enum FILTER_TYPE {
   DATE,
@@ -110,6 +110,10 @@ export class FilterComponent {
     if (this.hasError()) return
 
     this.selectedFilter.emit(this.filters)
+  }
+
+  clearFilters() {
+    this.selectedFilter.emit(undefined)
   }
 
   /*=====================================================================
