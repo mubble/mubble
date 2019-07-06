@@ -2,8 +2,32 @@
 
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
-| 1.3.0 | Raghvendra Varma | 2019-05-24| | Approved |
+| 1.4.0 | Raghvendra Varma | 2019-07-06 |  |
+| 1.3.0 | Raghvendra Varma | 2019-05-24 | Approved |
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
+
+# Version 1.4.0
+
+## Features
+- Filter component
+- Angular migration to v8
+- Sending event to partivular / all active socket connections
+- Android support lib migrated to AndroidX
+
+## Bug Fixes
+- None
+
+## Improvements
+- None
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
 
 # Version 1.3.0
 
