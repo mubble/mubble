@@ -11,8 +11,8 @@ import { RunContextBrowser }  from '../rc-browser'
 import { StorageProvider }    from './storage-provider'
 import { Mubble }             from '@mubble/core'
 
-const LAST_USER = 'lastUser'
-const USERS     = 'users'
+const LAST_USER     = 'lastUser'
+export const USERS  = 'users'
 
 export abstract class UserKeyValue {
 
