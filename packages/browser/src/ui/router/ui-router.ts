@@ -87,25 +87,30 @@ export class UiRouter {
   
   private codePop           : boolean = false
   private runningInBrowser  : boolean = false
+  private isSdkApp          : boolean = false 
 
   constructor(private rcBrowser         : RunContextBrowser,
               private router            : Router) {
 
-    this.historyWrapper = new HistoryWrapper(rcBrowser)
   }
 
-  public init(runningInBrowser: boolean) {
+  public init(runningInBrowser: boolean, isSdkApp : boolean = false) {
 
     this.runningInBrowser = runningInBrowser
+    this.isSdkApp         = isSdkApp
+
+    this.historyWrapper = new HistoryWrapper(this.rcBrowser, this.isSdkApp)
+
 
     this.urlStack[0]      = new StackItem()
     this.urlStack[0].url  = (location.hash || '').substr(1)
 
-    
     this.historyWrapper.replaceState({index: -1}, document.title, baseHref + ROOT_URL)
     this.historyWrapper.pushState({index: 0}, document.title, baseHref)
 
-    window.addEventListener('popstate', this.onPopState.bind(this))
+    if (!this.isSdkApp) window.addEventListener('popstate', this.onPopState.bind(this))  
+
+    
     this.browserStack[0]  = this.urlStack[0].url
     this.router.events.subscribe(this.onNavEnd.bind(this))
 
@@ -577,7 +582,7 @@ export class UiRouter {
     // this.curQueryParam  = null
 
     if (this.warnedUser) this.warnedUser = false
-    this.syncBrowserHistory()
+    if (!this.isSdkApp) this.syncBrowserHistory()
 
     this.onMubbleScreenNavEnd(event.url, this.lastNavMethod)
   }
@@ -699,11 +704,12 @@ export class UiRouter {
 
 class HistoryWrapper {
 
-  constructor(private rc) {
+  constructor(private rc, private isSdkApp : boolean) {
     rc.setupLogger(this, 'HistoryWrapper')
   }
 
   pushState(state: Mubble.uObject<any>, title: string, url: string) {
+    if (this.isSdkApp) return
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before pushState', {
       historyLength : history.length, 
       historyState  : history.state,
@@ -717,7 +723,7 @@ class HistoryWrapper {
   }
 
   replaceState(state: Mubble.uObject<any>, title: string, url: string) {
-
+    if (this.isSdkApp) return
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before replaceState', {
       historyLength : history.length, 
       historyState  : history.state,
@@ -733,14 +739,17 @@ class HistoryWrapper {
   }
 
   go(delta: number) {
+    if (this.isSdkApp) return
     history.go(delta)
   }
 
   getState() {
+    if (this.isSdkApp) return
     return history.state
   }
 
   getLength() {
+    if (this.isSdkApp) return
     return history.length
   }
 
