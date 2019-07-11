@@ -1,8 +1,8 @@
 /*------------------------------------------------------------------------------
-   About      : <Write about the file here>
+   About        : <Write about the file here>
    
-   Created on : Sat Jul 15 2017
-   Author     : Raghvendra Varma
+   Created on   : Sat Jul 15 2017
+   Author       : Raghvendra Varma
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
@@ -67,9 +67,9 @@ export namespace EventSystem {
   // Any class whose object is globally alive in the app should use this 
   // since it does not unsubscribe for the events
   // UnSubscribe is ********* NEVER *********
-  export function subscribe(eventName: string, cb: any) {
+  export function subscribe(eventName: string, cb: any, options ?: AddEventListenerOptions) {
     if (!eventName.startsWith(EVENT_PREFIX)) eventName = `${EVENT_PREFIX}-${eventName}`
-    window.addEventListener(eventName, cb)
+    window.addEventListener(eventName, cb,options)
   }
 
   export function subscribeAll(eventNames : string[], cb : any) {

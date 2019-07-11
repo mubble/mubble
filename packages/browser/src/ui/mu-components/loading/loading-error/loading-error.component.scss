@@ -1,6 +1,12 @@
+.mu-loading-root {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
 .error-text-cont {
   position: relative;
-  margin-top: 60%;
   margin-left: 5%;
   margin-right: 5%;
 }
@@ -31,7 +37,6 @@
   }
 
   .error-text-cont {
-    margin-top: 250px;
     overflow-wrap: break-word;
   }
 
