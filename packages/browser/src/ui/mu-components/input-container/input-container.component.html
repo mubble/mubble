@@ -53,11 +53,11 @@
     </div>
   </ng-container>
 
-  <ng-container *ngIf="inputParams.displayType===DISPLAY_TYPE.DATE_RANGE">
+  <ng-container *ngIf="inputParams.displayType===DISPLAY_TYPE.DATE_RANGE" [formGroup]="dateRange">
     <div class="range">
       <div class="range-onb-input-box-cont border-primary">
         <input matInput
-          [formControl]="startDate"
+          formControlName="startDate"
           [matDatepicker]="startPicker" 
           (dateChange)="setDateRange($event)"
           placeholder="{{inputParams.placeHolder[0]}}"
@@ -68,7 +68,7 @@
 
       <div class="range-onb-input-box-cont border-primary">
         <input matInput
-          [formControl]="endDate"
+          formControlName="endDate"
           [matDatepicker]="endPicker" 
           (dateChange)="setDateRange($event)"
           placeholder="{{inputParams.placeHolder[1]}}"
@@ -79,7 +79,7 @@
     </div>
   </ng-container>
 
-  <ng-container *ngIf="inputParams.displayType===DISPLAY_TYPE.NUMBER_RANGE">
+  <ng-container *ngIf="inputParams.displayType===DISPLAY_TYPE.NUMBER_RANGE" [formGroup]="numberRange">
     <div class="range">
       <div class="range-onb-input-box-cont border-primary">
         <input matInput
@@ -87,9 +87,8 @@
           type="number"
           (input)="setNumberRange($event)"
           class="txt-xl-bld-norm input-cont text-size-medium" 
-          [formControl]="minAmount"
+          formControlName="minAmount"
           name="input-text"
-          (updatedValue)="minAmount.setValue($event)"
           textSecurity="inputParams.isPassword"
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
@@ -102,9 +101,8 @@
           type="number"
           (input)="setNumberRange($event)"
           class="txt-xl-bld-norm input-cont text-size-medium" 
-          [formControl]="maxAmount"
+          formControlName="maxAmount"
           name="input-text"
-          (updatedValue)="maxAmount.setValue($event)"
           textSecurity="inputParams.isPassword"
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
@@ -113,33 +111,39 @@
     </div>
   </ng-container>
 
-  <div *ngIf="inputForm">
+  <div *ngIf="inputForm" class="errors-list">
     <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && 
       (inputForm.hasError('required') || inputForm.hasError('pattern'))">
       {{ inputParams.validators.validationError }}
     </mat-error>
-  </div>
-  
-  <mat-error class="txt-sm-bld-dark error-text" *ngIf="futureDateErr">
-    {{ 'mu_inpt_cont_futr_date_err' | translate }}
-  </mat-error>
 
-  <div *ngIf="startDate && endDate">
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="noStartDateErr">
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched &&
+      inputForm.hasError('futureDate')">
+      {{ 'mu_inpt_cont_futr_date_err' | translate }}
+    </mat-error>
+  </div>
+
+  <div *ngIf="dateRange" class="errors-list">
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="dateRange.get('startDate').hasError('noStartDate')">
       {{ 'mu_inpt_cont_strt_date_err' | translate }}
     </mat-error>
   
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="startDateErr">
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="dateRange.get('startDate').hasError('startDateExceed')">
       {{ 'mu_inpt_cont_date_err' | translate }}
+    </mat-error>
+
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="dateRange.get('startDate').hasError('futureDate') || 
+      dateRange.get('endDate').hasError('futureDate')">
+      {{ 'mu_inpt_cont_futr_date_err' | translate }}
     </mat-error>
   </div>
   
-  <div *ngIf="minAmount && maxAmount">
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="noMinAmountErr">
+  <div *ngIf="numberRange" class="errors-list">
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="numberRange.get('minAmount').hasError('noMinAmount')">
       {{ 'mu_inpt_cont_min_amnt_err' | translate }}
     </mat-error>
   
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="minAmountErr">
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="numberRange.get('minAmount').hasError('minAmountExceed')">
       {{ 'mu_inpt_cont_amnt_err' | translate }}
     </mat-error>
   </div>

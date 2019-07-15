@@ -85,7 +85,7 @@ export class FilterComponent {
 
   ngOnInit() {
 
-    for ( let fItem of this.filterItems) {
+    for (const fItem of this.filterItems) {
       this.filters.push({ id : fItem.id, value : fItem.defaultValue })
 
       this.inputParams.push({ id          : fItem.id,
@@ -108,6 +108,11 @@ export class FilterComponent {
     })
 
     if (this.hasError()) return
+    
+    if (!this.valueChanged()) {
+      this.selectedFilter.emit([])
+      return
+    }
 
     this.selectedFilter.emit(this.filters)
   }
@@ -115,10 +120,6 @@ export class FilterComponent {
   clearFilters() {
     this.selectedFilter.emit(undefined)
   }
-
-  /*=====================================================================
-                                UTILS
-  =====================================================================*/
 
   getFilterItems(event : OutputParams) {
 
@@ -134,7 +135,36 @@ export class FilterComponent {
     const inputContInstances = this.inputContInstances.toArray()
 
     return inputContInstances.some(inputContInstance => {
-      return inputContInstance.formError
+      return inputContInstance.hasError()
     })
+  }
+
+  private valueChanged() : boolean {
+    for (const fItem of this.filterItems) {
+      const index = this.filters.findIndex(x => x.id === fItem.id)
+      let changed : boolean = false
+
+      switch(fItem.displayType) {
+        case DISPLAY_TYPE.CALENDAR_BOX  :
+        case DISPLAY_TYPE.INPUT_BOX     :
+        case DISPLAY_TYPE.SELECTION_BOX :
+          changed = fItem.defaultValue !== this.filters[index].value
+          break
+
+        case DISPLAY_TYPE.DATE_RANGE    :
+          changed = (fItem.defaultValue['startDate'] !== this.filters[index].value['startDate']) ||
+                    (fItem.defaultValue['endDate'] !== this.filters[index].value['endDate'])
+          break
+
+        case DISPLAY_TYPE.NUMBER_RANGE  :
+          changed = (fItem.defaultValue['minAmount'] !== this.filters[index].value['minAmount']) ||
+                    (fItem.defaultValue['maxAmount'] !== this.filters[index].value['maxAmount'])
+          break
+      }
+
+      if(changed) return true
+    }
+
+    return false
   }
 }
