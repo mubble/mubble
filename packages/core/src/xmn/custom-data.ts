@@ -17,8 +17,12 @@ export interface CustomData {
 
   // only available when client is issued an identity
   clientId        : number
-  userLinkId      : string
-  uniqueId        : string
+  appUserId       : string
+  sessionId       : string
+  deviceId        : string
+
+  userLinkId      : string // TODO: remove
+  uniqueId        : string // TODO: remove
 
   location        : string // serialised JSON Object
   networkType     : string

@@ -17,9 +17,13 @@ export const USERS  = 'users'
 export abstract class UserKeyValue {
 
   private _clientId               : number
-  private _userLinkId             : string
+  private _appUserId              : string
+  private _sessionId              : string
+  private _deviceId               : string
+
+  //private _userLinkId             : string
   private _webProfilePicBase64    : string
-  userName                        : string
+  //userName                        : string
   screenVisitedStates             : { [compName: string] : boolean }
 
   private users         : {[key: string]: object} = {}
@@ -73,13 +77,11 @@ export abstract class UserKeyValue {
     this.save(rc)
   }
 
-  async logOutCurrentUser(): Promise<string> {
+  async logOutCurrentUser() {
 
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this._userLinkId, 
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), this._sessionId, 
       'Trying to logout a user who is not registered')
 
-    const userLinkId = this._userLinkId
-    
     delete this.users[this._clientId]
     await this.storage.setUserKeyValue(this.rc, USERS, JSON.stringify(this.users))
     
@@ -89,8 +91,6 @@ export abstract class UserKeyValue {
     } else {
       await this.storage.setUserKeyValue(this.rc, LAST_USER, null)
     }
- 
-    return userLinkId
   }
 
   async switchUserOnCurrRun(clientId: number) {
@@ -104,10 +104,9 @@ export abstract class UserKeyValue {
     rc.isAssert() && rc.assert(rc.getName(this), this._clientId, 
       'Came to save userKeyVal before clientId')
 
-    if (!rc.userKeyVal.userLinkId) {
-
-      rc.isStatus() && rc.status(rc.getName(this), `not saving rc, as user is 
-        not registered ${JSON.stringify({userLinkId : rc.userKeyVal.userLinkId})}`)
+    if (!rc.userKeyVal.sessionId) {
+      rc.isStatus() && rc.status(rc.getName(this), `not saving rc, as user 
+        session not present ${JSON.stringify({sessionId : rc.userKeyVal.sessionId})}`)
       return
     }
     
@@ -128,51 +127,55 @@ export abstract class UserKeyValue {
 
   getAllClientIds(): number[] { return Object.keys(this.users).map(Number) }
 
-  getAllUserLinkIds(): string[] { 
-
-    const ids = []
-    for (const i of Object.keys(this.users)) {
-      ids.push(this.users[i]['userLinkId'])
-    }
-    return ids
-  }
-
-  getClientIdForUserLink(reqUserLinkId: string): number {
-
-    for (let clientId in this.users) {
-      const userLinkId: string = this.users[clientId]['userLinkId']
-      if (userLinkId === reqUserLinkId) return Number(clientId)
-    }
-    return 0
-  }
-
   getUserInfo(clientId: number): object { return this.users[clientId] }
 
   // Client Id
   get clientId() {return this._clientId}
   set clientId(clientId : number) {
     if (clientId === this._clientId) return
-    if (this._clientId && this._userLinkId) {
-      throw new Mubble.uError('INVALID_CLIENT_ID', 'Cannot change clientId once userLinkId is already set: ' + 
-        JSON.stringify({new:clientId, existing:this._clientId, userLinkId: this._userLinkId}))
+    if (this._clientId && this._sessionId) {
+      throw new Mubble.uError('INVALID_CLIENT_ID', 'Cannot change clientId once sessionId is set: ' + 
+        JSON.stringify({new:clientId, existing:this._clientId, sessionId: this._sessionId}))
     }
     this._clientId = clientId
   }
 
-  // User Link Id
-  get userLinkId()  {return this._userLinkId}
-  set userLinkId(userLinkId : string) {
-    if (userLinkId === this._userLinkId) return
-    if (this._userLinkId && !userLinkId === null) throw new Mubble.uError('INVALID_USER_LINK_ID', 
-      'Cannot set userLinkId when it is already set: ' + JSON.stringify({userLinkId, existing:this._userLinkId}))
-    this._userLinkId = userLinkId
+  get sessionId() { return this._sessionId }
+  set sessionId(sessionId: string) {
+    if (sessionId === this._sessionId) return
+    this._sessionId = sessionId
   }
+
+  get deviceId() { return this._deviceId }
+  set deviceId(deviceId: string) {
+    if (deviceId === this._deviceId) return
+    this._deviceId = deviceId
+  }
+
+  get appUserId() { return this._appUserId }
+  set appUserId(appUserId: string) {
+    if (appUserId === this._appUserId) return
+    if (this._appUserId && !appUserId === null) throw new Mubble.uError('INVALID_APP_USER_ID', 
+      'Cannot set appuserId when it is already set: ' + JSON.stringify({appUserId, existing:this._appUserId}))
+    this._appUserId = appUserId
+  }
+
+  // // User Link Id
+  // get userLinkId()  {return this._userLinkId}
+  // set userLinkId(userLinkId : string) {
+  //   if (userLinkId === this._userLinkId) return
+  //   if (this._userLinkId && !userLinkId === null) throw new Mubble.uError('INVALID_USER_LINK_ID', 
+  //     'Cannot set userLinkId when it is already set: ' + JSON.stringify({userLinkId, existing:this._userLinkId}))
+  //   this._userLinkId = userLinkId
+  // }
 
   serialize(): object {
     return {
       clientId            : this._clientId,
-      userLinkId          : this._userLinkId,
-      userName            : this.userName,
+      sessionId           : this._sessionId,
+      
+      //userLinkId          : this._userLinkId,
+      //userName            : this.userName,
       webProfilePicBase64 : this._webProfilePicBase64,
       screenVisitedStates : this.screenVisitedStates
     }
@@ -180,8 +183,8 @@ export abstract class UserKeyValue {
 
   deserialize(obj: {[key: string]: any}) {
     this._clientId              = obj.clientId
-    this._userLinkId            = obj.userLinkId
-    this.userName               = obj.userName
+    //this._userLinkId            = obj.userLinkId
+    //this.userName               = obj.userName
     this._webProfilePicBase64   = obj.webProfilePicBase64
     this.screenVisitedStates    = obj.screenVisitedStates
   }
