@@ -134,19 +134,22 @@ export class HttpsThirdServerProvider implements XmnProvider {
                        query     : string,
                        reqId     : number) {
 
+    let extraParams = {}
     
     switch (this.req.method) {
       case GET  :
-        apiParams.extraParams = querystring.parse(query)
+        extraParams = querystring.parse(query)
         break
 
       case POST :
-        apiParams.extraParams = await this.parseBody(rc)
+        extraParams = await this.parseBody(rc)
         break
 
       default   :
         rc.isWarn() && rc.warn(rc.getName(this), 'Rejecting request with invalid method', this.req.method, apiName)
     }
+
+    apiParams = this.appendParams(rc, apiParams, extraParams)
     
     const wo = new WireRequest(apiName, apiParams, reqId)
     this.router.providerMessage(rc, this.ci, [wo])
@@ -190,5 +193,17 @@ export class HttpsThirdServerProvider implements XmnProvider {
           return {data}
         }
     }
+  }
+
+  private appendParams(rc : RunContextServer, apiParams : Mubble.uObject<any>, extraParams : Mubble.uObject<any>) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'Appending to api params.', apiParams, extraParams)
+
+    for(const key in extraParams) {
+      apiParams[key] = extraParams[key]
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Final api params.', apiParams)
+
+    return apiParams
   }
 }

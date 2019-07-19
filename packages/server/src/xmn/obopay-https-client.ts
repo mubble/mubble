@@ -316,16 +316,17 @@ export namespace ObopayHttpsClient {
     return exists
   }
 
-  export function getThirdPartyRequestUrl(rc          : RunContextServer,
-                                          credentials : ServerCredentials,
-                                          apiName     : string,
-                                          apiParams   : Mubble.uObject<any>) : string {
+  export function getThirdPartyRequestUrl(rc           : RunContextServer,
+                                          credentials  : ServerCredentials,
+                                          apiName      : string,
+                                          apiParams    : Mubble.uObject<any>,
+                                          unsecured   ?: boolean) : string {
 
     const encProvider    = getEncProvider(),
           requestPath    = encProvider.encodeThirdPartyRequestPath(credentials.syncHash, apiParams),
           encRequestPath = encodeURIComponent(requestPath),
           urlObj         = {
-                             protocol : HTTP.Const.protocolHttps,
+                             protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
                              hostname : credentials.host,
                              port     : credentials.port,
                              pathname : SLASH_SEP + apiName + SLASH_SEP + encRequestPath
