@@ -36,6 +36,9 @@ export class InputValidator {
   }
 
   static futureDateValidator(control : FormControl) {
+
+    if (!control.value) return null
+
     const dateNowTS = Date.now(),
           date      = control.value.toDate().getTime()
 

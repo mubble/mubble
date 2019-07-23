@@ -2,9 +2,31 @@
 
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
-| 1.4.0 | Raghvendra Varma | 2019-07-06 |  |
+| 1.4.1 | Deepak Kumar     | 2019-07-23 | Approved |
+| 1.4.0 | Deepak Kumar     | 2019-07-07 | Approved |
 | 1.3.0 | Raghvendra Varma | 2019-05-24 | Approved |
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
+
+# Version 1.4.1
+
+## Features
+- Filter component fixes
+- input container moved to library
+
+## Bug Fixes
+- None
+
+## Improvements
+- None
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
 
 # Version 1.4.0
 
