@@ -1,28 +1,41 @@
+/*------------------------------------------------------------------------------
+   About          : Child component which has individual control for each input
+                    type
+   
+   Created on     : Fri May 24 2019
+   Author         : Pulkit Chaturvedi
+   Last edited by : Divya Sinha
+   
+   Copyright (c) 2019 Obopay. All rights reserved.
+------------------------------------------------------------------------------*/
+
 import { Component,
          Input,
          Output,
          Inject,
          EventEmitter
-       }                          from '@angular/core'
+       }                                  from '@angular/core'
 import { FormControl,
          Validators,
          FormGroup,
          FormBuilder
-       }                          from '@angular/forms'
-import { TrackableScreen }        from '../../../ui/router/trackable-screen'
-import { RunContextBrowser }      from '../../../rc-browser'
+       }                                  from '@angular/forms'
+import { TrackableScreen }                from '../../../ui/router/trackable-screen'
+import { RunContextBrowser }              from '../../../rc-browser'
 import { MatSelectChange,
-         MatDatepickerInputEvent
-       }                          from '@angular/material'
-import { Moment }                 from 'moment'
-import { InputValidator }         from './input-validator'
+         MatDatepickerInputEvent,
+         MatAutocompleteSelectedEvent
+       }                                  from '@angular/material'
+import { Moment }                         from 'moment'
+import { InputValidator }                 from './input-validator'
 
 export enum DISPLAY_TYPE {
-  INPUT_BOX     = 'INPUT_BOX',
-  SELECTION_BOX = 'SELECTION_BOX',
-  CALENDAR_BOX  = 'CALENDAR_BOX',
-  DATE_RANGE    = 'DATE_RANGE',
-  NUMBER_RANGE  = 'NUMBER_RANGE'
+  INPUT_BOX             = 'INPUT_BOX',
+  SELECTION_BOX         = 'SELECTION_BOX',
+  CALENDAR_BOX          = 'CALENDAR_BOX',
+  DATE_RANGE            = 'DATE_RANGE',
+  NUMBER_RANGE          = 'NUMBER_RANGE',
+  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT'
 }
 
 export interface SelectionBoxParams {
@@ -89,8 +102,9 @@ export class InputContainerComponent {
     }
 
     switch (params.displayType) {
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
+      case DISPLAY_TYPE.INPUT_BOX           :
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
         this.inputForm  = new FormControl(params.value || null, formValidations)
         break
 
@@ -134,14 +148,15 @@ export class InputContainerComponent {
 
     switch (this.inputParams.displayType) {
 
-      case DISPLAY_TYPE.CALENDAR_BOX  :
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
+      case DISPLAY_TYPE.CALENDAR_BOX        :
+      case DISPLAY_TYPE.INPUT_BOX           :
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
         params = { id     : this.inputParams.id,
                    value  : this.inputForm.value }
         break
 
-      case DISPLAY_TYPE.DATE_RANGE    :
+      case DISPLAY_TYPE.DATE_RANGE  :
         params = { id     : this.inputParams.id,
                    value  : {
                               startDate : this.dateRange.controls.startDate.value,
@@ -188,14 +203,19 @@ export class InputContainerComponent {
     this.numberRange.controls.maxAmount.setValue(this.numberRange.controls.maxAmount.value)
   }
 
+  setAutocompleteValue(event : MatAutocompleteSelectedEvent) {
+    this.inputForm.setValue(event.option.value)
+  }
+
   hasError() : boolean {
     let hasError : boolean = false
 
     switch (this.inputParams.displayType) {
 
-      case DISPLAY_TYPE.CALENDAR_BOX  :
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
+      case DISPLAY_TYPE.CALENDAR_BOX        :
+      case DISPLAY_TYPE.INPUT_BOX           :
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
         hasError = this.inputForm.value && this.inputForm.invalid
         break
 

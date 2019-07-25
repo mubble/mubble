@@ -111,6 +111,23 @@
     </div>
   </ng-container>
 
+  <ng-container *ngIf="inputParams.displayType===DISPLAY_TYPE.AUTOCOMPLETE_SELECT">
+    <div class="onb-input-box-cont border-primary">
+      <input matInput
+        type="text"
+        placeholder="{{inputParams.placeHolder}}"
+        [formControl]="inputForm"
+        [matAutocomplete]="auto">
+
+      <mat-autocomplete #auto="matAutocomplete" (optionSelected)="setAutocompleteValue($event)">
+        <mat-option *ngFor="let option of inputParams.options" [value]="option"
+          class="txt-xl-bld-norm text-size-medium">
+          {{ option.value }}
+        </mat-option>
+      </mat-autocomplete>
+    </div>
+  </ng-container>
+
   <div *ngIf="inputForm" class="errors-list">
     <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && 
       (inputForm.hasError('required') || inputForm.hasError('pattern'))">

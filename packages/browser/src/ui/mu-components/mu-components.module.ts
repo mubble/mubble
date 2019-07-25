@@ -12,6 +12,7 @@ import { MatDatepickerModule }              from '@angular/material/datepicker'
 import { MatFormFieldModule }               from '@angular/material/form-field'
 import { MatInputModule }                   from '@angular/material/input'
 import { MatSelectModule }                  from '@angular/material/select'
+import { MatAutocompleteModule }            from '@angular/material/autocomplete'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -47,7 +48,8 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     MatFormFieldModule,
     MatDatepickerModule,
     MatInputModule,
-    MatSelectModule
+    MatSelectModule,
+    MatAutocompleteModule
   ],
 
   declarations: [
