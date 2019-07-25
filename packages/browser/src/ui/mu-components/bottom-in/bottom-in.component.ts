@@ -37,8 +37,6 @@ import {  query,
           transition, 
           group,
           animate }             from "@angular/animations"
-
-import * as $                   from 'jquery'
 import { Mubble }               from '@mubble/core'
 
 export const STATE      = {HALF: 'HALF', FULL: 'FULL'}
@@ -188,9 +186,9 @@ export class BottomInComponent extends InjectionParentBase implements
 
     this.panYMax    = document.body.clientHeight
 
-    const $compCont    = $(this.compContainer.nativeElement),
+    const $compCont    = this.compContainer.nativeElement,
           compHeight   = $compCont.height(),
-          headerHeight = $(this.header.nativeElement).height()
+          headerHeight = this.header.nativeElement.getBoundingClientRect().height
 
     if (this.allowFullPage) {
       
