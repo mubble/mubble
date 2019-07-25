@@ -6,7 +6,7 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as lo                      from 'lodash'  
+import { omit, keysIn}              from 'lodash'  
 
 import  {format}                    from './util/date'
 import {
@@ -271,8 +271,8 @@ export abstract class RCLoggerBase {
         // Error.name typically has class name of the ErrorCLass like EvalError
         // Error.message has the user readable message, this is also included in the stack
         strVal = val.stack || `Error ${val.name}: ${val.message} (no stack)`
-        let errObj = lo.omit(val , ['message'])
-        if(lo.keysIn(errObj).length){
+        let errObj = omit(val , ['message'])
+        if(keysIn(errObj).length){
           strVal = this.objectToString(errObj , 5) + ' '+ strVal
         }
         if(val.message && strVal.indexOf(val.message)==-1){
