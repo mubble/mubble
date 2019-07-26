@@ -115,6 +115,7 @@
     <div class="onb-input-box-cont border-primary">
       <input matInput
         type="text"
+        class="txt-xl-bld-norm input-cont text-size-medium" 
         placeholder="{{inputParams.placeHolder}}"
         [formControl]="inputForm"
         [matAutocomplete]="auto">
@@ -122,7 +123,7 @@
       <mat-autocomplete #auto="matAutocomplete"
         (optionSelected)="setAutocompleteValue($event)"
         class="gender-select-cont txt-xl-bld-norm text-size-medium input-cont">
-        <mat-option *ngFor="let option of filteredOptions | async" [value]="option"
+        <mat-option *ngFor="let option of filteredOptions | async" [value]="option.value"
           class="txt-xl-bld-norm text-size-medium">
           {{ option.value }}
         </mat-option>
