@@ -28,6 +28,10 @@ import { MatSelectChange,
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
+import { Observable }                     from 'rxjs'
+import { map,
+         startWith
+       }                                  from 'rxjs/operators'
 
 export enum DISPLAY_TYPE {
   INPUT_BOX             = 'INPUT_BOX',
@@ -79,9 +83,10 @@ export class InputContainerComponent {
   @Input()  screen      : TrackableScreen   
   @Output() value       : EventEmitter<any> = new EventEmitter<any>()
 
-  inputForm     : FormControl
-  dateRange     : FormGroup
-  numberRange   : FormGroup
+  inputForm       : FormControl
+  dateRange       : FormGroup
+  numberRange     : FormGroup
+  filteredOptions : Observable<SelectionBoxParams[]>
   
   DISPLAY_TYPE  : typeof DISPLAY_TYPE = DISPLAY_TYPE
 
@@ -102,10 +107,17 @@ export class InputContainerComponent {
     }
 
     switch (params.displayType) {
-      case DISPLAY_TYPE.INPUT_BOX           :
-      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.INPUT_BOX     :
+      case DISPLAY_TYPE.SELECTION_BOX :
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        break
+
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
         this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.filteredOptions = this.inputForm.valueChanges.pipe(
+                                 startWith(''),
+                                 map(value => typeof value === 'string' ? value : value.value),
+                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
         break
 
       case DISPLAY_TYPE.CALENDAR_BOX  :
@@ -232,4 +244,11 @@ export class InputContainerComponent {
     return hasError
   }
 
+  /*=====================================================================
+                              PRIVATE
+  =====================================================================*/
+  private filterOptions(inputText : string): SelectionBoxParams[] {
+    const filterValue = inputText.toLowerCase()
+    return this.inputParams.options.filter(option => option.value.toLowerCase().includes(filterValue))
+  }
 }
