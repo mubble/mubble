@@ -9,8 +9,7 @@
 
 import { format } from './date'
 import { Mubble } from '../mubble'  
-
-import { sortBy } from 'lodash'
+import sortBy     from 'lodash/sortBy'
 
 const CYCLE_STEP = '_cycle_'
 

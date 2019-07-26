@@ -6,17 +6,15 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import { omit, keysIn}              from 'lodash'  
-
-import  {format}                    from './util/date'
-import {
-  ConnectionInfo, 
-  WireEventResp,
-  WireReqResp,
-  WireObject
-} from './xmn'
-
-import { Timer } from './util/timer'
+import { format }               from './util/date'
+import { ConnectionInfo, 
+         WireEventResp,
+         WireReqResp,
+         WireObject
+       }                        from './xmn'
+import { Timer }                from './util/timer'
+import omit                     from 'lodash/omit'
+import keysIn                   from 'lodash/keysIn'
 
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']

@@ -15,8 +15,6 @@ import { Router,
 import { INJECTION_PARAM, 
          InjectionCaller 
        }                        from '../mu-components/injection-interface'
-
-import { isEqual }              from 'lodash'
 import { AlertDialogParams,
          AlertDialogComponent 
        }                        from '../mu-components/alert-dialog/alert-dialog.component'
@@ -24,6 +22,7 @@ import { AlertDialogParams,
 import { RunContextBrowser }    from '../../rc-browser'
 import { Mubble }               from '@mubble/core'
 import { ComponentRoutes }      from './shared-router-constants'
+import isEqual                  from 'lodash/isEqual'
 
 const ROOT_URL     = '#/?launched=true'
 

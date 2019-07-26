@@ -29,8 +29,8 @@ import { RunContextBrowser }  from '../rc-browser'
 import { XmnRouterBase }      from './xmn-router-base'
 import { WsBrowser }          from './ws-browser'
 import { EventSystem }        from '../util'
-import { findIndex }          from 'lodash'
 import Dexie                  from 'dexie'
+import findIndex              from 'lodash/findIndex'
 
 const TIMEOUT_MS          = 30000,
       SEND_RETRY_MS       = 1000,
