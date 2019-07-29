@@ -25,7 +25,9 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
-import { DISPLAY_TYPE }               from '../input-container'
+import { DISPLAY_TYPE,
+         ValidatorsParams
+       }                              from '../input-container'
 
 export enum FILTER_TYPE {
   DATE,
@@ -44,6 +46,8 @@ export interface FilterItem {
   value        ?: SelectionBoxParams[]
   defaultValue  : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
   placeHolder   : string[] | string
+  validators   ?: ValidatorsParams
+  isRequired   ?: boolean
 }
 
 export interface DateRangeInterface { 
@@ -93,7 +97,9 @@ export class FilterComponent {
                               placeHolder : fItem.placeHolder,
                               label       : fItem.label,
                               options     : fItem.value,
-                              value       : fItem.defaultValue })
+                              value       : fItem.defaultValue,
+                              validators  : fItem.validators,
+                              isRequired  : fItem.isRequired })
     }
   }
 

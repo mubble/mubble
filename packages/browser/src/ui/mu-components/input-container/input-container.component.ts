@@ -87,7 +87,7 @@ export class InputContainerComponent {
   dateRange       : FormGroup
   numberRange     : FormGroup
   filteredOptions : Observable<SelectionBoxParams[]>
-  
+
   DISPLAY_TYPE  : typeof DISPLAY_TYPE = DISPLAY_TYPE
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
