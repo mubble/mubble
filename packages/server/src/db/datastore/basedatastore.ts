@@ -374,18 +374,18 @@ setNamespace(rc : RunContextServer, namespace : string) {
   protected async insert(rc : RunContextServer, insertTime ?: number, allowDupRec ?: boolean) : Promise<boolean> {
     // Re-direction to DS Transaction!
     const traceId     = `${rc.getName(this)}:insert:${this.constructor.name}`,
-          transaction : DSTransaction<BaseDatastore<T>> = (this.constructor as any).createTransaction(rc),
+          transaction : BaseDatastore<T> = (this.constructor as any).createTransaction(rc),
           ack         = rc.startTraceSpan(traceId)
     try {
-      await transaction.start(rc)
-      await transaction.insert(rc, this)
-      await transaction.commit(rc)
+      //await transaction.start(rc)
+      //await transaction.insert(rc, this)
+      //await transaction.commit(rc)
       return true
     } catch(err) {
       if(err.name !== ERROR_CODES.UNIQUE_KEY_EXISTS) {
         rc.isWarn() && rc.warn(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
       }
-      await transaction.rollback (rc)
+      //await transaction.rollback (rc)
       throw err
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -398,19 +398,19 @@ setNamespace(rc : RunContextServer, namespace : string) {
   protected async update(rc : RunContextServer, id : number | string, updRec : Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<BaseDatastore<T>> {
     // Re-direction to DS Transaction!
     const traceId = `${rc.getName(this)}:update:${this.constructor.name}`,
-          transaction : DSTransaction<BaseDatastore<T>> = (this.constructor as any).createTransaction(rc),
+          transaction : BaseDatastore<T> = (this.constructor as any).createTransaction(rc),
           ack     = rc.startTraceSpan(traceId)
     
     try {
       this._id = id
-      await transaction.start(rc)
-      await transaction.get(rc, this)
-      await transaction.update(rc, this, updRec)
-      await transaction.commit(rc)
+      //await transaction.start(rc)
+      //await transaction.get(rc, this)
+      //await transaction.update(rc, this, updRec)
+      //await transaction.commit(rc)
       return this
     } 
     catch(err) {
-      await transaction.rollback (rc)
+      //await transaction.rollback (rc)
       throw err
     } finally {
       rc.endTraceSpan(traceId, ack)
@@ -426,24 +426,24 @@ setNamespace(rc : RunContextServer, namespace : string) {
   protected async softDelete(rc : RunContextServer, id : number | string, params ?: Mubble.uChildObject<T> , ignoreRNF ?: boolean) : Promise<boolean> {
     const traceId     = `${rc.getName(this)}:softDelete:${this.constructor.name}`,
           ack         = rc.startTraceSpan(traceId),
-          transaction : DSTransaction<BaseDatastore<T>> = (this.constructor as any).createTransaction(rc)
+          transaction : BaseDatastore<T> = (this.constructor as any).createTransaction(rc)
 
     try {
       this._id = id
-      await transaction.start(rc)
-      await transaction.get(rc, this)
-      await transaction.mUniqueDelete(rc, this)
+      //await transaction.start(rc)
+      //await transaction.get(rc, this)
+      //await transaction.mUniqueDelete(rc, this)
 
       // TODO: Need to add the unique Constraint Fields with undefined value to params...
       this.deleted = true
       if(params) Object.assign(this, params)
-      await transaction.update(rc, this) // Dont Check Constraints. mUniqueDelete Done...
-      await transaction.commit (rc)
+      //await transaction.update(rc, this) // Dont Check Constraints. mUniqueDelete Done...
+      //await transaction.commit (rc)
       return true
     } 
     catch(err) {
       rc.isError() && rc.error(rc.getName(this), '[Error Code:' + err.code + '], Error Message:', err.message)
-      await transaction.rollback (rc)
+      //await transaction.rollback (rc)
       throw(new DSError(ERROR_CODES.GCP_ERROR, err.message))
     } finally {
       rc.endTraceSpan(traceId, ack)
