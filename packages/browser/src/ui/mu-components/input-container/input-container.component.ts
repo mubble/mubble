@@ -218,6 +218,9 @@ export class InputContainerComponent {
   setAutocompleteValue(event : MatAutocompleteSelectedEvent) {
     this.inputForm.setValue(event.option.value)
   }
+  displayFn(value: any): string {
+    return value && typeof value === 'object' ? value.value : value;
+  }
 
   hasError() : boolean {
     let hasError : boolean = false
