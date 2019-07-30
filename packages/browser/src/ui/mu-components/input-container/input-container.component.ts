@@ -152,7 +152,17 @@ export class InputContainerComponent {
   =====================================================================*/
   onSubmit() {
 
-    if (this.inputParams.validators)  this.inputForm.markAsTouched()
+    if (this.inputForm && this.inputParams.validators)  this.inputForm.markAsTouched()
+
+    if (this.dateRange && this.inputParams.validators) {
+      this.dateRange.controls.startDate.markAsTouched()
+      this.dateRange.controls.endDate.markAsTouched()
+    }
+
+    if (this.numberRange && this.inputParams.validators) {
+      this.numberRange.controls.minAmount.markAsTouched()
+      this.numberRange.controls.maxAmount.markAsTouched()
+    }
 
     if (this.hasError()) return
 
@@ -218,8 +228,9 @@ export class InputContainerComponent {
   setAutocompleteValue(event : MatAutocompleteSelectedEvent) {
     this.inputForm.setValue(event.option.value)
   }
-  displayFn(value: any): string {
-    return value && typeof value === 'object' ? value.value : value;
+
+  displayFn(value: any) : string {
+    return value && typeof value === 'object' ? value.value : value
   }
 
   hasError() : boolean {
@@ -231,16 +242,26 @@ export class InputContainerComponent {
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-        hasError = this.inputForm.value && this.inputForm.invalid
+
+        hasError = this.inputParams.isRequired 
+                   ? this.inputForm.invalid
+                   : this.inputForm.value && this.inputForm.invalid
         break
 
       case DISPLAY_TYPE.DATE_RANGE    :
-        hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
-        hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
+        if (this.inputParams.isRequired) {
+          hasError  = this.dateRange.controls.startDate.invalid || this.dateRange.controls.endDate.invalid
+        } else {
+          hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
+          hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
+        }
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        hasError = this.numberRange.controls.minAmount.invalid && this.numberRange.controls.minAmount.value
+        hasError = this.inputParams.isRequired 
+                   ? this.numberRange.controls.minAmount.invalid 
+                   : this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid
+
         break
     }
 
