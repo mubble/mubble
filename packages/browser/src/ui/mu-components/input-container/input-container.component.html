@@ -156,6 +156,12 @@
       dateRange.get('endDate').hasError('futureDate')">
       {{ 'mu_inpt_cont_futr_date_err' | translate }}
     </mat-error>
+
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputParams.isRequired && 
+      (dateRange.get('startDate').touched || dateRange.get('endDate').touched) &&
+      (dateRange.get('startDate').hasError('required') || dateRange.get('endDate').hasError('required'))">
+      {{ inputParams.validators.validationError }}
+    </mat-error>
   </div>
   
   <div *ngIf="numberRange" class="errors-list">
@@ -165,6 +171,12 @@
   
     <mat-error class="txt-sm-bld-dark error-text" *ngIf="numberRange.get('minAmount').hasError('minAmountExceed')">
       {{ 'mu_inpt_cont_amnt_err' | translate }}
+    </mat-error>
+
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputParams.isRequired && 
+      (numberRange.get('minAmount').touched || numberRange.get('maxAmount').touched) &&
+      (numberRange.get('minAmount').hasError('required') || numberRange.get('maxAmount').hasError('required'))">
+      {{ inputParams.validators.validationError }}
     </mat-error>
   </div>
 
