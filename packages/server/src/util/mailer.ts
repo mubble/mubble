@@ -17,8 +17,9 @@ try {
 
 
   const transporter = await nodemailer.createTransport({
-    host : 'gmail',
-    auth : {
+    host   : 'smtp.gmail.com',
+    service: 'Gmail',
+    auth   : {
       user : userId,
       pass : password 
     }
