@@ -17,7 +17,7 @@ export const USERS  = 'users'
 export abstract class UserKeyValue {
 
   private _clientId               : number
-  private _appUserId              : string
+  private _obopayId               : string
   private _sessionId              : string
   private _deviceId               : string
 
@@ -152,12 +152,12 @@ export abstract class UserKeyValue {
     this._deviceId = deviceId
   }
 
-  get appUserId() { return this._appUserId }
-  set appUserId(appUserId: string) {
-    if (appUserId === this._appUserId) return
-    if (this._appUserId && !appUserId === null) throw new Mubble.uError('INVALID_APP_USER_ID', 
-      'Cannot set appuserId when it is already set: ' + JSON.stringify({appUserId, existing:this._appUserId}))
-    this._appUserId = appUserId
+  get obopayId() { return this._obopayId }
+  set obopayId(obopayId: string) {
+    if (obopayId === this._obopayId) return
+    if (this._obopayId && !obopayId === null) throw new Mubble.uError('INVALID_OBOPAY_ID', 
+      'Cannot set obopayId when it is already set: ' + JSON.stringify({obopayId, existing:this._obopayId }))
+    this._obopayId = obopayId
   }
 
   // // User Link Id
