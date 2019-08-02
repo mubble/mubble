@@ -38,4 +38,5 @@ export interface ModalInterface extends InjectedChild {
   getWidth()           : string
   isNotDismissable?()  : boolean
   onBackPressed?()     : void
+  isNotScrollable?()   : boolean
 }
