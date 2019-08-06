@@ -55,7 +55,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
 
       // Populate the unique id (version number)
       index = 0
-      var parts: List<Int> = ci.customData!!.uniqueId!!.split('.').map {it.toInt()}
+      var parts: List<Int> = ci.customData!!.appVersion!!.split('.').map {it.toInt()}
 
       if (parts.size > 1) {
         check(parts.size == 3 && parts[0] <= 99 && parts[1] <= 99 && parts[2] <= 99)
