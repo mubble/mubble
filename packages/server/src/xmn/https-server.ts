@@ -16,7 +16,8 @@ import {
          Mubble,
          WireObject,
          WireRequest,
-         WireReqResp
+         WireReqResp,
+         CustomData
        }                      from '@mubble/core'
 import {
          SecurityError,
@@ -85,6 +86,7 @@ export class HttpsServer {
     ci.ip             = this.router.getIp(req)
     ci.msOffset       = 0
     ci.lastEventTs    = 0
+    ci.customData     = {} as CustomData
 
     const clientId = ci.headers[HTTP.HeaderKey.clientId],
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
@@ -204,6 +206,8 @@ export class HttpsServerProvider implements XmnProvider {
       rc.isWarn() && rc.warn(rc.getName(this), `Request ${wo.name} already processed.`)
       return
     }
+
+    rc.isStatus() && rc.status(rc.getName(this), 'sending', wo)
 
     const headers = {
             [HTTP.HeaderKey.clientId]      : this.ci.headers[HTTP.HeaderKey.clientId],

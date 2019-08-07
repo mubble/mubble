@@ -13,23 +13,23 @@ export namespace ConnectionMap {
 
   const ActiveConnectionMap : Map<number | string, ConnectionInfo> = new Map()
 
-  export function addActiveConnection(clientId : number | string, ci : ConnectionInfo) {
-    if(isActiveConnection(clientId)) return
+  export function addActiveConnection(id : number | string, ci : ConnectionInfo) {
+    if(isActiveConnection(id)) return
 
-    ActiveConnectionMap.set(clientId, ci)
+    ActiveConnectionMap.set(id, ci)
   }
 
-  export function getActiveConnection(clientId : number | string) {
-    return ActiveConnectionMap.get(clientId)
+  export function getActiveConnection(id : number | string) {
+    return ActiveConnectionMap.get(id)
   }
 
-  export function isActiveConnection(clientId : number | string) {
-    return ActiveConnectionMap.has(clientId)
+  export function isActiveConnection(id : number | string) {
+    return ActiveConnectionMap.has(id)
   }
 
-  export function removeActiveConnection(clientId : number | string) {
-    if(!isActiveConnection(clientId)) return
+  export function removeActiveConnection(id : number | string) {
+    if(!isActiveConnection(id)) return
     
-    ActiveConnectionMap.delete(clientId)
+    ActiveConnectionMap.delete(id)
   }
 }

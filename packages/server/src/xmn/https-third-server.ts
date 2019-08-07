@@ -14,7 +14,8 @@ import {
          Protocol,
          HTTP,
          Mubble,
-         WireRequest
+         WireRequest,
+         CustomData
        }                      from '@mubble/core'
 import { RunContextServer }   from '../rc-server'
 import { XmnRouterServer }    from './xmn-router-server'
@@ -60,6 +61,7 @@ export class HttpsThirdServer {
     ci.url               = req.url || ''
     ci.headers           = req.headers
     ci.ip                = this.router.getIp(req)
+    ci.customData        = {} as CustomData
 
     try {
       await this.router.verifyConnection(rc, ci, apiName)
@@ -136,6 +138,8 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     let extraParams = {}
     
+    rc.isDebug() && rc.debug(rc.getName(this), 'Request method.', this.req.method)
+
     switch (this.req.method) {
       case GET  :
         extraParams = querystring.parse(query)
@@ -156,7 +160,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
   }
 
   send(rc : RunContextServer, data : any) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'sending', data)
+    rc.isStatus() && rc.status(rc.getName(this), 'sending', data)
 
     this.res.writeHead(200)
 

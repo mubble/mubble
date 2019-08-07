@@ -199,7 +199,7 @@ export class WssServerProvider implements XmnProvider {
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
     const data = await this.encProvider.encodeBody(woArr, this.appClient)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
+    rc.isStatus() && rc.status(rc.getName(this), 'sending', woArr)
 
     this.ci.lastRequestTs = woArr[woArr.length - 1].ts
     this.socket.send(data)
