@@ -65,7 +65,7 @@ export class InfiniteScrollComponent {
               private renderer  : Renderer2) { }
 
   ngOnInit() {
-    this.viewPortItems  = this.items
+    this.viewPortItems  = this.items.slice(this.previousStartIdx, this.lowerBufferCount)
     this.scrollHandler  = this.renderer.listen(this.element.nativeElement, SCROLL_EVENT, this.refreshList.bind(this))
   }
 
