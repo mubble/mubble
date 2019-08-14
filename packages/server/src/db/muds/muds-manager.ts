@@ -24,8 +24,7 @@ import {  RunContextServer }            from '../..'
 import {  MudsUtil }                    from './muds-util'
 import {  RedisWrapper }                from '../../cache/redis-wrapper'
 
-import Datastore = require('@google-cloud/datastore')
-
+const { Datastore } = require('@google-cloud/datastore')
 
 export class MeField {
   accessor: FieldAccessor
@@ -60,7 +59,7 @@ export class MudsEntityInfo {
 export class MudsManager {
 
   private entityInfoMap       : Mubble.uObject<MudsEntityInfo> = {}
-  private datastore           : Datastore
+  private datastore           : any
   private entityNames         : string[]
   private trRedis             : RedisWrapper
 
@@ -222,11 +221,7 @@ export class MudsManager {
 
     this.validateIndices(rc)
 
-    this.datastore = new Datastore({
-      projectId   : gcloudEnv.projectId,
-      credentials : gcloudEnv.authKey || undefined
-    })
-
+    this.datastore = new Datastore(gcloudEnv)
     rc.isDebug() && rc.debug(rc.getName(this), `Muds initialized with ${
       Object.keys(this.entityInfoMap).length} entities`)
 
