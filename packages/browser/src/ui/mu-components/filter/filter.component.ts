@@ -163,7 +163,7 @@ export class FilterComponent {
           break
       }
 
-      return changed
+      if (changed)  return changed
     }
 
     return false
