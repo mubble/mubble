@@ -2,28 +2,27 @@ package ui.biometric
 
 import android.annotation.TargetApi
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Build
-import android.security.keystore.KeyPermanentlyInvalidatedException
-import android.security.keystore.KeyProperties
-import android.security.keystore.KeyGenParameterSpec
 import androidx.core.hardware.fingerprint.FingerprintManagerCompat
 import androidx.core.os.CancellationSignal
-import java.io.IOException
-import java.security.*
-import java.security.cert.CertificateException
-import java.util.*
+import core.BaseApp
+import core.MubbleLogger
+import org.jetbrains.anko.info
+import org.json.JSONObject
+import xmn.EncProviderAndroid
+import java.lang.IllegalStateException
+import java.security.KeyFactory
+import java.security.spec.X509EncodedKeySpec
 import javax.crypto.Cipher
-import javax.crypto.KeyGenerator
-import javax.crypto.NoSuchPaddingException
-import javax.crypto.SecretKey
 
 @TargetApi(Build.VERSION_CODES.M)
-open class BiometricManagerV23 {
+open class BiometricManagerV23 : MubbleLogger {
 
-  private var cipher        : Cipher?                                 = null
-  private var keyStore      : KeyStore?                               = null
-  private var keyGenerator  : KeyGenerator?                           = null
-  private var cryptoObject  : FingerprintManagerCompat.CryptoObject?  = null
+  //private var cipher        : Cipher?                                 = null
+  //private var keyStore      : KeyStore?                               = null
+  //private var keyGenerator  : KeyGenerator?                           = null
+  //private var cryptoObject  : FingerprintManagerCompat.CryptoObject?  = null
 
   protected var context             : Context?            = null
   protected var title               : String?             = null
@@ -32,18 +31,24 @@ open class BiometricManagerV23 {
   protected var negativeButtonText  : String?             = null
   private   var biometricDialogV23  : BiometricDialogV23? = null
 
-  companion object {
+  private lateinit var challenge: String
 
-    private val KEY_NAME = UUID.randomUUID().toString()
-  }
+//
+//  companion object {
+//
+//    private val KEY_NAME = UUID.randomUUID().toString()
+//  }
 
-  fun displayBiometricPromptV23(biometricCallback: BiometricCallback, biometricFailMsg: String, dialogViewRes: DialogViewRes) {
+  fun displayBiometricPromptV23(challenge: String, cryptoObject: FingerprintManagerCompat.CryptoObject,
+                                biometricCallback: BiometricCallback, biometricFailMsg: String,
+                                dialogViewRes: DialogViewRes) {
 
-    generateKey()
+    this.challenge = challenge
 
-    if (initCipher()) {
+    //generateKey()
 
-      cryptoObject                  = FingerprintManagerCompat.CryptoObject(cipher!!)
+    //if (initCipher()) {
+
       val fingerprintManagerCompat  = FingerprintManagerCompat.from(context!!)
 
       fingerprintManagerCompat.authenticate(cryptoObject, 0, CancellationSignal(),
@@ -64,7 +69,7 @@ open class BiometricManagerV23 {
             override fun onAuthenticationSucceeded(result: FingerprintManagerCompat.AuthenticationResult?) {
               super.onAuthenticationSucceeded(result)
               dismissDialog()
-              biometricCallback.onAuthenticationSuccessful()
+              biometricCallback.onAuthenticationSuccessful(challenge, result!!.cryptoObject!!.cipher!!)
             }
 
             override fun onAuthenticationFailed() {
@@ -75,7 +80,7 @@ open class BiometricManagerV23 {
           }, null)
 
       displayBiometricDialog(biometricCallback, dialogViewRes)
-    }
+    //}
   }
 
   private fun displayBiometricDialog(biometricCallback: BiometricCallback, dialogViewRes: DialogViewRes) {
@@ -100,75 +105,90 @@ open class BiometricManagerV23 {
     }
   }
 
-  private fun generateKey() {
+//  private fun generateKey() {
+//
+//    try {
+//      keyStore = KeyStore.getInstance("AndroidKeyStore")
+//      keyStore!!.load(null)
+//
+//      val inputStream = ByteArrayInputStream("dndjcn".toByteArray(Charsets.UTF_8))
+//      val cert        = CertificateFactory.getInstance("X.509").generateCertificate(inputStream)
+//
+//      keyStore!!.setEntry(KEY_NAME, KeyStore.TrustedCertificateEntry(cert),
+//          KeyProtection.Builder(KeyProperties.PURPOSE_ENCRYPT)
+//              .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+//              .setUserAuthenticationRequired(true)
+//              .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+//              .build())
+////
+////      keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
+////      keyGenerator!!.init(KeyGenParameterSpec.Builder(KEY_NAME, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+////          .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
+////          .setUserAuthenticationRequired(true)
+////          .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
+////          .build())
+////
+////      keyGenerator!!.generateKey()
+//
+//    } catch (exc: KeyStoreException) {
+//      exc.printStackTrace()
+//    } catch (exc: NoSuchAlgorithmException) {
+//      exc.printStackTrace()
+//    } catch (exc: NoSuchProviderException) {
+//      exc.printStackTrace()
+//    } catch (exc: InvalidAlgorithmParameterException) {
+//      exc.printStackTrace()
+//    } catch (exc: CertificateException) {
+//      exc.printStackTrace()
+//    } catch (exc: IOException) {
+//      exc.printStackTrace()
+//    }
+//
+//  }
 
-    try {
-      keyStore = KeyStore.getInstance("AndroidKeyStore")
-      keyStore!!.load(null)
-
-      keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore")
-      keyGenerator!!.init(KeyGenParameterSpec.Builder(KEY_NAME, KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
-          .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-          .setUserAuthenticationRequired(true)
-          .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7)
-          .build())
-
-      keyGenerator!!.generateKey()
-
-    } catch (exc: KeyStoreException) {
-      exc.printStackTrace()
-    } catch (exc: NoSuchAlgorithmException) {
-      exc.printStackTrace()
-    } catch (exc: NoSuchProviderException) {
-      exc.printStackTrace()
-    } catch (exc: InvalidAlgorithmParameterException) {
-      exc.printStackTrace()
-    } catch (exc: CertificateException) {
-      exc.printStackTrace()
-    } catch (exc: IOException) {
-      exc.printStackTrace()
-    }
-
-  }
-
-
-  private fun initCipher(): Boolean {
-    try {
-      cipher = Cipher.getInstance(
-          KeyProperties.KEY_ALGORITHM_AES + "/"
-              + KeyProperties.BLOCK_MODE_CBC + "/"
-              + KeyProperties.ENCRYPTION_PADDING_PKCS7)
-
-    } catch (e: NoSuchAlgorithmException) {
-      throw RuntimeException("Failed to get Cipher", e)
-    } catch (e: NoSuchPaddingException) {
-      throw RuntimeException("Failed to get Cipher", e)
-    }
-
-    try {
-      keyStore!!.load(null)
-      val key = keyStore!!.getKey(KEY_NAME, null) as SecretKey
-      cipher!!.init(Cipher.ENCRYPT_MODE, key)
-      return true
-
-    } catch (e: KeyPermanentlyInvalidatedException) {
-      return false
-
-    } catch (e: KeyStoreException) {
-
-      throw RuntimeException("Failed to init Cipher", e)
-    } catch (e: CertificateException) {
-      throw RuntimeException("Failed to init Cipher", e)
-    } catch (e: UnrecoverableKeyException) {
-      throw RuntimeException("Failed to init Cipher", e)
-    } catch (e: IOException) {
-      throw RuntimeException("Failed to init Cipher", e)
-    } catch (e: NoSuchAlgorithmException) {
-      throw RuntimeException("Failed to init Cipher", e)
-    } catch (e: InvalidKeyException) {
-      throw RuntimeException("Failed to init Cipher", e)
-    }
-
-  }
+//
+//  private fun initCipher(): Boolean {
+//
+//    try {
+//      cipher = Cipher.getInstance(
+//          KeyProperties.KEY_ALGORITHM_AES + "/"
+//              + KeyProperties.BLOCK_MODE_CBC + "/"
+//              + KeyProperties.ENCRYPTION_PADDING_PKCS7)
+//
+//    } catch (e: NoSuchAlgorithmException) {
+//      throw RuntimeException("Failed to get Cipher", e)
+//    } catch (e: NoSuchPaddingException) {
+//      throw RuntimeException("Failed to get Cipher", e)
+//    }
+//
+//    try {
+//      keyStore!!.load(null)
+//
+//      //val key = keyStore!!.getKey(KEY_NAME, null) as SecretKey
+//
+//      val cert = keyStore!!.getCertificate(KEY_NAME)
+//
+//      cipher!!.init(Cipher.ENCRYPT_MODE, cert)
+//      return true
+//
+//    } catch (e: KeyPermanentlyInvalidatedException) {
+//      return false
+//
+//    } catch (e: KeyStoreException) {
+//
+//      throw RuntimeException("Failed to init Cipher", e)
+//    } catch (e: CertificateException) {
+//      throw RuntimeException("Failed to init Cipher", e)
+//    } catch (e: UnrecoverableKeyException) {
+//      throw RuntimeException("Failed to init Cipher", e)
+//    } catch (e: IOException) {
+//      throw RuntimeException("Failed to init Cipher", e)
+//    } catch (e: NoSuchAlgorithmException) {
+//      throw RuntimeException("Failed to init Cipher", e)
+//    } catch (e: InvalidKeyException) {
+//      throw RuntimeException("Failed to init Cipher", e)
+//    }
+//
+//  }
 
 }

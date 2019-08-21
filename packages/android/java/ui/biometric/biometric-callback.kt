@@ -1,5 +1,7 @@
 package ui.biometric
 
+import javax.crypto.Cipher
+
 interface BiometricCallback {
 
   fun onSdkVersionNotSupported()
@@ -17,7 +19,7 @@ interface BiometricCallback {
 
   fun onAuthenticationCancelled()
 
-  fun onAuthenticationSuccessful()
+  fun onAuthenticationSuccessful(challenge: String, cipher: Cipher)
 
   fun onAuthenticationHelp(helpCode: Int, helpString: CharSequence)
 
