@@ -348,6 +348,7 @@ export class UiRouter {
   }
 
   public goBack(whereOrByHowMuch ?: string | number) {
+
     if (!this.canGoBack()) return
     if (this.isModalActive()) {
       this.onPopUpClosed()
@@ -475,7 +476,8 @@ export class UiRouter {
     comp.component.onBackPressed()
   }
 
-  private canGoBack() {
+  canGoBack() {
+
     const lastIdx  = this.urlStack.length - 1,
           lastItem = this.urlStack[lastIdx]
    
