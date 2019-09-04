@@ -255,6 +255,16 @@ object AndroidBase {
     return map
   }
 
+  fun addQueryToUrl(url: String, key: String, value: String): String {
+
+    val paramsIdx = url.indexOf("?")
+
+    var genUrl = if (paramsIdx == -1) url.plus("?") else url.plus("&")
+    genUrl = genUrl.plus("$key=$value")
+
+    return genUrl
+  }
+
   fun checkPlayServices(context: Context): Int {
 
     val googleAPI = GoogleApiAvailability.getInstance()
