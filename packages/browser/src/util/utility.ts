@@ -17,14 +17,15 @@ export class BaseUtility {
   
   parseURLForRouter(parser: any) {
 
-    if (parser.protocol !== 'http') {
+    if (parser.protocol !== 'http' || parser.protocol !== 'https') {
       parser.href = parser.href.replace(/.*\:\/\//, 'http://')
     }
 
-    let queries       = parser.search.replace(/^\?/, '').split('&'),
-        searchObject  = {}
-
+    const searchObject = {},
+          queries      = parser.search.replace(/^\?/, '').split('&')
+    
     for(let i = 0; i < queries.length; i++ ) {
+      if (!queries[i]) continue
       const split = queries[i].split('=');
       searchObject[split[0]] = decodeURIComponent(split[1])  
     }
