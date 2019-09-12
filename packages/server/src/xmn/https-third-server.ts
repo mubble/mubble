@@ -17,9 +17,9 @@ import {
          WireRequest,
          CustomData
        }                      from '@mubble/core'
+import { ObopayHttpsClient }  from './obopay-https-client'
 import { RunContextServer }   from '../rc-server'
 import { XmnRouterServer }    from './xmn-router-server'
-import { ObopayHttpsClient }  from './obopay-https-client'
 import { UStream }            from '../util'
 import * as http              from 'http'
 import * as urlModule         from 'url'
@@ -49,8 +49,14 @@ export class HttpsThirdServer {
     const urlObj         = urlModule.parse(req.url || ''),
           pathName       = urlObj.pathname || '',
           ar             = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/'),
-          apiName        = ar[0],
-          encRequestPath = ar[1]
+          obopayStr      = ar[0],
+          apiName        = ar[1],
+          encRequestPath = ar[2]
+
+    if(obopayStr !== ObopayHttpsClient.OBOPAY_STR) {
+      this.endRequestWithNotFound(res)
+      return
+    }
 
     const ci             = {} as ConnectionInfo,
           [host, port]   = (req.headers.host || '').split(':')
@@ -66,12 +72,7 @@ export class HttpsThirdServer {
     try {
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
-      res.writeHead(404, {
-        [HTTP.HeaderKey.contentLength] : 0,
-        connection                     : 'close' 
-      })
-
-      res.end()
+      this.endRequestWithNotFound(res)
       return
     }
 
@@ -112,6 +113,15 @@ export class HttpsThirdServer {
       }
     }
   }
+
+  private endRequestWithNotFound(res : http.ServerResponse) {
+    res.writeHead(404, {
+      [HTTP.HeaderKey.contentLength] : 0,
+      connection                     : 'close' 
+    })
+
+    res.end()
+  }
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -119,6 +129,9 @@ export class HttpsThirdServer {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 export class HttpsThirdServerProvider implements XmnProvider {
+
+  private respnseHeaders : http.OutgoingHttpHeaders = {}
+  private finished    : boolean     = false
 
   constructor(private refRc       : RunContextServer,
               private router      : XmnRouterServer,
@@ -160,9 +173,15 @@ export class HttpsThirdServerProvider implements XmnProvider {
   }
 
   send(rc : RunContextServer, data : any) {
+
+    if(this.finished) {
+      rc.isWarn() && rc.warn(rc.getName(this), `Request already processed.`)
+      return
+    }
+
     rc.isStatus() && rc.status(rc.getName(this), 'sending', data)
 
-    this.res.writeHead(200)
+    this.res.writeHead(200, this.respnseHeaders)
 
     if(!(data instanceof Buffer) || typeof data != 'string')
       data = Buffer.from(JSON.stringify(data))
@@ -172,12 +191,61 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     uStream.write(data)
 
+    this.finished = true
     this.server.markFinished(this)
     // this.router.providerClosed(rc, this.ci)
   }
 
   requestClose() {
 
+  }
+
+  getCookies() : Mubble.uObject<string> {
+
+    const cookies = {} as Mubble.uObject<string>
+
+    if(!this.ci.headers.cookie) return cookies
+
+    const headerCookie = this.ci.headers.cookie as string,
+          pairs        = headerCookie.split(';')
+
+    for(const pair of pairs) {
+      const parts    = pair.split('='),
+            partsKey = parts.shift()
+
+      if(partsKey === undefined) return cookies
+
+      const cookieKey   = decodeURIComponent(partsKey.trim()),
+            cookieValue = decodeURIComponent(parts.join('='))
+
+      cookies[cookieKey] = cookieValue
+    }
+
+    return cookies
+  }
+
+  setCookies(cookies : Mubble.uObject<string>) {
+
+    const pairs = [] as Array<string>
+
+    for(const key in cookies) {
+      const cookieKey   = encodeURIComponent(key),
+            cookieValue = encodeURIComponent(cookies[key]),
+            pair        = [cookieKey, cookieValue].join('=')
+
+      pairs.push(pair)
+    }
+
+    this.respnseHeaders[HTTP.HeaderKey.setCookie] = pairs
+  }
+
+  redirect(rc : RunContextServer, url : string) {
+
+    rc.isStatus() && rc.status(rc.getName(this), 'Redirecting to :', url)
+
+    this.res.writeHead(301, url, this.respnseHeaders)
+    this.finished = true
+    this.server.markFinished(this)
   }
 
   private async parseBody(rc: RunContextServer) {

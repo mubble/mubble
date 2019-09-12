@@ -25,6 +25,7 @@ export namespace HTTP {
     clientSecret     : 'x-client-secret',
     contentType      : 'content-type',
     contentLength    : 'content-length',
+    setCookie        : 'set-cookie',
     contentEncoding  : 'content-encoding',
     clientId         : 'x-obopay-cid',
     versionNumber    : 'x-obopay-version',

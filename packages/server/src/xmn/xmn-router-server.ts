@@ -18,11 +18,12 @@ import {
         Protocol,
         Mubble,
         XmnProvider
-       }                      from '@mubble/core'
-import {RunContextServer}     from '../rc-server'
-import {ConnectionMap}        from './connection-map'
-import {RedisWrapper}         from '../cache'
-import {XmnRegistry}          from './xmn-registry'
+       }                            from '@mubble/core'
+import {RunContextServer}           from '../rc-server'
+import {ConnectionMap}              from './connection-map'
+import {RedisWrapper}               from '../cache'
+import {XmnRegistry}                from './xmn-registry'
+import {HttpsThirdServerProvider}   from './https-third-server'
 
 const EVENT_QUEUE = 'event-queue:'
 
@@ -411,5 +412,29 @@ export abstract class XmnRouterServer {
     rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, !!ci)
     
     if(ci) await rc.router.sendEvent(rc, ci, eventObj.eventName, eventObj.eventParams)
+  }
+
+  public getCookies(ci : ConnectionInfo) : Mubble.uObject<string> {
+
+    if(ci.provider instanceof HttpsThirdServerProvider) {
+      return ci.provider.getCookies()
+    }
+
+    return {}
+  }
+
+  public setCookies(ci : ConnectionInfo, cookies : Mubble.uObject<string>) {
+
+    if(ci.provider instanceof HttpsThirdServerProvider) {
+      return ci.provider.setCookies(cookies)
+    }
+  }
+
+  public async redirectTo(rc : RunContextServer, ci : ConnectionInfo, url : string) {
+    if(ci.provider instanceof HttpsThirdServerProvider) {
+      return await ci.provider.redirect(rc, url)
+    }
+
+    throw new Error('Cannot redirect. Invalid provider.')
   }
 }

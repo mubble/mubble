@@ -34,6 +34,8 @@ const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro sec
 
 export namespace ObopayHttpsClient {
 
+  export const OBOPAY_STR = 'obopay'
+
   const CLASS_NAME = 'ObopayHttpsClient',
         POST       = 'POST'
 
@@ -329,7 +331,7 @@ export namespace ObopayHttpsClient {
                              protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
                              hostname : credentials.host,
                              port     : credentials.port,
-                             pathname : SLASH_SEP + apiName + SLASH_SEP + encRequestPath
+                             pathname : SLASH_SEP + OBOPAY_STR + SLASH_SEP + apiName + SLASH_SEP + encRequestPath
                            },
           url            = urlModule.format(urlObj)
 
