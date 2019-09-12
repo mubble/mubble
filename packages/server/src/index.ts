@@ -20,6 +20,7 @@ export *                      from './util'
 export *                      from './cache/redis-wrapper'
 export *                      from './logger/server-ext-logger'
 export *                      from './master'
+export *                      from './gcp'
 
 /* TODO:
 
