@@ -25,7 +25,9 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
-import { DISPLAY_TYPE }               from '../input-container'
+import { DISPLAY_TYPE,
+         ValidatorsParams
+       }                              from '../input-container'
 
 export enum FILTER_TYPE {
   DATE,
@@ -36,6 +38,11 @@ export enum FILTER_TYPE {
   TEXT
 }
 
+enum CONTEXT {
+  INIT,
+  CLEAR
+}
+
 export interface FilterItem {
   id            : string
   label         : string
@@ -44,6 +51,8 @@ export interface FilterItem {
   value        ?: SelectionBoxParams[]
   defaultValue  : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
   placeHolder   : string[] | string
+  validators   ?: ValidatorsParams
+  isRequired   ?: boolean
 }
 
 export interface DateRangeInterface { 
@@ -84,17 +93,7 @@ export class FilterComponent {
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
   ngOnInit() {
-
-    for (const fItem of this.filterItems) {
-      this.filters.push({ id : fItem.id, value : fItem.defaultValue })
-
-      this.inputParams.push({ id          : fItem.id,
-                              displayType : fItem.displayType,
-                              placeHolder : fItem.placeHolder,
-                              label       : fItem.label,
-                              options     : fItem.value,
-                              value       : fItem.defaultValue })
-    }
+    this.initialize(CONTEXT.INIT)
   }
 
   /*=====================================================================
@@ -118,6 +117,7 @@ export class FilterComponent {
   }
 
   clearFilters() {
+    this.initialize(CONTEXT.CLEAR)
     this.selectedFilter.emit(undefined)
   }
 
@@ -145,9 +145,10 @@ export class FilterComponent {
       let changed : boolean = false
 
       switch(fItem.displayType) {
-        case DISPLAY_TYPE.CALENDAR_BOX  :
-        case DISPLAY_TYPE.INPUT_BOX     :
-        case DISPLAY_TYPE.SELECTION_BOX :
+        case DISPLAY_TYPE.CALENDAR_BOX        :
+        case DISPLAY_TYPE.INPUT_BOX           :
+        case DISPLAY_TYPE.SELECTION_BOX       :
+        case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
           changed = fItem.defaultValue !== this.filters[index].value
           break
 
@@ -162,9 +163,48 @@ export class FilterComponent {
           break
       }
 
-      if(changed) return true
+      if (changed)  return changed
     }
 
     return false
+  }
+
+  private initialize (context : CONTEXT) {
+    if (context === CONTEXT.INIT) {
+      for (const fItem of this.filterItems) {
+        this.filters.push({ id : fItem.id, value : fItem.defaultValue })
+  
+        this.inputParams.push({ id          : fItem.id,
+                                displayType : fItem.displayType,
+                                placeHolder : fItem.placeHolder,
+                                label       : fItem.label,
+                                options     : fItem.value,
+                                value       : fItem.defaultValue,
+                                validators  : fItem.validators,
+                                isRequired  : fItem.isRequired })
+      }
+    } else {
+      this.inputParams  = []
+      this.filters      = []
+
+      for (const fItem of this.filterItems) {
+        const setNull = fItem.displayType === DISPLAY_TYPE.DATE_RANGE
+                        ? { startDate : null, endDate : null }
+                        : fItem.displayType === DISPLAY_TYPE.NUMBER_RANGE
+                        ? { minAmount : null, maxAmount : null }
+                        : null
+
+        this.filters.push({ id : fItem.id, value : setNull })
+  
+        this.inputParams.push({ id          : fItem.id,
+                                displayType : fItem.displayType,
+                                placeHolder : fItem.placeHolder,
+                                label       : fItem.label,
+                                options     : fItem.value,
+                                value       : setNull,
+                                validators  : fItem.validators,
+                                isRequired  : fItem.isRequired })
+      }
+    }
   }
 }

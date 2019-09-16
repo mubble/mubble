@@ -1,28 +1,45 @@
+/*------------------------------------------------------------------------------
+   About          : Child component which has individual control for each input
+                    type
+   
+   Created on     : Fri May 24 2019
+   Author         : Pulkit Chaturvedi
+   Last edited by : Divya Sinha
+   
+   Copyright (c) 2019 Obopay. All rights reserved.
+------------------------------------------------------------------------------*/
+
 import { Component,
          Input,
          Output,
          Inject,
          EventEmitter
-       }                          from '@angular/core'
+       }                                  from '@angular/core'
 import { FormControl,
          Validators,
          FormGroup,
          FormBuilder
-       }                          from '@angular/forms'
-import { TrackableScreen }        from '../../../ui/router/trackable-screen'
-import { RunContextBrowser }      from '../../../rc-browser'
+       }                                  from '@angular/forms'
+import { TrackableScreen }                from '../../../ui/router/trackable-screen'
+import { RunContextBrowser }              from '../../../rc-browser'
 import { MatSelectChange,
-         MatDatepickerInputEvent
-       }                          from '@angular/material'
-import { Moment }                 from 'moment'
-import { InputValidator }         from './input-validator'
+         MatDatepickerInputEvent,
+         MatAutocompleteSelectedEvent
+       }                                  from '@angular/material'
+import { Moment }                         from 'moment'
+import { InputValidator }                 from './input-validator'
+import { Observable }                     from 'rxjs'
+import { map,
+         startWith
+       }                                  from 'rxjs/operators'
 
 export enum DISPLAY_TYPE {
-  INPUT_BOX     = 'INPUT_BOX',
-  SELECTION_BOX = 'SELECTION_BOX',
-  CALENDAR_BOX  = 'CALENDAR_BOX',
-  DATE_RANGE    = 'DATE_RANGE',
-  NUMBER_RANGE  = 'NUMBER_RANGE'
+  INPUT_BOX             = 'INPUT_BOX',
+  SELECTION_BOX         = 'SELECTION_BOX',
+  CALENDAR_BOX          = 'CALENDAR_BOX',
+  DATE_RANGE            = 'DATE_RANGE',
+  NUMBER_RANGE          = 'NUMBER_RANGE',
+  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT'
 }
 
 export interface SelectionBoxParams {
@@ -66,10 +83,11 @@ export class InputContainerComponent {
   @Input()  screen      : TrackableScreen   
   @Output() value       : EventEmitter<any> = new EventEmitter<any>()
 
-  inputForm     : FormControl
-  dateRange     : FormGroup
-  numberRange   : FormGroup
-  
+  inputForm       : FormControl
+  dateRange       : FormGroup
+  numberRange     : FormGroup
+  filteredOptions : Observable<SelectionBoxParams[]>
+
   DISPLAY_TYPE  : typeof DISPLAY_TYPE = DISPLAY_TYPE
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
@@ -92,6 +110,14 @@ export class InputContainerComponent {
       case DISPLAY_TYPE.INPUT_BOX     :
       case DISPLAY_TYPE.SELECTION_BOX :
         this.inputForm  = new FormControl(params.value || null, formValidations)
+        break
+
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.filteredOptions = this.inputForm.valueChanges.pipe(
+                                 startWith(''),
+                                 map(value => typeof value === 'string' ? value : value.value),
+                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
         break
 
       case DISPLAY_TYPE.CALENDAR_BOX  :
@@ -126,7 +152,17 @@ export class InputContainerComponent {
   =====================================================================*/
   onSubmit() {
 
-    if (this.inputParams.validators)  this.inputForm.markAsTouched()
+    if (this.inputForm && this.inputParams.validators)  this.inputForm.markAsTouched()
+
+    if (this.dateRange && this.inputParams.validators) {
+      this.dateRange.controls.startDate.markAsTouched()
+      this.dateRange.controls.endDate.markAsTouched()
+    }
+
+    if (this.numberRange && this.inputParams.validators) {
+      this.numberRange.controls.minAmount.markAsTouched()
+      this.numberRange.controls.maxAmount.markAsTouched()
+    }
 
     if (this.hasError()) return
 
@@ -134,14 +170,15 @@ export class InputContainerComponent {
 
     switch (this.inputParams.displayType) {
 
-      case DISPLAY_TYPE.CALENDAR_BOX  :
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
+      case DISPLAY_TYPE.CALENDAR_BOX        :
+      case DISPLAY_TYPE.INPUT_BOX           :
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
         params = { id     : this.inputParams.id,
                    value  : this.inputForm.value }
         break
 
-      case DISPLAY_TYPE.DATE_RANGE    :
+      case DISPLAY_TYPE.DATE_RANGE  :
         params = { id     : this.inputParams.id,
                    value  : {
                               startDate : this.dateRange.controls.startDate.value,
@@ -188,28 +225,54 @@ export class InputContainerComponent {
     this.numberRange.controls.maxAmount.setValue(this.numberRange.controls.maxAmount.value)
   }
 
+  setAutocompleteValue(event : MatAutocompleteSelectedEvent) {
+    this.inputForm.setValue(event.option.value)
+  }
+
+  displayFn(value: any) : string {
+    return value && typeof value === 'object' ? value.value : value
+  }
+
   hasError() : boolean {
     let hasError : boolean = false
 
     switch (this.inputParams.displayType) {
 
-      case DISPLAY_TYPE.CALENDAR_BOX  :
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
-        hasError = this.inputForm.value && this.inputForm.invalid
+      case DISPLAY_TYPE.CALENDAR_BOX        :
+      case DISPLAY_TYPE.INPUT_BOX           :
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+
+        hasError = this.inputParams.isRequired 
+                   ? this.inputForm.invalid
+                   : this.inputForm.value && this.inputForm.invalid
         break
 
       case DISPLAY_TYPE.DATE_RANGE    :
-        hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
-        hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
+        if (this.inputParams.isRequired) {
+          hasError  = this.dateRange.controls.startDate.invalid || this.dateRange.controls.endDate.invalid
+        } else {
+          hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
+          hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
+        }
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        hasError = this.numberRange.controls.minAmount.invalid && this.numberRange.controls.minAmount.value
+        hasError = this.inputParams.isRequired 
+                   ? this.numberRange.controls.minAmount.invalid 
+                   : this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid
+
         break
     }
 
     return hasError
   }
 
+  /*=====================================================================
+                              PRIVATE
+  =====================================================================*/
+  private filterOptions(inputText : string): SelectionBoxParams[] {
+    const filterValue = inputText.toLowerCase()
+    return this.inputParams.options.filter(option => option.value.toLowerCase().includes(filterValue))
+  }
 }

@@ -205,6 +205,14 @@ export abstract class MudsIo {
     return await this.deleteInternal(...queueBuilder.getAll())
   }
 
+  public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
+          ...ancestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
+    
+    return new MudsQuery(this.rc, this,
+      this.verifyAncestorKeys(this.rc, entityClass, ancestorKeys),
+      entityClass)
+  }
+
   private async deleteInternal<T extends MudsBaseEntity>(
     ...reqs: IEntityKey<T>[]): Promise<void> {
 
@@ -552,9 +560,6 @@ export class MudsDirectIo extends MudsIo {
     return this.datastore
   }
 
-  public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>): MudsQuery<T> {
-    return new MudsQuery(this.rc, this, null, entityClass)
-  }
 
   createQuery(entityName: string) {
     return this.datastore.createQuery(entityName)
@@ -596,17 +601,6 @@ export class MudsTransaction extends MudsIo {
 
   public async run() {
     return await this.doCallback()
-  }
-
-  public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
-          firstAncestorKey     : string | DatastoreInt,
-          ...otherAncestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
-
-    otherAncestorKeys.unshift(firstAncestorKey)
-    
-    return new MudsQuery(this.rc, this,
-      this.verifyAncestorKeys(this.rc, entityClass, otherAncestorKeys),
-      entityClass)
   }
 
   protected getExec(): Datastore | DSTransaction {

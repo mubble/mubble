@@ -15,8 +15,6 @@ import { Router,
 import { INJECTION_PARAM, 
          InjectionCaller 
        }                        from '../mu-components/injection-interface'
-
-import * as lo                  from 'lodash'
 import { AlertDialogParams,
          AlertDialogComponent 
        }                        from '../mu-components/alert-dialog/alert-dialog.component'
@@ -24,6 +22,7 @@ import { AlertDialogParams,
 import { RunContextBrowser }    from '../../rc-browser'
 import { Mubble }               from '@mubble/core'
 import { ComponentRoutes }      from './shared-router-constants'
+import isEqual                  from 'lodash/isEqual'
 
 const ROOT_URL     = '#/?launched=true'
 
@@ -594,7 +593,7 @@ export class UiRouter {
     const params = this.router.routerState.root.snapshot.queryParams,
           qp     = params.nc_paramsId ? this.curQueryParam : params
 
-    if (lo.isEqual(qp, outletEntry.lastParams)) {
+    if (isEqual(qp, outletEntry.lastParams)) {
       this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'Skipping onRouterInit as parameters are same')
       return 
     }

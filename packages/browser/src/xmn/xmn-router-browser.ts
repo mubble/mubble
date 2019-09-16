@@ -29,8 +29,8 @@ import { RunContextBrowser }  from '../rc-browser'
 import { XmnRouterBase }      from './xmn-router-base'
 import { WsBrowser }          from './ws-browser'
 import { EventSystem }        from '../util'
-import * as lo                from 'lodash'
 import Dexie                  from 'dexie'
+import findIndex              from 'lodash/findIndex'
 
 const TIMEOUT_MS          = 30000,
       SEND_RETRY_MS       = 1000,
@@ -276,7 +276,7 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
         case WIRE_TYPE.REQ_RESP:
           const resp = wo as WireReqResp
 
-          const index = lo.findIndex(this.ongoingRequests, {ts: resp.ts})
+          const index = findIndex(this.ongoingRequests, {ts: resp.ts})
           if (index === -1) {
             this.rc.isStatus() && this.rc.status(this.rc.getName(this), 
               'Got response for request that is not in progress... timed-out?', 

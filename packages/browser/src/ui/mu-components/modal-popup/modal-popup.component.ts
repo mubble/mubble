@@ -176,8 +176,12 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   }
 
   ignoreScroll(event : any) {
-    event.preventDefault();
-    event.stopPropagation();
+    const notScrollable = this.injectedComponent.isNotScrollable 
+                            && this.injectedComponent.isNotScrollable()
+    if (notScrollable) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }
 
   ngOnDestroy() {

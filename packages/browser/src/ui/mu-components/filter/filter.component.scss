@@ -1,31 +1,31 @@
 .filter-comp {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  width: 100%;
+  display         : flex;
+  flex-direction  : column;
+  height          : 100%;
+  width           : 100%;
 }
 
 .filter-input-body {
-  max-height: 70%;
-  overflow-y: auto;
+  max-height  : 70%;
+  overflow-y  : auto;
 }
 
 .filter-input-body::-webkit-scrollbar {
-  width: 5px;
+  width : 5px;
 }
 
 .filter-subtitle {
-  padding: 2% 4%;
+  padding : 2% 4%;
 }
 
 .footer {
   display         : flex;
   justify-content : space-between;
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 92%;
-  padding: 4%;
+  position        : absolute;
+  bottom          : 0;
+  left            : 0;
+  width           : 92%;
+  padding         : 4%;
 }
 
 .btn {
@@ -33,12 +33,12 @@
 }
 
 .web-filter-comp {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto;
+  display         : flex;
+  flex-direction  : column;
+  overflow-y      : auto;
 
   .filter-subtitle {
-    padding: 10px 22px;
+    padding : 10px 22px;
   }
 
   .footer {

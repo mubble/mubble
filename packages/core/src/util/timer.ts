@@ -6,8 +6,6 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as lo                from 'lodash'
-
 export class TimerInstance {
 
   nextTickAt  : number
