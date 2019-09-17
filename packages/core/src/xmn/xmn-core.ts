@@ -53,6 +53,12 @@ export namespace HTTP {
     protocolHttps : 'https:'
   }
 
+  export const Method = {
+    PUT  : 'PUT',
+    GET  : 'GET',
+    POST : 'POST'
+  }
+
   export const CurrentProtocolVersion = HTTP.HeaderValue.version2
 }
 
