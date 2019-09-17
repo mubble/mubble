@@ -321,12 +321,12 @@ async function testHttpRequest(rc : RunContextServer) {
     protocol : HTTP.Const.protocolHttp,
     hostname : 'localhost',
     port     : 9003,
-    path     : '/obopay/lol',
+    pathname : '/obopay/serverEcho',
     query    : { abc : 124, b : 'abc' }
   }
 
   const options : http.RequestOptions = urlObj
-  options.method = HTTP.Method.PUT
+  options.method  = HTTP.Method.POST
   options.headers = {[HTTP.HeaderKey.contentType] : HTTP.HeaderValue.form}
 
   const resp = await executeHttpsRequestWithOptions(rc, urlObj, options)

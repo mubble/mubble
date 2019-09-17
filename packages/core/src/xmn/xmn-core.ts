@@ -33,7 +33,8 @@ export namespace HTTP {
     symmKey          : 'x-obopay-key',
     requestType      : 'x-obopay-type',
     bodyEncoding     : 'x-obopay-encoding',
-    transferEncoding : 'transfer-encoding'
+    transferEncoding : 'transfer-encoding',
+    location         : 'location'
   }
   
   /* HTTP Headers */

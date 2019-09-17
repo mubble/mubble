@@ -242,8 +242,10 @@ export class HttpsThirdServerProvider implements XmnProvider {
   redirect(rc : RunContextServer, url : string) {
 
     rc.isStatus() && rc.status(rc.getName(this), 'Redirecting to :', url)
+    this.respnseHeaders[HTTP.HeaderKey.location] = url
 
-    this.res.writeHead(301, url, this.respnseHeaders)
+    this.res.writeHead(302, this.respnseHeaders)
+    this.res.end()
     this.finished = true
     this.server.markFinished(this)
   }
