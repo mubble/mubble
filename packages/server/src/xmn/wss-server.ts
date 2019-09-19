@@ -55,7 +55,7 @@ export class WssServer {
 
     const rc = this.refRc.copyConstruct('', 'handshake')
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new connection. Establishing handshake.')
+    rc.isStatus() && rc.status(rc.getName(this), 'Received a new connection. Establishing handshake.')
 
     try {
       if(!req.url) throw new Error('Request URL absent.')

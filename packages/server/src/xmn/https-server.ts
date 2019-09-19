@@ -53,7 +53,7 @@ export class HttpsServer {
 
     const rc = this.refRc.copyConstruct('', 'https-request')
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
+    rc.isStatus() && rc.status(rc.getName(this), 'Received a new request.', req.url)
 
     const urlObj      = urlModule.parse(req.url || ''),
           pathNameRaw = urlObj.pathname || '',
