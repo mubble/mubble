@@ -53,7 +53,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
 
   private   var nextRequestId       = 0
   private   val pendingRequestsMap  = mutableMapOf<String, AsyncCallbackStruct>()
-  protected var state: State = State.LOADING
+  protected var state: State        = LOADING
 
   init {
     val timer = Timer()
@@ -62,15 +62,15 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   }
 
   fun asyncRequestToJs(requestName: String, vararg args: Any,
-                       cb: (JSONObject) -> Unit): Unit {
+                       cb: (JSONObject) -> Unit) {
 
-    check(state > State.LOADING)
+    check(state > LOADING)
 
     asyncExecuteInMainThread {
 
       val requestTag = "$requestName-${++nextRequestId}"
 
-      pendingRequestsMap.put(requestTag, AsyncCallbackStruct(requestTag, cb))
+      pendingRequestsMap[requestTag] = AsyncCallbackStruct(requestTag, cb)
       executeJsFunction("asyncRequestFromNative", requestName, requestTag, *args) {}
     }
   }
@@ -135,9 +135,9 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   }
 
   @JavascriptInterface
-  fun asyncRequestResponseFromJs(requestId: Int, requestTag: String, respJsonStr: String) {
+  fun asyncRequestResponseFromJs(requestTag: String, respJsonStr: String) {
 
-    check(state > State.LOADING)
+    check(state > LOADING)
 
     asyncExecuteInMainThread {
 
@@ -155,8 +155,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
   @JavascriptInterface
   fun setStateFromJs(requestId: Int, strState: String) {
 
-    val state: State = State.valueOf(strState)
-    when(state) {
+    when(valueOf(strState)) {
       INITIALIZED -> initializedFromJs()
       LOADING -> check(false) {"Automatically set"}
       SHOWN -> shownFromJs()
@@ -165,7 +164,7 @@ abstract class Bridge(protected val webView: WebView) : MubbleLogger {
     sendAsyncResponseToJs(requestId)
   }
 
-  protected fun initializedFromJs() {
+  private fun initializedFromJs() {
 
     check(state === LOADING)
 
