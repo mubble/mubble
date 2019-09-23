@@ -288,65 +288,63 @@ export abstract class MudsIo {
 
   private async checkUnique(rc: RunContextServer, ...entities: MudsBaseEntity[]) {
 
-    const uniques = await this.getAllUniques(rc, ...entities),
-      queries = []
+    const uniques = this.getAllUniques(rc, ...entities)
 
-    //example: For UserContent [{'UserContent.a.b.c:value' : 'value'}]
-    const existingFields = await this.checkExistenceInCache(rc, uniques)
+    if (!uniques.length) return []
 
-    rc.isAssert() && rc.assert(rc.getName(this), !existingFields.length,
-      `Unique Key Violation : ${JSON.stringify(existingFields)}`)
-
-    for (const pair of uniques) {
-
-      const entity = lo.filter(entities, o => o.getInfo().entityName === pair.entityName)[0]
-
-      queries.push(this.existenceCheckQuery(rc, entity, pair.key, pair.value))
-    }
-
-    const presentedFields = (await Promise.all(queries)).filter(o => o)
-
-    if (presentedFields.length) {
-      rc.isWarn() && rc.warn(rc.getName(this), `Unique Key Violation : ${JSON.stringify(presentedFields)}`)
-      throw (`Unique Key Violation : ${JSON.stringify(presentedFields)}`)
-    }
+    //Lock entity in cache, if cache have the existed entity it will throw error.
+    await this.lockEntityInCache(rc, uniques)
+    
+    //check entity based on key and value, If device have the value throw error.
+    await this.checkEntityExistsInDS(rc,uniques)
 
     this.uniques.concat(uniques)
   }
 
-  private async getAllUniques(rc: RunContextServer, ...entities: MudsBaseEntity[]) {
 
-    let uniqueVals = [] as UniqCacheObj[]
+  private async checkEntityExistsInDS(rc: RunContextServer, uniques: UniqCacheObj[]) {
+    const queries = []
+
+    for (const uniqCacheObj of uniques) {
+      queries.push(this.existenceCheckQuery(rc, uniqCacheObj.entity, uniqCacheObj.key, uniqCacheObj.value))
+    }
+
+    const presentedFromDb = (await Promise.all(queries)).filter(entity => entity)
+
+    if (presentedFromDb.length) {
+      rc.isError() && rc.error(rc.getName(this), `from DB Unique Key Violation : ${JSON.stringify(presentedFromDb)}`)
+      throw new Mubble.uError('ENTITY_EXISTS','Unique Key Violation :' +JSON.stringify(presentedFromDb))
+    }
+  }
+
+  private getAllUniques(rc: RunContextServer, ...entities: MudsBaseEntity[]) {
+
+    let uniqueValues = [] as UniqCacheObj[]
 
     for (const entity of entities) {
 
-      if (!MudsUtil.getUniques(rc, entity, uniqueVals)) continue
+      const uniquesLength = MudsUtil.getUniques(rc, entity, uniqueValues)
 
-      const existingEntity = await MudsUtil.checkIfEntityExists(rc, entity)
+      if (!uniquesLength) continue
 
-      if (existingEntity) {
-
-        const oldUniqVals = [] as UniqCacheObj[]
-
-        MudsUtil.getUniques(rc, existingEntity, oldUniqVals)
-
-        uniqueVals = lo.difference(uniqueVals, oldUniqVals)
-      }
+      const oldUniqValues = [] as UniqCacheObj[]
+      MudsUtil.getUniques(rc, entity, oldUniqValues)
+      uniqueValues = lo.difference(uniqueValues, oldUniqValues)
     }
 
-    return uniqueVals
+    return uniqueValues
   }
 
-  private async checkExistenceInCache(rc: RunContextServer, uniqueVals: any[]) {
+  private async  lockEntityInCache(rc: RunContextServer, uniqueVals: any[]) {
 
-    const trRedis = this.manager.getCacheReference(),
-      multi = trRedis.redisMulti(),
-      existingKeys = [] as any[]
+    const trRedis      = this.manager.getCacheReference(),
+          multi        = trRedis.redisMulti(),
+          existingKeys = [] as any[]
 
     for (const uniqueVal of uniqueVals) {
 
-      const key = this.getCacheKey(rc, uniqueVal.entity, uniqueVal.key, uniqueVal.value)
-
+      const key = this.getCacheKey(rc, uniqueVal.entity.getInfo().entityName, uniqueVal.key, uniqueVal.value)
+      
       // Expires in 5 secs.
       multi.set(key, uniqueVal.value, 'EX', '5', 'NX')
     }
@@ -357,6 +355,12 @@ export abstract class MudsIo {
       if (!val) existingKeys.push(uniqueVals[index])
     })
 
+    if(existingKeys.length) {
+      for(const uniqCacheObj of uniqueVals){
+        rc.isError() && rc.error(rc.getName(this), `from cache Unique Key Violation : ${uniqCacheObj.key}-${uniqCacheObj.value}`)
+        throw new Mubble.uError('ENTITY_EXISTS',`Unique Key Violation :${uniqCacheObj.key}-${uniqCacheObj.value}`)
+      }
+    }
     return existingKeys
   }
 
@@ -364,25 +368,32 @@ export abstract class MudsIo {
     return entityName + '.' + key + ':' + value
   }
 
-  private async existenceCheckQuery(rc: RunContextServer,
-    entity: MudsBaseEntity,
-    key: string,
-    value: any) {
+  /* Check existence of the unique fields from ds */
+  private async existenceCheckQuery(rc     : RunContextServer,
+                                    entity : MudsBaseEntity,
+                                    key    : string,
+                                    value  : any) {
 
-    return null
-    // let respEntity
-    // await Muds.direct(rc, async (mudsIo, now) => {
+    const existedEntity = await Muds.direct(rc, async (mudsIo) => {
 
-    //   const query = mudsIo.query(entity)
+      const query = mudsIo.query(entity.getInfo().cons)
+                    .filter(key, '=', value)
+      
+      const result = await query.run(1)
 
-    //   query.filter(key, '=', value)
+      return await result.getNext()
+    })
 
-    //   const result = await query.run(1)
+    if(!existedEntity)  return
+    
+    const selfKey : any = entity.getSelfKey()
+    if(selfKey) {
+      if(existedEntity.getSelfKey().value === selfKey.value) {
+        return
+      }
+    }
 
-    //   respEntity = await result.getNext()
-    // })
-
-    // return  respEntity ? key : null
+    return {key , value}
   }
 
   /* 
@@ -417,7 +428,7 @@ export abstract class MudsIo {
     entityClass: Muds.IBaseEntity<T>,
     keys: (string | DatastoreInt)[]) {
 
-    const { ancestorKeys, selfKey } = this.separateKeysForInsert(rc, entityClass, keys)
+    const { ancestorKeys, selfKey } = this.separateKeysForInsert(rc, entityClass, keys)  
     if (selfKey === undefined) {
       throw ('Self key is not set')
     } else {
@@ -713,7 +724,7 @@ export class QueueBuilder {
 }
 
 export class UniqCacheObj {
-  entityName: string
+  entity: MudsBaseEntity
   key: string
   value: string
 }
