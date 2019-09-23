@@ -245,15 +245,21 @@ export async function executeHttpResultResponse(rc: RunContextServer, options: h
   }
 }
 
+export type Response = {
+  response   : string
+  statusCode : number
+  headers    : Mubble.uObject<any>
+}
+
 /**
  * http(s) request for passing http options along with url.
- * To pass query params, pass in urlObj.query.
+ * To pass query params, pass in urlObj.query as object.
  * To pass JSON, pass in data as JSON string.
  */
 export async function executeHttpsRequestWithOptions(rc       : RunContextServer,
                                                      urlObj   : url.UrlObject,
                                                      options ?: http.RequestOptions,
-                                                     data    ?: string) : Promise<string>{
+                                                     data    ?: string) : Promise<Response>{
 
   rc.isDebug() && rc.debug(rc.getName(this), 'executeHttpsRequestWithOptions', urlObj, options, data)
 
@@ -264,7 +270,8 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
     reqOptions.headers[HTTP.HeaderKey.contentLength] = data.length
   }
 
-  const urlStr = url.format(urlObj)
+  const urlStr = url.format(urlObj),
+        resp   = {} as Response
 
   rc.isStatus() && rc.status(rc.getName(this), 'http(s) request.', urlStr, reqOptions)
 
@@ -279,7 +286,10 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
 
   req.on('response', (res : http.IncomingMessage) => {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Response headers.', urlStr, res.headers)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Response headers.', urlStr, res.statusCode, res.headers)
+
+    resp.statusCode = res.statusCode || 200
+    resp.headers    = res.headers
 
     readStreams.push(res)
 
@@ -308,10 +318,11 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
   data ? writeUStream.write(data) : writeUStream.write('')
 
   const [, output] : Array<any> = await Promise.all([writePromise.promise, readPromise.promise])
+  resp.response = output.toString()
 
-  rc.isStatus() && rc.status(rc.getName(this), 'http(s) request response.', urlStr, output.toString())
+  rc.isStatus() && rc.status(rc.getName(this), 'http(s) request response.', urlStr, resp.response)
 
-  return output.toString()
+  return resp
 }
 
 // example
