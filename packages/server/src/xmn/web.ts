@@ -135,11 +135,7 @@ export class Web {
 
     return new Promise((resolve, reject) => {
 
-      httpServer.listen(config.port, (err: any) => {
-        if (err) {
-          rc.isError() && rc.error(rc.getName(this), 'http.listen failed', config.port)
-          return reject(err)
-        }
+      httpServer.listen(config.port, () => {
         resolve()
       })
 

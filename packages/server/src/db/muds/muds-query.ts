@@ -261,7 +261,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
 -----------------------------------------------------------------------------*/
 export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<T> {
 
-  private records   : object[]
+  private records   : T[]
   private endCursor : string
   private hasMore   : boolean
 
@@ -281,7 +281,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   private loadData(result: DsQueryResult) {
 
     const [ar, info]  = result
-    this.records      = ar
+    this.records      = ar as T[]
 
     if (ar.length) {
       this.endCursor    = info.endCursor || ''
@@ -315,6 +315,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
     let ptr = 0 
     return {
       next : async () : Promise<IteratorResult<T>> => {
+
         if (ptr === this.records.length) {
           if (this.hasMore) {
             this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Fetching more data')
@@ -323,10 +324,13 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
             ptr = 0
           }
         }
+
+        // TODO : Need to fix next(), should return undefined after done
+
         const done = !this.hasMore && ptr === this.records.length
         return {
             done,
-            value : done ? this.records[ptr - 1] as T
+            value : done ? this.records[ptr - 1]
                          : this.io.getRecordFromDs(this.rc, this.entityClass,
                                                    this.records[ptr++], !this.onlySelectedCols)
         }
