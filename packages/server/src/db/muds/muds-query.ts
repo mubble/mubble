@@ -266,7 +266,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   private hasMore   : boolean
 
   // This is short term till we get upgrade to 'for await' 
-  private iterator  : { next : (val ?: T) => Promise<{value ?: T, done: boolean}> } | null
+  private iterator  : { next : () => Promise<IteratorResult<T>> } | null
 
   constructor(private rc      : RunContextServer, 
     private io                : MudsIo,
@@ -311,10 +311,10 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   }
 
   // for future when we move to v8 6.3
-  public [Symbol.asyncIterator]() {
+  public [Symbol.asyncIterator]() : AsyncIterator<T> {
     let ptr = 0 
     return {
-      next: async (val: T) => {
+      next : async () : Promise<IteratorResult<T>> => {
         if (ptr === this.records.length) {
           if (this.hasMore) {
             this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Fetching more data')
@@ -326,8 +326,9 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
         const done = !this.hasMore && ptr === this.records.length
         return {
             done,
-            value: done ? val : this.io.getRecordFromDs(this.rc, this.entityClass, 
-                                  this.records[ptr++], !this.onlySelectedCols)
+            value : done ? this.records[ptr - 1] as T
+                         : this.io.getRecordFromDs(this.rc, this.entityClass,
+                                                   this.records[ptr++], !this.onlySelectedCols)
         }
       }
     }
