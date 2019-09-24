@@ -11,7 +11,6 @@ import * as http                      from 'http'
 import * as https                     from 'https'
 
 import { XmnRouterServer }            from './xmn-router-server'
-import { ActiveProviderCollection }   from '@mubble/core'
 import { HttpsServer }                from './https-server'
 import { HttpsThirdServer }           from './https-third-server'
 import { WssServer }                  from './wss-server'
