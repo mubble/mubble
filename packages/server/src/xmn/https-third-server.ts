@@ -54,6 +54,7 @@ export class HttpsThirdServer {
           encRequestPath = ar[2]
 
     if(obopayStr !== ObopayHttpsClient.OBOPAY_STR) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Enfing request with 404 response.')
       this.endRequestWithNotFound(res)
       return
     }
@@ -72,6 +73,7 @@ export class HttpsThirdServer {
     try {
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Enfing request with 404 response.')
       this.endRequestWithNotFound(res)
       return
     }
