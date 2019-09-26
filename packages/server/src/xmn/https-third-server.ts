@@ -233,7 +233,9 @@ export class HttpsThirdServerProvider implements XmnProvider {
     for(const key in cookies) {
       const cookieKey   = encodeURIComponent(key),
             cookieValue = encodeURIComponent(cookies[key]),
-            pair        = [cookieKey, cookieValue].join('=')
+            path        = '; path="/"',
+            expiry      = `; expires=${new Date(Date.now() + 10 * 365 * 60 * 60 * 1000).toUTCString()} UTC`,
+            pair        = [cookieKey, cookieValue].join('=') + expiry + path
 
       pairs.push(pair)
     }
