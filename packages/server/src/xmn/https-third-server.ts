@@ -132,8 +132,8 @@ export class HttpsThirdServer {
 
 export class HttpsThirdServerProvider implements XmnProvider {
 
-  private respnseHeaders : http.OutgoingHttpHeaders = {}
-  private finished    : boolean     = false
+  private responseHeaders : http.OutgoingHttpHeaders = {}
+  private finished        : boolean                  = false
 
   constructor(private refRc       : RunContextServer,
               private router      : XmnRouterServer,
@@ -183,7 +183,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     rc.isStatus() && rc.status(rc.getName(this), 'sending', data)
 
-    this.res.writeHead(200, this.respnseHeaders)
+    this.res.writeHead(200, this.responseHeaders)
 
     if(!(data instanceof Buffer) || typeof data != 'string')
       data = Buffer.from(JSON.stringify(data))
@@ -240,15 +240,15 @@ export class HttpsThirdServerProvider implements XmnProvider {
       pairs.push(pair)
     }
 
-    this.respnseHeaders[HTTP.HeaderKey.setCookie] = pairs
+    this.responseHeaders[HTTP.HeaderKey.setCookie] = pairs
   }
 
   redirect(rc : RunContextServer, url : string) {
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Redirecting to :', url)
-    this.respnseHeaders[HTTP.HeaderKey.location] = url
+    rc.isStatus() && rc.status(rc.getName(this), 'Redirecting to :', url, this.responseHeaders)
+    this.responseHeaders[HTTP.HeaderKey.location] = url
 
-    this.res.writeHead(302, this.respnseHeaders)
+    this.res.writeHead(302, this.responseHeaders)
     this.res.end()
     this.finished = true
     this.server.markFinished(this)
