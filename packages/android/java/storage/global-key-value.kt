@@ -55,7 +55,6 @@ abstract class GlobalKeyValue: MubbleLogger {
   fun getAdId(): String? {
     return sharedPrefs.getString("adId", null)
   }
-/*
 
   fun getUniqueId(): String {
 
@@ -68,7 +67,6 @@ abstract class GlobalKeyValue: MubbleLogger {
 
     return uniqueId
   }
-*/
 
   open fun getJsVersion(): String? {
     return sharedPrefs.getString("jsVersion", null)
