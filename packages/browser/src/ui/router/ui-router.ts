@@ -476,7 +476,7 @@ export class UiRouter {
     comp.component.onBackPressed()
   }
 
-  canGoBack() {
+  protected canGoBack() {
 
     const lastIdx  = this.urlStack.length - 1,
           lastItem = this.urlStack[lastIdx]
