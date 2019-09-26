@@ -195,7 +195,7 @@ export abstract class MudsIo {
 
   public query<T extends MudsBaseEntity>(entityClass: Muds.IBaseEntity<T>, 
           ...ancestorKeys : (string | DatastoreInt)[]): MudsQuery<T> {
-    
+
     return new MudsQuery(this.rc, this,
       this.verifyAncestorKeys(this.rc, entityClass, ancestorKeys),
       entityClass)
@@ -544,9 +544,17 @@ export abstract class MudsIo {
       ancestorsInfo = entityInfo.ancestors,
       dsKeys = []
 
-    if (entityInfo.ancestors) {
+    //TODO (AJ): Check with Raghu
+    if (!entityInfo.ancestors.length) {
+      
+      if(ancestorKeys.length){
+        dsKeys.push(entityInfo.entityName, this.checkKeyType(rc, ancestorKeys[0], entityInfo))
+        return this.datastore.key(dsKeys)
+      }
+
       return null
     }
+
     rc.isAssert() && rc.assert(rc.getName(this), ancestorsInfo.length,
       'It is mandatory to have ancestorKeys for querying with-in transaction')
 
