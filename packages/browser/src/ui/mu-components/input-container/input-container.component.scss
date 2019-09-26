@@ -13,15 +13,15 @@
   align-items: center;
   border-width: 2px;
   border-style: solid;
-  margin: 2% 0%;
+  margin: 2% 0;
   width: 46%
 }
 
 .range-onb-input-box-cont {
   .input-cont {
     position: relative;
-    width: 92%;
-    padding: 4%;
+    width: 100%;
+    padding: 3vw;
     border: 0;
     background: none;
   }
@@ -29,15 +29,15 @@
 
 .input-cont {
   position: relative;
-  width: 92%;
-  padding: 2%;
+  width: 100%;
+  padding: 3vw;
   border: 0;
   background: none;
 }
 
 .input-cont-comp {
   position: relative;
-  margin: 1% 4%;
+  margin: 4vw;
 }
 
 .range {
@@ -49,4 +49,26 @@
 .errors-list {
   display: flex;
   flex-direction: column;
+}
+
+.web-input-cont-comp {
+  margin: 2% 4%;
+
+  .range-onb-input-box-cont {
+    .input-cont {
+      position: relative;
+      width: calc(100% - 30px);
+      padding: 15px;
+      border: 0;
+      background: none;
+    }
+  }
+  
+  .input-cont {
+    position: relative;
+    width: calc(100% - 30px);
+    padding: 15px;
+    border: 0;
+    background: none;
+  }
 }

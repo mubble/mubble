@@ -132,12 +132,12 @@
   </ng-container>
 
   <div *ngIf="inputForm" class="errors-list">
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && 
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && inputForm.value &&
       (inputForm.hasError('required') || inputForm.hasError('pattern'))">
       {{ inputParams.validators.validationError }}
     </mat-error>
 
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched &&
+    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && inputForm.errors && 
       inputForm.hasError('futureDate')">
       {{ 'mu_inpt_cont_futr_date_err' | translate }}
     </mat-error>
