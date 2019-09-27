@@ -28,10 +28,10 @@ import {HttpsThirdServerProvider}   from './https-third-server'
 const EVENT_QUEUE = 'event-queue:'
 
 export type ClientEventObject = {
-  workerId    : string
-  clientId    : number | string
-  eventName   : string
-  eventParams : Mubble.uObject<any> 
+  workerId     : string
+  connectionId : number | string
+  eventName    : string
+  eventParams  : Mubble.uObject<any> 
 }
 
 export class InvokeStruct {
@@ -408,10 +408,10 @@ export abstract class XmnRouterServer {
   private async processEventObject(refRc : RunContextServer, eventObj : ClientEventObject) {
     const rc = refRc.copyConstruct('', 'app-event')
 
-    const ci = ConnectionMap.getActiveConnection(eventObj.clientId)
-    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, !!ci)
+    const co = ConnectionMap.getActiveConnection(eventObj.connectionId)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, !!co)
     
-    if(ci) await rc.router.sendEvent(rc, ci, eventObj.eventName, eventObj.eventParams)
+    if(co) await rc.router.sendEvent(rc, co.ci, eventObj.eventName, eventObj.eventParams)
   }
 
   public getCookies(ci : ConnectionInfo) : Mubble.uObject<string> {

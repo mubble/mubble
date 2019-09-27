@@ -7,19 +7,27 @@
    Copyright (c) 2019 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { ConnectionInfo } from '@mubble/core'
+import { 
+         Mubble,
+         ConnectionInfo
+       }                  from '@mubble/core'
+
+export type ConnectionObject = {
+  ci  : ConnectionInfo
+  obj : Mubble.uObject<any>
+}
 
 export namespace ConnectionMap {
 
-  const ActiveConnectionMap : Map<number | string, ConnectionInfo> = new Map()
+  const ActiveConnectionMap : Map<number | string, ConnectionObject> = new Map()
 
-  export function addActiveConnection(id : number | string, ci : ConnectionInfo) {
+  export function addActiveConnection(id : number | string, ci : ConnectionObject) {
     if(isActiveConnection(id)) return
 
     ActiveConnectionMap.set(id, ci)
   }
 
-  export function getActiveConnection(id : number | string) {
+  export function getActiveConnection(id : number | string) : ConnectionObject | undefined {
     return ActiveConnectionMap.get(id)
   }
 
