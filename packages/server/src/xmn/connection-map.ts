@@ -10,34 +10,44 @@
 import { 
          Mubble,
          ConnectionInfo
-       }                  from '@mubble/core'
+       }                    from '@mubble/core'
+import { RedisWrapper }     from '../cache'
 
 export type ConnectionObject = {
   ci  : ConnectionInfo
   obj : Mubble.uObject<any>
 }
 
+const CONN_MAP_PREFIX = 'connection-map:'
+
 export namespace ConnectionMap {
 
-  const ActiveConnectionMap : Map<number | string, ConnectionObject> = new Map()
+  let connRedis : RedisWrapper
+  let mapKey    : string
 
-  export function addActiveConnection(id : number | string, ci : ConnectionObject) {
-    if(isActiveConnection(id)) return
-
-    ActiveConnectionMap.set(id, ci)
+  export function init(serverId : string, redis : RedisWrapper) {
+    connRedis = redis
+    mapKey    = CONN_MAP_PREFIX + serverId
   }
 
-  export function getActiveConnection(id : number | string) : ConnectionObject | undefined {
-    return ActiveConnectionMap.get(id)
+  export async function addActiveConnection(id : string, co : ConnectionObject) {
+    if(await isActiveConnection(id)) return
+
+    await connRedis.redisCommand().hset(mapKey, id, JSON.stringify(co))
   }
 
-  export function isActiveConnection(id : number | string) {
-    return ActiveConnectionMap.has(id)
+  export async function getActiveConnection(id : string) : Promise<ConnectionObject | undefined> {
+    const coStr = await connRedis.redisCommand().hget(mapKey, id)
+
+    if(!coStr) return undefined
+    return JSON.parse(coStr)
   }
 
-  export function removeActiveConnection(id : number | string) {
-    if(!isActiveConnection(id)) return
-    
-    ActiveConnectionMap.delete(id)
+  export async function isActiveConnection(id : string) : Promise<boolean> {
+    return !!await connRedis.redisCommand().hexists(mapKey, id)
+  }
+
+  export async function removeActiveConnection(id : string) {
+    await connRedis.redisCommand().hdel(mapKey, id)
   }
 }

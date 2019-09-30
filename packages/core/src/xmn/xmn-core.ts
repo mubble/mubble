@@ -8,10 +8,9 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble, RunContextBase } from '..'
-import { XmnError }               from './xmn-error'
 import { CustomData }             from './custom-data'
 
-export enum Protocol {HTTP, WEBSOCKET, HTTPS}
+export enum Protocol {HTTP, WEBSOCKET, HTTP_THIRD, HTTPS}
 
 export const HANDSHAKE = '__handshake__'
 

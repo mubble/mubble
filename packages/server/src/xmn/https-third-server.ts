@@ -62,7 +62,7 @@ export class HttpsThirdServer {
     const ci             = {} as ConnectionInfo,
           [host, port]   = (req.headers.host || '').split(':')
 
-    ci.protocol          = urlObj.protocol === 'https:' ? Protocol.HTTPS : Protocol.HTTP
+    ci.protocol          = Protocol.HTTP_THIRD
     ci.host              = host
     ci.port              = Number(port) || urlObj.protocol === 'https:' ? 443 : 80
     ci.url               = req.url || ''
@@ -73,7 +73,7 @@ export class HttpsThirdServer {
     try {
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
-      rc.isWarn() && rc.warn(rc.getName(this), 'Ending request with 404 response.')
+      rc.isWarn() && rc.warn(rc.getName(this), 'Ending request with 404 response.', err)
       this.endRequestWithNotFound(res)
       return
     }
