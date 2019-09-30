@@ -34,12 +34,14 @@ export namespace HTTP {
     requestType      : 'x-obopay-type',
     bodyEncoding     : 'x-obopay-encoding',
     transferEncoding : 'transfer-encoding',
-    location         : 'location'
+    location         : 'location',
+    accept           : 'accept'
   }
   
   /* HTTP Headers */
   export const HeaderValue = {
     form     : 'application/x-www-form-urlencoded',
+    mutiForm : 'multipart/form-data',
     stream   : 'application/octet-stream',
     json     : 'application/json',
     gzip     : 'gzip',
