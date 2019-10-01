@@ -73,7 +73,7 @@ export class HttpsServer {
       return
     }
 
-    const [ apiStr, moduleName, apiName] = pathName.split('/')
+    const [ apiStr, moduleName, apiName ] = pathName.split('/')
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -100,6 +100,8 @@ export class HttpsServer {
 
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Error in verifying connection. Sending 404 response.', err)
+
       res.writeHead(404, {
         [HTTP.HeaderKey.contentLength] : 0,
         connection                     : 'close' 
