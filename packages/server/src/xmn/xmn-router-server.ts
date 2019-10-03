@@ -64,7 +64,7 @@ export abstract class XmnRouterServer {
     XmnRegistry.commitRegister(rc, this, apiProviders)
     this.reqRedis = reqRedis
 
-    ConnectionMap.init(serverId, reqRedis)
+    //ConnectionMap.init(serverId, reqRedis)
   }
   
   public async verifyConnection(rc       : RunContextServer,
