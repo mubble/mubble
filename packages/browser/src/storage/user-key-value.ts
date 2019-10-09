@@ -173,6 +173,7 @@ export abstract class UserKeyValue {
     return {
       clientId            : this._clientId,
       sessionId           : this._sessionId,
+      obopayId            : this._obopayId,
       
       //userLinkId          : this._userLinkId,
       //userName            : this.userName,
@@ -187,6 +188,9 @@ export abstract class UserKeyValue {
     //this.userName               = obj.userName
     this._webProfilePicBase64   = obj.webProfilePicBase64
     this.screenVisitedStates    = obj.screenVisitedStates
+
+    this._sessionId              = obj.sessionId
+    this._obopayId               = obj.obopayId
   }
 
   $dump() {
