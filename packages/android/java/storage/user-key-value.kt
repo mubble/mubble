@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import core.BaseApp
 import core.MubbleLogger
+import org.jetbrains.anko.info
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -47,7 +48,9 @@ abstract class UserKeyValue: MubbleLogger {
   }
 
   fun getLastLoginClientId(): Long? {
-    return sharedPrefs.getString(LAST_USER, null)?.toLong()
+    var lastUserClientId = sharedPrefs.getString(LAST_USER, null)
+    if (lastUserClientId == "null") lastUserClientId = null
+    return  lastUserClientId?.toLong()
   }
 
   fun isMultiUser(): Boolean {
