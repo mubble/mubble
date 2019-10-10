@@ -565,7 +565,9 @@ export abstract class MudsIo {
         dsKeys.push(info.entityName, this.checkKeyType(rc, ancestorKeys[index], info))
     }
 
-    return this.datastore.key(dsKeys)
+    if(dsKeys.length) return this.datastore.key(dsKeys)
+
+    return null
   }
 
   checkIndexed(rc: RunContextServer, dottedStr: string, entityName: string) {
