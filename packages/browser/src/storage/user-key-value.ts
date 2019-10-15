@@ -19,7 +19,6 @@ export abstract class UserKeyValue {
   private _clientId               : number
   private _obopayId               : string
   private _sessionId              : string
-  private _deviceId               : string
 
   //private _userLinkId             : string
   private _webProfilePicBase64    : string
@@ -144,12 +143,6 @@ export abstract class UserKeyValue {
   set sessionId(sessionId: string) {
     if (sessionId === this._sessionId) return
     this._sessionId = sessionId
-  }
-
-  get deviceId() { return this._deviceId }
-  set deviceId(deviceId: string) {
-    if (deviceId === this._deviceId) return
-    this._deviceId = deviceId
   }
 
   get obopayId() { return this._obopayId }

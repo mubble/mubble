@@ -54,6 +54,7 @@ export abstract class GlobalKeyValue {
   @GlobalKeyValue.autoStore() syncSegments  : object
   @GlobalKeyValue.autoStore() jsVersion     : string
   @GlobalKeyValue.autoStore() logLevel      : number
+  @GlobalKeyValue.autoStore() deviceId      : string
   
   public static autoStore(): any {
 
@@ -79,6 +80,9 @@ export abstract class GlobalKeyValue {
 
           rc.isDebug() && rc.debug(rc.getName(this), 
             `autoStore.set: propertyKey: ${propertyKey}, value: ${value}, fieldType: ${fieldType}`)
+
+          console.log(`Test`, propertyKey, value, fieldType);
+          
 
           rc.isAssert() && rc.assert(rc.getName(this), value !== undefined)
           rc.isAssert() && rc.assert(rc.getName(this), VALID_TYPES.indexOf(fieldType) !== -1, 
