@@ -19,15 +19,15 @@ export interface AlertDialogParams {
   positiveLink    ?: string
 }
 
-export enum RESULT {
-  YES = 'YES',
-  NO  = 'NO'
-}
-
 export interface AlertDialogResult {
-  result        : RESULT
+  result        : DIALOG_RESULT
   contextId ?   : string
   positiveLink ?: string
+}
+
+export enum DIALOG_RESULT {
+  YES = 'YES',
+  NO  = 'NO'
 }
 
 @Component({
@@ -41,7 +41,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
 
   private caller    : InjectionCaller
   private myParent  : InjectionParent
-  private result    : RESULT
+  private result    : DIALOG_RESULT
   private contextId : string
   private allowBack : boolean
 
@@ -122,12 +122,12 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
                               HTML FUNCTIONS
   =====================================================================*/
   onCancel() {
-    this.result  = RESULT.NO
+    this.result  = DIALOG_RESULT.NO
     this.close()
   }
 
   onContinue() {
-    this.result     = RESULT.YES
+    this.result     = DIALOG_RESULT.YES
     this.allowBack  = true
     this.close()
   }
