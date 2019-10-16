@@ -146,6 +146,7 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   private routeEndProcessed : boolean = false
   
   @Input() width:string = "75vw"
+  @Input() className : string 
 
   constructor(@Inject('RunContext') rc: RunContextBrowser, 
               router: UiRouter,
@@ -163,7 +164,11 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   onRouterInit(params: Mubble.uObject<any>) {
     
     super.onRouterInit(params, this.injectAt, true)
-    this.width = this.injectedComponent.getWidth()
+    this.width      = this.injectedComponent.getWidth()
+
+    if (this.injectedComponent.getClassName) {
+      this.className  = this.injectedComponent.getClassName()
+    }
   }
 
   ngAfterViewInit() {

@@ -275,7 +275,7 @@ export class UiRouter {
     return segments[0].path
   }
 
-  public getModuleName(url): string {
+  public getModuleName(url : string): string {
 
     const urlTree: UrlTree        = this.router.parseUrl(url)
     const segments: UrlSegment[]  = urlTree.root.children.primary.segments
