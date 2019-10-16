@@ -166,8 +166,8 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
     super.onRouterInit(params, this.injectAt, true)
     this.width      = this.injectedComponent.getWidth()
 
-    if (this.injectedComponent.getClassName) {
-      this.className  = this.injectedComponent.getClassName()
+    if (this.injectedComponent.getCssClassName) {
+      this.className  = this.injectedComponent.getCssClassName()
     }
   }
 
