@@ -1,0 +1,73 @@
+<p-table #dt
+  [rows]="tableConfig.dispRows"
+  [value]="tableConfig.lazyLoad ? dataToDisplay : tableConfig.data"
+  [lazy]="tableConfig.lazyLoad"
+  [totalRecords]="totalRecords"
+  [columns]="tableConfig.headers"
+  [paginator]="enablePagination"
+  [loading]="loading"
+  (onLazyLoad)="loadLazy($event)"
+  (onRowSelect)="rowSelect($event)" 
+  (onRowUnselect)="rowUnselect($event)"
+  [globalFilterFields]="filterFields"
+  [(selection)]="selectedItems">
+
+  <ng-template pTemplate="caption" *ngIf="filterFields.length || enablePagination">
+    <div class="top-cont">        
+      <i class="fa fa-search icon-class" *ngIf="filterFields.length"></i>
+      <input type="text" class="input-box" pInputText placeholder="Search" 
+      (input)="dt.filterGlobal($event.target.value, 'contains')" 
+      *ngIf="filterFields.length">
+    </div>
+  </ng-template>
+
+  <ng-template pTemplate="header" let-coloumns>
+    <tr>
+      <th *ngIf="tableConfig.enableSelect" class="checkbox">
+        <mat-checkbox (change)="selectAllRows($event)" #slctAllBox></mat-checkbox>
+      </th>
+      <th *ngIf="tableConfig.enableRadio" class="checkbox">
+      </th>
+      <th *ngFor="let col of coloumns; let i = index" [pSortableColumn]="sortFields[i]">
+        {{ col.header }}
+        <p-sortIcon *ngIf="sortFields[i]" [field]="sortFields[i]"> </p-sortIcon>
+      </th>
+    </tr>
+  </ng-template>
+
+  <ng-template pTemplate="body" let-rowData>
+    <tr [pSelectableRow]="rowData" style="text-align: center">
+      <td *ngIf="tableConfig.enableSelect">
+        <p-tableCheckbox [value]="rowData"></p-tableCheckbox>
+      </td>
+      <td *ngIf="tableConfig.enableRadio">
+        <p-tableRadioButton [value]="rowData"></p-tableRadioButton>
+      </td>
+      <td *ngFor="let row of tableConfig.headers" [ngClass]="row.customStyle"
+      (click)="cellClick(rowData, row.dataKey)">
+
+        <ng-container [ngSwitch]="row.colType">
+          <div *ngSwitchCase="COL_TYPE.TEXT">
+            {{ row.constValue || rowData[row.dataKey] }}
+          </div>
+          <div *ngSwitchCase="COL_TYPE.PRIMARY_KEY">
+            {{ row.constValue || rowData[row.dataKey] }}
+          </div>
+          <div *ngSwitchCase="COL_TYPE.IMAGE">
+            <img src="{{ row.constValue || rowData[row.dataKey] }}">
+          </div>
+          <div *ngSwitchCase="COL_TYPE.ICON">
+            <i class="{{ row.constValue || rowData[row.dataKey] }}"></i>
+          </div>
+          <div *ngSwitchCase="COL_TYPE.BUTTON">
+            <button>{{ row.constValue || rowData[row.dataKey] }}</button>
+          </div>
+          <div *ngSwitchCase="COL_TYPE.DATE">
+            {{ row.constValue || rowData[row.dataKey] | date }}
+          </div>
+        </ng-container>
+        
+      </td>
+    </tr>
+  </ng-template>
+</p-table>
