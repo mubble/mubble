@@ -7,6 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 import * as cluster       from 'cluster'
+import { Mubble }         from '@mubble/core'
 
 export const CODE = {
   VOLUNTARY_DEATH      : 13
@@ -27,7 +28,11 @@ export abstract class BaseIpcMsg {
 // Used to pass the initial startup params to worker
 export class CWInitializeWorker extends BaseIpcMsg {
 
-  constructor(public workerIndex: number , public runMode : number , public restartCount : number, public initFn ?: any) {
+  constructor(public workerIndex  : number,
+              public runMode      : number,
+              public restartCount : number,
+              public initObj      : Mubble.uObject<any>) {
+    
     super(CWInitializeWorker.name)
   }
 }

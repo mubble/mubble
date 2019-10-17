@@ -8,16 +8,17 @@
 ------------------------------------------------------------------------------*/
 
 // Import from node
-import * as cluster       from 'cluster'
+import * as cluster           from 'cluster'
 
 // Import from external modules with types
-import * as _             from 'lodash'
+import * as _                 from 'lodash'
 
 // Internal imports
-import * as ipc     from './ipc-message'
-import {CONFIG}     from './config'
+import * as ipc               from './ipc-message'
+import { CONFIG }             from './config'
 
-import {RunContextServer, RUN_MODE} from '../rc-server'
+import { RunContextServer }   from '../rc-server'
+import { Mubble }             from '@mubble/core'
 
 const CONST = {
   MS_WAIT_FOR_INIT: 30000
@@ -43,7 +44,7 @@ export class ClusterWorker {
     this.config = config
     rc.on('ClusterMsg', process, 'message', this.onMessage.bind(this))
 
-    return new Promise((resolve, reject) => {
+    await new Promise((resolve, reject) => {
       this.pendingInitResolve = resolve
       setTimeout(() => {
         if (this.pendingInitResolve) { // indicates promise is not fulfilled
@@ -52,9 +53,15 @@ export class ClusterWorker {
         }
       }, CONST.MS_WAIT_FOR_INIT)
     })
+
+    rc.initObj = globalInitObj
+
+    return
   }
 
   onMessage(rc: RunContextServer, msg: any) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'Received message.', msg)
+
     if (!_.isPlainObject(msg)) {
       return rc.isError() && rc.error(rc.getName(this), 'Received invalid message', msg)
     }
@@ -71,8 +78,10 @@ export class ClusterWorker {
       process.title = this.config.SERVER_NAME + '_' + this.workerIndex
       const fn = this.pendingInitResolve
       this.pendingInitResolve = null
+
+      globalInitObj = wMsg.initObj
+
       fn() // resolve so that we can go ahead with further init
-      if(wMsg.initFn) wMsg.initFn()
       rc.isStatus() && rc.status(rc.getName(this), 'Started worker with index', this.workerIndex , 'RunMode' , wMsg.runMode)
       break
     }
@@ -248,3 +257,5 @@ export class ClusterWorker {
   */
 }
 export const clusterWorker = new ClusterWorker()
+
+let globalInitObj : Mubble.uObject<any>

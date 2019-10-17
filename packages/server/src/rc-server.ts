@@ -16,7 +16,8 @@ import {
   RUN_MODE,
   InitConfig,
   RunState,
-  RCLoggerBase
+  RCLoggerBase,
+  Mubble
 }  from '@mubble/core'
 
 import  {MasterMgr}         from './master/ma-manager'
@@ -78,6 +79,7 @@ export abstract class RunContextServer extends RunContextBase {
     Static declarations
   ------------------------------------------------------------------------------*/
   masterMgr   : MasterMgr
+  initObj     : Mubble.uObject<any>
 
   private static initDone: boolean
   
@@ -96,7 +98,8 @@ export abstract class RunContextServer extends RunContextBase {
   }
 
   clone(newRc : RunContextServer) {
-    // nothing to do, I have no member variables
+    newRc.initObj = this.initObj
+
     super.clone(newRc)
   }
 
