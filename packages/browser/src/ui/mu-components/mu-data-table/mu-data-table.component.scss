@@ -1,0 +1,55 @@
+img {
+  width: 100px;
+  height: 100px;
+}
+
+.checkbox {
+  width: 3em
+}
+
+:host::ng-deep  .ui-table .ui-paginator-bottom {
+  position: absolute;
+  top: 3px;
+  right: 10px;
+}
+
+:host::ng-deep .ui-paginator {
+  border: none;
+  position: sticky;
+  top: 100px;
+}
+
+.input-box {
+  background: white !important;
+  width:auto; 
+  border: 1px solid #c8c8c8;
+  padding: 4px;
+}
+
+.top-cont {
+  text-align: left;
+  height: 24px;
+}
+
+.icon-class {
+  margin:5px 5px 0 0;
+}
+
+:host ::ng-deep .ui-table .ui-table-thead > tr > th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 40px;
+}
+
+:host ::ng-deep .ui-table .ui-table-caption {
+  position: -webkit-sticky;
+  position: sticky;
+  top: -1px;
+  border-bottom: 1px solid #c8c8c8 !important;
+}
+
+@media screen and (max-width: 64em) {
+  :host ::ng-deep .ui-table .ui-table-thead > tr > th {
+      top: 100px;
+  }
+}
