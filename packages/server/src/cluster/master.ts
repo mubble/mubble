@@ -36,11 +36,12 @@ import {RunContextServer, RUN_MODE} from '../rc-server'
  * @param config            Configuration for the platform
  */
 
-export async function startCluster( rc      : RunContextServer,
-                                    config  : CONFIG) : Promise<boolean> {
+export async function startCluster( rc            : RunContextServer,
+                                    config        : CONFIG,
+                                    workerInitFn ?: any) : Promise<boolean> {
 
   if (cluster.isMaster) {
-    await clusterMaster.start(rc, config)
+    await clusterMaster.start(rc, config, workerInitFn)
   } else {
     await clusterWorker.start(rc, config)
   }
@@ -71,21 +72,23 @@ interface UserInfo {
 ------------------------------------------------------------------------------*/
 export class ClusterMaster {
 
-  private workers  : WorkerInfo[]     = []
-  private userInfo : UserInfo | null  = null
-  private config   : CONFIG
-  
+  private workers      : WorkerInfo[]     = []
+  private userInfo     : UserInfo | null  = null
+  private config       : CONFIG
+  private workerInitFn : any
+
   constructor() {
     if (clusterMaster) throw('ClusterMaster is singleton. It cannot be instantiated again')
   }
   
-  async start(rc : RunContextServer, config: CONFIG) {
+  async start(rc : RunContextServer, config: CONFIG, workerInitFn ?: any) {
 
     if (!cluster.isMaster) {
       throw('ClusterMaster cannot be started in the cluster.worker process')
     }
 
-    this.config = config
+    this.config       = config
+    this.workerInitFn = workerInitFn
     rc.isDebug() && rc.debug(rc.getName(this), 'Starting cluster master with config', config)
 
     this.validateConfig(rc)
@@ -221,7 +224,7 @@ export class ClusterMaster {
                       ((rc.getRunMode() === RUN_MODE.PROD || rc.getRunMode() === RUN_MODE.PRE_PROD) ? os.cpus().length : 1)
 
     for (let workerIndex: number = 0; workerIndex < instances; workerIndex++) {
-      const workerInfo : WorkerInfo = new WorkerInfo(rc, this, workerIndex)
+      const workerInfo : WorkerInfo = new WorkerInfo(rc, this, workerIndex, this.workerInitFn)
       this.workers.push(workerInfo)
       workerInfo.fork(rc)
     }                  
@@ -307,8 +310,9 @@ class WorkerInfo {
   public  state         : WORKER_STATE          = WORKER_STATE.INIT
 
   constructor(rc: RunContextServer, 
-              readonly clusterMaster: ClusterMaster,
-              readonly workerIndex  : number, // index of clusterMaster.workers
+              readonly clusterMaster  : ClusterMaster,
+              readonly workerIndex    : number, // index of clusterMaster.workers
+              private  workerInitFn  ?: any
               ) {
   }
 
@@ -341,7 +345,7 @@ class WorkerInfo {
 
   public online(rc: RunContextServer): void {
     this.state = WORKER_STATE.ONLINE
-    const msgObj = new ipc.CWInitializeWorker(this.workerIndex , rc.getRunMode() , this.restartCount)
+    const msgObj = new ipc.CWInitializeWorker(this.workerIndex , rc.getRunMode() , this.restartCount, this.workerInitFn)
     msgObj.send(this.worker)
   }
 

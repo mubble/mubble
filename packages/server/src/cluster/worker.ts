@@ -72,6 +72,7 @@ export class ClusterWorker {
       const fn = this.pendingInitResolve
       this.pendingInitResolve = null
       fn() // resolve so that we can go ahead with further init
+      if(wMsg.initFn) wMsg.initFn()
       rc.isStatus() && rc.status(rc.getName(this), 'Started worker with index', this.workerIndex , 'RunMode' , wMsg.runMode)
       break
     }
