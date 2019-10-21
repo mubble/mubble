@@ -4,7 +4,7 @@
   [ngClass.md]="['web-input-cont-comp']"
   [ngClass.sm]="['web-input-cont-comp']">
 
-  <div class="label-txt txt-lg-bld-dark margin-bottom">
+  <div class="label-txt txt-lg-reg-norm margin-bottom" *ngIf="inputParams.label">
     {{inputParams.label}}
   </div>
 
@@ -14,7 +14,7 @@
         placeholder="{{inputParams.placeHolder}}"
         type="{{inputParams.inputType}}"
         (updatedValue)="setChangedValues($event)"
-        class="txt-xl-bld-norm input-cont text-size-medium" 
+        class="txt-lg-bld-norm input-cont" 
         [formControl]="inputForm"
         name="input-text"
         [ncMaxLength]="inputParams.maxLength || 1000"
@@ -30,10 +30,10 @@
     <div class="onb-input-box-cont border-primary">
       <mat-select [formControl]="inputForm"
         placeholder="{{inputParams.placeHolder}}" 
-        class="gender-select-cont txt-xl-bld-norm text-size-medium input-cont"
+        class="txt-lg-bld-norm input-cont"
         (selectionChange)="selectedOption($event)">
         <mat-option *ngFor="let option of inputParams.options" [value]="option"
-          class="txt-xl-bld-norm text-size-medium">
+          class="txt-lg-bld-norm">
           {{ option.value }}
         </mat-option>
       </mat-select>
@@ -47,7 +47,7 @@
         [matDatepicker]="picker" 
         (dateChange)="setDate($event)"
         placeholder="{{inputParams.placeHolder}}"
-        class="txt-xl-bld-norm text-size-medium input-cont dob-select-cont">
+        class="txt-lg-bld-norm input-cont">
       <mat-datepicker-toggle matSuffix [for]="picker" disableRipple="false"></mat-datepicker-toggle>
       <mat-datepicker touchUi #picker></mat-datepicker>
     </div>
@@ -61,7 +61,7 @@
           [matDatepicker]="startPicker" 
           (dateChange)="setDateRange($event)"
           placeholder="{{inputParams.placeHolder[0]}}"
-          class="txt-xl-bld-norm text-size-medium input-cont dob-select-cont">
+          class="txt-lg-bld-norm input-cont">
         <mat-datepicker-toggle matSuffix [for]="startPicker" disableRipple="false"></mat-datepicker-toggle>
         <mat-datepicker touchUi #startPicker></mat-datepicker>
       </div>
@@ -72,7 +72,7 @@
           [matDatepicker]="endPicker" 
           (dateChange)="setDateRange($event)"
           placeholder="{{inputParams.placeHolder[1]}}"
-          class="txt-xl-bld-norm text-size-medium input-cont dob-select-cont">
+          class="txt-lg-bld-norm input-cont">
         <mat-datepicker-toggle matSuffix [for]="endPicker" disableRipple="false"></mat-datepicker-toggle>
         <mat-datepicker touchUi #endPicker></mat-datepicker>
       </div>
@@ -86,7 +86,7 @@
           placeholder="{{inputParams.placeHolder[0]}}"
           type="number"
           (input)="setNumberRange($event)"
-          class="txt-xl-bld-norm input-cont text-size-medium" 
+          class="txt-lg-bld-norm input-cont" 
           formControlName="minAmount"
           name="input-text"
           textSecurity="inputParams.isPassword"
@@ -100,7 +100,7 @@
           placeholder="{{inputParams.placeHolder[1]}}"
           type="number"
           (input)="setNumberRange($event)"
-          class="txt-xl-bld-norm input-cont text-size-medium" 
+          class="txt-xl-bld-norm input-cont" 
           formControlName="maxAmount"
           name="input-text"
           textSecurity="inputParams.isPassword"
@@ -115,16 +115,16 @@
     <div class="onb-input-box-cont border-primary">
       <input matInput
         type="text"
-        class="txt-xl-bld-norm input-cont text-size-medium" 
+        class="txt-lg-bld-norm input-cont" 
         placeholder="{{inputParams.placeHolder}}"
         [formControl]="inputForm"
         [matAutocomplete]="auto">
 
       <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
         (optionSelected)="setAutocompleteValue($event)"
-        class="gender-select-cont txt-xl-bld-norm text-size-medium input-cont">
+        class="txt-xl-bld-norm input-cont">
         <mat-option *ngFor="let option of filteredOptions | async" [value]="option"
-          class="txt-xl-bld-norm text-size-medium">
+          class="txt-lg-bld-norm">
           {{ option.value }}
         </mat-option>
       </mat-autocomplete>
@@ -132,32 +132,37 @@
   </ng-container>
 
   <div *ngIf="inputForm" class="errors-list">
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && inputForm.value &&
-      (inputForm.hasError('required') || inputForm.hasError('pattern'))">
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched &&
+      inputForm.hasError('required')">
       {{ inputParams.validators.validationError }}
     </mat-error>
 
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputForm.touched && inputForm.errors && 
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputForm.value &&
+      inputForm.hasError('pattern')">
+      {{ inputParams.validators.validationError }}
+    </mat-error>
+
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputForm.errors && 
       inputForm.hasError('futureDate')">
       {{ 'mu_inpt_cont_futr_date_err' | translate }}
     </mat-error>
   </div>
 
   <div *ngIf="dateRange" class="errors-list">
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="dateRange.get('startDate').hasError('noStartDate')">
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="dateRange.get('startDate').hasError('noStartDate')">
       {{ 'mu_inpt_cont_strt_date_err' | translate }}
     </mat-error>
   
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="dateRange.get('startDate').hasError('startDateExceed')">
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="dateRange.get('startDate').hasError('startDateExceed')">
       {{ 'mu_inpt_cont_date_err' | translate }}
     </mat-error>
 
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="dateRange.get('startDate').hasError('futureDate') || 
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="dateRange.get('startDate').hasError('futureDate') || 
       dateRange.get('endDate').hasError('futureDate')">
       {{ 'mu_inpt_cont_futr_date_err' | translate }}
     </mat-error>
 
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputParams.isRequired && 
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParams.isRequired && 
       (dateRange.get('startDate').touched || dateRange.get('endDate').touched) &&
       (dateRange.get('startDate').hasError('required') || dateRange.get('endDate').hasError('required'))">
       {{ inputParams.validators.validationError }}
@@ -165,15 +170,15 @@
   </div>
   
   <div *ngIf="numberRange" class="errors-list">
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="numberRange.get('minAmount').hasError('noMinAmount')">
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="numberRange.get('minAmount').hasError('noMinAmount')">
       {{ 'mu_inpt_cont_min_amnt_err' | translate }}
     </mat-error>
   
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="numberRange.get('minAmount').hasError('minAmountExceed')">
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="numberRange.get('minAmount').hasError('minAmountExceed')">
       {{ 'mu_inpt_cont_amnt_err' | translate }}
     </mat-error>
 
-    <mat-error class="txt-sm-bld-dark error-text" *ngIf="inputParams.isRequired && 
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParams.isRequired && 
       (numberRange.get('minAmount').touched || numberRange.get('maxAmount').touched) &&
       (numberRange.get('minAmount').hasError('required') || numberRange.get('maxAmount').hasError('required'))">
       {{ inputParams.validators.validationError }}
