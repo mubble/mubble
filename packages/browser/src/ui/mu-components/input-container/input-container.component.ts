@@ -61,7 +61,7 @@ export interface InputParams {
   id            : string
   displayType   : DISPLAY_TYPE
   placeHolder   : string | string[]
-  label         : string
+  label        ?: string
   options      ?: SelectionBoxParams[]
   inputType    ?: string
   maxLength    ?: number
@@ -79,9 +79,10 @@ export interface InputParams {
 
 export class InputContainerComponent {
 
-  @Input()  inputParams : InputParams
-  @Input()  screen      : TrackableScreen   
-  @Output() value       : EventEmitter<any> = new EventEmitter<any>()
+  @Input()  inputParams     : InputParams
+  @Input()  screen          : TrackableScreen
+  @Input()  eventPropagate  : boolean           = false
+  @Output() value           : EventEmitter<any> = new EventEmitter<any>()
 
   inputForm       : FormControl
   dateRange       : FormGroup
@@ -205,28 +206,34 @@ export class InputContainerComponent {
   =====================================================================*/
   selectedOption(event : MatSelectChange) {
     this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
   }
 
   setChangedValues(event : string) {
     this.inputForm.setValue(event)
+    if (this.eventPropagate)  this.onSubmit()
   }
 
   setDate(event : MatDatepickerInputEvent<Moment>) {
     this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
   }
 
   setDateRange(event : MatDatepickerInputEvent<Moment>) {
     this.dateRange.controls.startDate.setValue(this.dateRange.controls.startDate.value)
     this.dateRange.controls.endDate.setValue(this.dateRange.controls.endDate.value)
+    if (this.eventPropagate)  this.onSubmit()
   }
 
   setNumberRange(event : string) {
     this.numberRange.controls.minAmount.setValue(this.numberRange.controls.minAmount.value)
     this.numberRange.controls.maxAmount.setValue(this.numberRange.controls.maxAmount.value)
+    if (this.eventPropagate)  this.onSubmit()
   }
 
   setAutocompleteValue(event : MatAutocompleteSelectedEvent) {
     this.inputForm.setValue(event.option.value)
+    if (this.eventPropagate)  this.onSubmit()
   }
 
   displayFn(value: any) : string {
