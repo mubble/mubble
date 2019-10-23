@@ -31,7 +31,8 @@
       <mat-select [formControl]="inputForm"
         placeholder="{{inputParams.placeHolder}}" 
         class="txt-lg-bld-norm input-cont"
-        (selectionChange)="selectedOption($event)">
+        (selectionChange)="selectedOption($event)"
+        (openedChange)="dropDownToggle($event)">
         <mat-option *ngFor="let option of inputParams.options" [value]="option"
           class="txt-lg-bld-norm">
           {{ option.value }}

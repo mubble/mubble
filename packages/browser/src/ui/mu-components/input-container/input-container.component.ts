@@ -81,8 +81,9 @@ export class InputContainerComponent {
 
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
-  @Input()  eventPropagate  : boolean           = false
-  @Output() value           : EventEmitter<any> = new EventEmitter<any>()
+  @Input()  eventPropagate  : boolean               = false
+  @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
+  @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
 
   inputForm       : FormControl
   dateRange       : FormGroup
@@ -273,6 +274,10 @@ export class InputContainerComponent {
     }
 
     return hasError
+  }
+
+  dropDownToggle(event : boolean) {
+    this.dropdownOpen.emit(event)
   }
 
   /*=====================================================================
