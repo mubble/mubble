@@ -30,6 +30,8 @@ data class CustomData(val appName: String, val channel: String,
       customData.migMobileNo    = obj.optString("migMobileNo")
       customData.location       = obj.optString("location")
       customData.networkType    = obj.optString("networkType")
+      customData.userRole       = obj.optString("userRole")
+      customData.namespaceId    = obj.optString("namespaceId")
 
       return customData
     }
@@ -52,6 +54,8 @@ data class CustomData(val appName: String, val channel: String,
 
   var location        : String?     = null // Serialized JSONObject
   var networkType     : String?     = null
+  var userRole        : String?     = null
+  var namespaceId     : String?     = null
 
   override fun toJsonObject(): JSONObject {
 
@@ -72,6 +76,8 @@ data class CustomData(val appName: String, val channel: String,
     obj.put("migMobileNo",    migMobileNo)
     obj.put("location",       location)
     obj.put("networkType",    networkType)
+    obj.put("userRole",       userRole)
+    obj.put("namespaceId",    namespaceId)
 
     return obj
   }

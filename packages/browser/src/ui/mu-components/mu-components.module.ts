@@ -37,6 +37,10 @@ import { TRANSLATION_PROVIDERS,
          TranslateService,
          TranslatePipe }                    from './translate'
 import { CustomBreakPointsProvider }        from './custom-breakpoints'
+import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
+import { TableModule }                      from 'primeng/table'
+import { MatCheckboxModule }                from '@angular/material'
+
 
 @NgModule({
   imports: [
@@ -49,7 +53,9 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     MatDatepickerModule,
     MatInputModule,
     MatSelectModule,
-    MatAutocompleteModule
+    MatAutocompleteModule,
+    MatCheckboxModule,
+    TableModule
   ],
 
   declarations: [
@@ -63,7 +69,7 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     InfiniteScrollComponent,
     FilterComponent,
     InputContainerComponent,
-
+    MuDataTableComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -93,6 +99,7 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
     InfiniteScrollComponent,
     FilterComponent,
     InputContainerComponent,
+    MuDataTableComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,

@@ -275,7 +275,7 @@ export class UiRouter {
     return segments[0].path
   }
 
-  public getModuleName(url): string {
+  public getModuleName(url : string): string {
 
     const urlTree: UrlTree        = this.router.parseUrl(url)
     const segments: UrlSegment[]  = urlTree.root.children.primary.segments
@@ -476,7 +476,7 @@ export class UiRouter {
     comp.component.onBackPressed()
   }
 
-  canGoBack() {
+  protected canGoBack() {
 
     const lastIdx  = this.urlStack.length - 1,
           lastItem = this.urlStack[lastIdx]

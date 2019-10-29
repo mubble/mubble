@@ -42,8 +42,8 @@ export class InputValidator {
     const dateNowTS = Date.now(),
           date      = control.value.toDate().getTime()
 
-    if (dateNowTS - date < 0) {
-      control.setErrors({ futureDate : true })
+    if (date && (dateNowTS - date) < 0) {
+      return { futureDate : true }
     } else {
       return null
     }
