@@ -13,7 +13,8 @@ import { Component,
          Input,
          Output,
          Inject,
-         EventEmitter
+         EventEmitter,
+         ViewChild
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -24,7 +25,8 @@ import { TrackableScreen }                from '../../../ui/router/trackable-scr
 import { RunContextBrowser }              from '../../../rc-browser'
 import { MatSelectChange,
          MatDatepickerInputEvent,
-         MatAutocompleteSelectedEvent
+         MatAutocompleteSelectedEvent,
+         MatDatepicker
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
@@ -84,6 +86,7 @@ export class InputContainerComponent {
   @Input()  eventPropagate  : boolean               = false
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
   @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
+  @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
 
   inputForm       : FormControl
   dateRange       : FormGroup
@@ -200,6 +203,14 @@ export class InputContainerComponent {
     }
 
     this.value.emit(params)
+  }
+
+  isCalanderOpen() : boolean {
+    return this.picker.opened
+  }
+
+  closeCalander() {
+    this.picker.close()
   }
 
   /*=====================================================================
