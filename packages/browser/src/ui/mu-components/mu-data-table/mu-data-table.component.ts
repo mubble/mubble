@@ -31,8 +31,9 @@ export interface TableConfig {
 }
 
 export interface MuTableClickEvent {
-  rowId : any
-  colId : string
+  rowId    : any
+  colId    : string
+  rowIndex : number
 }
 
 export interface MuTableSelectEvent {
@@ -102,6 +103,9 @@ export class MuDataTableComponent implements OnInit {
 
     if (this.tableConfig.data) {
       this.totalRecords = this.tableConfig.totalRecords || this.tableConfig.data.length
+
+      for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
+    
       if (this.tableConfig.lazyLoad) {
         this.dataToDisplay = Array.from(this.tableConfig.data).splice(0, this.tableConfig.dispRows)
       }
@@ -120,8 +124,11 @@ export class MuDataTableComponent implements OnInit {
   rowUnselect(event) {
 
     const selId : string = this.primaryKey ? event.data[this.primaryKey] : event.data
-    this.selectAllMap[this.lastIndex] = false
-    this.slctAllBox.checked = false
+    if (this.tableConfig.enableSelect) {
+      
+      this.selectAllMap[this.lastIndex] = false
+      this.slctAllBox.checked = false
+    }
     this.onRowUnselect.emit(selId)
     if (this.tableConfig.selectedItems)
     this.selectedItems = this.tableConfig.selectedItems
@@ -130,8 +137,9 @@ export class MuDataTableComponent implements OnInit {
   cellClick(rowData, headerKey) {
 
     const obj = {
-      rowId : this.primaryKey ? rowData[this.primaryKey] : rowData,
-      colId : headerKey
+      rowId    : this.primaryKey ? rowData[this.primaryKey] : rowData,
+      colId    : headerKey,
+      rowIndex : rowData['rowIndex']
     }
     this.onCellClick.emit(obj)
   }
@@ -157,6 +165,7 @@ export class MuDataTableComponent implements OnInit {
     
     this.tableConfig.data = data
     this.dataToDisplay    = Array.from(this.tableConfig.data).splice(this.lastIndex, this.tableConfig.dispRows)
+    for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
     this.loading          = false
   }
 

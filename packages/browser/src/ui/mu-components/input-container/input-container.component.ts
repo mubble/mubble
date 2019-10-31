@@ -13,7 +13,8 @@ import { Component,
          Input,
          Output,
          Inject,
-         EventEmitter
+         EventEmitter,
+         ViewChild
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -24,7 +25,8 @@ import { TrackableScreen }                from '../../../ui/router/trackable-scr
 import { RunContextBrowser }              from '../../../rc-browser'
 import { MatSelectChange,
          MatDatepickerInputEvent,
-         MatAutocompleteSelectedEvent
+         MatAutocompleteSelectedEvent,
+         MatDatepicker
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
@@ -79,11 +81,14 @@ export interface InputParams {
 
 export class InputContainerComponent {
 
+  @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
+
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
-  @Input()  eventPropagate  : boolean           = false
   @Input()  webMode         : boolean           
-  @Output() value           : EventEmitter<any> = new EventEmitter<any>()
+  @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
+  @Input()  eventPropagate  : boolean               = false
+  @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
 
   inputForm       : FormControl
   dateRange       : FormGroup
@@ -202,6 +207,14 @@ export class InputContainerComponent {
     this.value.emit(params)
   }
 
+  isCalanderOpen() : boolean {
+    return this.picker.opened
+  }
+
+  closeCalander() {
+    this.picker.close()
+  }
+
   /*=====================================================================
                               HTML
   =====================================================================*/
@@ -274,6 +287,10 @@ export class InputContainerComponent {
     }
 
     return hasError
+  }
+
+  dropDownToggle(event : boolean) {
+    this.dropdownOpen.emit(event)
   }
 
   /*=====================================================================
