@@ -87,6 +87,7 @@ export class InputContainerComponent {
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
   @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
   @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
+  @Input()  webMode         : boolean           
 
   inputForm       : FormControl
   dateRange       : FormGroup

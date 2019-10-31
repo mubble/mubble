@@ -1,8 +1,8 @@
-<div class="input-cont-comp"
-  [ngClass.xl]="['web-input-cont-comp']"
-  [ngClass.lg]="['web-input-cont-comp']"
-  [ngClass.md]="['web-input-cont-comp']"
-  [ngClass.sm]="['web-input-cont-comp']">
+<div [ngClass]="webMode?['webView-input-comp']:['input-cont-comp']"
+  [ngClass.xl]="webMode?['webView-input-comp']:['web-input-cont-comp']"
+  [ngClass.lg]="webMode?['webView-input-comp']:['web-input-cont-comp']"
+  [ngClass.md]="webMode?['webView-input-comp']:['web-input-cont-comp']"
+  [ngClass.sm]="webMode?['webView-input-comp']:['web-input-cont-comp']">
 
   <div class="label-txt txt-lg-reg-norm margin-bottom" *ngIf="inputParams.label">
     {{inputParams.label}}

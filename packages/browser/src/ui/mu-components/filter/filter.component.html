@@ -1,8 +1,8 @@
-<div class="filter-comp" 
-  [ngClass.xl]="['web-filter-comp']" 
-  [ngClass.lg]="['web-filter-comp']" 
-  [ngClass.md]="['web-filter-comp']"
-  [ngClass.sm]="['web-filter-comp']" mweb>
+<div [ngClass]="webMode?['webView-filter-comp']:['filter-comp']" 
+  [ngClass.xl]="webMode?['webView-filter-comp']:['web-filter-comp']" 
+  [ngClass.lg]="webMode?['webView-filter-comp']:['web-filter-comp']" 
+  [ngClass.md]="webMode?['webView-filter-comp']:['web-filter-comp']"
+  [ngClass.sm]="webMode?['webView-filter-comp']:['web-filter-comp']" mweb>
 
   <div class="filter-subtitle txt-xl-bld-dark primary-bg-light">{{ 'mu_fltr_sub_titl' | translate }}</div>
 
@@ -11,6 +11,7 @@
       <input-container
         [inputParams]="param"
         [screen]="screen"
+        [webMode]="webMode"
         (value)="getFilterItems($event)"
         #inputCont>
       </input-container>
