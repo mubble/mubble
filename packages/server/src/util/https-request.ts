@@ -263,6 +263,8 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
 
   rc.isDebug() && rc.debug(rc.getName(this), 'executeHttpsRequestWithOptions', urlObj, options, data)
 
+  process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+  
   const reqOptions : http.RequestOptions = options ? options : urlObj
 
   if(!reqOptions.headers) reqOptions.headers = {}

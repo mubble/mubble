@@ -81,9 +81,6 @@ export abstract class GlobalKeyValue {
           rc.isDebug() && rc.debug(rc.getName(this), 
             `autoStore.set: propertyKey: ${propertyKey}, value: ${value}, fieldType: ${fieldType}`)
 
-          console.log(`Test`, propertyKey, value, fieldType);
-          
-
           rc.isAssert() && rc.assert(rc.getName(this), value !== undefined)
           rc.isAssert() && rc.assert(rc.getName(this), VALID_TYPES.indexOf(fieldType) !== -1, 
             `Not a valid propertyKey: ${propertyKey}, fieldType: ${fieldType}`)
