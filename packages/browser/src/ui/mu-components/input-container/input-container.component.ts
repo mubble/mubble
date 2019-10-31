@@ -82,6 +82,7 @@ export class InputContainerComponent {
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
   @Input()  eventPropagate  : boolean           = false
+  @Input()  webMode         : boolean           
   @Output() value           : EventEmitter<any> = new EventEmitter<any>()
 
   inputForm       : FormControl

@@ -73,3 +73,31 @@
     background: none;
   }
 }
+.webView-input-comp {
+  .onb-input-box-cont {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-width: 2px;
+    border-style: solid;
+    margin: 2% 0;
+  }
+  
+  .range-onb-input-box-cont {
+    position: relative;
+    display: flex;
+    align-items: center;
+    border-width: 2px;
+    border-style: solid;
+    margin: 0.5% 0;
+    width: 48%;
+  }
+
+  .input-cont {
+    position: relative;
+    width: 100%;
+    padding: 0.5vw;
+    border: 0;
+    background: none;
+  }
+}

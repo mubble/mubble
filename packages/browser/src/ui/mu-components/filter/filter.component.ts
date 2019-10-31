@@ -55,6 +55,7 @@ export interface FilterItem {
   isRequired   ?: boolean
 }
 
+
 export interface DateRangeInterface { 
   startDate  : Moment
   endDate   ?: Moment
@@ -82,6 +83,7 @@ export class FilterComponent {
 
   @Input()  filterItems     : FilterItem[] = []
   @Input()  screen          : TrackableScreen
+  @Input()  webMode        ?: boolean      = false
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 
