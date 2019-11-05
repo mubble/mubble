@@ -47,7 +47,6 @@
 }
 
 .errors-list {
-  height: 11px;
   display: flex;
   flex-direction: column;
 }
@@ -73,7 +72,8 @@
     background: none;
   }
 }
-.webView-input-comp {
+
+.web-view-input-comp {
   .onb-input-box-cont {
     position: relative;
     display: flex;
@@ -96,7 +96,7 @@
   .input-cont {
     position: relative;
     width: 100%;
-    padding: 0.5vw;
+    padding: 8px;
     border: 0;
     background: none;
   }

@@ -1,20 +1,31 @@
-<div [ngClass]="webMode?['webView-filter-comp']:['filter-comp']" 
-  [ngClass.xl]="webMode?['webView-filter-comp']:['web-filter-comp']" 
-  [ngClass.lg]="webMode?['webView-filter-comp']:['web-filter-comp']" 
-  [ngClass.md]="webMode?['webView-filter-comp']:['web-filter-comp']"
-  [ngClass.sm]="webMode?['webView-filter-comp']:['web-filter-comp']" mweb>
+<div [ngClass]="webMode ? 'nc-web-view-filter-comp' : 'filter-comp'"
+  [ngClass.xl]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
+  [ngClass.lg]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
+  [ngClass.md]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'"
+  [ngClass.sm]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" mweb>
 
-  <div class="filter-subtitle txt-xl-bld-dark primary-bg-light">{{ 'mu_fltr_sub_titl' | translate }}</div>
+  <div class="filter-subtitle txt-xl-bld-dark primary-bg-light">
+    {{ 'mu_fltr_sub_titl' | translate }}
+  </div>
 
   <div class="filter-input-body">
-    <div class="filter-content-body" *ngFor="let param of inputParams">
-      <input-container
-        [inputParams]="param"
-        [screen]="screen"
-        [webMode]="webMode"
-        (value)="getFilterItems($event)"
-        #inputCont>
-      </input-container>
+    <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index"
+      [ngClass]="{'right' : (i % 3 === 0) && webMode, 'middle' : (i % 3 === 1) && webMode,
+      'left' : (i % 3 === 2) && webMode, 'start' : (i % 2 === 1) && webMode, 'end' : (i % 2 === 0)
+      && webMode}">
+      <div class="input-title txt-lg-reg-norm">
+        {{ fItem.title }}
+      </div>
+
+      <div class="filter-content-body">
+        <input-container
+          [inputParams]="fItem.params"
+          [screen]="screen"
+          [webMode]="webMode"
+          (value)="setFilterItems($event)"
+          #inputCont>
+        </input-container>
+      </div>
     </div>
   </div>
 

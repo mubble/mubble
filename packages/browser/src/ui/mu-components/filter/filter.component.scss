@@ -45,6 +45,10 @@
     padding : 10px 4%;
   }
 
+  .filter-input-body {
+    flex-direction: row;
+  }
+
   .footer {
     position        : relative;
     margin          : auto;
@@ -63,41 +67,39 @@
   }
 }
 
-.webView-filter-comp{
+.web-view-filter-comp {
   display         : flex;
   flex-direction  : column;
   overflow-y      : auto;
   height          : auto !important;
   max-height      : 80% ; 
 
-  .filter-subtitle{
-    padding : 0.25% 1%;
+  .filter-subtitle {
+    padding : 4px 6px;
     height  : 10%;
     max-height: 10%;
   }
+
   .footer {
     position        : relative;
-    //margin        : auto;
     display         : block;
     padding         : 1%;
     width           : 100%;
     height          : 20%;
 
     .button-primary {
-      margin : 0.15% 1% !important;
-      float  : right;
-      height : 90%;
-      padding: 1%;
+      margin: 1px 6px !important;
+      float: right;
+      height: 2rem;
+      padding: 6px;
     }
   }
+
   .filter-input-body {
-    height      : auto;
-    max-height  : 80%;
-    overflow-y  : auto;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    justify-content: flex-start;
+    height          : auto;
+    overflow-y      : auto;
+    display         : flex;
+    flex-wrap       : wrap
   }
   
   .filter-input-body::-webkit-scrollbar {
@@ -107,9 +109,93 @@
   .btn {
     width : auto;
   }
-  .filter-content-body{
-    margin: 1% 4%;
-    width: 25%;
+
+  .single-filter-cont {
+    display         : flex;
+    flex-direction  : row;
+    align-items     : center;
   }
 
+  .input-title {
+    width: 90px;
+    padding: 6px;
+  }
+
+  .filter-content-body {
+    padding: 4px 0;
+    width: calc(100% - 90px);
+  }
+
+  .left {
+    margin-left: 24px;
+    width: calc(33% - 24px);
+  }
+
+  .right {
+    margin-right: 24px;
+    width: calc(33% - 24px);
+  }
+
+  .middle {
+    margin: 0 12px;
+    width: calc(33% - 24px);
+  }
+
+}
+
+.nc-web-view-filter-comp {
+  display         : flex;
+  flex-direction  : column;
+  overflow-y      : auto;
+  height          : auto !important;
+  max-height      : 40%;
+
+  .filter-subtitle {
+    padding : 2vw 5vw;
+  }
+
+  .filter-input-body {
+    height          : auto;
+    overflow-y      : auto;
+    display         : flex;
+    flex-wrap       : wrap;
+    padding         : 0 5vw;
+  }
+
+  .single-filter-cont {
+    display         : flex;
+    flex-direction  : row;
+    align-items     : center;
+    width: 50%;
+  }
+
+  .input-title {
+    width: 90px;
+  }
+
+  .filter-content-body {
+    width: calc(100% - 90px)
+  }
+
+  .start {
+    padding-left: 4vw;
+  }
+
+  .end {
+    padding-right: 4vw;
+  }
+
+  .footer {
+    position        : relative;
+    display         : flex;
+    padding         : 2vw 5vw;
+    width           : 100%;
+    height          : 20%;
+
+    .button-primary {
+      margin: 1px 6px !important;
+      height: 2rem;
+      padding: 6px;
+    }
+  }
 }
