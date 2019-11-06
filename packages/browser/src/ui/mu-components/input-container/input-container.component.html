@@ -1,11 +1,11 @@
-<div [ngClass]="webMode?['webView-input-comp']:['input-cont-comp']"
-  [ngClass.xl]="webMode?['webView-input-comp']:['web-input-cont-comp']"
-  [ngClass.lg]="webMode?['webView-input-comp']:['web-input-cont-comp']"
-  [ngClass.md]="webMode?['webView-input-comp']:['web-input-cont-comp']"
-  [ngClass.sm]="webMode?['webView-input-comp']:['web-input-cont-comp']">
+<div [ngClass]="webMode ? ['web-view-input-comp'] : ['input-cont-comp']"
+  [ngClass.xl]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
+  [ngClass.lg]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
+  [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
+  [ngClass.sm]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']">
 
-  <div class="label-txt txt-lg-reg-norm margin-bottom" *ngIf="inputParams.label">
-    {{inputParams.label}}
+  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
+    {{ inputParams.label }}
   </div>
 
   <ng-container *ngIf="inputParams.displayType === DISPLAY_TYPE.INPUT_BOX">
@@ -101,7 +101,7 @@
           placeholder="{{inputParams.placeHolder[1]}}"
           type="number"
           (input)="setNumberRange($event)"
-          class="txt-xl-bld-norm input-cont" 
+          class="txt-lg-bld-norm input-cont" 
           formControlName="maxAmount"
           name="input-text"
           textSecurity="inputParams.isPassword"

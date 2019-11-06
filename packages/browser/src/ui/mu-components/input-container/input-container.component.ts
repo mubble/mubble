@@ -14,7 +14,8 @@ import { Component,
          Output,
          Inject,
          EventEmitter,
-         ViewChild
+         ViewChild,
+         OnChanges
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -79,16 +80,16 @@ export interface InputParams {
   styleUrls   : ['./input-container.component.scss']
 })
 
-export class InputContainerComponent {
+export class InputContainerComponent implements OnChanges {
 
   @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
 
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
-  @Input()  webMode         : boolean           
-  @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
+  @Input()  webMode         : boolean
   @Input()  eventPropagate  : boolean               = false
-  @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
+  @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
+  @Output() dropdownOpen    : EventEmitter<boolean> = new EventEmitter<boolean>()
 
   inputForm       : FormControl
   dateRange       : FormGroup
@@ -100,58 +101,12 @@ export class InputContainerComponent {
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
               private formBuilder                 : FormBuilder) { }
 
+  ngOnChanges() {
+    this.initialize()
+  }
+
   ngOnInit() {
-
-    const params          = this.inputParams,
-          formValidations = []
-
-    if (params.isRequired) {
-      formValidations.push(Validators.required)
-    }
-
-    if (params.validators) {
-      formValidations.push(Validators.pattern(params.validators.validation))
-    }
-
-    switch (params.displayType) {
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        break
-
-      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        this.filteredOptions = this.inputForm.valueChanges.pipe(
-                                 startWith(''),
-                                 map(value => typeof value === 'string' ? value : value.value),
-                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
-        break
-
-      case DISPLAY_TYPE.CALENDAR_BOX  :
-        formValidations.push(InputValidator.futureDateValidator)
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        break
-
-      case DISPLAY_TYPE.DATE_RANGE    : 
-        this.dateRange = this.formBuilder.group({
-          startDate : [params.value['startDate'] || null, formValidations],
-          endDate   : [params.value['endDate']   || null, formValidations]
-        },
-        {
-          validator : [InputValidator.dateValidator]
-        })
-        break
-
-      case DISPLAY_TYPE.NUMBER_RANGE  : 
-        this.numberRange = this.formBuilder.group({
-          minAmount : [params.value['minAmount'] || null, formValidations],
-          maxAmount : [params.value['maxAmount'] || null, formValidations]
-        },
-        {
-          validator : [InputValidator.amountValidator]
-        })
-        break
-    }
+    this.initialize()      
   }
 
   /*=====================================================================
@@ -296,6 +251,59 @@ export class InputContainerComponent {
   /*=====================================================================
                               PRIVATE
   =====================================================================*/
+  private initialize() {
+    const params          = this.inputParams,
+          formValidations = []
+
+    if (params.isRequired) {
+      formValidations.push(Validators.required)
+    }
+
+    if (params.validators) {
+      formValidations.push(Validators.pattern(params.validators.validation))
+    }
+
+    switch (params.displayType) {
+      case DISPLAY_TYPE.INPUT_BOX     :
+      case DISPLAY_TYPE.SELECTION_BOX :
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        break
+
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.filteredOptions = this.inputForm.valueChanges.pipe(
+                                 startWith(''),
+                                 map(value => typeof value === 'string' ? value : value.value),
+                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
+        break
+
+      case DISPLAY_TYPE.CALENDAR_BOX  :
+        formValidations.push(InputValidator.futureDateValidator)
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        break
+
+      case DISPLAY_TYPE.DATE_RANGE    : 
+        this.dateRange = this.formBuilder.group({
+          startDate : [params.value['startDate'] || null, formValidations],
+          endDate   : [params.value['endDate']   || null, formValidations]
+        },
+        {
+          validator : [InputValidator.dateValidator]
+        })
+        break
+
+      case DISPLAY_TYPE.NUMBER_RANGE  : 
+        this.numberRange = this.formBuilder.group({
+          minAmount : [params.value['minAmount'] || null, formValidations],
+          maxAmount : [params.value['maxAmount'] || null, formValidations]
+        },
+        {
+          validator : [InputValidator.amountValidator]
+        })
+        break
+    }
+  }
+
   private filterOptions(inputText : string): SelectionBoxParams[] {
     const filterValue = inputText.toLowerCase()
     return this.inputParams.options.filter(option => option.value.toLowerCase().includes(filterValue))
