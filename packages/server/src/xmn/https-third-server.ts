@@ -157,7 +157,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     switch (this.req.method) {
       case GET  :
-        extraParams = querystring.parse(query)
+        extraParams = this.parseQuery(rc, query)
         break
 
       case POST :
@@ -261,7 +261,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
     
     switch (headers[HTTP.HeaderKey.contentType]) {
       case HTTP.HeaderValue.form :
-        return querystring.parse(data)
+        return this.parseQuery(rc, data)
 
       default                    :
         try {
@@ -283,5 +283,28 @@ export class HttpsThirdServerProvider implements XmnProvider {
     rc.isDebug() && rc.debug(rc.getName(this), 'Final api params.', apiParams)
 
     return apiParams
+  }
+
+  private parseQuery(rc : RunContextServer, query : string) : Mubble.uObject<any> {
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Parsing query.', query)
+
+    const obj      = querystring.parse(query),
+          keywords = {
+                       true      : true,
+                       false     : false,
+                       null      : null,
+                       undefined : undefined
+                     } as Mubble.uObject<any>
+
+    for(const key in obj) {
+      if(key in keywords) {
+        obj[key] = keywords[key]
+      }
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Query parsed.', query, obj)
+
+    return obj
   }
 }
