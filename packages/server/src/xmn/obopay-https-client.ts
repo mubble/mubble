@@ -45,13 +45,9 @@ export namespace ObopayHttpsClient {
       requestMem         : RedisWrapper
 
   export type ResultStruct = {
-    // error   : null | Error        = null
-    // headers : Mubble.uObject<any>
-    // status  : number
-    // output  : Mubble.uObject<any>
-    
-    error : null   | string
-    data  : number | string | Mubble.uObject<any>
+    error     : null   | string
+    data      : number | string | Mubble.uObject<any>
+    errorObj ?: Mubble.uObject<any>
   }
 
   export function init(rc           : RunContextServer,

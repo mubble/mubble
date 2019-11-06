@@ -188,11 +188,11 @@ export abstract class XmnRouterServer {
 
       const data = {
         errorCode    : err.code || err.name,
-        errorMessage : err.msg || err.message
+        errorMessage : err.message,
+        errorObject  : err.obj
       }
 
-      wResp = new WireReqResp(wo.name, wo.ts, data, err.code || err.name || err,
-                              err.msg || err.message || err, err)
+      wResp = new WireReqResp(wo.name, wo.ts, data, err.code || err.name, err.message, err.obj, err)
       await this.sendToProvider(rc, ci, wResp, ir)
     } finally {
       return wResp
@@ -219,19 +219,19 @@ export abstract class XmnRouterServer {
       }
 
       wResp = new WireEventResp(wo.name, wo.ts)
-      this.sendEventResponse(rc, ci, wResp, ie)
+      await this.sendEventResponse(rc, ci, wResp, ie)
 
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
 
       const data = {
         errorCode    : err.code || err.name,
-        errorMessage : err.msg || err.message
+        errorMessage : err.message,
+        errorObject  : err.obj
       }
 
-      wResp = new WireEventResp(wo.name, wo.ts, data, err.code || err.name || err,
-                                err.msg || err.message || err, err)
-      this.sendEventResponse(rc, ci, wResp, ie)
+      wResp = new WireEventResp(wo.name, wo.ts, data, err.code || err.name, err.message, err.obj, err)
+      await this.sendEventResponse(rc, ci, wResp, ie)
     }
 
     return wResp

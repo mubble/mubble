@@ -190,25 +190,35 @@ export class WireEphEvent extends WireObject {
 export class WireReqResp extends WireObject {
   errorCode    : string | null
   errorMessage : string | null
+  errorObject  : Mubble.uObject<any> | undefined
+
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data: object, errorCode ?: string, errorMessage ?: string, fullErr ?: any) {
+  constructor(name : string, ts : number, data : object, errorCode ?: string, errorMessage ?: string,
+              errorObject ?: Mubble.uObject<any>, fullErr ?: any) {
+
     super(WIRE_TYPE.REQ_RESP, name, data, ts)
 
     this.errorCode    = errorCode || null
     this.errorMessage = errorMessage || null
+    this.errorObject  = errorObject
     this._err         = fullErr
   }
 }
 
 export class WireEventResp extends WireObject {
-  errorCode    : string  | null
+  errorCode    : string | null
   errorMessage : string | null
+  errorObject  : Mubble.uObject<any> | undefined
+
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data ?: object, errorCode ?: string, errorMessage ?: string, fullErr ?: any) {
+  constructor(name : string, ts : number, data ?: object, errorCode ?: string, errorMessage ?: string,
+              errorObject ?: Mubble.uObject<any>, fullErr ?: any) {
+    
     super(WIRE_TYPE.EVENT_RESP, name, data || {}, ts)
 
     this.errorCode    = errorCode || null
     this.errorMessage = errorMessage || null
+    this.errorObject  = errorObject
     this._err         = fullErr
   }
 }

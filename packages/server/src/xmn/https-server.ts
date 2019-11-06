@@ -93,7 +93,7 @@ export class HttpsServer {
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
 
     try {
-      if(apiStr !== API_STR   && (apiStr !== OBOPAY_STR)) 
+      if(apiStr !== API_STR && (apiStr !== OBOPAY_STR)) // TODO : Change this
         throw new Error('Invalid path in request url ' + apiStr)
 
       if(!ObopayHttpsClient.verifyModule(moduleName, apiName))
@@ -219,9 +219,11 @@ export class HttpsServerProvider implements XmnProvider {
             [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.stream
           }
 
-    const body       = wo.errorCode ? wo.errorCode === SUCCESS ? {error : wo.errorCode, data : wo.data}
-                                                               : {error : wo.errorCode, data : wo.errorMessage}
-                                    : {data : wo.data},
+    const body       = wo.errorCode
+                       ? wo.errorCode === SUCCESS
+                         ? {error : wo.errorCode, data : wo.data}
+                         : {error : wo.errorCode, data : wo.errorMessage, errorObj : wo.errorObject}
+                       : {data : wo.data},
           encBodyObj = this.encProvider.encodeBody(body, true)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
