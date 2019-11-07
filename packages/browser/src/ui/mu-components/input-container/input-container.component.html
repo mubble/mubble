@@ -133,7 +133,7 @@
   </ng-container>
 
   <div *ngIf="inputForm" class="errors-list">
-    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched &&
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputParams.isRequired && 
       inputForm.hasError('required')">
       {{ inputParams.validators.validationError }}
     </mat-error>
