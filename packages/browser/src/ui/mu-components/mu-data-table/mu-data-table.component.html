@@ -10,7 +10,7 @@
   (onRowSelect)="rowSelect($event)" 
   (onRowUnselect)="rowUnselect($event)"
   [globalFilterFields]="filterFields"
-  [(selection)]="selectedItems">
+  [(selection)]="selectedItems" *ngIf="showTable">
 
   <ng-template pTemplate="caption" *ngIf="filterFields.length || enablePagination">
     <div class="top-cont">        

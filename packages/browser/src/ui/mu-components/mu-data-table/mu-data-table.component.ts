@@ -3,7 +3,8 @@ import { Component,
          Input, 
          Output, 
          EventEmitter,
-         ViewChild
+         ViewChild,
+         ChangeDetectorRef
        }                           from '@angular/core'
 import { MatCheckboxChange, 
          MatCheckbox 
@@ -58,6 +59,10 @@ export enum COL_TYPE  {
 
 export class MuDataTableComponent implements OnInit {
 
+  constructor(private changeDet : ChangeDetectorRef) {
+
+  }
+
   @Input()  tableConfig   : TableConfig
   @Output() onRowSelect   : EventEmitter<any>    = new EventEmitter()
   @Output() onRowUnselect : EventEmitter<any>    = new EventEmitter()
@@ -82,34 +87,36 @@ export class MuDataTableComponent implements OnInit {
   selectAllMap      : Object   = {}
   selectedItemIndex : Array<number> = []
 
+  showTable         : boolean  = false
+
   ngOnInit() {
 
-    if (this.tableConfig.dispRows) this.enablePagination = true
-    else this.tableConfig.dispRows = 0
+    // if (this.tableConfig.dispRows) this.enablePagination = true
+    // else this.tableConfig.dispRows = 0
 
-    if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
+    // if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
   
-    for (let header of this.tableConfig.headers) {
+    // for (let header of this.tableConfig.headers) {
 
-      this.headerFields.push(header.dataKey)
-      if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
-      if (!this.tableConfig.lazyLoad) {
+    //   this.headerFields.push(header.dataKey)
+    //   if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
+    //   if (!this.tableConfig.lazyLoad) {
 
-        if (header.enableFilter) this.filterFields.push(header.dataKey)
-        if (header.enableSort) this.sortFields.push(header.dataKey)
-        else this.sortFields.push(null) 
-      }
-    }
+    //     if (header.enableFilter) this.filterFields.push(header.dataKey)
+    //     if (header.enableSort) this.sortFields.push(header.dataKey)
+    //     else this.sortFields.push(null) 
+    //   }
+    // }
 
-    if (this.tableConfig.data) {
-      this.totalRecords = this.tableConfig.totalRecords || this.tableConfig.data.length
+    // if (this.tableConfig.data) {
+    //   this.totalRecords = this.tableConfig.totalRecords || this.tableConfig.data.length
 
-      for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
+    //   for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
     
-      if (this.tableConfig.lazyLoad) {
-        this.dataToDisplay = Array.from(this.tableConfig.data).splice(0, this.tableConfig.dispRows)
-      }
-    }
+    //   if (this.tableConfig.lazyLoad) {
+    //     this.dataToDisplay = Array.from(this.tableConfig.data).splice(0, this.tableConfig.dispRows)
+    //   }
+    // }
 
   }
 
@@ -208,4 +215,13 @@ export class MuDataTableComponent implements OnInit {
 
   }
 
+  setTableConfig(config : TableConfig) {
+    this.tableConfig = config
+    this.showTable   = true
+    this.changeDet.detectChanges()
+  }
+
+  setDisplayData(data : Array<Object>) {
+    this.dataToDisplay = data
+  }
 }
