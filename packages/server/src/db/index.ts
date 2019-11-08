@@ -17,3 +17,5 @@ export *                      from './muds/muds'
 
 export *                      from './muds/test'
 export *                      from './muds/test/models'
+
+export *                      from './obmop'
