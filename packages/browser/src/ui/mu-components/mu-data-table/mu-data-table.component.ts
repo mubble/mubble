@@ -37,6 +37,11 @@ export interface MuTableClickEvent {
   rowIndex : number
 }
 
+export interface MuTableRowSelEvent {
+  rowIndex : number
+  rowData  : Object
+}
+
 export interface MuTableSelectEvent {
   firstIndex : number
   lastIndex  : number
@@ -123,7 +128,11 @@ export class MuDataTableComponent implements OnInit {
   rowSelect(event) {
     
     const selId : string = this.primaryKey ? event.data[this.primaryKey] : event.data
-    this.onRowSelect.emit(selId)
+    const selEvent : MuTableRowSelEvent = {
+      rowData : event.data,
+      rowIndex : event.index
+    }
+    this.onRowSelect.emit(selEvent)
     if (this.tableConfig.selectedItems)
     this.selectedItems = this.tableConfig.selectedItems
   }
@@ -223,9 +232,13 @@ export class MuDataTableComponent implements OnInit {
   }
 
   setDisplayData(data : Array<Object>) {
-    console.log('method called :', data)
-    this.dataToDisplay = data
-    this.loading = false
+    this.dataToDisplay  = data
+    this.loading        = false
+    this.changeDet.detectChanges()
+  }
+
+  setSelectedItems(data : Array<Object>) {
+    this.tableConfig.selectedItems = data
     this.changeDet.detectChanges()
   }
 }

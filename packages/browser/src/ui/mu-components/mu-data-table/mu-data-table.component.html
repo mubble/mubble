@@ -35,13 +35,13 @@
     </tr>
   </ng-template>
 
-  <ng-template pTemplate="body" let-rowData>
+  <ng-template pTemplate="body" let-rowData let-rowIndex="rowIndex">
     <tr [pSelectableRow]="rowData" style="text-align: center">
       <td *ngIf="tableConfig.enableSelect">
-        <p-tableCheckbox [value]="rowData"></p-tableCheckbox>
+        <p-tableCheckbox [value]="rowData" [index]="rowIndex"></p-tableCheckbox>
       </td>
       <td *ngIf="tableConfig.enableRadio">
-        <p-tableRadioButton [value]="rowData"></p-tableRadioButton>
+        <p-tableRadioButton [value]="rowData" [index]="rowIndex"></p-tableRadioButton>
       </td>
       <td *ngFor="let row of tableConfig.headers" [ngClass]="row.customStyle"
       (click)="cellClick(rowData, row.dataKey)">
