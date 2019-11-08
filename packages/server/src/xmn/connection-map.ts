@@ -11,8 +11,7 @@ import {
          Mubble,
          ConnectionInfo
        }                    from '@mubble/core'
-import { RedisWrapper }     from '../cache'
-
+       
 export type ConnectionObject = {
   ci  : ConnectionInfo
   obj : Mubble.uObject<any>
