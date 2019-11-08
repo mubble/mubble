@@ -162,7 +162,7 @@ export class MuDataTableComponent implements OnInit {
 
     if (this.tableConfig.data.length < possibleCount && this.tableConfig.data.length < this.tableConfig.totalRecords) {
       this.loading = true
-      this.loadMoreData.emit()
+      this.loadMoreData.emit(this.lastIndex)
     } else {
       this.dataToDisplay = Array.from(this.tableConfig.data).splice(event.first, this.tableConfig.dispRows)
     }
@@ -216,12 +216,16 @@ export class MuDataTableComponent implements OnInit {
   }
 
   setTableConfig(config : TableConfig) {
-    this.tableConfig = config
-    this.showTable   = true
+    this.tableConfig    = config
+    this.dataToDisplay  = this.tableConfig.data
+    this.showTable      = true
     this.changeDet.detectChanges()
   }
 
   setDisplayData(data : Array<Object>) {
+    console.log('method called :', data)
     this.dataToDisplay = data
+    this.loading = false
+    this.changeDet.detectChanges()
   }
 }

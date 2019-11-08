@@ -1,10 +1,10 @@
 <p-table #dt
   [rows]="tableConfig.dispRows"
-  [value]="tableConfig.lazyLoad ? dataToDisplay : tableConfig.data"
+  [value]="dataToDisplay"
   [lazy]="tableConfig.lazyLoad"
-  [totalRecords]="totalRecords"
+  [totalRecords]="tableConfig.totalRecords"
   [columns]="tableConfig.headers"
-  [paginator]="enablePagination"
+  [paginator]="true"
   [loading]="loading"
   (onLazyLoad)="loadLazy($event)"
   (onRowSelect)="rowSelect($event)" 
