@@ -164,7 +164,7 @@
     </mat-error>
 
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParams.isRequired && 
-      (dateRange.get('startDate').touched || dateRange.get('endDate').touched) &&
+      (dateRange.get('startDate').touched && dateRange.get('endDate').touched) &&
       (dateRange.get('startDate').hasError('required') || dateRange.get('endDate').hasError('required'))">
       {{ inputParams.validators.validationError }}
     </mat-error>
