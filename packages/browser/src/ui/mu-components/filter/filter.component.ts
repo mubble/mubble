@@ -66,7 +66,7 @@ export class FilterComponent {
 
   @Input()  filterItems     : FilterItem[]      = []
   @Input()  screen          : TrackableScreen
-  @Input()  webMode        ?: boolean           = false   //if we want to use filter component as full page
+  @Input()  webMode        ?: boolean      = false
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 

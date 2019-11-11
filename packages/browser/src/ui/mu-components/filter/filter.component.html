@@ -1,8 +1,8 @@
-<div [ngClass]="webMode ? 'nc-web-view-filter-comp' : 'filter-comp'"
-  [ngClass.xl]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
-  [ngClass.lg]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
-  [ngClass.md]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'"
-  [ngClass.sm]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" mweb>
+<div [ngClass]="webMode?['webView-filter-comp']:['filter-comp']" 
+  [ngClass.xl]="webMode?['webView-filter-comp']:['web-filter-comp']" 
+  [ngClass.lg]="webMode?['webView-filter-comp']:['web-filter-comp']" 
+  [ngClass.md]="webMode?['webView-filter-comp']:['web-filter-comp']"
+  [ngClass.sm]="webMode?['webView-filter-comp']:['web-filter-comp']" mweb>
 
   <div class="filter-subtitle txt-xl-bld-dark primary-bg-light">
     {{ 'mu_fltr_sub_titl' | translate }}

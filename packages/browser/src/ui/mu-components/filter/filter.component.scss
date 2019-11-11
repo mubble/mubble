@@ -198,4 +198,17 @@
       padding: 6px;
     }
   }
+  
+  .filter-input-body::-webkit-scrollbar {
+    width : 2px;
+  }
+
+  .btn {
+    width : auto;
+  }
+  .filter-content-body{
+    margin: 1% 4%;
+    width: 25%;
+  }
+
 }
