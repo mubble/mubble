@@ -23,6 +23,9 @@ import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.NoSuchPaddingException
 import javax.crypto.SecretKey
+import com.facebook.internal.FacebookRequestErrorClassification.KEY_NAME
+
+
 
 open class BiometricManager constructor() : BiometricManagerV23() {
 
@@ -213,6 +216,28 @@ open class BiometricManager constructor() : BiometricManagerV23() {
       throw RuntimeException("Failed to init Cipher", e)
     } catch (e: NoSuchPaddingException) {
       throw RuntimeException("Failed to get Cipher", e)
+    }
+  }
+
+  @TargetApi(Build.VERSION_CODES.M)
+  private fun generateKeyPair() {
+
+    try {
+
+      val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore")
+
+      keyPairGenerator.initialize(
+          KeyGenParameterSpec.Builder(KEY_NAME,
+              KeyProperties.PURPOSE_SIGN)
+              .setDigests(KeyProperties.DIGEST_SHA256)
+              .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
+              .setUserAuthenticationRequired(true)
+              .build())
+
+      keyPairGenerator.generateKeyPair()
+
+    } catch (exc: KeyStoreException) {
+      exc.printStackTrace()
     }
   }
 
