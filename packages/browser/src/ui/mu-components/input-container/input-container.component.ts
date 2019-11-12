@@ -51,6 +51,7 @@ export interface SelectionBoxParams {
 }
 
 export interface ValidatorsParams {
+  allowFutureDate ?: boolean
   validation      ?: string | RegExp
   validationError  : string
 }
@@ -286,10 +287,12 @@ export class InputContainerComponent implements OnChanges {
         this.dateRange = this.formBuilder.group({
           startDate : [params.value['startDate'] || null, formValidations],
           endDate   : [params.value['endDate']   || null, formValidations]
-        },
-        {
-          validator : [InputValidator.dateValidator]
-        })
+        }
+       )
+        const valiArr = [InputValidator.dateValidator]
+        if(!params.validators.allowFutureDate) 
+          valiArr.push(InputValidator.futureDateValidatorIfAllowed)
+        this.dateRange.setValidators(valiArr)
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  : 
