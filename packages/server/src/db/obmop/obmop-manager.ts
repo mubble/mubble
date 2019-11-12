@@ -74,12 +74,11 @@ export class ObmopManager {
    *  Function to get rows for an obmop entity with a specific query.
 	 * 	By default the condition is equals (=).
    */
-  public async query<T extends ObmopBaseEntity>(
-										 rc          : RunContextServer,
-              			 entityType  : new(rc : RunContextServer) => T,
-              			 key         : keyof T,
-              			 value       : any,
-              			 condition   : string = '=') : Promise<Array<T>> {
+  public async query<T extends ObmopBaseEntity>(rc         : RunContextServer,
+              			 														entityType : new(rc : RunContextServer) => T,
+              			 														key        : keyof T,
+              			 														value      : any,
+              			 														operator   : string = '=') : Promise<Array<T>> {
 
 		let records : Array<any>
 
@@ -87,16 +86,16 @@ export class ObmopManager {
 
 		// TODO : Add checks to query only on indexed fields
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, condition, value)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, value)
 
 		try {
-			records = await this.client.query(rc, tableName, key as string, value, condition)
+			records = await this.client.query(rc, tableName, key as string, value, operator)
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
-		}										
+		}
 
     const entities = [] as Array<T>
 
@@ -109,7 +108,54 @@ export class ObmopManager {
     }
 
     return entities
-  }
+	}
+	
+
+	/**
+   *  Function to get rows for an obmop entity with multiple AND queries.
+	 * 	By default the condition is equals (=).
+   */
+	public async queryAnd<T extends ObmopBaseEntity>(
+														rc 				 : RunContextServer,
+														entityType : new(rc : RunContextServer) => T,
+														conditions : Array<{key : keyof T, value : any, operator ?: string}>) : Promise<Array<T>> {
+
+		let records : Array<any>
+
+		const tableName 			 = new entityType(rc).getTableName(),
+					clientConditions = conditions.map((cond) => {
+															 return {
+																				 key	 		: cond.key as string,
+																				 value 		: cond.value,
+																				 operator : cond.operator
+																			}
+														 })
+
+		// TODO : Add checks to query only on indexed fields
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions)
+
+		try {
+			records = await this.client.queryAnd(rc, tableName, clientConditions)
+
+		}	catch(err) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			throw mErr
+		}
+
+    const entities = [] as Array<T>
+
+    for(const record of records) {
+      const entity = new entityType(rc)
+
+      Object.assign(entity, record)
+
+      if(!entity.deleted) entities.push(entity)
+    }
+
+    return entities
+	}
 
 	/**
    *  Function to insert a row of an obmop entity.

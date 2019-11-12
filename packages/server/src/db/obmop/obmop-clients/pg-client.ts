@@ -89,17 +89,32 @@ export class PostgresClient implements ObmopBaseClient {
 		return result.rows
 	}
 
-	public async query(rc        : RunContextServer,
-										 table     : string,
-										 key       : string,
-										 value     : any,
-										 condition : string = '=') : Promise<Array<any>> {
+	public async query(rc       : RunContextServer,
+										 table    : string,
+										 key      : string,
+										 value    : any,
+										 operator : string = '=') : Promise<Array<any>> {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition : ',
-														 key, condition, value)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition :',
+														 key, operator, value)
 
-		const queryString = `SELECT * FROM ${table} WHERE ${key} ${condition} ${this.getStringValue(value)}`,
+		const queryString = `SELECT * FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
 					result      = await this.queryInternal(rc, queryString)
+
+		return result.rows
+	}
+
+	public async queryAnd(rc 				 : RunContextServer,
+												table 		 : string,
+												conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<any>> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
+
+		const conditionStrings = conditions.map((condition) =>
+															 this.getConditionString(condition.key, condition.value, condition.operator)),
+					condition        = conditionStrings.join(' AND '),
+					queryString      = `SELECT * FROM ${table} WHERE ${condition}`,
+					result      		 = await this.queryInternal(rc, queryString)
 
 		return result.rows
 	}
@@ -170,7 +185,7 @@ export class PostgresClient implements ObmopBaseClient {
 			return result
 		} catch(e) {
 			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
-			throw new Mubble.uError(DB_ERROR_CODE, e)
+			throw new Mubble.uError(DB_ERROR_CODE, e.message)
 		} finally {
 			client.release()
 		}
@@ -182,5 +197,9 @@ export class PostgresClient implements ObmopBaseClient {
 		}
 
 		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
+	}
+
+	private getConditionString(key : string, value : any, operator : string = '=') : string {
+		return `${key} ${operator} ${this.getStringValue(value)}`
 	}
 }

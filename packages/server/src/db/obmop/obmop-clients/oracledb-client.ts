@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : ODBC client to interact with relational database server
+   About      : Oracle DB client to interact with oracle DB server
    
    Created on : Thu Jun 20 2019
    Author     : Vishal Sinha
@@ -10,71 +10,73 @@
 import { 
 				 Mubble,
 				 format
-			 }               								from '@mubble/core'
-import { ObmopBaseClient }      			from '../obmop-base'
-import { RunContextServer }   				from '../../../rc-server'
-import { DB_ERROR_CODE }      				from '../obmop-util'
-
-const odbc = require('odbc')
+			 }	               				from '@mubble/core'
+import { RunContextServer }  	 	from '../../../rc-server'
+import { ObmopBaseClient }      from '../obmop-base'
+import { DB_ERROR_CODE }        from '../obmop-util'
+import * as oracledb            from 'oracledb'
 
 const STRING_TYPE 			 = 'string',
 			DATE_FORMAT_STRING = '%yyyy%-%mm%-%dd% %hh%:%nn%:%ss%.%ms%'
 
-export class OdbcClient implements ObmopBaseClient {
+/*------------------------------------------------------------------------------
+   OracleDb Config
+------------------------------------------------------------------------------*/
 
-	private clientPool 			 : any
-	private initialized 		 : boolean = false
-	private connectionString : string
+export type OracleDbConfig = oracledb.PoolAttributes
 
-	constructor(rc : RunContextServer, connectionString : string) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new odbc client.', connectionString)
+/*------------------------------------------------------------------------------
+   OracleDb Client
+------------------------------------------------------------------------------*/
 
-		this.connectionString = connectionString
+export class OracleDbClient implements ObmopBaseClient {
+
+	private clientPool  : oracledb.Pool
+  private initialized : boolean		              = false
+  private poolConfig  : oracledb.PoolAttributes
+
+	constructor(rc : RunContextServer, config : OracleDbConfig) {
+		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new OracleDbClient.', config)
+
+		this.poolConfig = config
 	}
 
 	public async init(rc : RunContextServer) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing odbc client.', this.connectionString)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing OracleDbClient.', this.poolConfig)
 
-		this.clientPool = await new Promise((resolve, reject) => {
+		this.clientPool = await new Promise<oracledb.Pool>((resolve, reject) => {
+      oracledb.createPool(this.poolConfig, (err : oracledb.DBError, pool : oracledb.Pool) => {
+        if(err) reject(err)
+        resolve(pool)
+      })
+    })
 
-			odbc.pool(this.connectionString, (err : any, pool : any) => {
-
-				if(err) {
-					this.initialized = false
-					const errMsg = 'Error in creating odbc connection pool.'
-					rc.isError() && rc.error(rc.getName(this), errMsg, err)
-					return reject(new Mubble.uError(DB_ERROR_CODE, errMsg))
-				}
-
-				this.initialized = true
-				resolve(pool)
-			})
-		})
+		this.initialized = true
 	}
 
 	public async close(rc : RunContextServer) {
 		if(!this.initialized) return
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Closing odbc client.')
+		rc.isDebug() && rc.debug(rc.getName(this), 'Closing OracleDbClient.')
 
 		await this.clientPool.close()
 		this.initialized = false
 	}
 
-	public async queryAll(rc : RunContextServer, table : string) : Promise<Array<Mubble.uObject<any>>> {
+	public async queryAll(rc : RunContextServer, table : string) : Promise<Array<any>> {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.')
 
 		const queryString = `SELECT * FROM ${table}`,
 					result      = await this.queryInternal(rc, queryString)
 
-		return result.rows
+		return this.convertResultArray(result)
 	}
 
 	public async query(rc       : RunContextServer,
 										 table    : string,
 										 key      : string,
 										 value    : any,
-										 operator : string = '=') : Promise<Array<Mubble.uObject<any>>> {
+										 operator : string = '=') : Promise<Array<any>> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition : ',
 														 key, operator, value)
@@ -82,9 +84,8 @@ export class OdbcClient implements ObmopBaseClient {
 		const queryString = `SELECT * FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
 					result      = await this.queryInternal(rc, queryString)
 
-		return result.rows
+		return this.convertResultArray(result)
 	}
-
 
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
@@ -98,7 +99,7 @@ export class OdbcClient implements ObmopBaseClient {
 					queryString      = `SELECT * FROM ${table} WHERE ${condition}`,
 					result      		 = await this.queryInternal(rc, queryString)
 
-		return result.rows
+		return this.convertResultArray(result)
 	}
 
 	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) {
@@ -149,22 +150,29 @@ export class OdbcClient implements ObmopBaseClient {
 	 PRIVATE METHODS
 ------------------------------------------------------------------------------*/
 	
-	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<any> {
+	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<oracledb.Result<any>> {
 		rc.isDebug() && rc.debug(rc.getName(this), 'queryInternal', queryString)
 
-		try {
-			if(!this.initialized) await this.init(rc)
+    if(!this.initialized) await this.init(rc)
+    
+    const connection = await this.clientPool.getConnection()
 
-			const result = await new Promise<any>((resolve, reject) => {
-				this.clientPool.query(queryString, (err : Error, result : any) => {
-					err ? reject(err)
-							: resolve(result)
-				})
+		try {
+			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
+
+        connection.execute(queryString, (err : oracledb.DBError, result : oracledb.Result<any>) => {
+          if(err) reject(err)
+          resolve(result)
+        })
 			})
 			
 			return result
 		} catch(e) {
+
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
 			throw new Mubble.uError(DB_ERROR_CODE, e.message)
+		} finally {
+			await connection.close()
 		}
 	}
 
@@ -174,6 +182,25 @@ export class OdbcClient implements ObmopBaseClient {
 		}
 
 		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
+	}
+
+	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
+
+		const metadata = result.metaData || [],
+					rows     = result.rows || [],
+					finArr   = []
+
+		for(const row of rows) {
+			const elem = {} as any
+
+			for(const index in metadata) {
+				elem[metadata[index].name.toLowerCase()] = row[index]
+			}
+
+			finArr.push(elem)
+		}
+
+		return finArr
 	}
 
 	private getConditionString(key : string, value : any, operator : string = '=') : string {

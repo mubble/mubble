@@ -127,15 +127,24 @@ export interface ObmopBaseClient {
   queryAll(rc : RunContextServer, table : string) : Promise<Array<Mubble.uObject<any>>>
 
   /**
-   * Returns all entries (rows) of the given table for <key> <condition> <value>.
+   * Returns all entries (rows) of the given table for <key> <operator> <value>.
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
    * @param key Key or field name.
    * @param value Value of that field.
-   * @param condition Conditional operator compatible with SQL databases. By default it is '='.
+   * @param operator Conditional operator compatible with SQL databases. By default it is '='.
    */
   query(rc : RunContextServer, table : string, key : string, value : any,
-        condition ?: string) : Promise<Array<Mubble.uObject<any>>>
+        operator ?: string) : Promise<Array<Mubble.uObject<any>>>
+
+  /**
+   * Returns all entries (rows) of the given table for multiple <key> <operator> <value> seperated by AND.
+   * @param rc RunContext, used for logging.
+   * @param table Table or entity name.
+   * @param conditions Given multiple conditions.
+   */
+  queryAnd(rc : RunContextServer, table : string,
+           conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<Mubble.uObject<any>>>
 
   /**
    * Inserts a new entry (row) in the given table.

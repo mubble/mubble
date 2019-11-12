@@ -9,3 +9,4 @@
 
 export * from './odbc-client'
 export * from './pg-client'
+export * from './oracledb-client'
