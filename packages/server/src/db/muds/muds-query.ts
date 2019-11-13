@@ -261,12 +261,12 @@ export class MudsQuery<T extends MudsBaseEntity> {
 -----------------------------------------------------------------------------*/
 export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<T> {
 
-  private records   : object[]
+  private records   : T[]
   private endCursor : string
   private hasMore   : boolean
 
   // This is short term till we get upgrade to 'for await' 
-  private iterator  : { next : (val ?: T) => Promise<{value ?: T, done: boolean}> } | null
+  private iterator  : { next : () => Promise<IteratorResult<T>> } | null
 
   constructor(private rc      : RunContextServer, 
     private io                : MudsIo,
@@ -281,7 +281,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   private loadData(result: DsQueryResult) {
 
     const [ar, info]  = result
-    this.records      = ar
+    this.records      = ar as T[]
 
     if (ar.length) {
       this.endCursor    = info.endCursor || ''
@@ -311,10 +311,11 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   }
 
   // for future when we move to v8 6.3
-  public [Symbol.asyncIterator]() {
+  public [Symbol.asyncIterator]() : AsyncIterator<T> {
     let ptr = 0 
     return {
-      next: async (val: T) => {
+      next : async () : Promise<IteratorResult<T>> => {
+
         if (ptr === this.records.length) {
           if (this.hasMore) {
             this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Fetching more data')
@@ -323,11 +324,15 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
             ptr = 0
           }
         }
+
+        // TODO : Need to fix next(), should return undefined after done
+
         const done = !this.hasMore && ptr === this.records.length
         return {
             done,
-            value: done ? val : this.io.getRecordFromDs(this.rc, this.entityClass, 
-                                  this.records[ptr++], !this.onlySelectedCols)
+            value : done ? this.records[ptr - 1]
+                         : this.io.getRecordFromDs(this.rc, this.entityClass,
+                                                   this.records[ptr++], !this.onlySelectedCols)
         }
       }
     }
