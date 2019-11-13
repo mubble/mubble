@@ -67,10 +67,11 @@ export class FilterComponent {
   @Input()  filterItems     : FilterItem[]      = []
   @Input()  screen          : TrackableScreen
   @Input()  webMode         : boolean           = false   //if we want to use filter component as full page
+  @Input()  displayCount    : number            = 1
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 
-  filters     : SelectedFilter[] = []
+  filters   : SelectedFilter[] = []
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
@@ -89,7 +90,7 @@ export class FilterComponent {
     })
 
     if (this.hasError()) return
-
+    
     if (!this.valueChanged()) {
       this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
@@ -138,17 +139,25 @@ export class FilterComponent {
         case DISPLAY_TYPE.INPUT_BOX           :
         case DISPLAY_TYPE.SELECTION_BOX       :
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-          changed = fItem.params.value !== this.filters[index].value
+          (!fItem.params.value && !this.filters[index].value)
+          ? changed = false
+          : changed = fItem.params.value !== this.filters[index].value
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
-          changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
-                    (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
+          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) ||
+          (!fItem.params.value['endDate'] && !this.filters[index].value['endDate']))
+          ? changed = false
+          : changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
+                      (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
-                    (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
+          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) ||
+          (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
+          ? changed = false
+          : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
+                      (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
           break
       }
 
@@ -190,7 +199,7 @@ export class FilterComponent {
       this.filterItems  = []
       this.filterItems  = fItems
     }
-
-    
   }
+
+
 }

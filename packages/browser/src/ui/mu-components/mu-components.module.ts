@@ -31,7 +31,8 @@ import { NcMaxLengthDirective,
          NcAutoFocusDirective, 
          LongPressDirective, 
          NcStyleClassDirective,
-         NextInpFocusDirective
+         NextInpFocusDirective,
+         AdjustElementsDirective
        }                                    from './directives'
 import { TRANSLATION_PROVIDERS,
          TranslateService,
@@ -76,6 +77,7 @@ import { MatCheckboxModule }                from '@angular/material'
     LongPressDirective, 
     NcStyleClassDirective,
     NextInpFocusDirective,
+    AdjustElementsDirective,
   
     TranslatePipe
   ],
@@ -106,6 +108,7 @@ import { MatCheckboxModule }                from '@angular/material'
     LongPressDirective, 
     NcStyleClassDirective,
     NextInpFocusDirective,
+    AdjustElementsDirective,
 
     TranslatePipe,
     

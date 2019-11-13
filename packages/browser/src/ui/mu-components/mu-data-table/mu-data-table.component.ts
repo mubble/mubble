@@ -155,14 +155,14 @@ export class MuDataTableComponent implements OnInit {
 
     if (this.tableConfig.data.length < possibleCount && this.tableConfig.data.length < this.tableConfig.totalRecords) {
       this.loading = true
-      this.loadMoreData.emit()
+      this.loadMoreData.emit(this.lastIndex)
     } else {
       this.dataToDisplay = Array.from(this.tableConfig.data).splice(event.first, this.tableConfig.dispRows)
     }
   }
 
   updateData(data : Object[]) {
-    
+
     this.tableConfig.data = data
     this.dataToDisplay    = Array.from(this.tableConfig.data).splice(this.lastIndex, this.tableConfig.dispRows)
     for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index

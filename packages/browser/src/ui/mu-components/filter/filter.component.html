@@ -10,9 +10,7 @@
 
   <div class="filter-content-body">
     <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index"
-      [ngClass]="{'right' : (i % 3 === 0) && webMode, 'middle' : (i % 3 === 1) && webMode,
-      'left' : (i % 3 === 2) && webMode, 'start' : (i % 2 === 1) && webMode, 'end' : (i % 2 === 0)
-      && webMode}">
+      adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i">
       <div class="input-title txt-lg-reg-norm">
         {{ fItem.title }}
       </div>
