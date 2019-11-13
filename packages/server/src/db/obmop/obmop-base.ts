@@ -124,7 +124,7 @@ export interface ObmopBaseClient {
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
    */
-  queryAll(rc : RunContextServer, table : string) : Promise<Array<Mubble.uObject<any>>>
+  queryAll(rc : RunContextServer, table : string, fields : Array<string>) : Promise<Array<Mubble.uObject<any>>>
 
   /**
    * Returns all entries (rows) of the given table for <key> <operator> <value>.
@@ -134,8 +134,8 @@ export interface ObmopBaseClient {
    * @param value Value of that field.
    * @param operator Conditional operator compatible with SQL databases. By default it is '='.
    */
-  query(rc : RunContextServer, table : string, key : string, value : any,
-        operator ?: string) : Promise<Array<Mubble.uObject<any>>>
+  query(rc : RunContextServer, table : string, fields : Array<string>, key : string,
+        value : any, operator ?: string) : Promise<Array<Mubble.uObject<any>>>
 
   /**
    * Returns all entries (rows) of the given table for multiple <key> <operator> <value> seperated by AND.
@@ -143,7 +143,7 @@ export interface ObmopBaseClient {
    * @param table Table or entity name.
    * @param conditions Given multiple conditions.
    */
-  queryAnd(rc : RunContextServer, table : string,
+  queryAnd(rc : RunContextServer, table : string, fields : Array<string>,
            conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<Mubble.uObject<any>>>
 
   /**

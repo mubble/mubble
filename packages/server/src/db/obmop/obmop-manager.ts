@@ -44,12 +44,13 @@ export class ObmopManager {
 
 		let records : Array<any>
 
-		const tableName = new entityType(rc).getTableName()
+		const tableName = new entityType(rc).getTableName(),
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching all data.', tableName)
 
 		try {
-			records = await this.client.queryAll(rc, tableName)
+			records = await this.client.queryAll(rc, tableName, fields)
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
@@ -57,15 +58,12 @@ export class ObmopManager {
 			throw mErr
 		}										
 
-    const entities = [] as Array<T>
+    const entities = records.map((record) => {
+			const entity = new entityType(rc)
 
-    for(const record of records) {
-      const entity = new entityType(rc)
-
-      Object.assign(entity, record)
-
-      if(!entity.deleted) entities.push(entity)
-    }
+			Object.assign(entity, record)
+			return entity
+		})
 
     return entities
   }
@@ -82,14 +80,15 @@ export class ObmopManager {
 
 		let records : Array<any>
 
-		const tableName = new entityType(rc).getTableName()
+		const tableName = new entityType(rc).getTableName(),
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
 
 		// TODO : Add checks to query only on indexed fields
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, value)
 
 		try {
-			records = await this.client.query(rc, tableName, key as string, value, operator)
+			records = await this.client.query(rc, tableName, fields, key as string, value, operator)
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
@@ -97,15 +96,12 @@ export class ObmopManager {
 			throw mErr
 		}
 
-    const entities = [] as Array<T>
+    const entities = records.map((record) => {
+			const entity = new entityType(rc)
 
-    for(const record of records) {
-      const entity = new entityType(rc)
-
-      Object.assign(entity, record)
-
-      if(!entity.deleted) entities.push(entity)
-    }
+			Object.assign(entity, record)
+			return entity
+		})
 
     return entities
 	}
@@ -123,6 +119,7 @@ export class ObmopManager {
 		let records : Array<any>
 
 		const tableName 			 = new entityType(rc).getTableName(),
+					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
 					clientConditions = conditions.map((cond) => {
 															 return {
 																				 key	 		: cond.key as string,
@@ -136,7 +133,7 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions)
 
 		try {
-			records = await this.client.queryAnd(rc, tableName, clientConditions)
+			records = await this.client.queryAnd(rc, tableName, fields, clientConditions)
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
@@ -144,15 +141,12 @@ export class ObmopManager {
 			throw mErr
 		}
 
-    const entities = [] as Array<T>
+    const entities = records.map((record) => {
+			const entity = new entityType(rc)
 
-    for(const record of records) {
-      const entity = new entityType(rc)
-
-      Object.assign(entity, record)
-
-      if(!entity.deleted) entities.push(entity)
-    }
+			Object.assign(entity, record)
+			return entity
+		})
 
     return entities
 	}

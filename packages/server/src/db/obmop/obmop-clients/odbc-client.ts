@@ -61,10 +61,14 @@ export class OdbcClient implements ObmopBaseClient {
 		this.initialized = false
 	}
 
-	public async queryAll(rc : RunContextServer, table : string) : Promise<Array<Mubble.uObject<any>>> {
+	public async queryAll(rc 		 : RunContextServer,
+												table  : string,
+												fields : Array<string>) : Promise<Array<Mubble.uObject<any>>> {
+
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.')
 
-		const queryString = `SELECT * FROM ${table}`,
+		const fieldString = fields.join(', '),
+					queryString = `SELECT ${fieldString} FROM ${table}`,
 					result      = await this.queryInternal(rc, queryString)
 
 		return result.rows
@@ -72,6 +76,7 @@ export class OdbcClient implements ObmopBaseClient {
 
 	public async query(rc       : RunContextServer,
 										 table    : string,
+										 fields   : Array<string>,
 										 key      : string,
 										 value    : any,
 										 operator : string = '=') : Promise<Array<Mubble.uObject<any>>> {
@@ -79,7 +84,8 @@ export class OdbcClient implements ObmopBaseClient {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition : ',
 														 key, operator, value)
 
-		const queryString = `SELECT * FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
+		const fieldString = fields.join(', '),
+					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
 					result      = await this.queryInternal(rc, queryString)
 
 		return result.rows
@@ -88,14 +94,16 @@ export class OdbcClient implements ObmopBaseClient {
 
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
+												fields     : Array<string>,
 												conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<any>> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
 
-		const conditionStrings = conditions.map((condition) =>
+		const fieldString = fields.join(', '),
+					conditionStrings = conditions.map((condition) =>
 															 this.getConditionString(condition.key, condition.value, condition.operator)),
 					condition        = conditionStrings.join(' AND '),
-					queryString      = `SELECT * FROM ${table} WHERE ${condition}`,
+					queryString      = `SELECT ${fieldString} FROM ${table} WHERE ${condition}`,
 					result      		 = await this.queryInternal(rc, queryString)
 
 		return result.rows
