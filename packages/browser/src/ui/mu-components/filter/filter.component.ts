@@ -51,7 +51,7 @@ export interface NumberRangeInterface {
 
 export interface SelectedFilter {
   id    : string
-  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
+  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
 }
 
 @Component({
@@ -66,7 +66,7 @@ export class FilterComponent {
 
   @Input()  filterItems     : FilterItem[]      = []
   @Input()  screen          : TrackableScreen
-  @Input()  webMode        ?: boolean           = false   //if we want to use filter component as full page
+  @Input()  webMode         : boolean           = false   //if we want to use filter component as full page
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 
@@ -89,7 +89,7 @@ export class FilterComponent {
     })
 
     if (this.hasError()) return
-    
+
     if (!this.valueChanged()) {
       this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
