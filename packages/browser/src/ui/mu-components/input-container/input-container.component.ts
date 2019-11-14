@@ -27,7 +27,9 @@ import { RunContextBrowser }              from '../../../rc-browser'
 import { MatSelectChange,
          MatDatepickerInputEvent,
          MatAutocompleteSelectedEvent,
-         MatDatepicker
+         MatDatepicker,
+         MatRadioChange,
+         MatCheckboxChange
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
@@ -43,6 +45,19 @@ export enum DISPLAY_TYPE {
   DATE_RANGE            = 'DATE_RANGE',
   NUMBER_RANGE          = 'NUMBER_RANGE',
   AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT'
+}
+
+export enum OPTIONS_DISP_TYPE {
+  CHECK_BOX = 'CHECKBOX',
+  DROP_DOWN = 'DROPDOWN',
+  RADIO     = 'RADIO',
+  INPUT     = 'INPUT',
+  TEXT_AREA = 'TEXT_AREA'
+}
+
+export interface OptionsParams {
+  displayType  : OPTIONS_DISP_TYPE
+  multiSelect ?: boolean
 }
 
 export interface SelectionBoxParams {
@@ -62,17 +77,18 @@ export interface OutputParams {
 }
 
 export interface InputParams {
-  id            : string
-  displayType   : DISPLAY_TYPE
-  placeHolder   : string | string[]
-  label        ?: string
-  options      ?: SelectionBoxParams[]
-  inputType    ?: string
-  maxLength    ?: number
-  value        ?: any
-  isPassword   ?: boolean
-  validators   ?: ValidatorsParams
-  isRequired   ?: boolean
+  id               : string
+  displayType      : DISPLAY_TYPE
+  placeHolder      : string | string[]
+  label           ?: string
+  options         ?: SelectionBoxParams[]
+  optionsParams   ?: OptionsParams
+  inputType       ?: string
+  maxLength       ?: number
+  value           ?: any
+  isPassword      ?: boolean
+  validators      ?: ValidatorsParams
+  isRequired      ?: boolean
 }
 
 @Component({
@@ -97,10 +113,13 @@ export class InputContainerComponent implements OnChanges {
   numberRange     : FormGroup
   filteredOptions : Observable<SelectionBoxParams[]>
 
-  DISPLAY_TYPE  : typeof DISPLAY_TYPE = DISPLAY_TYPE
+  DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
+  OPTIONS_DISP_TYPE : typeof  OPTIONS_DISP_TYPE = OPTIONS_DISP_TYPE
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
-              private formBuilder                 : FormBuilder) { }
+              private formBuilder                 : FormBuilder) { 
+
+  }
 
   ngOnChanges() {
     this.initialize()
@@ -158,7 +177,7 @@ export class InputContainerComponent implements OnChanges {
                             }
                  }
         break
-    }
+    } 
 
     this.value.emit(params)
   }
@@ -174,8 +193,14 @@ export class InputContainerComponent implements OnChanges {
   /*=====================================================================
                               HTML
   =====================================================================*/
-  selectedOption(event : MatSelectChange) {
+  selectedOption(event : MatSelectChange | MatRadioChange) {
     this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
+  checkedOption(event : MatCheckboxChange) {
+    //TODO : Checkbox design    
+    this.inputForm.setValue(event.checked)
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -290,7 +315,7 @@ export class InputContainerComponent implements OnChanges {
         }
        )
         const valiArr = [InputValidator.dateValidator]
-        if(!params.validators.allowFutureDate) 
+        if(!params.validators || !params.validators.allowFutureDate) 
           valiArr.push(InputValidator.futureDateValidatorIfAllowed)
         this.dateRange.setValidators(valiArr)
         break

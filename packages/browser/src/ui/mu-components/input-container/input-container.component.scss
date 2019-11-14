@@ -7,6 +7,20 @@
   margin: 2% 0;
 }
 
+.radio-button {
+  padding-bottom: 2vw !important;
+}
+
+.radio-group {
+  padding: 3vw 0 !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkbox-cont {
+  padding : 1vw 0;
+}
+
 .range-onb-input-box-cont {
   position: relative;
   display: flex;

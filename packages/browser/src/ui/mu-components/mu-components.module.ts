@@ -13,6 +13,7 @@ import { MatFormFieldModule }               from '@angular/material/form-field'
 import { MatInputModule }                   from '@angular/material/input'
 import { MatSelectModule }                  from '@angular/material/select'
 import { MatAutocompleteModule }            from '@angular/material/autocomplete'
+import { MatRadioModule }                   from '@angular/material/radio'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -56,6 +57,7 @@ import { MatCheckboxModule }                from '@angular/material'
     MatSelectModule,
     MatAutocompleteModule,
     MatCheckboxModule,
+    MatRadioModule,
     TableModule
   ],
 
@@ -115,7 +117,8 @@ import { MatCheckboxModule }                from '@angular/material'
     FormsModule,
     ReactiveFormsModule,
     CommonModule,
-    FlexLayoutModule
+    FlexLayoutModule,
+    MatRadioModule
     
   ],
   providers: [
