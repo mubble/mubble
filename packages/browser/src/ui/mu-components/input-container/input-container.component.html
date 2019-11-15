@@ -23,7 +23,7 @@
                 placeholder="{{inputParams.placeHolder}}"
                 type="{{inputParams.inputType}}"
                 (updatedValue)="setChangedValues($event)"
-                class="txt-lg-bld-norm input-cont" 
+                class="txt-lg-med-norm input-cont" 
                 [formControl]="inputForm"
                 name="input-text"
                 [ncMaxLength]="inputParams.maxLength || 1000"
@@ -53,7 +53,7 @@
             placeholder="{{inputParams.placeHolder}}"
             type="{{inputParams.inputType}}"
             (updatedValue)="setChangedValues($event)"
-            class="txt-lg-bld-norm input-cont" 
+            class="txt-lg-med-norm input-cont" 
             [formControl]="inputForm"
             name="input-text"
             [ncMaxLength]="inputParams.maxLength || 1000"
@@ -78,10 +78,10 @@
           <ng-container *ngSwitchCase="OPTIONS_DISP_TYPE.RADIO">
 
             <mat-radio-group [formControl]="inputForm"
-              class="txt-lg-bld-norm input-cont radio-group"
+              class="txt-lg-med-norm input-cont radio-group"
               (change)="selectedOption($event)">
               <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
-                class="txt-lg-bld-norm radio-button">
+                class="txt-lg-med-norm radio-button">
                 {{ option.value }}
               </mat-radio-button>
             </mat-radio-group>
@@ -114,11 +114,11 @@
         <div class="onb-input-box-cont border-primary">
           <mat-select [formControl]="inputForm"
             placeholder="{{inputParams.placeHolder}}" 
-            class="txt-lg-bld-norm input-cont"
+            class="txt-lg-med-norm input-cont"
             (selectionChange)="selectedOption($event)"
             (openedChange)="dropDownToggle($event)">
             <mat-option *ngFor="let option of inputParams.options" [value]="option"
-              class="txt-lg-bld-norm">
+              class="txt-lg-med-norm">
               {{ option.value }}
             </mat-option>
           </mat-select>
@@ -135,7 +135,7 @@
           [matDatepicker]="picker" 
           (dateChange)="setDate($event)"
           placeholder="{{inputParams.placeHolder}}"
-          class="txt-lg-bld-norm input-cont">
+          class="txt-lg-med-norm input-cont">
         <mat-datepicker-toggle matSuffix [for]="picker" disableRipple="false"></mat-datepicker-toggle>
         <mat-datepicker touchUi #picker></mat-datepicker>
       </div>
@@ -149,7 +149,7 @@
             [matDatepicker]="startPicker" 
             (dateChange)="setDateRange($event)"
             placeholder="{{inputParams.placeHolder[0]}}"
-            class="txt-lg-bld-norm input-cont">
+            class="txt-lg-med-norm input-cont">
           <mat-datepicker-toggle matSuffix [for]="startPicker" disableRipple="false"></mat-datepicker-toggle>
           <mat-datepicker touchUi #startPicker></mat-datepicker>
         </div>
@@ -160,7 +160,7 @@
             [matDatepicker]="endPicker" 
             (dateChange)="setDateRange($event)"
             placeholder="{{inputParams.placeHolder[1]}}"
-            class="txt-lg-bld-norm input-cont">
+            class="txt-lg-med-norm input-cont">
           <mat-datepicker-toggle matSuffix [for]="endPicker" disableRipple="false"></mat-datepicker-toggle>
           <mat-datepicker touchUi #endPicker></mat-datepicker>
         </div>
@@ -174,7 +174,7 @@
             placeholder="{{inputParams.placeHolder[0]}}"
             type="number"
             (input)="setNumberRange($event)"
-            class="txt-lg-bld-norm input-cont" 
+            class="txt-lg-med-norm input-cont" 
             formControlName="minAmount"
             name="input-text"
             textSecurity="inputParams.isPassword"
@@ -188,7 +188,7 @@
             placeholder="{{inputParams.placeHolder[1]}}"
             type="number"
             (input)="setNumberRange($event)"
-            class="txt-lg-bld-norm input-cont" 
+            class="txt-lg-med-norm input-cont" 
             formControlName="maxAmount"
             name="input-text"
             textSecurity="inputParams.isPassword"
@@ -203,16 +203,16 @@
       <div class="onb-input-box-cont border-primary">
         <input matInput
           type="text"
-          class="txt-lg-bld-norm input-cont" 
+          class="txt-lg-med-norm input-cont" 
           placeholder="{{inputParams.placeHolder}}"
           [formControl]="inputForm"
           [matAutocomplete]="auto">
 
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
           (optionSelected)="setAutocompleteValue($event)"
-          class="txt-xl-bld-norm input-cont">
+          class="txt-xl-med-norm input-cont">
           <mat-option *ngFor="let option of filteredOptions | async" [value]="option"
-            class="txt-lg-bld-norm">
+            class="txt-lg-med-norm">
             {{ option.value }}
           </mat-option>
         </mat-autocomplete>
