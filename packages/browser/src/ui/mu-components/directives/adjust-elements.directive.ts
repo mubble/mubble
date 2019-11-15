@@ -9,8 +9,7 @@
 
 import { Directive,
          ElementRef,
-         Input,
-         Renderer2
+         Input
        }                        from '@angular/core'
 
 export interface WebModeCss {
@@ -23,8 +22,9 @@ export interface WebModeCss {
 })
 
 export class AdjustElementsDirective {
-  @Input('displayInSingleRow')  displayCount  : number = 1 //number of elements to be displayed in a single row
-  @Input('elementIndex')        index         : number //element index
+  @Input('displayInSingleRow')  displayCount  : number  = 1     //number of elements to be displayed in a single row
+  @Input('elementIndex')        index         : number          //element index
+  @Input('webMode')             webMode       : boolean = false //if implemented in web mode, only then will this adjust otherwise it will take 100% width
 
   constructor (private element  : ElementRef) { }
 
@@ -41,6 +41,11 @@ export class AdjustElementsDirective {
 
   private calcWidth() : WebModeCss {
     const webModeCss : WebModeCss = { } as WebModeCss
+
+    if (!this.webMode) {
+      webModeCss.width = '100%'
+      return
+    }
 
     switch(this.displayCount) {
       /* If the situation says that the parent wants to display 1 or 2 elements per row, we 
