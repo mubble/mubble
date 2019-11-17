@@ -12,119 +12,72 @@
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.INPUT_BOX">
 
-      <ng-container *ngIf="inputParams.optionsParams; else showInputBox">
+      <div class="onb-input-box-cont border-primary">
+        <input matInput
+          placeholder="{{inputParams.placeHolder}}"
+          type="{{inputParams.inputType}}"
+          (updatedValue)="setChangedValues($event)"
+          class="txt-lg-med-norm input-cont" 
+          [formControl]="inputForm"
+          name="input-text"
+          [ncMaxLength]="inputParams.maxLength || 1000"
+          (updatedValue)="inputForm.setValue($event)"
+          textSecurity="inputParams.isPassword"
+          [class.num-password-input]="inputParams.isPassword"
+          autocomplete="off"
+          required>
+      </div>
+  
+    </ng-container> 
+    
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.TEXT_AREA">
 
-        <ng-container [ngSwitch]="inputParams.optionsParams.displayType">
+      <div class="onb-input-box-cont border-primary">
+        <textarea matInput
+          placeholder="{{inputParams.placeHolder}}"
+          type="{{inputParams.inputType}}"
+          (updatedValue)="setChangedValues($event)"
+          class="txt-lg-med-norm input-cont" 
+          [formControl]="inputForm"
+          name="input-text"
+          [ncMaxLength]="inputParams.maxLength || 1000"
+          (updatedValue)="inputForm.setValue($event)"
+          textSecurity="inputParams.isPassword"
+          [class.num-password-input]="inputParams.isPassword"
+          autocomplete="off"
+          required>
+        </textarea> 
+      </div>
 
-          <ng-container *ngSwitchCase="OPTIONS_DISP_TYPE.TEXT_AREA">
-
-            <div class="onb-input-box-cont border-primary">
-              <input matInput
-                placeholder="{{inputParams.placeHolder}}"
-                type="{{inputParams.inputType}}"
-                (updatedValue)="setChangedValues($event)"
-                class="txt-lg-med-norm input-cont" 
-                [formControl]="inputForm"
-                name="input-text"
-                [ncMaxLength]="inputParams.maxLength || 1000"
-                (updatedValue)="inputForm.setValue($event)"
-                textSecurity="inputParams.isPassword"
-                [class.num-password-input]="inputParams.isPassword"
-                autocomplete="off"
-                required>
-            </div>
-
-            <ng-container *ngSwitchCase="OPTIONS_DISP_TYPE.INPUT">
-              <ng-container 
-                *ngTemplateOutlet="showInputBox">
-              </ng-container>
-            </ng-container>
-
-          </ng-container>  
-
-        </ng-container>  
-   
-      </ng-container>   
-      
-      <ng-template #showInputBox>
-
-        <div class="onb-input-box-cont border-primary">
-          <input matInput
-            placeholder="{{inputParams.placeHolder}}"
-            type="{{inputParams.inputType}}"
-            (updatedValue)="setChangedValues($event)"
-            class="txt-lg-med-norm input-cont" 
-            [formControl]="inputForm"
-            name="input-text"
-            [ncMaxLength]="inputParams.maxLength || 1000"
-            (updatedValue)="inputForm.setValue($event)"
-            textSecurity="inputParams.isPassword"
-            [class.num-password-input]="inputParams.isPassword"
-            autocomplete="off"
-            required>
-          </div>
-
-      </ng-template>  
-
-    </ng-container>
-      
+    </ng-container>  
   
     <ng-container *ngSwitchCase="DISPLAY_TYPE.SELECTION_BOX">
 
-      <ng-container *ngIf="inputParams.optionsParams; else showSelectionBox">
+      <div class="onb-input-box-cont border-primary">
+        <mat-select [formControl]="inputForm"
+          placeholder="{{inputParams.placeHolder}}" 
+          class="txt-lg-med-norm input-cont"
+          (selectionChange)="selectedOption($event)"
+          (openedChange)="dropDownToggle($event)">
+          <mat-option *ngFor="let option of inputParams.options" [value]="option"
+            class="txt-lg-med-norm">
+            {{ option.value }}
+          </mat-option>
+        </mat-select>
+      </div>
 
-        <ng-container [ngSwitch]="inputParams.optionsParams.displayType">
+    </ng-container>
+    
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.RADIO">
 
-          <ng-container *ngSwitchCase="OPTIONS_DISP_TYPE.RADIO">
-
-            <mat-radio-group [formControl]="inputForm"
-              class="txt-lg-med-norm input-cont radio-group"
-              (change)="selectedOption($event)">
-              <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
-                class="txt-lg-med-norm radio-button">
-                {{ option.value }}
-              </mat-radio-button>
-            </mat-radio-group>
-
-          </ng-container>
-          
-          <ng-container *ngSwitchCase="OPTIONS_DISP_TYPE.CHECK_BOX">
-
-            <div class="checkbox-cont" *ngFor="let option of inputParams.options; let i = index">
-              <mat-checkbox class="checkbox" (change)="checkedOption($event)">
-                {{ option.value}}
-              </mat-checkbox>
-            </div>
-
-          </ng-container>
-
-          <ng-container *ngSwitchCase="OPTIONS_DISP_TYPE.DROP_DOWN">
-            <ng-container 
-              *ngTemplateOutlet="showSelectionBox">
-            </ng-container>
-          </ng-container>
-
-        </ng-container>
-
-      </ng-container>   
-      
-
-      <ng-template #showSelectionBox>
-
-        <div class="onb-input-box-cont border-primary">
-          <mat-select [formControl]="inputForm"
-            placeholder="{{inputParams.placeHolder}}" 
-            class="txt-lg-med-norm input-cont"
-            (selectionChange)="selectedOption($event)"
-            (openedChange)="dropDownToggle($event)">
-            <mat-option *ngFor="let option of inputParams.options" [value]="option"
-              class="txt-lg-med-norm">
-              {{ option.value }}
-            </mat-option>
-          </mat-select>
-        </div>
-
-      </ng-template>  
+      <mat-radio-group [formControl]="inputForm"
+        class="txt-lg-med-norm input-cont radio-group"
+        (change)="selectedOption($event)">
+        <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
+          class="txt-lg-med-norm radio-button">
+          {{ option.value }}
+        </mat-radio-button>
+      </mat-radio-group>
 
     </ng-container>
 
@@ -224,12 +177,12 @@
   <div *ngIf="inputForm" class="errors-list">
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputParams.isRequired && 
       inputForm.hasError('required')">
-      {{ inputParams.validators.validationError }}
+      {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
     </mat-error>
 
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputForm.value &&
       inputForm.hasError('pattern')">
-      {{ inputParams.validators.validationError }}
+      {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
     </mat-error>
 
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputForm.errors && 
@@ -255,7 +208,7 @@
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParams.isRequired && 
       (dateRange.get('startDate').touched && dateRange.get('endDate').touched) &&
       (dateRange.get('startDate').hasError('required') || dateRange.get('endDate').hasError('required'))">
-      {{ inputParams.validators.validationError }}
+      {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
     </mat-error>
   </div>
   
@@ -271,7 +224,7 @@
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParams.isRequired && 
       (numberRange.get('minAmount').touched || numberRange.get('maxAmount').touched) &&
       (numberRange.get('minAmount').hasError('required') || numberRange.get('maxAmount').hasError('required'))">
-      {{ inputParams.validators.validationError }}
+      {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
     </mat-error>
   </div>
 

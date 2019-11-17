@@ -17,6 +17,7 @@ export const LANG_EN_TRANS = {
   'mu_inpt_cont_strt_date_err'    : 'Provide a start date',
   'mu_inpt_cont_date_err'         : 'Start date should not exceed end date',
   'mu_inpt_cont_amnt_err'         : 'Minimum amount should not exceed maximum amount',
+  'mu_inpt_cont_val_err'          : 'Please enter valid value',
 
   //Filter Component
   'mu_fltr_sub_titl'              : 'Filter By :',

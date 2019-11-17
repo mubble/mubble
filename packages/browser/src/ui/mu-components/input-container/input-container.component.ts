@@ -44,7 +44,9 @@ export enum DISPLAY_TYPE {
   CALENDAR_BOX          = 'CALENDAR_BOX',
   DATE_RANGE            = 'DATE_RANGE',
   NUMBER_RANGE          = 'NUMBER_RANGE',
-  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT'
+  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
+  RADIO                 = 'RADIO',
+  TEXT_AREA             = 'TEXT_AREA'
 }
 
 export enum OPTIONS_DISP_TYPE {
@@ -72,8 +74,9 @@ export interface ValidatorsParams {
 }
 
 export interface OutputParams {
-  id    : string
-  value : any
+  id          : string
+  value       : any
+  displayType : DISPLAY_TYPE
 }
 
 export interface InputParams {
@@ -134,7 +137,7 @@ export class InputContainerComponent implements OnChanges {
   =====================================================================*/
   onSubmit() {
 
-    if (this.inputForm && this.inputParams.validators)  this.inputForm.markAsTouched()
+    if (this.inputForm && (this.inputParams.validators || this.inputParams.isRequired))  this.inputForm.markAsTouched()
 
     if (this.dateRange && this.inputParams.validators) {
       this.dateRange.controls.startDate.markAsTouched()
@@ -156,28 +159,39 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-        params = { id     : this.inputParams.id,
-                   value  : this.inputForm.value }
+      case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.TEXT_AREA           :  
+        params = { 
+                    id          : this.inputParams.id,
+                    value       : this.inputForm.value,
+                    displayType : this.inputParams.displayType
+                  }
         break
 
       case DISPLAY_TYPE.DATE_RANGE  :
-        params = { id     : this.inputParams.id,
-                   value  : {
-                              startDate : this.dateRange.controls.startDate.value,
-                              endDate   : this.dateRange.controls.endDate.value
-                            }
+        params = { 
+                    id          : this.inputParams.id,
+                    value       : {
+                                     startDate : this.dateRange.controls.startDate.value,
+                                     endDate   : this.dateRange.controls.endDate.value
+                                   },
+                    displayType : this.inputParams.displayType
+
                  }
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        params = { id     : this.inputParams.id,
-                   value  : { 
+        params  = { 
+                    id     : this.inputParams.id,
+                    value  : { 
                               minAmount : this.numberRange.controls.minAmount.value,
                               maxAmount : this.numberRange.controls.maxAmount.value
-                            }
+                            },
+                    displayType : this.inputParams.displayType
                  }
         break
     } 
+
 
     this.value.emit(params)
   }
@@ -244,7 +258,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-
+      case DISPLAY_TYPE.TEXT_AREA           :
         hasError = this.inputParams.isRequired 
                    ? this.inputForm.invalid
                    : this.inputForm.value && this.inputForm.invalid
@@ -291,6 +305,8 @@ export class InputContainerComponent implements OnChanges {
 
     switch (params.displayType) {
       case DISPLAY_TYPE.INPUT_BOX     :
+      case DISPLAY_TYPE.TEXT_AREA     :
+      case DISPLAY_TYPE.RADIO         : 
       case DISPLAY_TYPE.SELECTION_BOX :
         this.inputForm  = new FormControl(params.value || null, formValidations)
         break
