@@ -37,6 +37,9 @@ import { Observable }                     from 'rxjs'
 import { map,
          startWith
        }                                  from 'rxjs/operators'
+import { FileUploadComponent, 
+         UploadedDocParams 
+       }                                  from '../file-upload/file-upload.component'
 
 export enum DISPLAY_TYPE {
   INPUT_BOX             = 'INPUT_BOX',
@@ -46,7 +49,8 @@ export enum DISPLAY_TYPE {
   NUMBER_RANGE          = 'NUMBER_RANGE',
   AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
   RADIO                 = 'RADIO',
-  TEXT_AREA             = 'TEXT_AREA'
+  TEXT_AREA             = 'TEXT_AREA',
+  IMAGE_UPLOAD          = 'IMAGE_UPLOAD'
 }
 
 export enum OPTIONS_DISP_TYPE {
@@ -103,6 +107,8 @@ export interface InputParams {
 export class InputContainerComponent implements OnChanges {
 
   @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
+  @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
+
 
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
@@ -118,6 +124,8 @@ export class InputContainerComponent implements OnChanges {
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   OPTIONS_DISP_TYPE : typeof  OPTIONS_DISP_TYPE = OPTIONS_DISP_TYPE
+
+  private fileUploadParams : UploadedDocParams
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
               private formBuilder                 : FormBuilder) { 
@@ -160,7 +168,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
       case DISPLAY_TYPE.RADIO               :
-      case DISPLAY_TYPE.TEXT_AREA           :  
+      case DISPLAY_TYPE.TEXT_AREA           :
         params = { 
                     id          : this.inputParams.id,
                     value       : this.inputForm.value,
@@ -190,8 +198,15 @@ export class InputContainerComponent implements OnChanges {
                     displayType : this.inputParams.displayType
                  }
         break
-    } 
 
+      case DISPLAY_TYPE.IMAGE_UPLOAD  : 
+        params  = {
+                    id          : this.inputParams.id,
+                    value       : this.fileUploadParams,
+                    displayType : this.inputParams.displayType
+                  }
+
+    } 
 
     this.value.emit(params)
   }
@@ -209,6 +224,11 @@ export class InputContainerComponent implements OnChanges {
   =====================================================================*/
   selectedOption(event : MatSelectChange | MatRadioChange) {
     this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
+  fileUploadValue(event : UploadedDocParams) {
+    this.fileUploadParams = event
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -279,6 +299,10 @@ export class InputContainerComponent implements OnChanges {
                    : this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid
 
         break
+
+      case DISPLAY_TYPE.IMAGE_UPLOAD  :
+        this.fileUplInst.onSubmit()
+        hasError  = this.inputParams.isRequired ? (!this.fileUploadParams || Object.keys(this.fileUploadParams).length === 0) : false
     }
 
     return hasError

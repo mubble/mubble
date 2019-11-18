@@ -14,6 +14,7 @@ import { MatInputModule }                   from '@angular/material/input'
 import { MatSelectModule }                  from '@angular/material/select'
 import { MatAutocompleteModule }            from '@angular/material/autocomplete'
 import { MatRadioModule }                   from '@angular/material/radio'
+import { MatProgressBarModule }             from '@angular/material/progress-bar'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -42,6 +43,7 @@ import { CustomBreakPointsProvider }        from './custom-breakpoints'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { TableModule }                      from 'primeng/table'
 import { MatCheckboxModule }                from '@angular/material'
+import { FileUploadComponent }              from './file-upload/file-upload.component'
 
 
 @NgModule({
@@ -57,6 +59,7 @@ import { MatCheckboxModule }                from '@angular/material'
     MatSelectModule,
     MatAutocompleteModule,
     MatCheckboxModule,
+    MatProgressBarModule,
     MatRadioModule,
     TableModule
   ],
@@ -81,7 +84,9 @@ import { MatCheckboxModule }                from '@angular/material'
     NextInpFocusDirective,
     AdjustElementsDirective,
   
-    TranslatePipe
+    TranslatePipe,
+  
+    FileUploadComponent
   ],
 
   entryComponents : [
@@ -118,7 +123,8 @@ import { MatCheckboxModule }                from '@angular/material'
     ReactiveFormsModule,
     CommonModule,
     FlexLayoutModule,
-    MatRadioModule
+    MatRadioModule,
+    MatProgressBarModule
     
   ],
   providers: [

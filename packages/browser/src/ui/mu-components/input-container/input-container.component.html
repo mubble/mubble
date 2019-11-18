@@ -171,6 +171,14 @@
         </mat-autocomplete>
       </div>
     </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.IMAGE_UPLOAD">
+      <file-upload
+        [screen]="screen"
+        (value)="fileUploadValue($event)"
+        [isRequired]="inputParams.isRequired">
+      </file-upload>  
+    </ng-container>
     
   </ng-container>  
 

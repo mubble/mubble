@@ -18,6 +18,13 @@ export const LANG_EN_TRANS = {
   'mu_inpt_cont_date_err'         : 'Start date should not exceed end date',
   'mu_inpt_cont_amnt_err'         : 'Minimum amount should not exceed maximum amount',
   'mu_inpt_cont_val_err'          : 'Please enter valid value',
+  'mu_fil_upl_retake_photo'       : 'Retake Photo',
+  'mu_fil_upl_take_photo'         : 'Take Photo',
+  'mu_fil_upl_change_text'        : 'Change photo',
+  'mu_fil_upl_upload_photo'       : 'Upload Photo',
+  'mu_fil_upl_upload_err'         : 'Please upload valid photo',
+  'mu_fil_upl_unknow_err'         : 'Could not capture photo',
+
 
   //Filter Component
   'mu_fltr_sub_titl'              : 'Filter By :',
