@@ -14,11 +14,6 @@ export const PERMISSION = {
   CAMERA  : 'CAMERA'
 }
 
-interface UploadedStatus {
-  success         : boolean
-  uploadedPercent : number
-}
-
 
 export interface UploadedDocParams {
  base64   : string
@@ -47,8 +42,8 @@ export class FileUploadComponent implements OnInit {
   /*rc type is any since it is of type RuncontextApp and it is app specific
     and should not be imported here
   */
-  constructor(@Inject('RunContext') protected rc  : any,
-              private translate                   : TranslateService) { }
+  constructor(@Inject('RunContext') public rc : any,
+              private translate               : TranslateService) { }
 
   ngOnInit() {
   }
