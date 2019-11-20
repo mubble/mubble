@@ -185,7 +185,13 @@
   <div *ngIf="inputForm" class="errors-list">
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputParams.isRequired && 
       inputForm.hasError('required')">
-      {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+      <span *ngIf="inputParams.displayType === DISPLAY_TYPE.RADIO || 
+        inputParams.displayType === DISPLAY_TYPE.SELECTION_BOX; else default" class="err-text">
+        {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_sel_err' | translate) }}
+      </span>
+      <ng-template #default>
+        {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+      </ng-template>
     </mat-error>
 
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputForm.value &&
