@@ -24,6 +24,7 @@ export const LANG_EN_TRANS = {
   'mu_fil_upl_upload_photo'       : 'Upload Photo',
   'mu_fil_upl_upload_err'         : 'Please upload valid photo',
   'mu_fil_upl_unknow_err'         : 'Could not capture photo',
+  'mu_inpt_cont_sel_err'          : 'Please select valid value',
 
 
   //Filter Component
