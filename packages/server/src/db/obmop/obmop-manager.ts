@@ -196,7 +196,7 @@ export class ObmopManager {
    */
 	public async update<T extends ObmopBaseEntity>(rc 		 : RunContextServer,
 																								 entity  : T,
-																								 updates : Mubble.uObject<any>) {
+																								 updates : Mubble.uObject<T>) {
 
 		if(entity.deleted) {
 			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
@@ -204,7 +204,7 @@ export class ObmopManager {
 
 		const tableName = entity.getTableName()
 
-		updates.modts = Date.now()
+		// updates.modts = Date.now() 			// TODO : Change this back
 
 		const failed = this.verifyEntityBeforeUpdating(rc, tableName, updates)
 		if(failed) {
