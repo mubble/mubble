@@ -131,17 +131,23 @@ export class OracleDbClient implements ObmopBaseClient {
 														 `Updating ${table} with updates : ${updates} for ${queryKey} : ${queryValue}.`)
 
 		const updateKeys = Object.keys(updates),
-					changes    = [] as Array<string>
+					changes    = [] as Array<string>,
+					binds      = [] as Array<any>
+
+		let c = 1
 
 		for(const key of updateKeys) {
-			changes.push(`${key} = ${this.getStringValue(updates[key])}`)
+			changes.push(`${key} = :${c++}`)
+			binds.push(updates[key])
 		}
 
 		const queryString = `UPDATE ${table} `
 												+ `SET ${changes.join(', ')} `
-												+ `WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+												+ `WHERE ${queryKey} = :${c}`
 
-		await this.queryInternal(rc, queryString)
+		binds.push(queryValue)
+
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
@@ -157,6 +163,7 @@ export class OracleDbClient implements ObmopBaseClient {
 ------------------------------------------------------------------------------*/
 	
 	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<oracledb.Result<any>> {
+
 		rc.isDebug() && rc.debug(rc.getName(this), 'queryInternal', queryString)
 
     if(!this.initialized) await this.init(rc)
@@ -167,6 +174,34 @@ export class OracleDbClient implements ObmopBaseClient {
 			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
 
         connection.execute(queryString, (err : oracledb.DBError, result : oracledb.Result<any>) => {
+          if(err) reject(err)
+          resolve(result)
+        })
+			})
+			
+			return result
+		} catch(e) {
+
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
+			throw new Mubble.uError(DB_ERROR_CODE, e.message)
+		} finally {
+			await connection.close()
+		}
+	}
+
+	private async bindsQuery(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters) {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery', queryString, binds)
+
+		if(!this.initialized) await this.init(rc)
+    
+		const connection = await this.clientPool.getConnection(),
+					options    = { autoCommit : true }
+
+		try {
+			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
+
+				connection.execute(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
           if(err) reject(err)
           resolve(result)
         })
