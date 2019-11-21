@@ -11,9 +11,11 @@ import androidx.core.content.FileProvider
 import core.BaseApp
 import core.ImageCompressionTask
 import core.MubbleLogger
+import org.jetbrains.anko.info
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
 import util.FileBase
+import util.UtilBase
 import java.io.*
 
 /**
@@ -29,6 +31,7 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
   private var galleryImgBase64  : String? = null
   private var output            : File?   = null
   private var currentReqCode    : Int?    = -1
+  private var aspectRatio       : String  = "1"
 
   private val pictureCropExtras : Bundle
     get() {
@@ -37,8 +40,6 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
       bundle.putString("crop", "true")
       bundle.putInt("aspectX", 1)
       bundle.putInt("aspectY", 1)
-      bundle.putInt("outputX", 256)
-      bundle.putInt("outputY", 256)
       bundle.putBoolean("return-data", true)
       return bundle
     }
@@ -99,7 +100,11 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
 
   }
 
-  fun takePicture() {
+  fun takePicture(aspectRatio : String = "1") {
+
+    if (aspectRatio != "1") {
+      this.aspectRatio = aspectRatio
+    }
 
     val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
 
@@ -113,7 +118,7 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
 
     output = File(File(BaseApp.instance.filesDir, USERS), OUTPUT_FILENAME)
     if (output!!.exists()) output!!.delete()
-    else output!!.parentFile.mkdirs()
+    else output!!.parentFile!!.mkdirs()
 
     fileUri = FileProvider.getUriForFile(BaseApp.instance, fileAuthority, output!!)
 
@@ -200,10 +205,27 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
 
     val bundle = pictureCropExtras
 
-    cropIntent.setDataAndType(picUri, "image/*")
+
+    if (this.aspectRatio != "1") {
+
+      val asp    = this.aspectRatio.split("/")
+      val aspect = Pair(asp[0].toInt(), asp[1].toInt())
+
+      info { "Test ${aspect.first} ${aspect.second}" }
+
+      bundle.putInt("aspectX", aspect.first)
+      bundle.putInt("aspectY", aspect.second)
+
+    } else {
+      bundle.putInt("outputX", 256)
+      bundle.putInt("outputY", 256)
+    }
+
     cropIntent.putExtras(bundle)
+    cropIntent.setDataAndType(picUri, "image/*")
     cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, picUri)
     cropIntent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString())
+    cropIntent.putExtra("scale", true)
 
     this.currentReqCode = REQUEST_CROP_PHOTO
     if (size == 1) {
