@@ -196,7 +196,7 @@ export class ObmopManager {
    */
 	public async update<T extends ObmopBaseEntity>(rc 		 : RunContextServer,
 																								 entity  : T,
-																								 updates : Mubble.uObject<T>) {
+																								 updates : Mubble.uChildObject<T>) {
 
 		if(entity.deleted) {
 			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
