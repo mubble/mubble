@@ -65,7 +65,7 @@ export class VisionBase {
 
       retVal.width   = dimensions.width
       retVal.height  = dimensions.height
-      retVal.mime    = await VisionBase.getGmMime(lo.cloneDeep(finalImage))
+      retVal.mime    = await VisionBase.getGmMime(rc, lo.cloneDeep(finalImage))
       retVal.palette = await VisionBase.getTopColors(rc, lo.cloneDeep(finalImage)) as any
 
       finalImage.setFormat('jpeg')
@@ -82,7 +82,7 @@ export class VisionBase {
                                            gmImage      : gMagic.State,
                                            imageOptions : VisionParameters) {
 
-    const gmImageBuffer     = await VisionBase.getGmBuffer(gmImage),
+    const gmImageBuffer     = await VisionBase.getGmBuffer(rc, gmImage),
           quality           = imageOptions.quality || 100,
           progressiveBuffer = await imagemin.buffer(gmImageBuffer, 
                                 {plugins : [imageminMozjpeg({quality, progressive : true})]})
@@ -92,7 +92,7 @@ export class VisionBase {
 
   private static async processRatio(rc : RunContextServer, gmImage : gMagic.State, ratio : number) {
 
-    const bufferImage = await VisionBase.getGmBuffer(lo.cloneDeep(gmImage)),
+    const bufferImage = await VisionBase.getGmBuffer(rc, lo.cloneDeep(gmImage)),
           dimensions  = await VisionBase.getDimensions(rc, lo.cloneDeep(gmImage)),
           w           = dimensions.width,
           h           = dimensions.height,
@@ -121,23 +121,29 @@ export class VisionBase {
     })
   }
 
-  private static async getGmBuffer(gmImage : gMagic.State) : Promise<Buffer> {
+  private static async getGmBuffer(rc : RunContextServer, gmImage : gMagic.State) : Promise<Buffer> {
 
     return new Promise<Buffer>((resolve, reject) => {
 
       gmImage.toBuffer((error, buffer) => {
-        if(error) reject(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED)
+        if(error) {
+          rc.isError() && rc.error(rc.getName(this), 'Error in converting gm image to buffer.', error)
+          reject(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED)
+        }
         resolve(buffer)
       })
     })
   }
 
-  private static async getGmMime(gmImage : gMagic.State) : Promise<string> {
+  private static async getGmMime(rc : RunContextServer, gmImage : gMagic.State) : Promise<string> {
 
     return new Promise<string>((resolve, reject) => {
 
       gmImage.format((error, data) => {
-        if(error) reject(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED)
+        if(error) {
+          rc.isError() && rc.error(rc.getName(this), 'Error in formating gm image to mime.', error)
+          reject(VISION_ERROR_CODES.IMAGE_PROCESSING_FAILED)
+        }
         resolve(mime.lookup(data) || '')
       })
     })
