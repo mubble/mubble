@@ -22,9 +22,23 @@ import * as lo                        from 'lodash'
 import * as imagemin                  from 'imagemin'
 import * as imageminMozjpeg           from 'imagemin-mozjpeg'
 
-const iMagic = gMagic.subClass({imageMagick : true})
-
 export class VisionBase {
+
+  private static iMagic         : typeof gMagic | gMagic.SubClass
+  private static useImageMagick : boolean
+
+  static init(rc : RunContextServer, useIm ?: boolean) {
+    
+    rc.isDebug() && rc.debug(rc.getName(this), 'Initializing VisionBase.')
+
+    this.useImageMagick = !!useIm
+
+    if(useIm) {
+      VisionBase.iMagic = gMagic.subClass({imageMagick : true})
+    } else {
+      VisionBase.iMagic = gMagic
+    }
+  }
 
   static async processData(rc           : RunContextServer,
                            imageData    : Buffer,
@@ -53,7 +67,7 @@ export class VisionBase {
     const retVal  = {} as SmartCropProcessReturn
 
     try {
-      const gmImage      = iMagic(imageData).setFormat('jpeg'),
+      const gmImage      = VisionBase.iMagic(imageData).setFormat('jpeg'),
             croppedImage = imageOptions.ratio ? await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
                                               : gmImage
 
@@ -87,7 +101,7 @@ export class VisionBase {
           progressiveBuffer = await imagemin.buffer(gmImageBuffer, 
                                 {plugins : [imageminMozjpeg({quality, progressive : true})]})
 
-    return iMagic(progressiveBuffer)
+    return VisionBase.iMagic(progressiveBuffer)
   }
 
   private static async processRatio(rc : RunContextServer, gmImage : gMagic.State, ratio : number) {
@@ -98,7 +112,7 @@ export class VisionBase {
           h           = dimensions.height,
           maxW        = (w / ratio > h) ? h * ratio : w,
           maxH        = (w / ratio < h) ? w / ratio : h,
-          scgm        = new SmartCropGM(rc, dimensions.width, dimensions.height),
+          scgm        = new SmartCropGM(rc, dimensions.width, dimensions.height, VisionBase.useImageMagick),
           crop        = (await scgm.crop(bufferImage, {width : 100, height : 100})).topCrop,
           x           = (maxW + crop.x > w) ? (crop.x - ((maxW + crop.x) - w)) : crop.x,
           y           = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
