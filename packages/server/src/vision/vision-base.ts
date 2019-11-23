@@ -53,7 +53,7 @@ export class VisionBase {
     const retVal  = {} as SmartCropProcessReturn
 
     try {
-      const gmImage      = iMagic(imageData),
+      const gmImage      = iMagic(imageData).setFormat('jpeg'),
             croppedImage = imageOptions.ratio ? await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
                                               : gmImage
 
