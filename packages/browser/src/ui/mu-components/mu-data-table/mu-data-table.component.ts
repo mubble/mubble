@@ -125,7 +125,7 @@ export class MuDataTableComponent implements OnInit {
 
   }
 
-  rowSelect(event) {
+  rowSelect(event : any) {
     
     const selId : string = this.primaryKey ? event.data[this.primaryKey] : event.data
     const selEvent : MuTableRowSelEvent = {
@@ -137,7 +137,7 @@ export class MuDataTableComponent implements OnInit {
     this.selectedItems = this.tableConfig.selectedItems
   }
 
-  rowUnselect(event) {
+  rowUnselect(event : any) {
 
     const selId : string = this.primaryKey ? event.data[this.primaryKey] : event.data
     if (this.tableConfig.enableSelect) {
