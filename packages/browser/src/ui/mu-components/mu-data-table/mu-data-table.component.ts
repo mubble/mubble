@@ -120,7 +120,7 @@ export class MuDataTableComponent implements OnInit {
     this.showTable      = true
   }
 
-  rowSelect(event) {
+  rowSelect(event : any) {
     
     const selEvent : MuTableRowSelEvent = {
       rowData  : event.data,
@@ -131,7 +131,7 @@ export class MuDataTableComponent implements OnInit {
     this.selectedItems = this.tableConfig.selectedItems
   }
 
-  rowUnselect(event) {
+  rowUnselect(event : any) {
 
     if (this.tableConfig.enableSelect) {
       
