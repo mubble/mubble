@@ -86,7 +86,7 @@ export class MuDataTableComponent implements OnInit {
   headerFields      : string[] = []
   selectedItems     : Object[] = []
   dataToDisplay     : Object[] = []
-  enablePagination  : boolean  = false
+  enablePagination  : boolean  = true
   loading           : boolean  = false
   COL_TYPE          : typeof COL_TYPE = COL_TYPE  
   selectAllMap      : Object   = {}
@@ -96,41 +96,35 @@ export class MuDataTableComponent implements OnInit {
 
   ngOnInit() {
 
-    // if (this.tableConfig.dispRows) this.enablePagination = true
-    // else this.tableConfig.dispRows = 0
-
-    // if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
+    if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
   
-    // for (let header of this.tableConfig.headers) {
+    for (let header of this.tableConfig.headers) {
 
-    //   this.headerFields.push(header.dataKey)
-    //   if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
-    //   if (!this.tableConfig.lazyLoad) {
+      this.headerFields.push(header.dataKey)
+      if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
+      if (!this.tableConfig.lazyLoad) {
 
-    //     if (header.enableFilter) this.filterFields.push(header.dataKey)
-    //     if (header.enableSort) this.sortFields.push(header.dataKey)
-    //     else this.sortFields.push(null) 
-    //   }
-    // }
+        if (header.enableFilter) this.filterFields.push(header.dataKey)
+        if (header.enableSort) this.sortFields.push(header.dataKey)
+        else this.sortFields.push(null) 
+      }
+    }
 
-    // if (this.tableConfig.data) {
-    //   this.totalRecords = this.tableConfig.totalRecords || this.tableConfig.data.length
+    if (this.tableConfig.data) {
 
-    //   for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
-    
-    //   if (this.tableConfig.lazyLoad) {
-    //     this.dataToDisplay = Array.from(this.tableConfig.data).splice(0, this.tableConfig.dispRows)
-    //   }
-    // }
+      this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
+      for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
+      this.dataToDisplay = this.tableConfig.data
+    }
 
+    this.showTable      = true
   }
 
   rowSelect(event) {
     
-    const selId : string = this.primaryKey ? event.data[this.primaryKey] : event.data
     const selEvent : MuTableRowSelEvent = {
-      rowData : event.data,
-      rowIndex : event.index
+      rowData  : event.data,
+      rowIndex : this.tableConfig.lazyLoad ? event.index : event.data.rowIndex
     }
     this.onRowSelect.emit(selEvent)
     if (this.tableConfig.selectedItems)
@@ -139,15 +133,18 @@ export class MuDataTableComponent implements OnInit {
 
   rowUnselect(event) {
 
-    const selId : string = this.primaryKey ? event.data[this.primaryKey] : event.data
     if (this.tableConfig.enableSelect) {
       
       this.selectAllMap[this.lastIndex] = false
       this.slctAllBox.checked = false
     }
-    this.onRowUnselect.emit(selId)
-    if (this.tableConfig.selectedItems)
-    this.selectedItems = this.tableConfig.selectedItems
+
+    const selEvent : MuTableRowSelEvent = {
+      rowData  : event.data,
+      rowIndex : this.tableConfig.lazyLoad ? event.index : event.data.rowIndex
+    }
+    this.onRowUnselect.emit(selEvent)
+    if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
   }
 
   cellClick(rowData, headerKey) {
@@ -205,7 +202,6 @@ export class MuDataTableComponent implements OnInit {
       return
     } 
 
-    
     if (event.checked) {
 
       this.selectAllMap[this.lastIndex] = true
