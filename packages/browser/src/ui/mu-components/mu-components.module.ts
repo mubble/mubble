@@ -6,25 +6,35 @@ import { FormsModule,
        }                                    from '@angular/forms'
 import { CommonModule }                     from '@angular/common'
 import { FlexLayoutModule }                 from '@angular/flex-layout'
-import { MatCheckboxModule,
-         MatDatepickerModule,
-         MatFormFieldModule,
-         MatInputModule,
-         MatSelectModule,
-         MatAutocompleteModule,
-         MatRadioModule,
-         MatProgressBarModule
-       }                                    from '@angular/material'
+
+import { MatCheckboxModule }                from '@angular/material/checkbox'
+import { MatDatepickerModule }              from '@angular/material/datepicker'
+import { MatFormFieldModule }               from '@angular/material/form-field'
+import { MatInputModule }                   from '@angular/material/input'
+import { MatSelectModule }                  from '@angular/material/select'
+import { MatAutocompleteModule }            from '@angular/material/autocomplete'
+import { MatRadioModule }                   from '@angular/material/radio'
+import { MatProgressBarModule }             from '@angular/material/progress-bar'
+import { MatSliderModule }                  from '@angular/material/slider'
 
 import { MuComponentsRoutingModule }        from './mu-components-routing.module'
 
 import { TRANSLATION_PROVIDERS,
          TranslateService,
-         TranslatePipe }                    from './translate'
+         TranslatePipe
+       }                                    from './translate'
          
 import { CustomBreakPointsProvider }        from './custom-breakpoints'
 
 import { TableModule }                      from 'primeng/table'
+
+import { NcMaxLengthDirective,
+         NcAutoFocusDirective, 
+         LongPressDirective, 
+         NcStyleClassDirective,
+         NextInpFocusDirective,
+         AdjustElementsDirective
+       }                                    from './directives'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
@@ -38,14 +48,6 @@ import { InputContainerComponent}           from './input-container/input-contai
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
-
-import { NcMaxLengthDirective,
-         NcAutoFocusDirective, 
-         LongPressDirective, 
-         NcStyleClassDirective,
-         NextInpFocusDirective,
-         AdjustElementsDirective
-       }                                    from './directives'
 
 @NgModule({
   imports: [
@@ -62,6 +64,7 @@ import { NcMaxLengthDirective,
     MatCheckboxModule,
     MatProgressBarModule,
     MatRadioModule,
+    MatSliderModule,
     TableModule
   ],
 
