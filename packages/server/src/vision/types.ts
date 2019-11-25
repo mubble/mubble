@@ -12,7 +12,7 @@ import * as stream from 'stream'
 export type VisionParameters = {
   ratio       ?: number   // height / width
   quality     ?: number
-  shrink      ?: {h: number, w: number}
+  shrink      ?: { h : number, w : number }
   progressive ?: boolean
 }
 

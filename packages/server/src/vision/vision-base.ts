@@ -68,14 +68,16 @@ export class VisionBase {
 
     try {
       const gmImage      = VisionBase.iMagic(imageData).setFormat('jpeg'),
-            croppedImage = imageOptions.ratio ? await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
-                                              : gmImage
-
-      if(imageOptions.shrink) croppedImage.resize(imageOptions.shrink.w, imageOptions.shrink.h, '!')
-
-      const finalImage = imageOptions.progressive ? await VisionBase.getProgressiveImage(rc, croppedImage, imageOptions)
-                                                  : croppedImage,
-            dimensions = await VisionBase.getDimensions(rc, lo.cloneDeep(finalImage))
+            croppedImage = imageOptions.ratio
+                           ? await VisionBase.processRatio(rc, gmImage, imageOptions.ratio)
+                           : gmImage,
+            shrunkImage  = imageOptions.shrink
+                           ? await VisionBase.shrinkImage(rc, croppedImage, imageOptions.shrink)
+                           : croppedImage,
+            finalImage   = imageOptions.progressive
+                           ? await VisionBase.getProgressiveImage(rc, shrunkImage, imageOptions)
+                           : shrunkImage,
+            dimensions   = await VisionBase.getDimensions(rc, lo.cloneDeep(finalImage))
 
       retVal.width   = dimensions.width
       retVal.height  = dimensions.height
@@ -118,6 +120,17 @@ export class VisionBase {
           y           = (maxH + crop.y > h) ? (crop.y - ((maxH + crop.y) - h)) : crop.y
 
     return gmImage.crop(maxW, maxH, x, y)
+  }
+
+  private static async shrinkImage(rc : RunContextServer, gmImage : gMagic.State, shrink : { w : number, h : number }) {
+
+    const dimensions = await VisionBase.getDimensions(rc, lo.cloneDeep(gmImage))
+
+    if(shrink && shrink.w && shrink.h && shrink.w <= dimensions.width && shrink.h <= dimensions.height) {
+      return gmImage.resize(shrink.w, shrink.h, '!')
+    }
+
+    return gmImage
   }
 
   private static async getDimensions(rc      : RunContextServer,
