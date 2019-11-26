@@ -7,10 +7,10 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import { Mubble }                   from '@mubble/core'
 import { MuDataTableComponent, 
          TableConfig 
        }                            from '../ui'
-import { Mubble }                   from '../../core'
 
 export interface TableDataMgrListener {
   loadMore(lastIndex : number) : void
@@ -33,6 +33,8 @@ export class TableDataManager {
 
   constructor(private parentInst  : TableDataMgrListener,
               public  tableInst   : MuDataTableComponent) {
+
+    console.log('---------------------COMING HERE WITH PARAMS : ', tableInst)
   }
 
   /**
