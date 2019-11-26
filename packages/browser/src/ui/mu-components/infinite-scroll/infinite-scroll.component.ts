@@ -233,7 +233,7 @@ export class InfiniteScrollComponent {
     } else {
       if (index < this.items.length) {
         this.viewPortItems = this.items.slice(0, index + this.lowerBufferCount)
-        this.element.nativeElement.scrollTop = 1
+        this.refreshList()
         setTimeout(() => {
           this.scrollTo(index, highlight)
         },0)
