@@ -254,7 +254,7 @@ export class InputContainerComponent implements OnChanges {
 
   onToggleChane(event : MatSlideToggleChange) {
     
-    this.inputForm.setValue(this.inputForm.touched ? event.checked : null)
+    this.inputForm.setValue(event.checked)
     if (this.eventPropagate)  this.onSubmit()
   }
 
