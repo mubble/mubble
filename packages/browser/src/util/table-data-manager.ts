@@ -31,9 +31,8 @@ export class TableDataManager {
   private pendingRequest  : boolean
   private dataObject      : Mubble.uObject<any> = { }
 
-  constructor(private parentInst  : TableDataMgrListener,
-              public  tableInst   : MuDataTableComponent) {
-  }
+  constructor (private parentInst  : TableDataMgrListener,
+               public  tableInst   : MuDataTableComponent) { }
 
   /**
   * Method to get the table config and get the dispRows and totalDataCount and data
