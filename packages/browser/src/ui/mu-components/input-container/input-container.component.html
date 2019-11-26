@@ -67,6 +67,18 @@
       </div>
 
     </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.MULTI_CHECK_BOX">
+
+        <div class="checkbox-cont">
+          <mat-checkbox *ngFor="let option of inputParams.options" [value]="option"
+            class="txt-lg-med-norm checkbox"
+            (change)="checkedOption($event, option)">
+            {{ option.value }}
+          </mat-checkbox>
+        </div>
+  
+      </ng-container>
     
     <ng-container *ngSwitchCase="DISPLAY_TYPE.RADIO">
 
@@ -78,6 +90,13 @@
           {{ option.value }}
         </mat-radio-button>
       </mat-radio-group>
+
+    </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.TOGGLE">
+      <mat-slide-toggle class="toggle-cont"
+        (change)="onToggleChane($event)">
+      </mat-slide-toggle>
 
     </ng-container>
 
@@ -186,7 +205,8 @@
     <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.touched && inputParams.isRequired && 
       inputForm.hasError('required')">
       <span *ngIf="inputParams.displayType === DISPLAY_TYPE.RADIO || 
-        inputParams.displayType === DISPLAY_TYPE.SELECTION_BOX; else default" class="err-text">
+        inputParams.displayType === DISPLAY_TYPE.SELECTION_BOX ||
+        inputParams.displayType === DISPLAY_TYPE.MULTI_CHECK_BOX ; else default" class="err-text">
         {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_sel_err' | translate) }}
       </span>
       <ng-template #default>

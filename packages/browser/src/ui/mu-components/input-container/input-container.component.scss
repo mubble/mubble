@@ -17,8 +17,14 @@
   flex-direction: column;
 }
 
-.checkbox-cont {
+.checkbox-cont, .checkbox {
   padding : 1vw 0;
+}
+
+.checkbox-cont  {
+  position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .range-onb-input-box-cont {
@@ -47,6 +53,10 @@
   padding: 3vw;
   border: 0;
   background: none;
+}
+
+.toggle-cont {
+  margin: 2vw 0;
 }
 
 .input-cont-comp {

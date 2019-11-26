@@ -15,7 +15,9 @@ import { Component,
          Inject,
          EventEmitter,
          ViewChild,
-         OnChanges
+         OnChanges,
+         ViewChildren,
+         QueryList
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -29,7 +31,9 @@ import { MatSelectChange,
          MatAutocompleteSelectedEvent,
          MatDatepicker,
          MatRadioChange,
-         MatCheckboxChange
+         MatCheckboxChange,
+         MatSlideToggleChange,
+         MatCheckbox
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
@@ -50,7 +54,9 @@ export enum DISPLAY_TYPE {
   AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
   RADIO                 = 'RADIO',
   TEXT_AREA             = 'TEXT_AREA',
-  IMAGE_UPLOAD          = 'IMAGE_UPLOAD'
+  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
+  TOGGLE                = 'TOGGLE',
+  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX'
 }
 
 export enum OPTIONS_DISP_TYPE {
@@ -108,6 +114,8 @@ export class InputContainerComponent implements OnChanges {
 
   @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
   @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
+  @ViewChildren(MatCheckbox) matCheckbox  : QueryList<MatCheckbox>
+
 
 
   @Input()  inputParams     : InputParams
@@ -159,8 +167,9 @@ export class InputContainerComponent implements OnChanges {
 
     if (this.hasError()) return
 
-    let params : OutputParams
-
+    let params    : OutputParams,
+        emitValue : boolean = true    
+    
     switch (this.inputParams.displayType) {
 
       case DISPLAY_TYPE.CALENDAR_BOX        :
@@ -169,6 +178,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
       case DISPLAY_TYPE.RADIO               :
       case DISPLAY_TYPE.TEXT_AREA           :
+      case DISPLAY_TYPE.TOGGLE              :
         params = { 
                     id          : this.inputParams.id,
                     value       : this.inputForm.value,
@@ -206,9 +216,24 @@ export class InputContainerComponent implements OnChanges {
                     displayType : this.inputParams.displayType
                   }
 
+      case DISPLAY_TYPE.MULTI_CHECK_BOX :  
+        emitValue = false
+        const matCheckboxInst = this.matCheckbox.toArray()
+        matCheckboxInst.forEach((val,index) => {
+
+          this.inputForm.setValue({checked : val.checked, option : this.inputParams.options[index]})
+          params = { 
+            id          : this.inputParams.id,
+            value       : this.inputForm.value,
+            displayType : this.inputParams.displayType
+          }
+          this.value.emit(params)
+        })
+            
+
     } 
 
-    this.value.emit(params)
+    if (emitValue) this.value.emit(params)
   }
 
   isCalanderOpen() : boolean {
@@ -227,14 +252,19 @@ export class InputContainerComponent implements OnChanges {
     if (this.eventPropagate)  this.onSubmit()
   }
 
+  onToggleChane(event : MatSlideToggleChange) {
+    
+    this.inputForm.setValue(this.inputForm.touched ? event.checked : null)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
   fileUploadValue(event : UploadedDocParams) {
     this.fileUploadParams = event
     if (this.eventPropagate)  this.onSubmit()
   }
 
-  checkedOption(event : MatCheckboxChange) {
-    //TODO : Checkbox design    
-    this.inputForm.setValue(event.checked)
+  checkedOption(event : MatCheckboxChange, option : SelectionBoxParams) {
+    this.inputForm.setValue({checked : event.checked, option})
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -279,6 +309,9 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
       case DISPLAY_TYPE.TEXT_AREA           :
+      case DISPLAY_TYPE.MULTI_CHECK_BOX     :
+      case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.TOGGLE              :
         hasError = this.inputParams.isRequired 
                    ? this.inputForm.invalid
                    : this.inputForm.value && this.inputForm.invalid
@@ -304,7 +337,7 @@ export class InputContainerComponent implements OnChanges {
         this.fileUplInst.onSubmit()
         hasError  = this.inputParams.isRequired ? (!this.fileUploadParams || Object.keys(this.fileUploadParams).length === 0) : false
     }
-
+  
     return hasError
   }
 
@@ -332,6 +365,8 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.TEXT_AREA     :
       case DISPLAY_TYPE.RADIO         : 
       case DISPLAY_TYPE.SELECTION_BOX :
+      case DISPLAY_TYPE.TOGGLE        : 
+      case DISPLAY_TYPE.MULTI_CHECK_BOX  :
         this.inputForm  = new FormControl(params.value || null, formValidations)
         break
 

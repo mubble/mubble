@@ -16,6 +16,8 @@ import { MatAutocompleteModule }            from '@angular/material/autocomplete
 import { MatRadioModule }                   from '@angular/material/radio'
 import { MatProgressBarModule }             from '@angular/material/progress-bar'
 import { MatSliderModule }                  from '@angular/material/slider'
+import { MatSlideToggleModule }             from '@angular/material/slide-toggle'
+
 
 import { MuComponentsRoutingModule }        from './mu-components-routing.module'
 
@@ -65,6 +67,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     MatProgressBarModule,
     MatRadioModule,
     MatSliderModule,
+    MatSlideToggleModule,
     TableModule
   ],
 
@@ -128,7 +131,8 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     CommonModule,
     FlexLayoutModule,
     MatRadioModule,
-    MatProgressBarModule
+    MatProgressBarModule,
+    MatSlideToggleModule
     
   ],
   providers: [
