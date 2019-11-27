@@ -62,16 +62,10 @@ export class TableDataManager {
   */
   updateData(params : TableDataManagerParams) {
 
-    this.dataParams.data.push(...params.data)
+    this.dataParams.data = params.data
     this.dataParams.lastIndex = params.lastIndex
-    const keys                = Object.keys(this.dataObject)
 
-    if (!keys.length) {
-      this.mapData(0)
-    return
-    }
-
-    this.mapData(this.currentKeyIndex)
+    this.mapData(0)
   }
 
   /**
@@ -80,12 +74,12 @@ export class TableDataManager {
   */
   private mapData(index : number) {
     while (index < this.dataParams.lastIndex) {
-      if (this.dataObject[index] && this.dataObject[index].length === this.dispRows) {
+      if (this.dataObject[this.currentKeyIndex] && this.dataObject[this.currentKeyIndex].length === this.dispRows) {
         index += this.dispRows 
         continue
       }
 
-      this.dataObject[index] = this.dataParams.data.slice(index, (this.dispRows + index))
+      this.dataObject[this.currentKeyIndex] = this.dataParams.data.slice(index, (this.dispRows + index))
       index   += this.dispRows 
     }
 
