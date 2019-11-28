@@ -2,7 +2,7 @@
 
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
-| 1.5.0 | Deepak Kumar     |  |  |
+| 1.5.0 | Deepak Kumar     | 2019-11-11 | Approved |
 | 1.4.1 | Deepak Kumar     | 2019-07-23 | Approved |
 | 1.4.0 | Deepak Kumar     | 2019-07-07 | Approved |
 | 1.3.0 | Raghvendra Varma | 2019-05-24 | Approved |
