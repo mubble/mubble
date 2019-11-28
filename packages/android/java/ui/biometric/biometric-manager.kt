@@ -24,7 +24,7 @@ import javax.crypto.KeyGenerator
 import javax.crypto.NoSuchPaddingException
 import javax.crypto.SecretKey
 import com.facebook.internal.FacebookRequestErrorClassification.KEY_NAME
-
+import java.security.spec.ECGenParameterSpec
 
 
 open class BiometricManager constructor() : BiometricManagerV23() {
