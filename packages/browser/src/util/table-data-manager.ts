@@ -73,14 +73,16 @@ export class TableDataManager {
   * @param index : Index to set as key in the data object
   */
   private mapData(index : number) {
-    while (index < this.dataParams.lastIndex) {
-      if (this.dataObject[this.currentKeyIndex] && this.dataObject[this.currentKeyIndex].length === this.dispRows) {
-        index += this.dispRows 
+    let addingIndex : number = this.currentKeyIndex 
+    while (addingIndex < this.dataParams.lastIndex) {
+      if (this.dataObject[addingIndex] && this.dataObject[addingIndex].length === this.dispRows) {
+        addingIndex += this.dispRows 
         continue
       }
 
-      this.dataObject[this.currentKeyIndex] = this.dataParams.data.slice(index, (this.dispRows + index))
-      index   += this.dispRows 
+      this.dataObject[addingIndex] = this.dataParams.data.slice(index, (this.dispRows + index))
+      index       += this.dispRows 
+      addingIndex += this.dispRows
     }
 
     if (this.pendingRequest) this.setTableData()
