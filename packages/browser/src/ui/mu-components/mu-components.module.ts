@@ -17,6 +17,8 @@ import { MatRadioModule }                   from '@angular/material/radio'
 import { MatProgressBarModule }             from '@angular/material/progress-bar'
 import { MatSliderModule }                  from '@angular/material/slider'
 import { MatSlideToggleModule }             from '@angular/material/slide-toggle'
+import { MatButtonToggleModule }            from '@angular/material/button-toggle'
+
 
 
 import { MuComponentsRoutingModule }        from './mu-components-routing.module'
@@ -68,6 +70,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     MatRadioModule,
     MatSliderModule,
     MatSlideToggleModule,
+    MatButtonToggleModule,
     TableModule
   ],
 
@@ -132,7 +135,8 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     FlexLayoutModule,
     MatRadioModule,
     MatProgressBarModule,
-    MatSlideToggleModule
+    MatSlideToggleModule,
+    MatButtonToggleModule
     
   ],
   providers: [

@@ -4,7 +4,7 @@
   [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.sm]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']">
 
-  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
+  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
     {{ inputParams.label }}
   </div>
 
@@ -190,6 +190,46 @@
         </mat-autocomplete>
       </div>
     </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.BUTTON_TOGGLE">
+      <mat-button-toggle-group name="toggle" class="button-toggle" #group="matButtonToggleGroup">
+
+        <ng-container *ngFor="let option of inputParams.options ; let i = index">
+
+          <mat-button-toggle value="{{option.id}}" class="txt-lg-reg-norm" 
+            [ngClass]="{ 'primary-bg' : group.value === option.id, 'text-color-white' : group.value === option.id}"
+            (change)="onBtnToggleChange($event)">
+            {{ option.value }}
+          </mat-button-toggle>
+        </ng-container>
+      </mat-button-toggle-group>
+
+    </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
+      <div class="input-container">
+
+        <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
+          {{ inputParams.label }}
+        </div>
+
+        <div class="onb-input-box-cont border-primary small-box" >
+          <input matInput
+            placeholder="{{inputParams.placeHolder}}"
+            type="{{inputParams.inputType}}"
+            (updatedValue)="setChangedValues($event)"
+            class="txt-lg-med-norm input-cont" 
+            [formControl]="inputForm"
+            name="input-text"
+            [ncMaxLength]="inputParams.maxLength || 1000"
+            (updatedValue)="inputForm.setValue($event)"
+            textSecurity="inputParams.isPassword"
+            [class.num-password-input]="inputParams.isPassword"
+            autocomplete="off">
+        </div>
+
+      </div>  
+    </ng-container>  
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.IMAGE_UPLOAD">
       <file-upload

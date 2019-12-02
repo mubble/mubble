@@ -7,6 +7,33 @@
   margin: 2% 0;
 }
 
+.button-toggle {
+  margin:2vw 0;
+}
+
+
+.input-container {
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .label-txt {
+    width: 72vw;
+    margin-right: 2vw;
+  }
+
+  .small-box {
+    width: 14vw;
+  }
+
+  .input-cont {
+    text-align: center;
+  }
+
+}
+
 .radio-button {
   padding-bottom: 2vw !important;
 }

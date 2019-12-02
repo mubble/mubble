@@ -33,7 +33,9 @@ import { MatSelectChange,
          MatRadioChange,
          MatCheckboxChange,
          MatSlideToggleChange,
-         MatCheckbox
+         MatCheckbox,
+         MatButtonToggleChange,
+         MatButtonToggle
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
@@ -46,6 +48,7 @@ import { FileUploadComponent,
        }                                  from '../file-upload/file-upload.component'
 
 export enum DISPLAY_TYPE {
+  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
   INPUT_BOX             = 'INPUT_BOX',
   SELECTION_BOX         = 'SELECTION_BOX',
   CALENDAR_BOX          = 'CALENDAR_BOX',
@@ -56,20 +59,8 @@ export enum DISPLAY_TYPE {
   TEXT_AREA             = 'TEXT_AREA',
   IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
   TOGGLE                = 'TOGGLE',
-  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX'
-}
-
-export enum OPTIONS_DISP_TYPE {
-  CHECK_BOX = 'CHECKBOX',
-  DROP_DOWN = 'DROPDOWN',
-  RADIO     = 'RADIO',
-  INPUT     = 'INPUT',
-  TEXT_AREA = 'TEXT_AREA'
-}
-
-export interface OptionsParams {
-  displayType  : OPTIONS_DISP_TYPE
-  multiSelect ?: boolean
+  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
+  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
 }
 
 export interface SelectionBoxParams {
@@ -95,7 +86,6 @@ export interface InputParams {
   placeHolder      : string | string[]
   label           ?: string
   options         ?: SelectionBoxParams[]
-  optionsParams   ?: OptionsParams
   inputType       ?: string
   maxLength       ?: number
   value           ?: any
@@ -115,7 +105,7 @@ export class InputContainerComponent implements OnChanges {
   @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
   @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
   @ViewChildren(MatCheckbox) matCheckbox  : QueryList<MatCheckbox>
-
+  @ViewChildren(MatButtonToggle) matBtnToggle  : QueryList<MatButtonToggle>
 
 
   @Input()  inputParams     : InputParams
@@ -131,7 +121,6 @@ export class InputContainerComponent implements OnChanges {
   filteredOptions : Observable<SelectionBoxParams[]>
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
-  OPTIONS_DISP_TYPE : typeof  OPTIONS_DISP_TYPE = OPTIONS_DISP_TYPE
 
   private fileUploadParams : UploadedDocParams
 
@@ -179,6 +168,8 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.RADIO               :
       case DISPLAY_TYPE.TEXT_AREA           :
       case DISPLAY_TYPE.TOGGLE              :
+      case DISPLAY_TYPE.BUTTON_TOGGLE       :
+      case DISPLAY_TYPE.ROW_INPUT_BOX   :
         params = { 
                     id          : this.inputParams.id,
                     value       : this.inputForm.value,
@@ -258,6 +249,11 @@ export class InputContainerComponent implements OnChanges {
     if (this.eventPropagate)  this.onSubmit()
   }
 
+  onBtnToggleChange(event : MatButtonToggleChange, index : number) {
+    this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
   fileUploadValue(event : UploadedDocParams) {
     this.fileUploadParams = event
     if (this.eventPropagate)  this.onSubmit()
@@ -312,6 +308,9 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.MULTI_CHECK_BOX     :
       case DISPLAY_TYPE.RADIO               :
       case DISPLAY_TYPE.TOGGLE              :
+      case DISPLAY_TYPE.BUTTON_TOGGLE       :
+      case DISPLAY_TYPE.ROW_INPUT_BOX   :
+
         hasError = this.inputParams.isRequired 
                    ? this.inputForm.invalid
                    : this.inputForm.value && this.inputForm.invalid
@@ -366,7 +365,9 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.RADIO         : 
       case DISPLAY_TYPE.SELECTION_BOX :
       case DISPLAY_TYPE.TOGGLE        : 
-      case DISPLAY_TYPE.MULTI_CHECK_BOX  :
+      case DISPLAY_TYPE.MULTI_CHECK_BOX :
+      case DISPLAY_TYPE.BUTTON_TOGGLE   :
+      case DISPLAY_TYPE.ROW_INPUT_BOX :
         this.inputForm  = new FormControl(params.value || null, formValidations)
         break
 
