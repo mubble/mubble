@@ -10,6 +10,8 @@ import android.os.CancellationSignal
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyPermanentlyInvalidatedException
 import android.security.keystore.KeyProperties
+import android.security.keystore.UserNotAuthenticatedException
+import android.util.Base64
 import androidx.core.hardware.fingerprint.FingerprintManagerCompat
 import core.BaseApp
 import org.jetbrains.anko.info
@@ -25,6 +27,7 @@ import javax.crypto.NoSuchPaddingException
 import javax.crypto.SecretKey
 import com.facebook.internal.FacebookRequestErrorClassification.KEY_NAME
 import java.security.spec.ECGenParameterSpec
+import java.security.spec.RSAKeyGenParameterSpec
 
 
 open class BiometricManager constructor() : BiometricManagerV23() {
@@ -220,25 +223,21 @@ open class BiometricManager constructor() : BiometricManagerV23() {
   }
 
   @TargetApi(Build.VERSION_CODES.M)
-  private fun generateKeyPair() {
+  fun generateKeyPair(): String {
 
-    try {
+    val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore")
 
-      val keyPairGenerator = KeyPairGenerator.getInstance(KeyProperties.KEY_ALGORITHM_RSA, "AndroidKeyStore")
+    keyPairGenerator.initialize(
+        KeyGenParameterSpec.Builder(KEY_NAME,
+            KeyProperties.PURPOSE_DECRYPT and KeyProperties.PURPOSE_ENCRYPT)
+            .setDigests(KeyProperties.DIGEST_SHA256)
+            .setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1)
+            .setUserAuthenticationRequired(true)
+            .build())
 
-      keyPairGenerator.initialize(
-          KeyGenParameterSpec.Builder(KEY_NAME,
-              KeyProperties.PURPOSE_SIGN)
-              .setDigests(KeyProperties.DIGEST_SHA256)
-              .setAlgorithmParameterSpec(ECGenParameterSpec("secp256r1"))
-              .setUserAuthenticationRequired(true)
-              .build())
+    val keyPair = keyPairGenerator.generateKeyPair()
 
-      keyPairGenerator.generateKeyPair()
-
-    } catch (exc: KeyStoreException) {
-      exc.printStackTrace()
-    }
+    return Base64.encode(keyPair.public.encoded, Base64.DEFAULT).toString()
   }
 
   class BiometricBuilder(val context: Context) {
