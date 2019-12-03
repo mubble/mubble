@@ -32,6 +32,7 @@ data class CustomData(val appName: String, val channel: String,
       customData.networkType    = obj.optString("networkType")
       customData.userRole       = obj.optString("userRole")
       customData.namespaceId    = obj.optString("namespaceId")
+      customData.mobileNo       = obj.optString("mobileNo")
 
       return customData
     }
@@ -56,6 +57,7 @@ data class CustomData(val appName: String, val channel: String,
   var networkType     : String?     = null
   var userRole        : String?     = null
   var namespaceId     : String?     = null
+  var mobileNo        : String?     = null
 
   override fun toJsonObject(): JSONObject {
 
@@ -78,7 +80,7 @@ data class CustomData(val appName: String, val channel: String,
     obj.put("networkType",    networkType)
     obj.put("userRole",       userRole)
     obj.put("namespaceId",    namespaceId)
-
+    obj.put("mobileNo",       mobileNo)
     return obj
   }
 

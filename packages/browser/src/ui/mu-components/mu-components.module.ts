@@ -37,7 +37,8 @@ import { NcMaxLengthDirective,
          LongPressDirective, 
          NcStyleClassDirective,
          NextInpFocusDirective,
-         AdjustElementsDirective
+         AdjustElementsDirective,
+         NcFallbackCharDirective
        }                                    from './directives'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
@@ -93,6 +94,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     NcStyleClassDirective,
     NextInpFocusDirective,
     AdjustElementsDirective,
+    NcFallbackCharDirective,
   
     TranslatePipe,
   
@@ -126,6 +128,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     NcStyleClassDirective,
     NextInpFocusDirective,
     AdjustElementsDirective,
+    NcFallbackCharDirective,
 
     TranslatePipe,
     
