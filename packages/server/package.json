@@ -40,7 +40,7 @@
     "gm": "^1.23.1",
     "imagemin": "^7.0.1",
     "imagemin-mozjpeg": "^8.0.0",
-    "lodash": "^4.17.11",
+    "lodash": "^4.17.15",
     "mammoth": "^1.4.6",
     "mkdirp": "^0.5.1",
     "nodemailer": "^6.3.0",
