@@ -95,29 +95,32 @@ export class MuDataTableComponent implements OnInit {
   showTable         : boolean  = false
 
   ngOnInit() {
-
-    if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
+ 
+    if (this.tableConfig) {
+      if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
   
-    for (let header of this.tableConfig.headers) {
-
-      this.headerFields.push(header.dataKey)
-      if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
-      if (!this.tableConfig.lazyLoad) {
-
-        if (header.enableFilter) this.filterFields.push(header.dataKey)
-        if (header.enableSort) this.sortFields.push(header.dataKey)
-        else this.sortFields.push(null) 
+      for (let header of this.tableConfig.headers) {
+  
+        this.headerFields.push(header.dataKey)
+        if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
+        if (!this.tableConfig.lazyLoad) {
+  
+          if (header.enableFilter) this.filterFields.push(header.dataKey)
+          if (header.enableSort) this.sortFields.push(header.dataKey)
+          else this.sortFields.push(null) 
+        }
       }
+  
+      if (this.tableConfig.data) {
+  
+        this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
+        for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
+        this.dataToDisplay = this.tableConfig.data
+      }
+  
+      this.showTable      = true
     }
-
-    if (this.tableConfig.data) {
-
-      this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
-      for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
-      this.dataToDisplay = this.tableConfig.data
-    }
-
-    this.showTable      = true
+    
   }
 
   rowSelect(event : any) {
@@ -159,9 +162,13 @@ export class MuDataTableComponent implements OnInit {
 
   loadLazy(event) {
 
-    if (!this.tableConfig.data.length) return
-    
     this.lastIndex          = event.first
+    if (this.tableConfig.lazyLoad) {
+      this.loadMoreData.emit(this.lastIndex)
+      return
+    }
+    
+    if (!this.tableConfig.data.length) return
     if (this.slctAllBox)
     this.slctAllBox.checked = this.selectAllMap[this.lastIndex] || false
     const possibleCount     = event.first + this.tableConfig.dispRows
@@ -224,6 +231,14 @@ export class MuDataTableComponent implements OnInit {
     this.tableConfig    = config
     this.dataToDisplay  = this.tableConfig.data
     this.showTable      = true
+    for (let header of this.tableConfig.headers) {
+  
+      this.headerFields.push(header.dataKey)
+      if (header.enableFilter) this.filterFields.push(header.dataKey)
+      if (header.enableSort) this.sortFields.push(header.dataKey)
+      else this.sortFields.push(null) 
+    }
+
     this.changeDet.detectChanges()
   }
 

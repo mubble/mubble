@@ -26,7 +26,7 @@ export class TableDataManager {
   private dataParams      : TableDataManagerParams = { } as TableDataManagerParams
   private dispRows        : number
   private totalDataCount  : number
-  private currentKeyIndex : number
+  private currentKeyIndex : number = 0
   private lastKeyIndex    : number
   private pendingRequest  : boolean
   private dataObject      : Mubble.uObject<any> = { }
@@ -39,7 +39,6 @@ export class TableDataManager {
   * @param tableConfig : To set the table config in the data table
   */
   init(tableConfig : TableConfig, lastIndex : number) {
-
     this.dataParams.data = []
     this.dispRows        = tableConfig.dispRows || 0
     this.totalDataCount  = tableConfig.totalRecords || 0
@@ -94,7 +93,7 @@ export class TableDataManager {
   */
   setTableData(index ?: number) {
 
-    if (index) this.currentKeyIndex = index
+    if (index >= 0) this.currentKeyIndex = index
 
     const keys = Object.keys(this.dataObject)
 
