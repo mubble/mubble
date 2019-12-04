@@ -35,6 +35,7 @@ export class AdjustElementsDirective {
     if ((this.index + 1) % this.displayCount !== 0) {
       this.element.nativeElement.style.width        = webModeCss.width
       this.element.nativeElement.style.marginRight  = webModeCss.marginRight
+      this.element.nativeElement.style.maxWidth     = webModeCss.marginRight
     } else {
       this.element.nativeElement.style.width        = webModeCss.width
       this.element.nativeElement.style.maxWidth     = webModeCss.maxWidth
@@ -55,7 +56,7 @@ export class AdjustElementsDirective {
       are assigning it manually. Otherwise we are iterating the 100% width in the for loop. */
 
       case 1  : webModeCss.width    = '60%'
-                webModeCss.maxWidth = '300px'
+                webModeCss.maxWidth = '400px'
                 break
 
       case 2  : webModeCss.width        = '45%'

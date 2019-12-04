@@ -13,6 +13,8 @@
       adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
       <div class="input-title txt-lg-reg-norm">
         {{ fItem.title }}
+
+        <span class="txt-lg-reg-norm error-text" *ngIf="fItem.params.isRequired">*</span>
       </div>
 
       <div class="single-input-cont">
