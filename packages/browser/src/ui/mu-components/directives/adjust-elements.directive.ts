@@ -35,7 +35,7 @@ export class AdjustElementsDirective {
     if ((this.index + 1) % this.displayCount !== 0) {
       this.element.nativeElement.style.width        = webModeCss.width
       this.element.nativeElement.style.marginRight  = webModeCss.marginRight
-      this.element.nativeElement.style.maxWidth     = webModeCss.marginRight
+      this.element.nativeElement.style.maxWidth     = webModeCss.maxWidth
     } else {
       this.element.nativeElement.style.width        = webModeCss.width
       this.element.nativeElement.style.maxWidth     = webModeCss.maxWidth
