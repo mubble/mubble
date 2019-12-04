@@ -64,8 +64,9 @@ export enum DISPLAY_TYPE {
 }
 
 export interface SelectionBoxParams {
-  id    : string
-  value : string
+  id        : string
+  value     : string
+  selected ?: boolean
 }
 
 export interface ValidatorsParams {

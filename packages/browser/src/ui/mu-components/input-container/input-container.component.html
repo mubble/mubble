@@ -73,6 +73,7 @@
         <div class="checkbox-cont">
           <mat-checkbox *ngFor="let option of inputParams.options" [value]="option"
             class="txt-lg-med-norm checkbox"
+            [checked]="option.selected"
             (change)="checkedOption($event, option)">
             {{ option.value }}
           </mat-checkbox>
@@ -196,7 +197,8 @@
 
         <ng-container *ngFor="let option of inputParams.options ; let i = index">
 
-          <mat-button-toggle value="{{option.id}}" class="txt-lg-reg-norm" 
+          <mat-button-toggle value="{{option.id}}" class="txt-lg-reg-norm"
+            [checked]="option.selected"
             [ngClass]="{ 'primary-bg' : group.value === option.id, 'text-color-white' : group.value === option.id}"
             (change)="onBtnToggleChange($event)">
             {{ option.value }}
