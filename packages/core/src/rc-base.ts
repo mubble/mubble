@@ -370,23 +370,23 @@ export abstract class RCLoggerBase {
 
       const rc  = this.rc as any
 
-      if (rc.getMaskingData) {
-        const maskKeys  = rc.getMaskingData() as MaskingDataParams[]
+      // if (rc.getMaskingData) {
+      //   const maskKeys  = rc.getMaskingData() as MaskingDataParams[]
 
-        if (maskKeys && maskKeys.length) {
+      //   if (maskKeys && maskKeys.length) {
 
-          for (const key in obj) {
+      //     for (const key in obj) {
 
-            maskKeys.forEach(val => {
+      //       maskKeys.forEach(val => {
     
-              if (val.maskKey === key) {
-                obj[key]  = DataMasker.maskData(val, obj[key])
-              }
-            })
+      //         if (val.maskKey === key) {
+      //           obj[key]  = DataMasker.maskData(val, obj[key])
+      //         }
+      //       })
     
-          }
-        }
-      }
+      //     }
+      //   }
+      // }
       
       const str = obj.toString()
       if(typeof(str) === 'number' || (typeof(str)==='string' && !str.startsWith('[object'))) return str
