@@ -261,7 +261,7 @@ export abstract class RCLoggerBase {
   abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
 
   public log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
-    args  = JSON.parse(JSON.stringify(args))
+    // args  = JSON.parse(JSON.stringify(args))
     const refLogLevel = this.rc.runState.moduleLLMap[moduleName] || this.rc.initConfig.logLevel
 
     if (level < refLogLevel) return 'not logging'
