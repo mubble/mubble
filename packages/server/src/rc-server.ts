@@ -16,7 +16,8 @@ import {
   RUN_MODE,
   InitConfig,
   RunState,
-  RCLoggerBase
+  RCLoggerBase,
+  MaskingDataParams
 }  from '@mubble/core'
 
 import  {MasterMgr}         from './master/ma-manager'
@@ -50,6 +51,7 @@ export class InitConfigServer extends InitConfig {
 }
 
 export class RunStateServer extends RunState {
+  
 
   private runIdIndx : number[] = [lo.random(0, CONS.length - 1), 
                                   lo.random(0, VOWS.length - 1), 
@@ -73,10 +75,11 @@ export class RunStateServer extends RunState {
 }
 
 export abstract class RunContextServer extends RunContextBase {
-
+  
   /*------------------------------------------------------------------------------
     Static declarations
   ------------------------------------------------------------------------------*/
+
   masterMgr   : MasterMgr
 
   private static initDone: boolean
@@ -95,6 +98,8 @@ export abstract class RunContextServer extends RunContextBase {
     super(initConfig, runState, contextId, contextName)
   }
 
+  abstract getMaskingData() : MaskingDataParams[]
+
   clone(newRc : RunContextServer) {
     // nothing to do, I have no member variables
     super.clone(newRc)
@@ -103,6 +108,7 @@ export abstract class RunContextServer extends RunContextBase {
   getRunMode() : RUN_MODE {
     return this.initConfig.runMode
   }
+
 
   executePromise(promise: Promise<any>): void {
     promise.then((ret) => {
@@ -190,6 +196,5 @@ export class RCServerLogger extends RCLoggerBase {
     const fn: any = colors[LOG_LEVEL[level]]
     console.log(fn ? fn(logStr) : logStr)
   }
-
 }
 
