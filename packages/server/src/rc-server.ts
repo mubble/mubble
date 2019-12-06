@@ -98,7 +98,9 @@ export abstract class RunContextServer extends RunContextBase {
     super(initConfig, runState, contextId, contextName)
   }
 
-  abstract getMaskingData() : MaskingDataParams[]
+  getMaskingData() : MaskingDataParams[] {
+    return []
+  }
 
   clone(newRc : RunContextServer) {
     // nothing to do, I have no member variables
