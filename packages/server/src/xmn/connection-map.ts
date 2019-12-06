@@ -31,11 +31,11 @@ export namespace ConnectionMap {
   }
 
   export function isActiveConnection(id : number | string) {
-        return ActiveConnectionMap.has(id)
+    return ActiveConnectionMap.has(id)
   }
 
   export function removeActiveConnection(clientId : number | string) {
-        if(!isActiveConnection(clientId)) return
+    if(!isActiveConnection(clientId)) return
 
     ActiveConnectionMap.delete(clientId)
   }
