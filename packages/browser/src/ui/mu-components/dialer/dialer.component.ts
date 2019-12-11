@@ -28,7 +28,7 @@ export interface DialerCssClasses {
 export interface DialerParams {
   dialerOptions      : DialerOptions[]
   isCircular        ?: boolean
-  visibleElements   ?: number
+  highlightPos      ?: number
   dialerCssClasses  ?: DialerCssClasses
   selectedItem      ?: DialerOptions
 }
@@ -41,10 +41,10 @@ export interface DialerParams {
 
 export class DialerComponent {
   
-  @ViewChild('scrollCont', { static: true })    scrollCont : ElementRef
+  @ViewChild('scrollCont',    { static: true }) scrollCont    : ElementRef
   @ViewChild('contentHolder', { static: true }) contentHolder : ElementRef
-  @ViewChild('dummyBottom', { static: true })    dummyBottom : ElementRef
-  @ViewChild('dummyTop', { static: true })    dummyTop : ElementRef
+  @ViewChild('dummyBottom',   { static: true }) dummyBottom   : ElementRef
+  @ViewChild('dummyTop',      { static: true }) dummyTop      : ElementRef
 
 
   @Input() parentDiv      : ElementRef
@@ -60,23 +60,18 @@ export class DialerComponent {
   private scrollActions : any
   private lastIndex     : number
 
-  itemsHeight       : {[index: number]: number } = {} //caching each divs height to translate the scrollable div
-
-
   constructor(@Inject('RunContext') protected rc  : RunContextApp,
-              private ngZone                      : NgZone,
-              private renderer                    : Renderer2) { 
+              private ngZone                      : NgZone) { 
                 
     this.value          = new EventEmitter<DialerOptions>()
     this.scrollActions  = debounce(this.hlNearestElem.bind(this), SCROLL_DELAY)
-    window['dialer']    = this
   }
 
   ngOnInit() {
 
-    const slicedItems = this.dialerParams.dialerOptions.slice(0)
+    const slicedItems   = this.dialerParams.dialerOptions.slice(0)
     this.viewPortItems  = slicedItems
-    this.selectedItem   = this.viewPortItems[0]
+    this.selectedItem   = this.dialerParams.selectedItem || this.viewPortItems[0]
   }
 
   ngAfterViewInit() {
@@ -89,7 +84,9 @@ export class DialerComponent {
     
     this.contentHolder.nativeElement.style.height = `${height}px`
     this.contentHolder.nativeElement.style.width  = `${width}px`
-    this.contentHolder.nativeElement.style.top    = `${height}px`
+    this.contentHolder.nativeElement.style.top    = this.dialerParams.highlightPos 
+                                                    ? `(${this.dialerParams.highlightPos} * ${height})px`
+                                                    : `${height}px`
 
     const dummyHeight = scrollElem.scrollHeight - ((height * (this.dialerParams.dialerOptions.length - 1)))
 
@@ -121,7 +118,8 @@ export class DialerComponent {
 
       const currentTop = scrollElem.scrollHeight - dummyBottomHeight - dummyTopHeight - totalHeight
       scrollElem.scrollTop  = currentTop
-      this.value.emit(this.dialerParams.dialerOptions[nearestElemIdx])
+      
+      if (this.eventPropagte) this.value.emit(this.dialerParams.dialerOptions[nearestElemIdx])
     })
   }
 
@@ -305,6 +303,13 @@ export class DialerComponent {
       this.selectedItem = this.dialerParams.dialerOptions[nearestElemIdx]
     })
 
+  }
+
+  /*=====================================================================
+                              UTILS
+  =====================================================================*/
+  getSelectedItem() {
+    this.value.emit(this.selectedItem)
   }
 
   /*=====================================================================

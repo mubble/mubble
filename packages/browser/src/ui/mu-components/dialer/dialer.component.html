@@ -1,5 +1,5 @@
 
-<div class="dialer-comp primary-bg" #contentHolder></div>
+<div class="dialer-comp" #contentHolder></div>
 
 <div class="dialer-cont" #scrollCont (scroll)="refreshList()">
 
@@ -8,8 +8,7 @@
   
     <ng-container *ngFor="let option of viewPortItems; let i = index">
 
-      <div class="dialer-value txt-lg-reg-norm" (click)="scrollToElem(i)"
-        [class.text-color-white]="selectedItem.id === option.id">
+      <div class="dialer-value txt-lg-reg-norm" (click)="scrollToElem(i)">
         {{ option.value }}
       </div>  
     </ng-container>
