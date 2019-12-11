@@ -50,9 +50,12 @@ import { ToastComponent }                   from './toast/toast.component'
 import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
 import { FilterComponent }                  from './filter/filter.component'
 import { InputContainerComponent}           from './input-container/input-container.component'
+import { DialerComponent }                  from './dialer/dialer.component'
+
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
+
 
 @NgModule({
   imports: [
@@ -87,6 +90,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     FilterComponent,
     InputContainerComponent,
     MuDataTableComponent,
+    DialerComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -121,6 +125,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     FilterComponent,
     InputContainerComponent,
     MuDataTableComponent,
+    DialerComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
