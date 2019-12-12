@@ -7,6 +7,53 @@
   margin: 2% 0;
 }
 
+.button-toggle {
+  margin:2vw 0;
+}
+
+
+.input-container {
+
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  .label-txt {
+    width: 72vw;
+    margin-right: 2vw;
+  }
+
+  .small-box {
+    width: 14vw;
+  }
+
+  .input-cont {
+    text-align: center;
+  }
+
+}
+
+.radio-button {
+  padding-bottom: 2vw !important;
+}
+
+.radio-group {
+  padding: 3vw 0 0 3vw !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkbox-cont, .checkbox {
+  padding : 1vw 0;
+}
+
+.checkbox-cont  {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
 .range-onb-input-box-cont {
   position: relative;
   display: flex;
@@ -35,9 +82,13 @@
   background: none;
 }
 
+.toggle-cont {
+  margin: 2vw 0;
+}
+
 .input-cont-comp {
   position: relative;
-  margin: 4vw;
+  margin: 2vw 4vw;
 }
 
 .range {
@@ -47,7 +98,6 @@
 }
 
 .errors-list {
-  height: 11px;
   display: flex;
   flex-direction: column;
 }
@@ -73,7 +123,8 @@
     background: none;
   }
 }
-.webView-input-comp {
+
+.web-view-input-comp {
   .onb-input-box-cont {
     position: relative;
     display: flex;
@@ -96,7 +147,7 @@
   .input-cont {
     position: relative;
     width: 100%;
-    padding: 0.5vw;
+    padding: 8px;
     border: 0;
     background: none;
   }

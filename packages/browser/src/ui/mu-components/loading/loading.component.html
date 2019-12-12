@@ -1,10 +1,10 @@
 <div class="loading-comp">
 
-  <div class="mu-loading-root"
-    [ngClass.xl]="['web-content-div']"
-    [ngClass.lg]="['web-content-div']"
-    [ngClass.md]="['web-content-div']"
-    [ngClass.sm]="['web-content-div']">
+  <div class="mu-loading-root" [ngClass]="customClass || 'bg-white'"
+    [ngClass.xl]="['web-mu-content-div']"
+    [ngClass.lg]="['web-mu-content-div']"
+    [ngClass.md]="['web-mu-content-div']"
+    [ngClass.sm]="['web-mu-content-div']">
 
     <div class="loading-cont">
 
@@ -12,7 +12,7 @@
         <i class="spinner fa fa-spinner fa-pulse fa-3x fa-fw text-color-primary"></i>
       </div>
       
-      <div class="loading-text txt-xl-bld-norm">
+      <div class="loading-text txt-xl-med-norm">
         {{apiLoadingText}}
       </div>
 

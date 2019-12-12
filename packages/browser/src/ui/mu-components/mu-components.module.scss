@@ -1,8 +1,16 @@
 .mu-loading-root {
-  height: 90vh;
+  height: 100vh;
   width: 100vw;
   position: absolute;
   text-align: center;
   left: 0;
   top: 0;
+}
+
+.input-cont-comp {
+
+  .mat-button-toggle-label-content {
+    line-height: 36px !important;
+    padding: 0 12px !important;
+  }
 }

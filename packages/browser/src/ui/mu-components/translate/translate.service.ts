@@ -64,6 +64,10 @@ export class TranslateService {
     return translation
   }
 
+  public addTranslations(langObj : object, lang : string) {
+    Object.assign(this._translations[lang], langObj)
+  }
+
   public instant(key: string, words?: string | string[]) { // add optional parameter
 
     const translation: string = this.translate(key)

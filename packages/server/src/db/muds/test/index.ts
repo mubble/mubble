@@ -14,6 +14,9 @@ import {  TestUtils }                             from './utils'
 import {  POCTests }                              from './proof-of-concept'
 import * as models                                from './models'
 
+
+export * from './test-unique-muds'
+
 export class MudsTests {
 
   private ts = Date.now()

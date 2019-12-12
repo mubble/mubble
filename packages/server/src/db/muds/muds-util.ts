@@ -100,18 +100,10 @@ export class MudsUtil {
           value.forEach((struct: MudsBaseStruct) => this.getUniques(rc, struct, uniques, uniqueKey))
         }
 
-        uniques.push({entity : entityInfo.entityName, key : uniqueKey, value : value})
+        uniques.push({entity : entity, key : uniqueKey, value : value})
       }
     }
 
     return uniques.length
-  }
-
-  public static async checkIfEntityExists(rc : RunContextServer, entity : MudsBaseEntity) {
-    return await Muds.direct(rc, async (directIo, now) => {
-      
-      return await directIo.getEntityIfExists(entity.getInfo().cons, ...entity.getFullKey())
-
-    }) as MudsBaseEntity | undefined
   }
 }

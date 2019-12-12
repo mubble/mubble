@@ -54,7 +54,7 @@ export class HttpsThirdServer {
     const ci             = {} as ConnectionInfo,
           [host, port]   = (req.headers.host || '').split(':')
 
-    ci.protocol          = urlObj.protocol === 'https:' ? Protocol.HTTPS : Protocol.HTTP
+    ci.protocol          = Protocol.HTTP_THIRD
     ci.host              = host
     ci.port              = Number(port) || urlObj.protocol === 'https:' ? 443 : 80
     ci.url               = req.url || ''

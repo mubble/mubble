@@ -24,6 +24,7 @@ export class LoadingComponent implements OnInit {
 
   @Input() apiLoadingText       : string
   @Input() apiLoadingBottomIn   : boolean
+  @Input() customClass          : string 
   
   constructor(@Inject('RunContext') private rc  : RunContextBrowser) { }
 

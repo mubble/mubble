@@ -6,19 +6,25 @@ export class InputValidator {
 
   static dateValidator(control : AbstractControl) {
     const startDateTS = control.get('startDate').value ? control.get('startDate').value.toDate().getTime() : null,
-          endDateTS   = control.get('endDate').value   ? control.get('endDate').value.toDate().getTime()   : null,
-          dateNowTS   = Date.now()
+          endDateTS   = control.get('endDate').value   ? control.get('endDate').value.toDate().getTime()   : null
 
     if (!startDateTS && endDateTS) {
       control.get('startDate').setErrors({ noStartDate : true })
-    } else if (endDateTS && (dateNowTS - endDateTS) < 0) {
-      control.get('endDate').setErrors({ futureDate : true })
-    } else if (startDateTS && (dateNowTS - startDateTS) < 0) {
-      control.get('startDate').setErrors({ futureDate : true })
     } else if (endDateTS && startDateTS && (endDateTS - startDateTS < 0)) {
       control.get('startDate').setErrors({ startDateExceed: true })
     } else {
       return null
+    }
+  }
+
+  static futureDateValidatorIfAllowed(control : AbstractControl){
+    const startDateTS = control.get('startDate').value ? control.get('startDate').value.toDate().getTime() : null,
+          endDateTS   = control.get('endDate').value   ? control.get('endDate').value.toDate().getTime()   : null,
+          dateNowTS   = Date.now()
+    if (endDateTS && (dateNowTS - endDateTS) < 0) {
+      control.get('endDate').setErrors({ futureDate : true })
+    } else if (startDateTS && (dateNowTS - startDateTS) < 0) {
+      control.get('startDate').setErrors({ futureDate : true })
     }
   }
 

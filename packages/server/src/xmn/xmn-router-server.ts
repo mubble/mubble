@@ -66,8 +66,6 @@ export abstract class XmnRouterServer {
 
     // this.providerCollection = web.getActiveProviderCollection(rc)  
   }
-
-  abstract getPrivateKeyPem(rc : RunContextServer, ci : ConnectionInfo) : string
   
   public async verifyConnection(rc       : RunContextServer,
                                 ci       : ConnectionInfo,

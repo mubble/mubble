@@ -1,6 +1,6 @@
 /*------------------------------------------------------------------------------
-   About      : Generic component for filtering transactions which can either be
-                date, date-range, dropdown list, number, number-range or text 
+   About      : Generic component for filtering which can either be date,
+                date-range, dropdown list, number, number-range or text 
                 search
    
    Created on : Tue Jun 11 2019
@@ -25,18 +25,7 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
-import { DISPLAY_TYPE,
-         ValidatorsParams
-       }                              from '../input-container'
-
-export enum FILTER_TYPE {
-  DATE,
-  DATE_RANGE,
-  DROP_DOWN,
-  NUMBER,
-  NUMBER_RANGE,
-  TEXT
-}
+import { DISPLAY_TYPE }               from '../input-container'
 
 enum CONTEXT {
   INIT,
@@ -44,15 +33,9 @@ enum CONTEXT {
 }
 
 export interface FilterItem {
-  id            : string
-  label         : string
-  type          : FILTER_TYPE
-  displayType   : DISPLAY_TYPE
-  value        ?: SelectionBoxParams[]
-  defaultValue  : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
-  placeHolder   : string[] | string
-  validators   ?: ValidatorsParams
-  isRequired   ?: boolean
+  id      : string
+  title   : string
+  params  : InputParams
 }
 
 
@@ -68,7 +51,7 @@ export interface NumberRangeInterface {
 
 export interface SelectedFilter {
   id    : string
-  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
+  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
 }
 
 @Component({
@@ -81,16 +64,14 @@ export class FilterComponent {
 
   @ViewChildren('inputCont') inputContInstances : QueryList<InputContainerComponent>
 
-  @Input()  filterItems     : FilterItem[] = []
+  @Input()  filterItems     : FilterItem[]      = []
   @Input()  screen          : TrackableScreen
-  @Input()  webMode        ?: boolean      = false
+  @Input()  webMode         : boolean           = false   //if we want to use filter component as full page
+  @Input()  displayCount    : number            = 1
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 
-  FILTER_TYPE : typeof FILTER_TYPE = FILTER_TYPE
-
-  filters     : SelectedFilter[] = []
-  inputParams : InputParams[]    = []
+  filters   : SelectedFilter[] = []
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
@@ -111,7 +92,7 @@ export class FilterComponent {
     if (this.hasError()) return
     
     if (!this.valueChanged()) {
-      this.selectedFilter.emit([])
+      this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
     }
 
@@ -119,13 +100,18 @@ export class FilterComponent {
   }
 
   clearFilters() {
+    const inputContInstances = this.inputContInstances.toArray()
+
+    inputContInstances.forEach(inputContInstance => {
+      inputContInstance.onSubmit()
+    })
+
     this.initialize(CONTEXT.CLEAR)
-    this.selectedFilter.emit(undefined)
+    this.selectedFilter.emit(undefined)   //on clearing, we just return undefined
   }
 
-  getFilterItems(event : OutputParams) {
-
-    const index = this.filters.findIndex(x => x.id === event.id)
+  setFilterItems(event : OutputParams) {
+    const index = this.filters.findIndex(element => element.id === event.id)
     this.filters[index].value = event.value
   }
 
@@ -142,26 +128,36 @@ export class FilterComponent {
   }
 
   private valueChanged() : boolean {
+
     for (const fItem of this.filterItems) {
-      const index = this.filters.findIndex(x => x.id === fItem.id)
+      const index = this.filters.findIndex(element => element.id === fItem.id)
       let changed : boolean = false
 
-      switch(fItem.displayType) {
+      //checking changed value according to the display type
+      switch(fItem.params.displayType) {
         case DISPLAY_TYPE.CALENDAR_BOX        :
         case DISPLAY_TYPE.INPUT_BOX           :
         case DISPLAY_TYPE.SELECTION_BOX       :
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-          changed = fItem.defaultValue !== this.filters[index].value
+          (!fItem.params.value && !this.filters[index].value)
+          ? changed = false
+          : changed = fItem.params.value !== this.filters[index].value
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
-          changed = (fItem.defaultValue['startDate'] !== this.filters[index].value['startDate']) ||
-                    (fItem.defaultValue['endDate'] !== this.filters[index].value['endDate'])
+          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) ||
+          (!fItem.params.value['endDate'] && !this.filters[index].value['endDate']))
+          ? changed = false
+          : changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
+                      (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          changed = (fItem.defaultValue['minAmount'] !== this.filters[index].value['minAmount']) ||
-                    (fItem.defaultValue['maxAmount'] !== this.filters[index].value['maxAmount'])
+          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) ||
+          (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
+          ? changed = false
+          : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
+                      (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
           break
       }
 
@@ -172,41 +168,38 @@ export class FilterComponent {
   }
 
   private initialize (context : CONTEXT) {
+
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
-        this.filters.push({ id : fItem.id, value : fItem.defaultValue })
-  
-        this.inputParams.push({ id          : fItem.id,
-                                displayType : fItem.displayType,
-                                placeHolder : fItem.placeHolder,
-                                label       : fItem.label,
-                                options     : fItem.value,
-                                value       : fItem.defaultValue,
-                                validators  : fItem.validators,
-                                isRequired  : fItem.isRequired })
+        this.filters.push({ id : fItem.id, value : fItem.params.value })
       }
     } else {
-      this.inputParams  = []
       this.filters      = []
+      const fItems : FilterItem[] = []
 
       for (const fItem of this.filterItems) {
-        const setNull = fItem.displayType === DISPLAY_TYPE.DATE_RANGE
+        const setNull = fItem.params.displayType === DISPLAY_TYPE.DATE_RANGE
                         ? { startDate : null, endDate : null }
-                        : fItem.displayType === DISPLAY_TYPE.NUMBER_RANGE
+                        : fItem.params.displayType === DISPLAY_TYPE.NUMBER_RANGE
                         ? { minAmount : null, maxAmount : null }
                         : null
 
+        fItem.params.value  = setNull
+
+        fItems.push({
+          id      : fItem.id,
+          title   : fItem.title,
+          params  : fItem.params
+        })
+
         this.filters.push({ id : fItem.id, value : setNull })
-  
-        this.inputParams.push({ id          : fItem.id,
-                                displayType : fItem.displayType,
-                                placeHolder : fItem.placeHolder,
-                                label       : fItem.label,
-                                options     : fItem.value,
-                                value       : setNull,
-                                validators  : fItem.validators,
-                                isRequired  : fItem.isRequired })
+        
       }
+
+      this.filterItems  = []
+      this.filterItems  = fItems
     }
   }
+
+
 }

@@ -1,0 +1,22 @@
+
+<div class="dialer-comp" #contentHolder></div>
+
+<div class="dialer-cont" #scrollCont (scroll)="refreshList()">
+
+    <div class="dummy-value-top txt-lg-reg-norm" #dummyTop>
+    </div>
+  
+    <ng-container *ngFor="let option of viewPortItems; let i = index">
+
+      <div class="dialer-value txt-lg-reg-norm" (click)="scrollToElem(i)">
+        {{ option.value }}
+      </div>  
+    </ng-container>
+
+    <div class="dummy-value-bottom txt-lg-reg-norm" #dummyBottom>
+      
+    </div>  
+
+  </div>
+
+<!-- </div>  -->
