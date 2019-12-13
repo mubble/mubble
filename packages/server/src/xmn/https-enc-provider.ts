@@ -101,21 +101,25 @@ export class HttpsEncProvider {
   }
 
   public encodeThirdPartyRequestPath(publicKey : string, data : Mubble.uObject<any>) : string {
-    const dataStr    = JSON.stringify(data),
-          dataBuf    = Buffer.from(dataStr),
-          encDataBuf = this.encryptUsingPublicKey(publicKey, dataBuf),
-          encDataStr = encDataBuf.toString(HEX)
+    return JSON.stringify(data)
 
-    return encDataStr
+    // const dataStr    = JSON.stringify(data),
+    //       dataBuf    = Buffer.from(dataStr),
+    //       encDataBuf = this.encryptUsingPublicKey(publicKey, dataBuf),
+    //       encDataStr = encDataBuf.toString(BASE64)
+
+    // return encDataStr
   }
 
   public decodeThirdPartyRequestPath(encDataStr : string) : Mubble.uObject<any> {
-    const encDataBuf = Buffer.from(encDataStr, HEX),
-          dataBuf    = this.decryptUsingPrivateKey(encDataBuf),
-          dataStr    = dataBuf.toString(),
-          data       = JSON.parse(dataStr)
+    return JSON.parse(encDataStr)
 
-    return data
+    // const encDataBuf = Buffer.from(encDataStr, BASE64),
+    //       dataBuf    = this.decryptUsingPrivateKey(encDataBuf),
+    //       dataStr    = dataBuf.toString(),
+    //       data       = JSON.parse(dataStr)
+
+    // return data
   }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

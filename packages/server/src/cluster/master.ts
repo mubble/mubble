@@ -115,9 +115,9 @@ export class ClusterMaster {
       throw('Invalid server name: ' + conf.SERVER_NAME)
     }
 
-    if (!Validator.isValidName(conf.RUN_AS)) {
-      throw('Invalid user name in RUN_AS: ' + conf.RUN_AS)
-    }
+    // if (!Validator.isValidName(conf.RUN_AS)) {
+    //   throw('Invalid user name in RUN_AS: ' + conf.RUN_AS)
+    // }
 
     try {
       if (!(this.userInfo = posix.getpwnam(conf.RUN_AS))) {
