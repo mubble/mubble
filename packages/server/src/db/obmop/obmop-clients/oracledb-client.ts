@@ -112,13 +112,16 @@ export class OracleDbClient implements ObmopBaseClient {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting into table, ' + table + '.', entity)
 
-		const keys        = Object.keys(entity),
-					values      = Object.values(entity),
-					keysStr     = keys.join(', '),
-					valuesStr   = (values.map((value) => this.getStringValue(value))).join(', '),
-					queryString = `INSERT INTO ${table} (${keysStr}) VALUES (${valuesStr})`
+		const keys   = Object.keys(entity),
+					values = [] as Array<string>
 
-		await this.queryInternal(rc, queryString)
+		for(const key of keys) {
+			values.push(`:${key}`)
+		}
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${values.join(', ')})`
+					
+		await this.bindsQuery(rc, queryString, entity)
 	}
 
 	public async update(rc 				 : RunContextServer,
@@ -153,9 +156,15 @@ export class OracleDbClient implements ObmopBaseClient {
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
 		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValue}.`)
 
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+		let c = 1
 
-		await this.queryInternal(rc, queryString)
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :${c}`
+		
+		const binds : any[] = []
+
+		binds.push(queryValue)
+
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
 /*------------------------------------------------------------------------------

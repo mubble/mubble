@@ -156,16 +156,8 @@ export class ObmopManager {
    */
   public async insert<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
 
-		if(entity.deleted) {
-			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
-		}
-
-		const tableName = entity.getTableName()
-
-		entity.createts = Date.now()
-		entity.modts    = entity.createts
-
-    const entityObj = {} as Mubble.uObject<any>,
+		const tableName = entity.getTableName(),
+					entityObj = {} as Mubble.uObject<any>,
           keys      = Object.keys(entity)
 
     for(const key of keys) {
@@ -198,15 +190,9 @@ export class ObmopManager {
 																								 entity  : T,
 																								 updates : Mubble.uChildObject<T>) {
 
-		if(entity.deleted) {
-			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
-		}
-
-		const tableName = entity.getTableName()
-
-		// updates.modts = Date.now() 			// TODO : Change this back
-
-		const failed = this.verifyEntityBeforeUpdating(rc, tableName, updates)
+		const tableName = entity.getTableName(),
+					failed    = this.verifyEntityBeforeUpdating(rc, tableName, updates)
+		
 		if(failed) {
 			throw new Mubble.uError(DB_ERROR_CODE, failed)
 		}
@@ -226,39 +212,6 @@ export class ObmopManager {
 		}
 
 		Object.assign(entity, updates)
-	}
-
-	/**
-   *  Function to soft delete a row of an obmop entity.
-	 * 	The entity must have the primary key at least.
-	 *  The entity is also updated with the deleted field as true.
-	 *  Make sure not to operate on a deleted entity.
-   */
-	public async softDelete<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
-
-		if(entity.deleted) {
-			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
-		}
-
-		const tableName       = entity.getTableName(),
-					deletets        = Date.now(),
-					primaryKey      = ObmopRegistryManager.getRegistry(tableName).getPrimaryKey(),
-					primaryKeyValue = (entity as any)[primaryKey],
-					updates         = {deletets, deleted : true}
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting (soft-delete) data.', tableName, entity, '=>', updates)
-
-		try {
-			await this.client.update(rc, tableName, updates, primaryKey, primaryKeyValue)
-
-		} catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting (soft) ${entity} from ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
-			throw mErr
-		}
-
-		entity.deletets = deletets
-		entity.deleted  = true
 	}
 
 	/**

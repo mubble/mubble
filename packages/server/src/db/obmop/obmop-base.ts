@@ -75,18 +75,6 @@ export namespace Obmop {
 export class ObmopBaseEntity {
   private _tableName : string
 
-  @Obmop.field()
-  public createts    : number
-
-  @Obmop.field()
-  public modts       : number
-
-  @Obmop.field()
-  public deletets    : number
-
-  @Obmop.field()
-  public deleted     : boolean = false
-
   constructor(rc : RunContextServer, table : string) {
     rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new obmop entity.', table)
 
