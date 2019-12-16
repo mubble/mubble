@@ -85,8 +85,12 @@ export class OracleDbClient implements ObmopBaseClient {
 														 key, operator, value)
 
 		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
-					result      = await this.queryInternal(rc, queryString)
+					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator} :1`,
+					binds       = [] as Array<any>
+
+		binds.push(value)
+
+		const result = await this.bindsQuery(rc, queryString, binds)
 
 		return this.convertResultArray(result)
 	}
@@ -99,11 +103,18 @@ export class OracleDbClient implements ObmopBaseClient {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
 
 		const fieldString	 		 = fields.join(', '),
-					conditionStrings = conditions.map((condition) =>
-															 this.getConditionString(condition.key, condition.value, condition.operator)),
-					condition        = conditionStrings.join(' AND '),
-					queryString      = `SELECT ${fieldString} FROM ${table} WHERE ${condition}`,
-					result      		 = await this.queryInternal(rc, queryString)
+				  conditionStrings = [] as Array<string>,
+					binds            = [] as Array<any>
+
+		let c = 1
+
+		for(const condition of conditions) {
+			conditionStrings.push(`${condition.key} ${condition.operator || '='} :${c++}`)
+			binds.push(condition.value)
+		}
+
+		const queryString = `SELECT ${fieldString} FROM ${table} WHERE ${conditionStrings.join(' AND ')}`,
+					result      = await this.bindsQuery(rc, queryString, binds)
 
 		return this.convertResultArray(result)
 	}
@@ -156,11 +167,8 @@ export class OracleDbClient implements ObmopBaseClient {
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
 		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValue}.`)
 
-		let c = 1
-
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :${c}`
-		
-		const binds : any[] = []
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :1`,
+					binds 			= [] as Array<any>
 
 		binds.push(queryValue)
 
