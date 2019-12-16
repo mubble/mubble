@@ -7,17 +7,11 @@
    Copyright (c) 2019 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { 
-				 Mubble,
-				 format
-			 }	               				from '@mubble/core'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { ObmopBaseClient }      from '../obmop-base'
 import { DB_ERROR_CODE }        from '../obmop-util'
+import { Mubble }	              from '@mubble/core'
 import * as oracledb            from 'oracledb'
-
-const STRING_TYPE 			 = 'string',
-			DATE_FORMAT_STRING = '%yyyy%-%mm%-%dd% %hh%:%nn%:%ss%.%ms%'
 
 /*------------------------------------------------------------------------------
    OracleDb Config
@@ -69,7 +63,7 @@ export class OracleDbClient implements ObmopBaseClient {
 
 		const fieldString = fields.join(', '),
 					queryString = `SELECT ${fieldString} FROM ${table}`,
-					result      = await this.queryInternal(rc, queryString)
+					result      = await this.bindsQuery(rc, queryString, [])
 
 		return this.convertResultArray(result)
 	}
@@ -178,33 +172,6 @@ export class OracleDbClient implements ObmopBaseClient {
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS
 ------------------------------------------------------------------------------*/
-	
-	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<oracledb.Result<any>> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'queryInternal', queryString)
-
-    if(!this.initialized) await this.init(rc)
-    
-    const connection = await this.clientPool.getConnection()
-
-		try {
-			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
-
-        connection.execute(queryString, (err : oracledb.DBError, result : oracledb.Result<any>) => {
-          if(err) reject(err)
-          resolve(result)
-        })
-			})
-			
-			return result
-		} catch(e) {
-
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
-			throw new Mubble.uError(DB_ERROR_CODE, e.message)
-		} finally {
-			await connection.close()
-		}
-	}
 
 	private async bindsQuery(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters) {
 
@@ -234,14 +201,6 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 	}
 
-	private getStringValue(value : any) : string {
-		if(value instanceof Date) {
-			return `'${format(value, DATE_FORMAT_STRING)}'`
-		}
-
-		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
-	}
-
 	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
 
 		const metadata = result.metaData || [],
@@ -259,9 +218,5 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 
 		return finArr
-	}
-
-	private getConditionString(key : string, value : any, operator : string = '=') : string {
-		return `${key} ${operator} ${this.getStringValue(value)}`
 	}
 }
