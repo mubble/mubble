@@ -293,13 +293,14 @@ export class HttpsThirdServerProvider implements XmnProvider {
           keywords = {
                        true      : true,
                        false     : false,
-                       null      : null,
-                       undefined : undefined
+                       ''        : undefined
                      } as Mubble.uObject<any>
 
-    for(const key in obj) {
-      if(key in keywords) {
-        obj[key] = keywords[key]
+    for(const key of Object.keys(obj)) {
+      const value = obj[key] as string
+
+      if(value in keywords) {
+        obj[key] = keywords[value]
       }
     }
 
