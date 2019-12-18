@@ -281,14 +281,6 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 	}
 
-	private getStringValue(value : any) : string {
-		if(value instanceof Date) {
-			return `'${format(value, DATE_FORMAT_STRING)}'`
-		}
-
-		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
-	}
-
 	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
 
 		const metadata = result.metaData || [],

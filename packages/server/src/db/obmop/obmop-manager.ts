@@ -158,7 +158,8 @@ export class ObmopManager {
 
 		const tableName = entity.getTableName(),
 					entityObj = {} as Mubble.uObject<any>,
-          keys      = Object.keys(entity)
+					keys      = Object.keys(entity)
+					
 
     for(const key of keys) {
       if(entity.hasOwnProperty(key) && !key.startsWith('_')) entityObj[key] = (entity as any)[key]
