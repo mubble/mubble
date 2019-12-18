@@ -401,7 +401,7 @@ export class ObmopManager {
 						return !updates[serialField.name]
 					})
 
-		if(serialVerify) {
+		if(!serialVerify) {
 			return ObmopErrorMessage.SERIAL_UPDATE
 		}
 
@@ -411,7 +411,7 @@ export class ObmopManager {
 						return !updates[sequenceField.name]
 					})
 
-		if(sequenceVerify) {
+		if(!sequenceVerify) {
 			return ObmopErrorMessage.SEQUENCE_UPDATE
 		}
 
