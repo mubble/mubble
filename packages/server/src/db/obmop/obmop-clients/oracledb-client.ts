@@ -7,17 +7,12 @@
    Copyright (c) 2019 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { 
-				 Mubble,
-				 format
-			 }	               				from '@mubble/core'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { ObmopBaseClient }      from '../obmop-base'
 import { DB_ERROR_CODE }        from '../obmop-util'
+import { Mubble }	              from '@mubble/core'
 import * as oracledb            from 'oracledb'
-
-const STRING_TYPE 			 = 'string',
-			DATE_FORMAT_STRING = '%yyyy%-%mm%-%dd% %hh%:%nn%:%ss%.%ms%'
+import { format } from 'util'
 
 /*------------------------------------------------------------------------------
    OracleDb Config
@@ -69,7 +64,7 @@ export class OracleDbClient implements ObmopBaseClient {
 
 		const fieldString = fields.join(', '),
 					queryString = `SELECT ${fieldString} FROM ${table}`,
-					result      = await this.queryInternal(rc, queryString)
+					result      = await this.bindsQuery(rc, queryString, [])
 
 		return this.convertResultArray(result)
 	}
@@ -85,8 +80,12 @@ export class OracleDbClient implements ObmopBaseClient {
 														 key, operator, value)
 
 		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
-					result      = await this.queryInternal(rc, queryString)
+					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator} :1`,
+					binds       = [] as Array<any>
+
+		binds.push(value)
+
+		const result = await this.bindsQuery(rc, queryString, binds)
 
 		return this.convertResultArray(result)
 	}
@@ -99,33 +98,88 @@ export class OracleDbClient implements ObmopBaseClient {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
 
 		const fieldString	 		 = fields.join(', '),
-					conditionStrings = conditions.map((condition) =>
-															 this.getConditionString(condition.key, condition.value, condition.operator)),
-					condition        = conditionStrings.join(' AND '),
-					queryString      = `SELECT ${fieldString} FROM ${table} WHERE ${condition}`,
-					result      		 = await this.queryInternal(rc, queryString)
+				  conditionStrings = [] as Array<string>,
+					binds            = [] as Array<any>
+
+		let c = 1
+
+		for(const condition of conditions) {
+			conditionStrings.push(`${condition.key} ${condition.operator || '='} :${c++}`)
+			binds.push(condition.value)
+		}
+
+		const queryString = `SELECT ${fieldString} FROM ${table} WHERE ${conditionStrings.join(' AND ')}`,
+					result      = await this.bindsQuery(rc, queryString, binds)
 
 		return this.convertResultArray(result)
 	}
 
-	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) {
+	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>, sequences ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting into table, ' + table + '.', entity)
 
-		const keys        = Object.keys(entity),
-					values      = Object.values(entity),
-					keysStr     = keys.join(', '),
-					valuesStr   = (values.map((value) => this.getStringValue(value))).join(', '),
-					queryString = `INSERT INTO ${table} (${keysStr}) VALUES (${valuesStr})`
+		const keys   = Object.keys(entity),
+					values = [] as Array<string>
 
-		await this.queryInternal(rc, queryString)
+		for(const key of keys) {
+			values.push(`:${key}`)
+		}
+
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			values.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))
+		}
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${values.join(', ')})`
+					
+		await this.bindsQuery(rc, queryString, entity)
 	}
 
-	public async update(rc 				 : RunContextServer,
-											table 		 : string,
-											updates    : Mubble.uObject<any>,
-											queryKey   : string,
-											queryValue : any) {
+	public async mInsert(rc : RunContextServer, table : string, entities : Mubble.uObject<any>[], sequences ?: Mubble.uObject<string>) {
+		
+		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting multiple rows into table, ' + table + '.' + entities)
+
+		const binds 		: Array<any>		= [],
+					keys			: Array<string>	= Object.keys(entities[0]),
+					bindsKeys : Array<string> = keys.map(key => `:${key}`)
+
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			bindsKeys.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))
+		}
+
+		for (const entity of entities) {
+
+			const bind : any = {}
+
+			for (const key in entity) {
+				if (entity.hasOwnProperty(key)) {
+					bind[key] = entity[key]
+				}
+			}
+
+			binds.push(bind)
+		}
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')})`
+												+ `values (${bindsKeys.join(', ')})`
+
+		this.bindsQueryMany(rc, queryString, binds)
+
+	}
+
+	public async update(rc 				  : RunContextServer,
+											table 		  : string,
+											updates     : Mubble.uObject<any>,
+											queryKey    : string,
+											queryValue  : any, 
+											sequences  ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this),
 														 `Updating ${table} with updates : ${updates} for ${queryKey} : ${queryValue}.`)
@@ -141,6 +195,14 @@ export class OracleDbClient implements ObmopBaseClient {
 			binds.push(updates[key])
 		}
 
+		if(sequences) {
+			for (const key in sequences) {
+				if (sequences.hasOwnProperty(key)) {
+					changes.push(`${key} = ${sequences[key]}.NEXTVAL`)
+				}
+			}
+		}
+
 		const queryString = `UPDATE ${table} `
 												+ `SET ${changes.join(', ')} `
 												+ `WHERE ${queryKey} = :${c}`
@@ -153,41 +215,17 @@ export class OracleDbClient implements ObmopBaseClient {
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
 		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValue}.`)
 
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :1`,
+					binds 			= [] as Array<any>
 
-		await this.queryInternal(rc, queryString)
+		binds.push(queryValue)
+
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS
 ------------------------------------------------------------------------------*/
-	
-	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<oracledb.Result<any>> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'queryInternal', queryString)
-
-    if(!this.initialized) await this.init(rc)
-    
-    const connection = await this.clientPool.getConnection()
-
-		try {
-			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
-
-        connection.execute(queryString, (err : oracledb.DBError, result : oracledb.Result<any>) => {
-          if(err) reject(err)
-          resolve(result)
-        })
-			})
-			
-			return result
-		} catch(e) {
-
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
-			throw new Mubble.uError(DB_ERROR_CODE, e.message)
-		} finally {
-			await connection.close()
-		}
-	}
 
 	private async bindsQuery(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters) {
 
@@ -209,6 +247,32 @@ export class OracleDbClient implements ObmopBaseClient {
 			
 			return result
 		} catch(e) {
+
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
+			throw new Mubble.uError(DB_ERROR_CODE, e.message)
+		} finally {
+			await connection.close()
+		}
+	}
+
+	private async bindsQueryMany(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters[]) {
+		rc.isDebug() && rc.debug(rc.getName(this), 'bindsQueryMany', queryString, binds)
+
+		if (!this.initialized) await this.init(rc)
+
+		const connection = await this.clientPool.getConnection(),
+					options 	 = {autoCommit : true}
+
+		try {
+			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
+				connection.executeMany(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
+					if (err) reject(err)
+					resolve(result)
+				})
+			})
+
+			return result
+		} catch (e) {
 
 			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
 			throw new Mubble.uError(DB_ERROR_CODE, e.message)
@@ -242,9 +306,5 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 
 		return finArr
-	}
-
-	private getConditionString(key : string, value : any, operator : string = '=') : string {
-		return `${key} ${operator} ${this.getStringValue(value)}`
 	}
 }

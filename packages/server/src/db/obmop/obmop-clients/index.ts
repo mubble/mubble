@@ -7,6 +7,5 @@
    Copyright (c) 2019 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-export * from './odbc-client'
 export * from './pg-client'
 export * from './oracledb-client'

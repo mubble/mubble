@@ -187,13 +187,13 @@ export class BottomInComponent extends InjectionParentBase implements
     this.panYMax    = document.body.clientHeight
 
     const $compCont    = this.compContainer.nativeElement,
-          compHeight   = $compCont.height(),
+          compHeight   = $compCont.clientHeight,
           headerHeight = this.header.nativeElement.getBoundingClientRect().height
 
     if (this.allowFullPage) {
       
       this.panYMin    = 0
-      $compCont.height(document.body.clientHeight - headerHeight)
+      $compCont.style.height = document.body.clientHeight - headerHeight
 
     } else {
       this.top      = document.body.clientHeight - (compHeight + headerHeight)
@@ -323,6 +323,7 @@ export class BottomInComponent extends InjectionParentBase implements
   }
 
   animateClose() {
+    this.injectedComponent.closeFromParent()
     this.router.goBack()
   }
 }   

@@ -80,8 +80,11 @@ export class DialerComponent {
           viewPortChildren  = scrollElem.children,
           rect              = viewPortChildren[1].getBoundingClientRect(),
           width             = rect.width,
-          height            = viewPortChildren[1].clientHeight
+          height            = viewPortChildren[1].clientHeight,
+          containerHeight   = scrollElem.getBoundingClientRect().height,
+          elementsVisible   = Math.round(containerHeight/height)
     
+
     this.contentHolder.nativeElement.style.height = `${height}px`
     this.contentHolder.nativeElement.style.width  = `${width}px`
     this.contentHolder.nativeElement.style.top    = this.dialerParams.highlightPos 
@@ -89,6 +92,12 @@ export class DialerComponent {
                                                     : `${height}px`
 
     const dummyHeight = scrollElem.scrollHeight - ((height * (this.dialerParams.dialerOptions.length - 1)))
+
+    if (elementsVisible < 2) {
+      this.dummyTop.nativeElement.style.display     = 'none'
+      this.dummyBottom.nativeElement.style.display  = 'none'
+      return
+    }
 
     this.dummyTop.nativeElement.style.height    = `${height}px`
     this.dummyBottom.nativeElement.style.height = `${dummyHeight}px`

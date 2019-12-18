@@ -17,11 +17,12 @@ import { Mubble }                 from '@mubble/core'
 ------------------------------------------------------------------------------*/
 
 export type ObmopFieldInfo = {
-  name       : string
-  type       : Obmop.FieldType
-  unique     : boolean
-  indexed    : boolean
-  serial     : boolean
+  name      : string
+  type      : Obmop.FieldType
+  unique    : boolean
+  indexed   : boolean
+  serial    : boolean
+  sequence ?: string
 }
 
 /*------------------------------------------------------------------------------
@@ -76,6 +77,10 @@ export class ObmopRegistry {
     return this.fields.filter((field : ObmopFieldInfo) => field.serial)
   }
 
+  getSequenceFields() : Array<ObmopFieldInfo> {
+    return this.fields.filter((field : ObmopFieldInfo) => field.sequence)
+  }
+
   getNotNullFields() : Array<ObmopFieldInfo> {
     return this.fields.filter((field : ObmopFieldInfo) => field.type != Obmop.FieldType.OPTIONAL)
   }
@@ -117,16 +122,18 @@ export class ObmopRegistryManager {
                          fieldType  : Obmop.FieldType,
                          unique     : boolean,
                          indexed    : boolean,
-                         serial     : boolean) {
+                         serial     : boolean,
+                         sequence  ?: string) {
 
     const registry  : ObmopRegistry  = this.getRegistry(entity),
           fieldInfo : ObmopFieldInfo = {
-                                            name       : fieldName,
-                                            type       : fieldType,
-                                            unique     : unique,
-                                            indexed    : indexed,
-                                            serial     : serial
-                                          }
+                                         name    : fieldName,
+                                         type    : fieldType,
+                                         unique,
+                                         indexed,
+                                         serial,
+                                         sequence 
+                                       }
 
     registry.addField(fieldInfo)
   }
