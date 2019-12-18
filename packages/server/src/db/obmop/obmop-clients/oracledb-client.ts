@@ -12,6 +12,7 @@ import { ObmopBaseClient }      from '../obmop-base'
 import { DB_ERROR_CODE }        from '../obmop-util'
 import { Mubble }	              from '@mubble/core'
 import * as oracledb            from 'oracledb'
+import { format } from 'util'
 
 /*------------------------------------------------------------------------------
    OracleDb Config
@@ -113,7 +114,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		return this.convertResultArray(result)
 	}
 
-	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) {
+	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>, sequences ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting into table, ' + table + '.', entity)
 
@@ -124,16 +125,61 @@ export class OracleDbClient implements ObmopBaseClient {
 			values.push(`:${key}`)
 		}
 
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			values.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))
+		}
+
 		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${values.join(', ')})`
 					
 		await this.bindsQuery(rc, queryString, entity)
 	}
 
-	public async update(rc 				 : RunContextServer,
-											table 		 : string,
-											updates    : Mubble.uObject<any>,
-											queryKey   : string,
-											queryValue : any) {
+	public async mInsert(rc : RunContextServer, table : string, entities : Mubble.uObject<any>[], sequences ?: Mubble.uObject<string>) {
+		
+		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting multiple rows into table, ' + table + '.' + entities)
+
+		const binds 		: Array<any>		= [],
+					keys			: Array<string>	= Object.keys(entities[0]),
+					bindsKeys : Array<string> = keys.map(key => `:${key}`)
+
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			bindsKeys.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))
+		}
+
+		for (const entity of entities) {
+
+			const bind : any = {}
+
+			for (const key in entity) {
+				if (entity.hasOwnProperty(key)) {
+					bind[key] = entity[key]
+				}
+			}
+
+			binds.push(bind)
+		}
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')})`
+												+ `values (${bindsKeys.join(', ')})`
+
+		this.bindsQueryMany(rc, queryString, binds)
+
+	}
+
+	public async update(rc 				  : RunContextServer,
+											table 		  : string,
+											updates     : Mubble.uObject<any>,
+											queryKey    : string,
+											queryValue  : any, 
+											sequences  ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this),
 														 `Updating ${table} with updates : ${updates} for ${queryKey} : ${queryValue}.`)
@@ -147,6 +193,14 @@ export class OracleDbClient implements ObmopBaseClient {
 		for(const key of updateKeys) {
 			changes.push(`${key} = :${c++}`)
 			binds.push(updates[key])
+		}
+
+		if(sequences) {
+			for (const key in sequences) {
+				if (sequences.hasOwnProperty(key)) {
+					changes.push(`${key} = ${sequences[key]}.NEXTVAL`)
+				}
+			}
 		}
 
 		const queryString = `UPDATE ${table} `
@@ -199,6 +253,40 @@ export class OracleDbClient implements ObmopBaseClient {
 		} finally {
 			await connection.close()
 		}
+	}
+
+	private async bindsQueryMany(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters[]) {
+		rc.isDebug() && rc.debug(rc.getName(this), 'bindsQueryMany', queryString, binds)
+
+		if (!this.initialized) await this.init(rc)
+
+		const connection = await this.clientPool.getConnection(),
+					options 	 = {autoCommit : true}
+
+		try {
+			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
+				connection.executeMany(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
+					if (err) reject(err)
+					resolve(result)
+				})
+			})
+
+			return result
+		} catch (e) {
+
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
+			throw new Mubble.uError(DB_ERROR_CODE, e.message)
+		} finally {
+			await connection.close()
+		}
+	}
+
+	private getStringValue(value : any) : string {
+		if(value instanceof Date) {
+			return `'${format(value, DATE_FORMAT_STRING)}'`
+		}
+
+		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
 	}
 
 	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
