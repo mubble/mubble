@@ -38,7 +38,8 @@ import { NcMaxLengthDirective,
          NcStyleClassDirective,
          NextInpFocusDirective,
          AdjustElementsDirective,
-         NcFallbackCharDirective
+         NcFallbackCharDirective,
+         KeyboardDirective
        }                                    from './directives'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
@@ -91,6 +92,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     InputContainerComponent,
     MuDataTableComponent,
     DialerComponent,
+    FileUploadComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -99,10 +101,10 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     NextInpFocusDirective,
     AdjustElementsDirective,
     NcFallbackCharDirective,
+    KeyboardDirective,
   
     TranslatePipe,
   
-    FileUploadComponent
   ],
 
   entryComponents : [
@@ -134,6 +136,7 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     NextInpFocusDirective,
     AdjustElementsDirective,
     NcFallbackCharDirective,
+    KeyboardDirective,
 
     TranslatePipe,
     
