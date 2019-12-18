@@ -29,10 +29,11 @@ import * as urlModule           from 'url'
 
 const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro seconds
       REQUEST_EXPIRY_SECS = 30 * 60,                  // 30 minutes in seconds
-      PIPE_SEP            = ' | ',
-      SLASH_SEP           = '/'
+      PIPE_SEP            = ' | '
 
 export namespace ObopayHttpsClient {
+
+  export const OBOPAY_STR = 'obopay'
 
   const CLASS_NAME = 'ObopayHttpsClient',
         POST       = 'POST'
@@ -43,13 +44,9 @@ export namespace ObopayHttpsClient {
       requestMem         : RedisWrapper
 
   export type ResultStruct = {
-    // error   : null | Error        = null
-    // headers : Mubble.uObject<any>
-    // status  : number
-    // output  : Mubble.uObject<any>
-    
-    error : null   | string
-    data  : number | string | Mubble.uObject<any>
+    error     : null   | string
+    data      : number | string | Mubble.uObject<any>
+    errorObj ?: Mubble.uObject<any>
   }
 
   export function init(rc           : RunContextServer,
@@ -323,13 +320,13 @@ export namespace ObopayHttpsClient {
                                           unsecured   ?: boolean) : string {
 
     const encProvider    = getEncProvider(),
-          requestPath    = encProvider.encodeThirdPartyRequestPath(credentials.syncHash, apiParams),
+          requestPath    = encProvider.encodeThirdPartyRequestPath(apiParams),
           encRequestPath = encodeURIComponent(requestPath),
           urlObj         = {
                              protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
                              hostname : credentials.host,
                              port     : credentials.port,
-                             pathname : SLASH_SEP + apiName + SLASH_SEP + encRequestPath
+                             pathname : `/${OBOPAY_STR}/${apiName}/${encRequestPath}`
                            },
           url            = urlModule.format(urlObj)
 

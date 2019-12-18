@@ -14,11 +14,12 @@ import {
          Protocol,
          HTTP,
          Mubble,
-         WireRequest
+         WireRequest,
+         CustomData
        }                      from '@mubble/core'
+import { ObopayHttpsClient }  from './obopay-https-client'
 import { RunContextServer }   from '../rc-server'
 import { XmnRouterServer }    from './xmn-router-server'
-import { ObopayHttpsClient }  from './obopay-https-client'
 import { UStream }            from '../util'
 import * as http              from 'http'
 import * as urlModule         from 'url'
@@ -43,13 +44,20 @@ export class HttpsThirdServer {
 
     const rc = this.refRc.copyConstruct('', 'https-request')
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Recieved third party https request.', req.url)
+    rc.isStatus() && rc.status(rc.getName(this), 'Received third party https request.', req.url)
 
     const urlObj         = urlModule.parse(req.url || ''),
           pathName       = urlObj.pathname || '',
           ar             = (pathName.startsWith('/') ? pathName.substr(1) : pathName).split('/'),
-          apiName        = ar[0],
-          encRequestPath = ar[1]
+          obopayStr      = ar[0],
+          apiName        = ar[1],
+          encRequestPath = ar[2]
+
+    if(obopayStr !== ObopayHttpsClient.OBOPAY_STR) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Ending request with 404 response.')
+      this.endRequestWithNotFound(res)
+      return
+    }
 
     const ci             = {} as ConnectionInfo,
           [host, port]   = (req.headers.host || '').split(':')
@@ -60,16 +68,13 @@ export class HttpsThirdServer {
     ci.url               = req.url || ''
     ci.headers           = req.headers
     ci.ip                = this.router.getIp(req)
+    ci.customData        = {} as CustomData
 
     try {
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
-      res.writeHead(404, {
-        [HTTP.HeaderKey.contentLength] : 0,
-        connection                     : 'close' 
-      })
-
-      res.end()
+      rc.isWarn() && rc.warn(rc.getName(this), 'Ending request with 404 response.', err)
+      this.endRequestWithNotFound(res)
       return
     }
 
@@ -110,6 +115,15 @@ export class HttpsThirdServer {
       }
     }
   }
+
+  private endRequestWithNotFound(res : http.ServerResponse) {
+    res.writeHead(404, {
+      [HTTP.HeaderKey.contentLength] : 0,
+      connection                     : 'close' 
+    })
+
+    res.end()
+  }
 }
 
 /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -117,6 +131,9 @@ export class HttpsThirdServer {
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 
 export class HttpsThirdServerProvider implements XmnProvider {
+
+  private responseHeaders : http.OutgoingHttpHeaders = {}
+  private finished        : boolean                  = false
 
   constructor(private refRc       : RunContextServer,
               private router      : XmnRouterServer,
@@ -136,9 +153,11 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     let extraParams = {}
     
+    rc.isDebug() && rc.debug(rc.getName(this), 'Request method.', this.req.method)
+
     switch (this.req.method) {
       case GET  :
-        extraParams = querystring.parse(query)
+        extraParams = this.parseQuery(rc, query)
         break
 
       case POST :
@@ -156,9 +175,15 @@ export class HttpsThirdServerProvider implements XmnProvider {
   }
 
   send(rc : RunContextServer, data : any) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'sending', data)
 
-    this.res.writeHead(200)
+    if(this.finished) {
+      rc.isWarn() && rc.warn(rc.getName(this), `Request already processed.`)
+      return
+    }
+
+    rc.isStatus() && rc.status(rc.getName(this), 'sending', data)
+
+    this.res.writeHead(200, this.responseHeaders)
 
     if(!(data instanceof Buffer) || typeof data != 'string')
       data = Buffer.from(JSON.stringify(data))
@@ -168,6 +193,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     uStream.write(data)
 
+    this.finished = true
     this.server.markFinished(this)
     // this.router.providerClosed(rc, this.ci)
   }
@@ -183,7 +209,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
     
     switch (headers[HTTP.HeaderKey.contentType]) {
       case HTTP.HeaderValue.form :
-        return querystring.parse(data)
+        return this.parseQuery(rc, data)
 
       default                    :
         try {
@@ -205,5 +231,29 @@ export class HttpsThirdServerProvider implements XmnProvider {
     rc.isDebug() && rc.debug(rc.getName(this), 'Final api params.', apiParams)
 
     return apiParams
+  }
+
+  private parseQuery(rc : RunContextServer, query : string) : Mubble.uObject<any> {
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Parsing query.', query)
+
+    const obj      = querystring.parse(query),
+          keywords = {
+                       true  : true,
+                       false : false,
+                       ''    : undefined
+                     } as Mubble.uObject<any>
+
+    for(const key of Object.keys(obj)) {
+      const value = obj[key] as string
+
+      if(value in keywords) {
+        obj[key] = keywords[value]
+      }
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Query parsed.', query, obj)
+
+    return obj
   }
 }
