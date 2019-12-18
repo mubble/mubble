@@ -186,6 +186,7 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
     if (getIntent().extras != null) intent.putExtras(getIntent().extras!!)
     intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
     intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
     startActivity(intent)
   }
 

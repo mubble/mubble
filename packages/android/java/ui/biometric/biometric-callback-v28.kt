@@ -10,11 +10,12 @@ import xmn.EncProviderAndroid
 @RequiresApi(api = Build.VERSION_CODES.P)
 class BiometricCallbackV28(private val challenge: String,
                            private val biometricCallback: BiometricCallback):
+
     BiometricPrompt.AuthenticationCallback(), MubbleLogger {
 
-  override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+  override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult?) {
     super.onAuthenticationSucceeded(result)
-    biometricCallback.onAuthenticationSuccessful(challenge, result.cryptoObject!!.cipher!!)
+    biometricCallback.onAuthenticationSuccessful(challenge, result!!.cryptoObject)
   }
 
   override fun onAuthenticationHelp(helpCode: Int, helpString: CharSequence) {
@@ -29,6 +30,6 @@ class BiometricCallbackV28(private val challenge: String,
 
   override fun onAuthenticationFailed() {
     super.onAuthenticationFailed()
-    biometricCallback.onAuthenticationFailed()
+    biometricCallback.onAuthenticationFailed(false)
   }
 }

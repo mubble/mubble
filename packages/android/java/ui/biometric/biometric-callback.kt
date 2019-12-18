@@ -1,6 +1,7 @@
 package ui.biometric
 
-import javax.crypto.Cipher
+import android.hardware.biometrics.BiometricPrompt
+import androidx.core.hardware.fingerprint.FingerprintManagerCompat
 
 interface BiometricCallback {
 
@@ -15,11 +16,13 @@ interface BiometricCallback {
   fun onBiometricAuthenticationInternalError(error: String)
 
 
-  fun onAuthenticationFailed()
+  fun onAuthenticationFailed(reset: Boolean)
 
   fun onAuthenticationCancelled()
 
-  fun onAuthenticationSuccessful(challenge: String, cipher: Cipher)
+  fun onAuthenticationSuccessful(challenge: String, cryptoObject: BiometricPrompt.CryptoObject)
+
+  fun onAuthenticationSuccessful(challenge: String, cryptoObject: FingerprintManagerCompat.CryptoObject)
 
   fun onAuthenticationHelp(helpCode: Int, helpString: CharSequence)
 
