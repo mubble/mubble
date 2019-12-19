@@ -18,5 +18,7 @@ export const ObmopErrorMessage = {
   PK_UPDATE       : 'Trying to update primary key in an entity.',
   NOT_NULL_INSERT : 'Trying to insert entity with not null field as null or empty.',
   SERIAL_INSERT   : 'Trying to insert a serialized field.',
-  SERIAL_UPDATE   : 'Trying to update a serialized field.'
+  SEQUENCE_INSERT : 'Trying to insert a sequence field.',
+  SERIAL_UPDATE   : 'Trying to update a serialized field.',
+  SEQUENCE_UPDATE : 'Trying to update a sequence field.'
 }

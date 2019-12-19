@@ -2,7 +2,7 @@
   [ngClass.xl]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
   [ngClass.lg]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
   [ngClass.md]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'"
-  [ngClass.sm]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" mweb>
+  [ngClass.sm]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" mweb #parent>
 
   <div class="filter-subtitle txt-xl-med-dark primary-bg-light">
     {{ 'mu_fltr_sub_titl' | translate }}
@@ -24,6 +24,7 @@
           [inputParams]="fItem.params"
           [screen]="screen"
           [webMode]="webMode"
+          [parentCont]="parent"
           (value)="setFilterItems($event)"
           #inputCont>
         </input-container>

@@ -17,7 +17,8 @@ import { Component,
          ViewChild,
          OnChanges,
          ViewChildren,
-         QueryList
+         QueryList,
+         ElementRef
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -93,6 +94,7 @@ export interface InputParams {
   isPassword      ?: boolean
   validators      ?: ValidatorsParams
   isRequired      ?: boolean
+  isDisabled      ?: boolean
 }
 
 @Component({
@@ -112,6 +114,7 @@ export class InputContainerComponent implements OnChanges {
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
   @Input()  webMode         : boolean
+  @Input()  parentCont      : ElementRef
   @Input()  eventPropagate  : boolean               = false
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
   @Output() dropdownOpen    : EventEmitter<boolean> = new EventEmitter<boolean>()
@@ -407,10 +410,16 @@ export class InputContainerComponent implements OnChanges {
         })
         break
     }
+
+    this.setDisabled(params.isDisabled)
   }
 
   private filterOptions(inputText : string): SelectionBoxParams[] {
     const filterValue = inputText.toLowerCase()
     return this.inputParams.options.filter(option => option.value.toLowerCase().includes(filterValue))
+  }
+
+  private setDisabled(value : boolean) {
+    value ? this.inputForm.disable() : this.inputForm.enable()
   }
 }

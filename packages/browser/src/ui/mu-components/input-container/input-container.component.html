@@ -25,6 +25,7 @@
           textSecurity="inputParams.isPassword"
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
+          [keyboard]="parentCont"
           required>
       </div>
   
@@ -45,6 +46,7 @@
           textSecurity="inputParams.isPassword"
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
+          [keyboard]="parentCont"
           required>
         </textarea> 
       </div>
@@ -108,7 +110,8 @@
           [matDatepicker]="picker" 
           (dateChange)="setDate($event)"
           placeholder="{{inputParams.placeHolder}}"
-          class="txt-lg-med-norm input-cont">
+          class="txt-lg-med-norm input-cont"
+          [keyboard]="parentCont">
         <mat-datepicker-toggle matSuffix [for]="picker" disableRipple="false"></mat-datepicker-toggle>
         <mat-datepicker touchUi #picker></mat-datepicker>
       </div>
@@ -122,7 +125,8 @@
             [matDatepicker]="startPicker" 
             (dateChange)="setDateRange($event)"
             placeholder="{{inputParams.placeHolder[0]}}"
-            class="txt-lg-med-norm input-cont">
+            class="txt-lg-med-norm input-cont"
+            [keyboard]="parentCont">
           <mat-datepicker-toggle matSuffix [for]="startPicker" disableRipple="false"></mat-datepicker-toggle>
           <mat-datepicker touchUi #startPicker></mat-datepicker>
         </div>
@@ -133,7 +137,8 @@
             [matDatepicker]="endPicker" 
             (dateChange)="setDateRange($event)"
             placeholder="{{inputParams.placeHolder[1]}}"
-            class="txt-lg-med-norm input-cont">
+            class="txt-lg-med-norm input-cont"
+            [keyboard]="parentCont">
           <mat-datepicker-toggle matSuffix [for]="endPicker" disableRipple="false"></mat-datepicker-toggle>
           <mat-datepicker touchUi #endPicker></mat-datepicker>
         </div>
@@ -153,6 +158,7 @@
             textSecurity="inputParams.isPassword"
             [class.num-password-input]="inputParams.isPassword"
             autocomplete="off"
+            [keyboard]="parentCont"
             required>
         </div>
     
@@ -167,6 +173,7 @@
             textSecurity="inputParams.isPassword"
             [class.num-password-input]="inputParams.isPassword"
             autocomplete="off"
+            [keyboard]="parentCont"
             required>
         </div>
       </div>
@@ -179,7 +186,8 @@
           class="txt-lg-med-norm input-cont" 
           placeholder="{{inputParams.placeHolder}}"
           [formControl]="inputForm"
-          [matAutocomplete]="auto">
+          [matAutocomplete]="auto"
+          [keyboard]="parentCont">
 
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
           (optionSelected)="setAutocompleteValue($event)"
@@ -227,7 +235,8 @@
             (updatedValue)="inputForm.setValue($event)"
             textSecurity="inputParams.isPassword"
             [class.num-password-input]="inputParams.isPassword"
-            autocomplete="off">
+            autocomplete="off"
+            [keyboard]="parentCont">
         </div>
 
       </div>  

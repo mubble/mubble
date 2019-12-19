@@ -39,15 +39,16 @@ export namespace Obmop {
    *  Annotation to mark a obmop model field.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function field(type    : FieldType = FieldType.OPTIONAL,
-                        unique  : boolean   = false,
-                        indexed : boolean   = false,
-                        serial  : boolean   = false) {
+  export function field(type      : FieldType = FieldType.OPTIONAL,
+                        unique    : boolean   = false,
+                        indexed   : boolean   = false,
+                        serial    : boolean   = false,
+                        sequence ?: string) {
 
     return function(target : any , propertyKey : string) {
       const table : string  = target.constructor.name.toLowerCase()
 
-      ObmopRegistryManager.addField(table, propertyKey, type, unique, indexed, serial)
+      ObmopRegistryManager.addField(table, propertyKey, type, unique, indexed, serial, sequence)
     }
   }
 
@@ -55,11 +56,12 @@ export namespace Obmop {
    *  Annotation to mark a obmop model primary key.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function primaryKey(serial : boolean = false) {
+  export function primaryKey(serial : boolean = false, sequence ?: string) {
     return function(target : any , propertyKey : string) {
       const table = target.constructor.name.toLowerCase()
 
-      ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, true, true, serial)
+      ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, true,
+                                    true, serial, sequence)
     }
   }
 }
@@ -140,7 +142,15 @@ export interface ObmopBaseClient {
    * @param table Table or entity name.
    * @param entity Entity (row) to be inserted in object form.
    */
-  insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) : Promise<void>
+  insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>, sequences ?: Mubble.uObject<string>) : Promise<void>
+
+  /**
+   * Inserts multiple entries (rows) in the given table.
+   * @param rc RunContext, used for logging.
+   * @param table Table or entity name.
+   * @param entities Entities (rows) to be inserted in object form.
+   */
+  mInsert?(rc : RunContextServer, table : string, entities : Array<Mubble.uObject<any>>, sequences ?: Mubble.uObject<string>) : Promise<void>
 
   /**
    * Updates all entries (rows) of the given table for <queryKey> = <queryValue>.
@@ -151,7 +161,7 @@ export interface ObmopBaseClient {
    * @param queryValue Value of that field.
    */
   update(rc : RunContextServer, table : string, updates : Mubble.uObject<any>,
-         queryKey : string, queryValue : any) : Promise<void>
+         queryKey : string, queryValue : any, sequences ?: Mubble.uObject<string>) : Promise<void>
 
   /**
    * Deletes all entries (rows) of the given table for <queryKey> = <queryValue>.
