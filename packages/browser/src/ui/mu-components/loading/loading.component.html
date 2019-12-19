@@ -1,10 +1,10 @@
 <div class="loading-comp">
 
   <div class="mu-loading-root" [ngClass]="customClass || 'bg-white'"
-    [ngClass.xl]="['web-mu-content-div']"
-    [ngClass.lg]="['web-mu-content-div']"
-    [ngClass.md]="['web-mu-content-div']"
-    [ngClass.sm]="['web-mu-content-div']">
+    [ngClass.xl]="['web-mu-content-div', customClass || 'bg-white']"
+    [ngClass.lg]="['web-mu-content-div', customClass || 'bg-white']"
+    [ngClass.md]="['web-mu-content-div', customClass || 'bg-white']"
+    [ngClass.sm]="['web-mu-content-div', customClass || 'bg-white']">
 
     <div class="loading-cont">
 

@@ -6,13 +6,22 @@ import { Component,
          ElementRef,
          NgZone,
          ViewChild,
+         HostListener,
          Renderer2
        }                            from '@angular/core'
 import { RunContextApp }            from 'framework'
 import { TrackableScreen }          from '@mubble/browser'
-import debounce                     from 'lodash/debounce'
+import { Nail, 
+         NailInterface 
+       }                              from '../../nail'
+import { MultiStepValue, 
+         DomHelper 
+       }                            from '@mubble/browser/util'
+       
 
-const SCROLL_DELAY  = 250
+const ANIM_TRANSITION   = 600
+const KEY_ANIM_TRANS    = 200
+const EVENT_TIME_TAKEN  = 250   
 
 export interface DialerOptions  {
   id         : string | number
@@ -39,12 +48,14 @@ export interface DialerParams {
   styleUrls   : ['./dialer.component.scss']
 })
 
-export class DialerComponent {
+export class DialerComponent implements NailInterface {
+
+  @HostListener('keydown', ['$event']) onHostKeyup(event : KeyboardEvent) {
+    this.onKeyDown(event)
+  }
   
   @ViewChild('scrollCont',    { static: true }) scrollCont    : ElementRef
   @ViewChild('contentHolder', { static: true }) contentHolder : ElementRef
-  @ViewChild('dummyBottom',   { static: true }) dummyBottom   : ElementRef
-  @ViewChild('dummyTop',      { static: true }) dummyTop      : ElementRef
 
 
   @Input() parentDiv      : ElementRef
@@ -57,18 +68,28 @@ export class DialerComponent {
   viewPortItems : DialerOptions[]
   selectedItem  : DialerOptions
 
-  private scrollActions : any
+  private nail          : Nail
+  private multiStepVal  : MultiStepValue
   private lastIndex     : number
+  private sound         : any
 
   constructor(@Inject('RunContext') protected rc  : RunContextApp,
+              private renderer                    : Renderer2,
               private ngZone                      : NgZone) { 
                 
     this.value          = new EventEmitter<DialerOptions>()
-    this.scrollActions  = debounce(this.hlNearestElem.bind(this), SCROLL_DELAY)
+    window['dialer']    = this
+
+    this.sound = new (window as any).Howl({
+      src     : ['sounds/select.mp3'],
+      volume  : 0.15
+
+    });
+    
   }
 
   ngOnInit() {
-
+    
     const slicedItems   = this.dialerParams.dialerOptions.slice(0)
     this.viewPortItems  = slicedItems
     this.selectedItem   = this.dialerParams.selectedItem || this.viewPortItems[0]
@@ -79,28 +100,19 @@ export class DialerComponent {
     const scrollElem        = this.scrollCont.nativeElement,
           viewPortChildren  = scrollElem.children,
           rect              = viewPortChildren[1].getBoundingClientRect(),
-          width             = rect.width,
-          height            = viewPortChildren[1].clientHeight,
-          containerHeight   = scrollElem.getBoundingClientRect().height,
-          elementsVisible   = Math.round(containerHeight/height)
-    
+          width             = rect.width
 
-    this.contentHolder.nativeElement.style.height = `${height}px`
+    this.contentHolder.nativeElement.style.height = `${rect.height}px`
     this.contentHolder.nativeElement.style.width  = `${width}px`
     this.contentHolder.nativeElement.style.top    = this.dialerParams.highlightPos 
-                                                    ? `(${this.dialerParams.highlightPos} * ${height})px`
-                                                    : `${height}px`
+                                                    ? `(${this.dialerParams.highlightPos} * ${rect.height})px`
+                                                    : `${rect.height}px`
+    this.scrollCont.nativeElement.style.top       = this.dialerParams.highlightPos 
+                                                    ? `(${this.dialerParams.highlightPos} * ${rect.height})px`
+                                                    : `${rect.height}px`
 
-    const dummyHeight = scrollElem.scrollHeight - ((height * (this.dialerParams.dialerOptions.length - 1)))
-
-    if (elementsVisible < 2) {
-      this.dummyTop.nativeElement.style.display     = 'none'
-      this.dummyBottom.nativeElement.style.display  = 'none'
-      return
-    }
-
-    this.dummyTop.nativeElement.style.height    = `${height}px`
-    this.dummyBottom.nativeElement.style.height = `${dummyHeight}px`
+    this.nail           = new Nail(this.rc, this.scrollCont.nativeElement, this, this.renderer, { axisX : false, axisY : true})
+    this.multiStepVal   = new MultiStepValue(0, rect.height, this.dialerParams.dialerOptions.length, false, true)
 
   }
 
@@ -111,207 +123,144 @@ export class DialerComponent {
   /*=====================================================================
                               PRIVATE
   =====================================================================*/
-  
-  private hlNearestElem(autoScroll : boolean  = true, index ?: number) {
+
+  private onKeyDown(event : KeyboardEvent) {
+
+    const scrollElem        = this.scrollCont.nativeElement,
+          viewPortChildren  = scrollElem.children,
+          rect              = viewPortChildren[1].getBoundingClientRect(),
+          lastIndex         = this.lastIndex
+          
+    if (event.which === 38) {
+      this.multiStepVal.final(rect.height, 0.2)
+    } else if (event.which === 40) {
+      this.multiStepVal.final(-rect.height, 0.2)
+    } else {
+      return
+    }
+
+    event.stopImmediatePropagation()
+    event.stopPropagation()
+    event.preventDefault()
+
+    const currentIndex  = this.multiStepVal.currentIndex
+
+    if (currentIndex === lastIndex) return
+
+    this.scrollCont.nativeElement.style.transition  = `${KEY_ANIM_TRANS}ms`
+    DomHelper.setTransform(this.scrollCont.nativeElement, 0, -this.multiStepVal.currentValue, 0)
+    this.lastIndex    = this.multiStepVal.currentIndex
+    this.selectedItem = this.dialerParams.dialerOptions[this.lastIndex]
+    // this.rc.audio.play(this.rc.audio.SELECT)
+    this.sound.play()
+    if (this.eventPropagte) this.value.emit(this.selectedItem)
+
+  }
+
+  /*=====================================================================
+                              CALLBACKS
+  =====================================================================*/
+  onPanStart() {
+    this.scrollCont.nativeElement.style.transition  = 'none'
+  }
+
+  onPanMove(event : any) {
+
+    this.ngZone.runOutsideAngular(() => {
+
+      const scrollElem        = this.scrollCont.nativeElement,
+            viewPortChildren  = scrollElem.children,
+            rect              = viewPortChildren[1].getBoundingClientRect(),
+            deltaY            = event.deltaY,
+            value             = this.multiStepVal.transition(deltaY),
+            lastIndex         = this.lastIndex
+
+      const newIndex  = Math.round(value/rect.height)
+
+      if (lastIndex !== newIndex) {
+        this.sound.play()
+        this.lastIndex  = newIndex
+      }
+
+      this.nail.requestAnimate(value)
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `onPanMove ${JSON.stringify({event, lastIndex : this.lastIndex})}`)
+
+      this.selectedItem = this.dialerParams.dialerOptions[this.lastIndex]
+
+    })
+
     
-    const scrollElem      = this.scrollCont.nativeElement,
-          scrollTop       = scrollElem.scrollTop,
-          childHeight     = scrollElem.children[1].getBoundingClientRect().height,
-          nearestElemIdx  = !autoScroll && typeof index !== undefined ? index  : Math.round(scrollTop/childHeight)
+    return true
+  }
 
+  onPanAnimate(value : number) {
     this.ngZone.run(() => {
-      
-      const dummyBottomHeight = this.dummyBottom.nativeElement.clientHeight,
-            dummyTopHeight    = this.dummyTop.nativeElement.clientHeight,
-            totalHeight       = (this.dialerParams.dialerOptions.length - nearestElemIdx) * childHeight
-
-      const currentTop = scrollElem.scrollHeight - dummyBottomHeight - dummyTopHeight - totalHeight
-      scrollElem.scrollTop  = currentTop
-      
-      if (this.eventPropagte) this.value.emit(this.dialerParams.dialerOptions[nearestElemIdx])
+      DomHelper.setTransform(this.scrollCont.nativeElement, 0, -value, 0) 
     })
   }
 
-  // public updateItems() {
+  onPanEnd(event : any) {
 
-  //   const scrollElem        = this.scrollCont.nativeElement,
-  //         scrollTop         = scrollElem.scrollTop,
-  //         childHeight       = scrollElem.children[0].getBoundingClientRect().height,
-  //         totalDialers      = this.dialerParams.dialerOptions.length
-
-  //   let elementsScrolled  = Math.floor(scrollTop/childHeight)
-
-  //   const scrollingUp = scrollTop > this.lastScrollPos
-    
-  //   console.log({elementsScrolled})
-
-  //   if (scrollingUp) {
-
-  //     if (elementsScrolled >= totalDialers) {
-  //       elementsScrolled  = elementsScrolled % totalDialers
-  //     }
-  
-  //     if (elementsScrolled !== this.previousEndIdx) {
-
-  //       const diff =  elementsScrolled - this.previousEndIdx
-
-  //       if (diff > 1) {
-  //         const missedItems : DialerOptions[] = []
-  //         for (let i = this.previousEndIdx ; i < elementsScrolled; i++) {
-  //           missedItems.push(this.dialerParams.dialerOptions[i])
-  //         }
-  //       } else {
-  //         const items = this.dialerParams.dialerOptions.slice(elementsScrolled, elementsScrolled + 1)
-  //         this.viewPortItems.push(...items)
-  //       }
-       
-  //       console.log({diff, previousEndIdx : this.previousEndIdx})
-
-  //       this.previousEndIdx = elementsScrolled
-        
-  //     }
+    this.ngZone.runOutsideAngular(() => {
       
-  //   } else {
-  //     console.log('scrolling down')
-  //     if (elementsScrolled > this.dialerParams.dialerOptions.length) return
+      const deltaY            = event.deltaY,
+            scrollElem        = this.scrollCont.nativeElement,
+            viewPortChildren  = scrollElem.children,
+            rect              = viewPortChildren[1].getBoundingClientRect(),
+            value             = this.multiStepVal.transition(deltaY)
+   
+      const currentIndex  = this.multiStepVal.currentIndex
 
-  //     if (elementsScrolled >= totalDialers) {
-  //       elementsScrolled  = elementsScrolled % totalDialers
-  //     }
+      this.multiStepVal.final(deltaY, event.speed, event.quickRatio)
 
-  //     const totalSctollPos  = childHeight * this.dialerParams.dialerOptions.length
+      const latestIndex = this.multiStepVal.currentIndex
+      const newIndex  = Math.round(value/rect.height)
 
-  //     elementsScrolled = totalSctollPos - scrollTop
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `onPanEnd ${JSON.stringify({event, lastIndex : this.lastIndex, newIndex, currentIndex, latestIndex})}`)
 
-  //     if (elementsScrolled !== this.prevScrollDwn) {
-  //       this.prevScrollDwn = elementsScrolled
-  //       console.log('down', {elementsScrolled})
-  //       // if (elementsScrolled)
-  //       const items = this.dialerParams.dialerOptions.slice(-elementsScrolled - 1, -elementsScrolled)
-  //       console.log('items', items)
-  //       this.viewPortItems.unshift(...items)
-  //     }
+      if (currentIndex === latestIndex) return
 
-  //   }
+      this.scrollCont.nativeElement.style.transition  = `${ANIM_TRANSITION}ms`
+      const totalDisplacement = Math.abs((event.timeTaken < EVENT_TIME_TAKEN ? currentIndex : newIndex ) - latestIndex) || 1
 
-  //   this.lastScrollPos  = scrollTop
+      this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `totalDisplacement ${JSON.stringify(totalDisplacement)}`)
 
-  // }
+      const interval  = setInterval(() => {
+        this.sound.play()
+      }, ANIM_TRANSITION/totalDisplacement)
 
-  // private updateViewPortItems() {
+      if (latestIndex >= currentIndex) {
 
-  //   const scrollElem        = this.scrollCont.nativeElement,
-  //         scrollTop         = scrollElem.scrollTop,
-  //         childHeight       = scrollElem.children[0].getBoundingClientRect().height,
-  //         containerHeight   = scrollElem.getBoundingClientRect().height,
-  //         totalDialers      = this.dialerParams.dialerOptions.length,
-  //         elementsVisible   = Math.ceil(containerHeight/childHeight)
+        for (let i = currentIndex ; i <= latestIndex; i = i + 0.25) {
+          DomHelper.setTransform(this.scrollCont.nativeElement, 0, -rect.height * i, 0)
+        }
 
-  //   let end   = this.previousEndIdx
-    
-  //   const scrollingUp       = scrollTop > this.lastScrollPos,
-  //         elementsScrolled  = Math.floor(scrollTop/childHeight),
-  //         bottomElements    = this.viewPortItems.length - elementsScrolled
+      } else {
 
-  //   console.log(scrollingUp)     
-
-  //   if (scrollingUp && elementsScrolled < 5) {
-  //     this.lastScrollPos  = scrollTop
-  //     return
-  //   }
-
-  //   if (!scrollingUp && bottomElements < 6) {
-  //     this.lastScrollPos  = scrollTop
-  //     return
-  //   }
-
-  //   // if (scrollTop === 0 && this.lastScrollPos === 0) return
-  
-  //   if (scrollingUp) {
-  //     this.previousEndIdx  += 3
-  //   } else {
-  //     this.previousEndIdx  -= 4
-  //   }
-    
-  //   if (this.previousEndIdx > totalDialers) {
-  //     this.previousEndIdx  = this.previousEndIdx % totalDialers
-  //   } 
-
-  //   if (this.previousEndIdx < -totalDialers) {
-  //     this.previousEndIdx  = (this.previousEndIdx % totalDialers)
-  //   }
-
-  //   const viewElements  = this.previousEndIdx + ( scrollingUp ? this.viewPortItems.length : this.viewPortItems.length)
-
-  //   const lastElements  : DialerOptions[] = [],
-  //         slicedItems   : DialerOptions[] = []
-
-  //   if (this.previousEndIdx < 0) {
-  //     if (viewElements < 0) {
-  //       lastElements.push(...this.dialerParams.dialerOptions.slice(this.previousEndIdx, viewElements))
-  //     } else {
-  //       lastElements.push(...this.dialerParams.dialerOptions.slice(this.previousEndIdx))
-  //     }
-  //   }
-
-  //   if (lastElements.length < 10) {
-  //     slicedItems.push(...this.dialerParams.dialerOptions.slice(Math.max(0, this.previousEndIdx), Math.max(0,viewElements)))
-  //   }
-       
-  //   console.log({viewElements, elementsScrolled, scrollTop, bottomElements})
-  //   console.log({scrollTop, lastScrollPos : this.lastScrollPos, scrollingUp : scrollTop > this.lastScrollPos, previousEndIdx : this.previousEndIdx})
-
-  
-  //   if (viewElements >= totalDialers) {
-
-  //     const diff  = viewElements % totalDialers
-  //     const initElements  = this.dialerParams.dialerOptions.slice(0, diff)
-
-  //     if (scrollingUp) {
-  //       slicedItems.push(...initElements)
-  //     } else {
-  //       slicedItems.unshift(...initElements)
-  //     }
-  //   }
-    
-  //   slicedItems.unshift(...lastElements)
-
-  //   console.log({slicedItems})
-    
-  //   this.ngZone.run(() => {
-
-  //     this.viewPortItems.push(...slicedItems)
-
-  //     if (scrollingUp) {
-  //       this.lastScrollPos  = end !== this.previousEndIdx ? (2 * childHeight) : scrollElem.scrollTop
-  //       this.selectedItem   = this.viewPortItems[3]
-  //     } else {
-  //       this.lastScrollPos  = end !== this.previousEndIdx ?  (3 * childHeight) : (scrollElem.scrollHeight - scrollElem.scrollTop)
-  //       this.selectedItem   = this.viewPortItems[7]
-  //     }
-
-  //     this.scrollActions()
-  //   })
-
-  // }
-
-  private hightlightElem() {
-
-    const scrollElem      = this.scrollCont.nativeElement,
-          scrollTop       = scrollElem.scrollTop,
-          childHeight     = scrollElem.children[1].clientHeight,
-          nearestElemIdx  = Math.round(scrollTop/childHeight)
-
-    this.ngZone.run(() => {
-
-      if (nearestElemIdx !== this.lastIndex ) {
-        this.rc.audio.play(this.rc.audio.SELECT)
-        this.lastIndex  = nearestElemIdx
+        for (let i = latestIndex; i < currentIndex; i = i + 0.25) {
+          DomHelper.setTransform(this.scrollCont.nativeElement, 0, rect.height * i, 0)
+        }
       }
 
-      this.selectedItem = this.dialerParams.dialerOptions[nearestElemIdx]
+      setTimeout(() => {
+        clearInterval(interval)
+      }, ANIM_TRANSITION)
+    
     })
 
+    this.ngZone.run(() => {
+      
+      DomHelper.setTransform(this.scrollCont.nativeElement, 0, -this.multiStepVal.currentValue, 0)
+    
+      this.lastIndex    = this.multiStepVal.currentIndex
+      this.selectedItem = this.dialerParams.dialerOptions[this.lastIndex]
+      
+      if (this.eventPropagte) this.value.emit(this.selectedItem)
+
+    })
   }
 
   /*=====================================================================
@@ -321,20 +270,30 @@ export class DialerComponent {
     this.value.emit(this.selectedItem)
   }
 
-  /*=====================================================================
-                              HTML
-  =====================================================================*/
-  refreshList() {
-    this.ngZone.runOutsideAngular(() => {
-      requestAnimationFrame(() => {
-        this.hightlightElem()
-        this.scrollActions()
-      })
-    })
-  }
-
   scrollToElem(index : number) {
-    this.hlNearestElem(false, index)
+
+    if (index === this.multiStepVal.currentIndex) return
+
+    const scrollElem        = this.scrollCont.nativeElement,
+          viewPortChildren  = scrollElem.children,
+          rect              = viewPortChildren[1].getBoundingClientRect()
+
+    if (index > this.multiStepVal.currentIndex) {
+      this.multiStepVal.final(-rect.height, 0.2)
+    } else {
+      this.multiStepVal.final(rect.height, 0.2)
+    }
+
+    this.scrollCont.nativeElement.style.transition  = `${KEY_ANIM_TRANS}ms`
+    DomHelper.setTransform(this.scrollCont.nativeElement, 0, -this.multiStepVal.currentValue, 0)
+
+    this.lastIndex    = this.multiStepVal.currentIndex
+    this.selectedItem = this.dialerParams.dialerOptions[this.lastIndex]
+
+    // this.rc.audio.play(this.rc.audio.SELECT)
+    this.sound.play()
+    if (this.eventPropagte) this.value.emit(this.selectedItem)
+
   }
 
 }

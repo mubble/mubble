@@ -1,22 +1,14 @@
 
-<div class="dialer-comp" #contentHolder></div>
+<div class="dialer-comp primary-bg" #contentHolder></div>
 
-<div class="dialer-cont" #scrollCont (scroll)="refreshList()">
+<div class="dialer-cont" #scrollCont>
 
-    <div class="dummy-value-top txt-lg-reg-norm" #dummyTop>
-    </div>
-  
-    <ng-container *ngFor="let option of viewPortItems; let i = index">
+  <ng-container *ngFor="let option of viewPortItems; let i = index">
 
-      <div class="dialer-value txt-lg-reg-norm" (click)="scrollToElem(i)">
-        {{ option.value }}
-      </div>  
-    </ng-container>
-
-    <div class="dummy-value-bottom txt-lg-reg-norm" #dummyBottom>
-      
+    <div class="dialer-value txt-lg-reg-norm" (click)="scrollToElem(i)"
+    [class.text-color-white]="selectedItem.id === option.id" tabindex="-1">
+      {{ option.value }}
     </div>  
+  </ng-container>
 
-  </div>
-
-<!-- </div>  -->
+</div>
