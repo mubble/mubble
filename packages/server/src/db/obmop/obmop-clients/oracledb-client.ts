@@ -12,7 +12,6 @@ import { ObmopBaseClient }      from '../obmop-base'
 import { DB_ERROR_CODE }        from '../obmop-util'
 import { Mubble }	              from '@mubble/core'
 import * as oracledb            from 'oracledb'
-import { format } from 'util'
 
 /*------------------------------------------------------------------------------
    OracleDb Config
