@@ -78,13 +78,16 @@ export class DialerComponent implements NailInterface {
               private ngZone                      : NgZone) { 
                 
     this.value          = new EventEmitter<DialerOptions>()
-    window['dialer']    = this
+    // window['dialer']    = this
 
-    this.sound = new (window as any).Howl({
-      src     : ['sounds/select.mp3'],
-      volume  : 0.15
+    // user howler for sound if being implemented in mobile 
+    //( https://cdnjs.cloudflare.com/ajax/libs/howler/2.1.2/howler.core.min.js)
 
-    });
+    // this.sound = new (window as any).Howl({
+    //   src     : ['sounds/select.mp3'],
+    //   volume  : 0.15
+
+    // });
     
   }
 
@@ -152,7 +155,7 @@ export class DialerComponent implements NailInterface {
     this.lastIndex    = this.multiStepVal.currentIndex
     this.selectedItem = this.dialerParams.dialerOptions[this.lastIndex]
     // this.rc.audio.play(this.rc.audio.SELECT)
-    this.sound.play()
+    if (this.sound) this.sound.play()
     if (this.eventPropagte) this.value.emit(this.selectedItem)
 
   }
@@ -178,7 +181,7 @@ export class DialerComponent implements NailInterface {
       const newIndex  = Math.round(value/rect.height)
 
       if (lastIndex !== newIndex) {
-        this.sound.play()
+        if (this.sound) this.sound.play()
         this.lastIndex  = newIndex
       }
 
@@ -229,7 +232,7 @@ export class DialerComponent implements NailInterface {
       `totalDisplacement ${JSON.stringify(totalDisplacement)}`)
 
       const interval  = setInterval(() => {
-        this.sound.play()
+        if (this.sound) this.sound.play()
       }, ANIM_TRANSITION/totalDisplacement)
 
       if (latestIndex >= currentIndex) {
@@ -291,7 +294,7 @@ export class DialerComponent implements NailInterface {
     this.selectedItem = this.dialerParams.dialerOptions[this.lastIndex]
 
     // this.rc.audio.play(this.rc.audio.SELECT)
-    this.sound.play()
+    if (this.sound) this.sound.play()
     if (this.eventPropagte) this.value.emit(this.selectedItem)
 
   }
