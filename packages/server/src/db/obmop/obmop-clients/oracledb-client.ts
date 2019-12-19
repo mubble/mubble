@@ -114,7 +114,10 @@ export class OracleDbClient implements ObmopBaseClient {
 		return this.convertResultArray(result)
 	}
 
-	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>, sequences ?: Mubble.uObject<string>) {
+	public async insert(rc				 : RunContextServer,
+											table			 : string,
+											entity		 : Mubble.uObject<any>,
+											sequences ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting into table, ' + table + '.', entity)
 
@@ -138,7 +141,10 @@ export class OracleDbClient implements ObmopBaseClient {
 		await this.bindsQuery(rc, queryString, entity)
 	}
 
-	public async mInsert(rc : RunContextServer, table : string, entities : Mubble.uObject<any>[], sequences ?: Mubble.uObject<string>) {
+	public async mInsert(rc					: RunContextServer,
+											 table 			: string,
+											 entities   : Mubble.uObject<any>[],
+											 sequences ?: Mubble.uObject<string>) {
 		
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting multiple rows into table, ' + table + '.' + entities)
 
@@ -170,8 +176,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		const queryString = `INSERT INTO ${table} (${keys.join(', ')})`
 												+ `values (${bindsKeys.join(', ')})`
 
-		this.bindsQueryMany(rc, queryString, binds)
-
+		await this.bindsQuery(rc, queryString, binds, true)
 	}
 
 	public async update(rc 				  : RunContextServer,
@@ -227,7 +232,10 @@ export class OracleDbClient implements ObmopBaseClient {
 	 PRIVATE METHODS
 ------------------------------------------------------------------------------*/
 
-	private async bindsQuery(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters) {
+	private async bindsQuery(rc					  : RunContextServer,
+													 queryString  : string,
+													 binds 			  : oracledb.BindParameters[] | oracledb.BindParameters,
+													 multiple    ?: boolean) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery', queryString, binds)
 
@@ -239,6 +247,14 @@ export class OracleDbClient implements ObmopBaseClient {
 		try {
 			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
 
+				if(multiple) {
+					connection.executeMany(queryString, binds as oracledb.BindParameters[], options,
+																 (err : oracledb.DBError, result : oracledb.Result<any>) => {
+						if (err) reject(err)
+						resolve(result)
+					})
+				}
+
 				connection.execute(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
           if(err) reject(err)
           resolve(result)
@@ -247,32 +263,6 @@ export class OracleDbClient implements ObmopBaseClient {
 			
 			return result
 		} catch(e) {
-
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
-			throw new Mubble.uError(DB_ERROR_CODE, e.message)
-		} finally {
-			await connection.close()
-		}
-	}
-
-	private async bindsQueryMany(rc : RunContextServer, queryString : string, binds : oracledb.BindParameters[]) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'bindsQueryMany', queryString, binds)
-
-		if (!this.initialized) await this.init(rc)
-
-		const connection = await this.clientPool.getConnection(),
-					options 	 = {autoCommit : true}
-
-		try {
-			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
-				connection.executeMany(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
-					if (err) reject(err)
-					resolve(result)
-				})
-			})
-
-			return result
-		} catch (e) {
 
 			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
 			throw new Mubble.uError(DB_ERROR_CODE, e.message)
