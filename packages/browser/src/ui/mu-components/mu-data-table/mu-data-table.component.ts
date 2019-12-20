@@ -3,8 +3,7 @@ import { Component,
          Input, 
          Output, 
          EventEmitter,
-         ViewChild,
-         ChangeDetectorRef
+         ViewChild
        }                           from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
@@ -17,7 +16,7 @@ export interface TableHeader {
   dataKey       : string
   colType       : COL_TYPE
   customStyle  ?: string
-  constValue   ?: string
+  constValue   ?: any
   enableFilter ?: boolean
   enableSort   ?: boolean
 }
@@ -45,7 +44,8 @@ export interface MuTableRowSelEvent {
 }
 
 export interface MuTableDetailEvent {
-  key : string
+  key     : string
+  rowData : Object
 }
 
 export interface MuTableSelectEvent {
@@ -188,10 +188,11 @@ export class MuDataTableComponent implements OnInit {
     this.onRowSelect.emit(selEvent)
   }
 
-  moreDetailsClick(detKey : string) {
+  moreDetailsClick(detKey : string, rowData : Object) {
 
     const moreSelEvent : MuTableDetailEvent = {
-      key : detKey
+      key     : detKey,
+      rowData : rowData
     }
     this.onDetailClick.emit(moreSelEvent)
   }
@@ -262,6 +263,7 @@ export class MuDataTableComponent implements OnInit {
       if (this.pageIndex > (this.pageNumbers.length - 5)) this.pageIndex = this.pageNumbers.length - 5
     }
   }
+  
   updateData(data : Object[]) {
 
     for (let i = 0; i < data.length; i++) data[i]['rowIndex'] = (i + this.currentIndex).toString()    
