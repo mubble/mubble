@@ -51,7 +51,7 @@ export class TableDataManager {
     const data : Array<Object> = tableConfig.data.slice(0, this.dispRows)
     tableConfig.data = data
 
-    this.tableInst.setTableConfig(tableConfig)
+    // this.tableInst.setTableConfig(tableConfig)
     this.updateData(params)
   }
 
@@ -105,7 +105,7 @@ export class TableDataManager {
       const data : Array<Object> = this.dataObject[dataKey]
 
       if (data.length === this.dispRows || (this.totalDataCount - this.currentKeyIndex) < this.dispRows) {
-        this.tableInst.setDisplayData(data)
+        // this.tableInst.setDisplayData(data)
         this.lastKeyIndex = Number(dataKey)
       } else {
         const index : number = this.currentKeyIndex + data.length
@@ -159,6 +159,6 @@ export class TableDataManager {
   * @param data : To select the data in the data table
   */
   setSelectableData(data : Array<Object>) {
-    this.tableInst.setSelectedItems(data)
+    // this.tableInst.setSelectedItems(data)
   }
 }

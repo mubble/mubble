@@ -218,3 +218,55 @@
     }
   }
 }
+
+
+.vertical-mode {
+  box-shadow: 0 2px 5px 0 rgba(0,0,0,0.2);
+
+ .filter-content-body {
+    max-height: none !important;
+  }
+
+  .single-filter-cont {
+    flex-direction: column !important;
+    padding: 0 10px;
+    border-bottom: 1px solid #dedede;
+  }
+
+  .checkbox {
+    padding: 5px 0 !important;
+  }
+
+  .input-title {
+    padding-top: 10px !important;
+    padding-left: 0px;
+  }
+
+  .button-primary {
+    width: 100% !important;
+    height: 1rem;
+  }
+
+  .head-cont {
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .chip-list {
+    display: flex;
+    padding: 10px 0 0;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    padding: 7px 10px;
+    background: #d8d8d8;
+    border-radius: 5px;
+    margin: 2px;
+    word-break: break-word;
+  }
+
+  .single-input-cont {
+    width: 100%;
+  }
+}

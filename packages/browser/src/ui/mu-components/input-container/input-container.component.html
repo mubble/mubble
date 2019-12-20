@@ -1,4 +1,5 @@
 <div [ngClass]="webMode ? ['web-view-input-comp'] : ['input-cont-comp']"
+  [class.vertical-mode]="displayMode === DISPLAY_MODE.VERTICAL"
   [ngClass.xl]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.lg]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"

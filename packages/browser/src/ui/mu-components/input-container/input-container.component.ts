@@ -47,6 +47,7 @@ import { map,
 import { FileUploadComponent, 
          UploadedDocParams 
        }                                  from '../file-upload/file-upload.component'
+import { DISPLAY_MODE }                   from '../filter'
 
 export enum DISPLAY_TYPE {
   ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
@@ -116,6 +117,7 @@ export class InputContainerComponent implements OnChanges {
   @Input()  webMode         : boolean
   @Input()  parentCont      : ElementRef
   @Input()  eventPropagate  : boolean               = false
+  @Input()  displayMode     : DISPLAY_MODE         
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
   @Output() dropdownOpen    : EventEmitter<boolean> = new EventEmitter<boolean>()
 
@@ -125,6 +127,7 @@ export class InputContainerComponent implements OnChanges {
   filteredOptions : Observable<SelectionBoxParams[]>
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
+  DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
 
   private fileUploadParams : UploadedDocParams
 
@@ -169,16 +172,15 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-      case DISPLAY_TYPE.RADIO               :
       case DISPLAY_TYPE.TEXT_AREA           :
       case DISPLAY_TYPE.TOGGLE              :
       case DISPLAY_TYPE.BUTTON_TOGGLE       :
-      case DISPLAY_TYPE.ROW_INPUT_BOX   :
+      case DISPLAY_TYPE.ROW_INPUT_BOX       :
         params = { 
                     id          : this.inputParams.id,
                     value       : this.inputForm.value,
                     displayType : this.inputParams.displayType
-                  }
+                 }
         break
 
       case DISPLAY_TYPE.DATE_RANGE  :
@@ -194,7 +196,7 @@ export class InputContainerComponent implements OnChanges {
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        params  = { 
+        params = { 
                     id     : this.inputParams.id,
                     value  : { 
                               minAmount : this.numberRange.controls.minAmount.value,
@@ -210,24 +212,34 @@ export class InputContainerComponent implements OnChanges {
                     value       : this.fileUploadParams,
                     displayType : this.inputParams.displayType
                   }
+        break
+
+      case DISPLAY_TYPE.RADIO :
+        params = {
+                    id          : this.inputParams.id,
+                    value       : this.inputForm.value ? this.inputForm.value['id'] : null,
+                    displayType : this.inputParams.displayType
+                 }
+        break
 
       case DISPLAY_TYPE.MULTI_CHECK_BOX :  
-        emitValue = false
-        const matCheckboxInst = this.matCheckbox.toArray()
-        matCheckboxInst.forEach((val,index) => {
 
-          this.inputForm.setValue({checked : val.checked, option : this.inputParams.options[index]})
-          params = { 
-            id          : this.inputParams.id,
-            value       : this.inputForm.value,
-            displayType : this.inputParams.displayType
-          }
-          this.value.emit(params)
+        const matCheckboxInst = this.matCheckbox.toArray()
+        let values = []
+
+        matCheckboxInst.forEach((val,index) => {
+          if (val.checked) values.push(val.value['id'])
         })
-            
+
+        params = { 
+          id          : this.inputParams.id,
+          value       : values,
+          displayType : this.inputParams.displayType
+        }
+        break  
 
     } 
-
+        
     if (emitValue) this.value.emit(params)
   }
 

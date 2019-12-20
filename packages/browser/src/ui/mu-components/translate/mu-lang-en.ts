@@ -31,5 +31,6 @@ export const LANG_EN_TRANS = {
   'mu_fltr_sub_titl'              : 'Filter By :',
   'mu_fltr_aply_fltr'             : 'Apply Filters',
   'mu_fltr_clr_fltr'              : 'Clear Filters',
-  'mu_fltr_rqrd'                  : '*'
+  'mu_fltr_rqrd'                  : '*',
+  'mu_fltr_clr_all'               : 'Clear all'
 }

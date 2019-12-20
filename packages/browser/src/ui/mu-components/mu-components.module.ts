@@ -18,7 +18,7 @@ import { MatProgressBarModule }             from '@angular/material/progress-bar
 import { MatSliderModule }                  from '@angular/material/slider'
 import { MatSlideToggleModule }             from '@angular/material/slide-toggle'
 import { MatButtonToggleModule }            from '@angular/material/button-toggle'
-
+import { MatMenuModule }                    from '@angular/material/menu'
 
 
 import { MuComponentsRoutingModule }        from './mu-components-routing.module'
@@ -56,6 +56,7 @@ import { DialerComponent }                  from './dialer/dialer.component'
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
+import { MatCardModule }                    from '@angular/material'
 
 
 @NgModule({
@@ -76,7 +77,9 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     MatSliderModule,
     MatSlideToggleModule,
     MatButtonToggleModule,
-    TableModule
+    TableModule,
+    MatMenuModule,
+    MatCardModule
   ],
 
   declarations: [
@@ -147,8 +150,8 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
     MatRadioModule,
     MatProgressBarModule,
     MatSlideToggleModule,
-    MatButtonToggleModule
-    
+    MatButtonToggleModule,
+    MatMenuModule
   ],
   providers: [
     CustomBreakPointsProvider

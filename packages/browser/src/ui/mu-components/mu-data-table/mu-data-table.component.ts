@@ -7,17 +7,19 @@ import { Component,
          ChangeDetectorRef
        }                           from '@angular/core'
 import { MatCheckboxChange, 
-         MatCheckbox 
+         MatRadioChange,
+         MatSlideToggleChange,
+         MatCheckbox
        }                           from '@angular/material'
 
 export interface TableHeader {
   header        : string
   dataKey       : string
   colType       : COL_TYPE
-  enableSort   ?: boolean
-  enableFilter ?: boolean
   customStyle  ?: string
   constValue   ?: string
+  enableFilter ?: boolean
+  enableSort   ?: boolean
 }
 
 export interface TableConfig {
@@ -42,18 +44,39 @@ export interface MuTableRowSelEvent {
   rowData  : Object
 }
 
+export interface MuTableDetailEvent {
+  key : string
+}
+
 export interface MuTableSelectEvent {
   firstIndex : number
   lastIndex  : number
 }
 
+export interface MuTableToggleEvent {
+  rowData  : Object
+  rowIndex : number
+}
+
+export interface MuTableButtonEvent {
+  rowIndex  : number
+  rowData   : Object
+  headerKey : string
+}
+
+export interface MuTableMoreDetail {
+  key   : string
+  value : string
+}
+
 export enum COL_TYPE  {
-  ICON        = 'ICON',
-  IMAGE       = 'IMAGE',
-  BUTTON      = 'BUTTON',
-  TEXT        = 'TEXT',
-  DATE        = 'DATE',
-  PRIMARY_KEY = 'PRIMARY_KEY'
+  ICON         = 'ICON',
+  IMAGE        = 'IMAGE',
+  BUTTON       = 'BUTTON',
+  TEXT         = 'TEXT',
+  DATE         = 'DATE',
+  TOGGLE       = 'TOGGLE',
+  MORE_DETAILS = 'MORE_DETAILS'
 }
 
 @Component({
@@ -64,192 +87,192 @@ export enum COL_TYPE  {
 
 export class MuDataTableComponent implements OnInit {
 
-  constructor(private changeDet : ChangeDetectorRef) {
-
-  }
-
-  @Input()  tableConfig   : TableConfig
-  @Output() onRowSelect   : EventEmitter<any>    = new EventEmitter()
-  @Output() onRowUnselect : EventEmitter<any>    = new EventEmitter()
-  @Output() loadMoreData  : EventEmitter<number> = new EventEmitter() 
-  @Output() onSelectAll   : EventEmitter<MuTableSelectEvent> = new EventEmitter()
-  @Output() onDeSelectAll : EventEmitter<MuTableSelectEvent> = new EventEmitter()
-  @Output() onCellClick   : EventEmitter<MuTableClickEvent>  = new EventEmitter() 
-
   @ViewChild('slctAllBox', {static : false}) slctAllBox : MatCheckbox
 
-  primaryKey       ?: string
-  lastIndex         : number   = 0
-  totalRecords      : number
-  filterFields      : string[] = []
-  sortFields        : string[] = []
-  headerFields      : string[] = []
-  selectedItems     : Object[] = []
-  dataToDisplay     : Object[] = []
-  enablePagination  : boolean  = true
-  loading           : boolean  = false
-  COL_TYPE          : typeof COL_TYPE = COL_TYPE  
-  selectAllMap      : Object   = {}
-  selectedItemIndex : Array<number> = []
+  @Input()  tableConfig        : TableConfig
+  @Output() onRowSelect        : EventEmitter<any>    = new EventEmitter()
+  @Output() onRowUnselect      : EventEmitter<any>    = new EventEmitter()
+  @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
+  @Output() onSelectAll        : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
+  @Output() onDeSelectAll      : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
+  @Output() onDetailClick      : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
+  @Output() onToggleActivate   : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
+  @Output() onToggleDeActivate : EventEmitter<MuTableToggleEvent>  = new EventEmitter() 
+  @Output() onButtonClick      : EventEmitter<MuTableButtonEvent>  = new EventEmitter()
 
-  showTable         : boolean  = false
+  totalRecords      : number
+  dispRows          : number 
+
+  pageIndex         : number   = 0
+  currentIndex      : number   = 0
+  currActivePage    : number   = 1
+
+  prevIndex         : number   = 0
+  prevActivePage    : number   = 1
+
+  selectedIndexes   : Object   = {}
+  selAllMap         : Object   = {}
+  dataMap           : Object   = {}
+  headerFields      : string[] = []
+  dataToDisplay     : Object[] = []
+  pageNumbers       : number[] = []
+  moreDetails       : MuTableMoreDetail[] = []
+  COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
 
   ngOnInit() {
- 
+     
     if (this.tableConfig) {
-      if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
-  
-      for (let header of this.tableConfig.headers) {
-  
-        this.headerFields.push(header.dataKey)
-        if (header.colType === COL_TYPE.PRIMARY_KEY) this.primaryKey = header.dataKey
-        if (!this.tableConfig.lazyLoad) {
-  
-          if (header.enableFilter) this.filterFields.push(header.dataKey)
-          if (header.enableSort) this.sortFields.push(header.dataKey)
-          else this.sortFields.push(null) 
-        }
-      }
-  
-      if (this.tableConfig.data) {
-  
-        this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
-        for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
-        this.dataToDisplay = this.tableConfig.data
-      }
-  
-      this.showTable      = true
-    }
-    
-  }
 
-  rowSelect(event : any) {
-    
-    const selEvent : MuTableRowSelEvent = {
-      rowData  : event.data,
-      rowIndex : this.tableConfig.lazyLoad ? event.index : event.data.rowIndex
-    }
-    this.onRowSelect.emit(selEvent)
-    if (this.tableConfig.selectedItems)
-    this.selectedItems = this.tableConfig.selectedItems
-  }
+      for (let header of this.tableConfig.headers) this.headerFields.push(header.dataKey)
+      for (const index in this.tableConfig.data)   this.tableConfig.data[index]['rowIndex'] = index
 
-  rowUnselect(event : any) {
-
-    if (this.tableConfig.enableSelect) {
+      this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
+      this.dispRows      = this.tableConfig.dispRows     || this.tableConfig.data.length
       
-      this.selectAllMap[this.lastIndex] = false
-      this.slctAllBox.checked = false
-    }
+      this.mapData(this.tableConfig.data, 0)
 
-    const selEvent : MuTableRowSelEvent = {
-      rowData  : event.data,
-      rowIndex : this.tableConfig.lazyLoad ? event.index : event.data.rowIndex
+      //Setting up the page numbers for pagination
+      let totalPages = this.totalRecords / this.dispRows
+      if (this.totalRecords % this.dispRows) totalPages++
+      for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) this.pageNumbers.push(pageNumber)  
+
     }
-    this.onRowUnselect.emit(selEvent)
-    if (this.tableConfig.selectedItems) this.selectedItems = this.tableConfig.selectedItems
   }
 
-  cellClick(rowData, headerKey) {
-
-    const obj = {
-      rowId    : this.primaryKey ? rowData[this.primaryKey] : rowData,
-      colId    : headerKey,
-      rowIndex : rowData['rowIndex']
-    }
-    this.onCellClick.emit(obj)
-  }
-
-  loadLazy(event) {
-
-    this.lastIndex          = event.first
-    if (this.tableConfig.lazyLoad) {
-      this.loadMoreData.emit(this.lastIndex)
-      return
-    }
+  rowSelect(event : MatCheckboxChange, rowData : any) {
     
-    if (!this.tableConfig.data.length) return
-    if (this.slctAllBox)
-    this.slctAllBox.checked = this.selectAllMap[this.lastIndex] || false
-    const possibleCount     = event.first + this.tableConfig.dispRows
-
-    if (this.tableConfig.data.length < possibleCount && this.tableConfig.data.length < this.tableConfig.totalRecords) {
-      this.loading = true
-      this.loadMoreData.emit(this.lastIndex)
-    } else {
-      this.dataToDisplay = Array.from(this.tableConfig.data).splice(event.first, this.tableConfig.dispRows)
-    }
-  }
-
-  updateData(data : Object[]) {
-
-    this.tableConfig.data = data
-    this.dataToDisplay    = Array.from(this.tableConfig.data).splice(this.lastIndex, this.tableConfig.dispRows)
-    for (const index in this.tableConfig.data) this.tableConfig.data[index]['rowIndex'] = index
-    this.loading          = false
-  }
-
-  markAllCheckbox(status : boolean) {
-
-    this.slctAllBox.checked = status
-    this.selectAllMap[this.lastIndex] = status
-  }
-
-  selectAllRows(event : MatCheckboxChange) {
-
-    if (this.tableConfig.selectedItems) {
-
-      if (event.checked) {
-        this.onSelectAll.emit({firstIndex : this.lastIndex, lastIndex : this.lastIndex + this.tableConfig.dispRows})
-      } else {
-        this.onDeSelectAll.emit({firstIndex : this.lastIndex, lastIndex : this.lastIndex + this.tableConfig.dispRows})
-      }
-
-      this.selectedItems = this.tableConfig.selectedItems
-      return
-    } 
+    const selectedIndex = rowData['rowIndex']
 
     if (event.checked) {
-
-      this.selectAllMap[this.lastIndex] = true
-      this.selectedItemIndex.push(this.lastIndex)
-      this.selectedItems = this.selectedItems.concat(Array.from(this.tableConfig.data).splice(this.lastIndex, this.tableConfig.dispRows))
-      this.onSelectAll.emit({firstIndex : this.lastIndex, lastIndex : this.lastIndex + this.tableConfig.dispRows})
+      this.selectedIndexes[selectedIndex] = true
+      const selEvent : MuTableRowSelEvent = {
+        rowData  : rowData,
+        rowIndex : selectedIndex
+      }
+      this.onRowSelect.emit(selEvent)
     } else {
 
-      this.selectAllMap[this.lastIndex] = false
-      this.onDeSelectAll.emit({firstIndex : this.lastIndex, lastIndex : this.lastIndex + this.tableConfig.dispRows})
-      const startIndex = this.selectedItemIndex.indexOf(this.lastIndex) * this.tableConfig.dispRows
-      this.selectedItemIndex.splice(this.selectedItemIndex.indexOf(this.lastIndex), 1)
-      this.selectedItems.splice(startIndex, this.tableConfig.dispRows)
-      this.selectedItems = Array.from(this.selectedItems)
-    }
-
+      const selEvent : MuTableRowSelEvent = {
+        rowData  : rowData,
+        rowIndex : selectedIndex
+      }
+      
+      this.slctAllBox.checked = false
+      this.selAllMap[this.currActivePage]  = false
+      this.selectedIndexes[selectedIndex] = false
+      this.onRowUnselect.emit(selEvent)
+    }    
   }
 
-  setTableConfig(config : TableConfig) {
-    this.tableConfig    = config
-    this.dataToDisplay  = this.tableConfig.data
-    this.showTable      = true
-    for (let header of this.tableConfig.headers) {
+  selectAll(event : MatCheckboxChange) {
+        
+    this.slctAllBox.checked = event.checked
+    this.selAllMap[this.currActivePage] = event.checked 
+    
+    for (let index = this.currentIndex; index < (this.currentIndex + this.dispRows); index++)
+      this.selectedIndexes[index] = event.checked
+    
+    if (event.checked) this.onSelectAll.emit()
+    else this.onDeSelectAll.emit()
+  }
+
+  radioSelect(event : MatRadioChange, rowData : Object) {
+
+    this.selectedIndexes = []
+    const selectedIndex  = rowData['rowIndex']
+    this.selectedIndexes[selectedIndex] = true
+    const selEvent : MuTableRowSelEvent = {
+      rowData  : rowData,
+      rowIndex : selectedIndex
+    }
+    this.onRowSelect.emit(selEvent)
+  }
+
+  moreDetailsClick(detKey : string) {
+
+    const moreSelEvent : MuTableDetailEvent = {
+      key : detKey
+    }
+    this.onDetailClick.emit(moreSelEvent)
+  }
+
+  toggleRow(event : MatSlideToggleChange, rowData : Object) {
+
+    const toggleEvent : MuTableToggleEvent = {
+      rowData  : rowData,
+      rowIndex : rowData['rowIndex']
+    }
+    if (event.checked) this.onToggleActivate.emit(toggleEvent)
+    else this.onToggleDeActivate.emit(toggleEvent)
+  }
+
+  buttonClick(rowData : Object, headerKey : string) {
+
+    const buttonEvent : MuTableButtonEvent = {
+      headerKey : headerKey,
+      rowData   : rowData,
+      rowIndex  : rowData['rowIndex']
+    }
+    this.onButtonClick.emit(buttonEvent)
+  }
+
+  mapData(data : Array<Object>, startIndex : number) {
+    
+    const dataSetCount = Math.ceil(data.length/this.dispRows)
+
+    for (let i = 0; i < dataSetCount; i++) {
+     
+      const mapData = data.splice(0, this.dispRows),
+            mapKey  = startIndex + (i* this.dispRows)
+
+      if (mapData.length === this.dispRows 
+          || !this.tableConfig.lazyLoad 
+          || (this.tableConfig.lazyLoad && this.tableConfig.totalRecords < (mapKey + this.dispRows))) 
+        this.dataMap[mapKey] = mapData 
+    } 
+    
+    this.dataToDisplay = this.dataMap[startIndex] 
+  }
+
+  onPageClick(pageIndex : number) {
+    
+    this.prevActivePage = this.currActivePage
+    this.prevIndex      = this.currentIndex
+    this.currActivePage = pageIndex   
+    if (this.slctAllBox)
+    this.slctAllBox.checked = this.selAllMap[this.currActivePage] || false
   
-      this.headerFields.push(header.dataKey)
-      if (header.enableFilter) this.filterFields.push(header.dataKey)
-      if (header.enableSort) this.sortFields.push(header.dataKey)
-      else this.sortFields.push(null) 
+    this.currentIndex  = (pageIndex - 1) * this.dispRows
+
+    //Handling page numbers change
+    this.changePageNumbers(pageIndex)
+        
+    //Handling data change
+    if (this.dataMap[this.currentIndex]) {
+      this.dataToDisplay = this.dataMap[this.currentIndex]
+    } else {
+      this.loadMoreData.emit(this.currentIndex + 1)
+    } 
+  }  
+
+  private changePageNumbers(pageIndex : number) {
+    if (this.pageNumbers.length > 5) {
+      this.pageIndex     = pageIndex - 3
+      if (this.pageIndex < 0) this.pageIndex = 0
+      if (this.pageIndex > (this.pageNumbers.length - 5)) this.pageIndex = this.pageNumbers.length - 5
     }
+  }
+  updateData(data : Object[]) {
 
-    this.changeDet.detectChanges()
+    for (let i = 0; i < data.length; i++) data[i]['rowIndex'] = (i + this.currentIndex).toString()    
+    this.mapData(data, this.currentIndex) 
   }
 
-  setDisplayData(data : Array<Object>) {
-    this.dataToDisplay  = data
-    this.loading        = false
-    this.changeDet.detectChanges()
+  loadingFailed() {
+
+    this.currentIndex   = this.prevIndex
+    this.currActivePage = this.prevActivePage
+    this.changePageNumbers(this.currActivePage)
   }
 
-  setSelectedItems(data : Array<Object>) {
-    this.tableConfig.selectedItems = data
-    this.changeDet.detectChanges()
-  }
 }

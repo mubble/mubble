@@ -32,6 +32,11 @@ enum CONTEXT {
   CLEAR
 }
 
+export enum DISPLAY_MODE {
+  HORIZONTAL = 'HORIZONTAL',
+  VERTICAL   = 'VERTICAL'
+}
+
 export interface FilterItem {
   id      : string
   title   : string
@@ -68,10 +73,13 @@ export class FilterComponent {
   @Input()  screen          : TrackableScreen
   @Input()  webMode         : boolean           = false   //if we want to use filter component as full page
   @Input()  displayCount    : number            = 1
+  @Input()  displayMode     : DISPLAY_MODE      = DISPLAY_MODE.HORIZONTAL
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 
-  filters   : SelectedFilter[] = []
+  filters      : SelectedFilter[] = []
+  DISPLAY_MODE : typeof DISPLAY_MODE = DISPLAY_MODE
+  filterChips  : string[] = []
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
@@ -83,19 +91,22 @@ export class FilterComponent {
                                   HTML
   =====================================================================*/
   applyFilters() {
-    const inputContInstances = this.inputContInstances.toArray()
+    
+    this.filterChips = []
 
+    const inputContInstances = this.inputContInstances.toArray()
+    
     inputContInstances.forEach(inputContInstance => {
       inputContInstance.onSubmit()
     })
 
     if (this.hasError()) return
     
-    if (!this.valueChanged()) {
+    if (!this.valueChanged()) {      
       this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
     }
-
+    
     this.selectedFilter.emit(this.filters)
   }
 
@@ -107,10 +118,14 @@ export class FilterComponent {
     })
 
     this.initialize(CONTEXT.CLEAR)
+    this.filterChips = []
     this.selectedFilter.emit(undefined)   //on clearing, we just return undefined
   }
 
   setFilterItems(event : OutputParams) {
+    
+    if (event.value) this.filterChips = this.filterChips.concat(event.value)
+    
     const index = this.filters.findIndex(element => element.id === event.id)
     this.filters[index].value = event.value
   }
@@ -132,12 +147,15 @@ export class FilterComponent {
     for (const fItem of this.filterItems) {
       const index = this.filters.findIndex(element => element.id === fItem.id)
       let changed : boolean = false
-
+      
       //checking changed value according to the display type
       switch(fItem.params.displayType) {
         case DISPLAY_TYPE.CALENDAR_BOX        :
         case DISPLAY_TYPE.INPUT_BOX           :
         case DISPLAY_TYPE.SELECTION_BOX       :
+        case DISPLAY_TYPE.ROW_INPUT_BOX       :
+        case DISPLAY_TYPE.MULTI_CHECK_BOX     :
+        case DISPLAY_TYPE.RADIO               :
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
           (!fItem.params.value && !this.filters[index].value)
           ? changed = false

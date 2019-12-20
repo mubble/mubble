@@ -1,17 +1,30 @@
-<div [ngClass]="webMode ? 'nc-web-view-filter-comp' : 'filter-comp'"
-  [ngClass.xl]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
-  [ngClass.lg]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
-  [ngClass.md]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'"
-  [ngClass.sm]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" mweb #parent>
+<div  [ngClass]="webMode ? 'nc-web-view-filter-comp' : 'filter-comp'"
+      [class.vertical-mode]="displayMode === DISPLAY_MODE.VERTICAL"
+      [ngClass.xl]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
+      [ngClass.lg]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" 
+      [ngClass.md]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'"
+      [ngClass.sm]="webMode ? 'web-view-filter-comp' : 'web-filter-comp'" mweb #parent>
 
-  <div class="filter-subtitle txt-xl-med-dark primary-bg-light">
-    {{ 'mu_fltr_sub_titl' | translate }}
+  <div class="filter-subtitle  primary-bg-light">
+    <div class="head-cont">
+      <span class="txt-xl-med-dark"> {{ 'mu_fltr_sub_titl' | translate }} </span> 
+      <span *ngIf="displayMode === DISPLAY_MODE.VERTICAL" (click)="clearFilters()"
+        class="txt-lg-med-norm">
+        {{ 'mu_fltr_clr_all' | translate }} 
+      </span>
+    </div>
+    <div class="chip-list" *ngIf="displayMode === DISPLAY_MODE.VERTICAL && filterChips.length">
+      <div class="chip txt-lg-reg-dark" *ngFor="let chip of filterChips">
+          {{ chip }}
+      </div>
+    </div>
   </div>
 
   <div class="filter-content-body">
-    <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index"
-      adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
-      <div class="input-title txt-lg-reg-norm">
+
+    <!-- adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode" -->
+    <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index">
+      <div class="input-title txt-lg-bld-dark">
         {{ fItem.title }}
 
         <span class="txt-lg-reg-norm error-text" *ngIf="fItem.params.isRequired">
@@ -22,6 +35,7 @@
       <div class="single-input-cont">
         <input-container
           [inputParams]="fItem.params"
+          [displayMode]="displayMode"
           [screen]="screen"
           [webMode]="webMode"
           [parentCont]="parent"
@@ -37,7 +51,8 @@
       {{ 'mu_fltr_aply_fltr' | translate }}
     </button>
 
-    <button class="button-primary btn sdk-button" (click)="clearFilters()">
+    <button class="button-primary btn sdk-button" (click)="clearFilters()"
+      *ngIf="displayMode !== DISPLAY_MODE.VERTICAL">
       {{ 'mu_fltr_clr_fltr' | translate }}
     </button>
   </footer>
