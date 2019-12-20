@@ -15,10 +15,17 @@ import {
 				 ObmopBaseEntity,
 				 ObmopBaseClient
 			 } 														from './obmop-base'
-import { ObmopRegistryManager, ObmopFieldInfo } 		from './obmop-registry'
+import { ObmopRegistryManager, 
+				 ObmopFieldInfo 
+			 } 														from './obmop-registry'
 import { RunContextServer }   			from '../../rc-server'
 import { Mubble } 								 	from '@mubble/core'
 import * as lo 											from 'lodash'
+
+export type ObmopQueryRetval<T> = {
+	entities   : Array<T>
+	totalCount : number
+}
 
 export class ObmopManager {
 
@@ -40,9 +47,9 @@ export class ObmopManager {
    *  Function to get all rows for an obmop entity.
    */
   public async queryAll<T extends ObmopBaseEntity>(rc         : RunContextServer,
-                      														 entityType : new(rc : RunContextServer) => T) : Promise<Array<T>> {
-
-		let records : Array<any>
+																									 entityType : new(rc : RunContextServer) => T,
+																									 limit			: number = -1,
+																									 offset 		: number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
@@ -50,22 +57,28 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching all data.', tableName)
 
 		try {
-			records = await this.client.queryAll(rc, tableName, fields)
+			const records = await this.client.queryAll(rc, tableName, fields, limit, offset)
+
+
+			const entities = records.entities.map((record) => {
+				const entity = new entityType(rc)
+	
+				Object.assign(entity, record)
+				return entity
+			})
+	
+			const result : ObmopQueryRetval<T> = {
+				entities,
+				totalCount : records.totalCount
+			}
+	
+			return result
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
-		}										
-
-    const entities = records.map((record) => {
-			const entity = new entityType(rc)
-
-			Object.assign(entity, record)
-			return entity
-		})
-
-    return entities
+		}
   }
 
 	/**
@@ -76,9 +89,9 @@ export class ObmopManager {
               			 														entityType : new(rc : RunContextServer) => T,
               			 														key        : keyof T,
               			 														value      : any,
-              			 														operator   : string = '=') : Promise<Array<T>> {
-
-		let records : Array<any>
+																								operator   : string = '=',
+																								limit 		 : number = -1,
+																								offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
@@ -88,22 +101,28 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, value)
 
 		try {
-			records = await this.client.query(rc, tableName, fields, key as string, value, operator)
+			const records = await this.client.query(rc, tableName, fields, key as string, value,
+																						  operator, limit, offset)
 
+
+			const entities = records.entities.map((record) => {
+				const entity = new entityType(rc)
+	
+				Object.assign(entity, record)
+				return entity
+			})
+	
+			const result : ObmopQueryRetval<T> = {
+				entities,
+				totalCount : records.totalCount
+			}
+	
+			return result
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}
-
-    const entities = records.map((record) => {
-			const entity = new entityType(rc)
-
-			Object.assign(entity, record)
-			return entity
-		})
-
-    return entities
 	}
 	
 
@@ -114,9 +133,9 @@ export class ObmopManager {
 	public async queryAnd<T extends ObmopBaseEntity>(
 														rc 				 : RunContextServer,
 														entityType : new(rc : RunContextServer) => T,
-														conditions : Array<{key : keyof T, value : any, operator ?: string}>) : Promise<Array<T>> {
-
-		let records : Array<any>
+														conditions : Array<{key : keyof T, value : any, operator ?: string}>,
+														limit			 : number = -1,
+														offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName 			 = new entityType(rc).getTableName(),
 					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
@@ -133,22 +152,26 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions)
 
 		try {
-			records = await this.client.queryAnd(rc, tableName, fields, clientConditions)
+			const records = await this.client.queryAnd(rc, tableName, fields, clientConditions,
+																					 			 limit, offset)
+
+			const result : ObmopQueryRetval<T> = {
+				entities   : records.entities.map((record) => {
+																												const entity = new entityType(rc)
+																								
+																												Object.assign(entity, record)
+																												return entity
+																											}),
+				totalCount : records.totalCount
+			}
+	
+			return result
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}
-
-    const entities = records.map((record) => {
-			const entity = new entityType(rc)
-
-			Object.assign(entity, record)
-			return entity
-		})
-
-    return entities
 	}
 
 	/**
