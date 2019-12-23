@@ -32,19 +32,13 @@ export interface TableConfig {
   totalRecords  ?: number
 }
 
-export interface MuTableClickEvent {
-  rowId    : any
-  colId    : string
-  rowIndex : number
-}
-
 export interface MuTableRowSelEvent {
   rowIndex : number
   rowData  : Object
 }
 
 export interface MuTableDetailEvent {
-  key     : string
+  id      : string
   rowData : Object
 }
 
@@ -65,7 +59,7 @@ export interface MuTableButtonEvent {
 }
 
 export interface MuTableMoreDetail {
-  key   : string
+  id    : string
   value : string
 }
 
@@ -191,7 +185,7 @@ export class MuDataTableComponent implements OnInit {
   moreDetailsClick(detKey : string, rowData : Object) {
 
     const moreSelEvent : MuTableDetailEvent = {
-      key     : detKey,
+      id      : detKey,
       rowData : rowData
     }
     this.onDetailClick.emit(moreSelEvent)
@@ -203,6 +197,7 @@ export class MuDataTableComponent implements OnInit {
       rowData  : rowData,
       rowIndex : rowData['rowIndex']
     }
+    
     if (event.checked) this.onToggleActivate.emit(toggleEvent)
     else this.onToggleDeActivate.emit(toggleEvent)
   }
