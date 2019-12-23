@@ -110,15 +110,26 @@ export class OracleDbClient implements ObmopBaseClient {
 		const fieldString = fields.join(', '),
 					binds       = [] as Array<any>
 
-		binds.push(value)
+		if(value !== undefined) binds.push(value)
 
 		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator} :1`
+
+		if(value === undefined) {
+			queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator}`
+		}
 
 		if (limit !== -1) {
 			queryString = `SELECT * FROM (`
 										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
 										+ `FROM ${table} T1 WHERE ${key} ${operator} :1`
 										+ `) OFFSET :2 ROWS FETCH NEXT :3 ROWS ONLY`
+									
+			if(value === undefined) {
+				queryString = `SELECT * FROM (`
+											+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
+											+ `FROM ${table} T1 WHERE ${key} ${operator}`
+											+ `) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
+			}
 
 			binds.push(`${offset}`)
 			binds.push(`${limit}`)
@@ -152,8 +163,12 @@ export class OracleDbClient implements ObmopBaseClient {
 		let c = 1
 
 		for(const condition of conditions) {
-			conditionStrings.push(`${condition.key} ${condition.operator || '='} :${c++}`)
-			binds.push(condition.value)
+			if(condition.value === undefined) {
+				conditionStrings.push(`${condition.key} ${condition.operator || '='}`)
+			} else {
+				conditionStrings.push(`${condition.key} ${condition.operator || '='} :${c++}`)
+				binds.push(condition.value)
+			}
 		}
 
 		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${conditionStrings.join(' AND ')}`
