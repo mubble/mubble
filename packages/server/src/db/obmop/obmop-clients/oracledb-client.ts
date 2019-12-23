@@ -255,7 +255,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 
 		const queryString = `INSERT INTO ${table} (${keys.join(', ')})`
-												+ `values (${bindsKeys.join(', ')})`
+												+ ` values (${bindsKeys.join(', ')})`
 
 		await this.bindsQuery(rc, queryString, binds, true)
 	}
@@ -331,15 +331,16 @@ export class OracleDbClient implements ObmopBaseClient {
 				if(multiple) {
 					connection.executeMany(queryString, binds as oracledb.BindParameters[], options,
 																 (err : oracledb.DBError, result : oracledb.Result<any>) => {
-						if (err) reject(err)
-						resolve(result)
+						if (err) return reject(err)
+						return resolve(result)
 					})
 				}
-
+			
 				connection.execute(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
-          if(err) reject(err)
-          resolve(result)
-        })
+					if(err) return reject(err)
+					return resolve(result)
+				})
+
 			})
 			
 			return result
