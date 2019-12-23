@@ -85,19 +85,6 @@ class MuBiometricPrompt(val activity : MubbleBaseActivity, val builder: Biometri
     sign.update(challenge.toByteArray())
     val signature = sign.sign()
 
-    info { "Challenge: $challenge ::: Signed data ${Base64.encodeBase64String(signature)}" }
-
-    // Verify Signature
-//    val keyStore = KeyStore.getInstance(KEY_STORE)
-//    keyStore.load(null)
-//
-//    val entry = keyStore.getEntry(KEY_NAME, null) as KeyStore.PrivateKeyEntry
-//
-//    sign.initVerify(entry.certificate.publicKey)
-//    sign.update(challenge.toByteArray())
-//
-//    info { "Signing verify ${sign.verify(signature)}" }
-
     if (signature != null) {
       val obj = JSONObject()
       obj.put("encData", Base64.encodeBase64String(signature))
@@ -129,16 +116,37 @@ class MuBiometricPrompt(val activity : MubbleBaseActivity, val builder: Biometri
 
         info { "Error $errorCode :: $errString" }
 
-        if (errorCode == BiometricPrompt.ERROR_NEGATIVE_BUTTON) {
-          val obj = JSONObject()
-          obj.put("errorCode", "USER_CANCELLED")
-          cb(obj)
+        val obj = JSONObject()
 
-        } else {
-          val obj = JSONObject()
-          obj.put("errorCode", errorCode)
-          cb(obj)
+        when (errorCode) {
+
+          BiometricPrompt.ERROR_HW_UNAVAILABLE,
+          BiometricPrompt.ERROR_HW_NOT_PRESENT -> {
+            obj.put("errorCode", "NOT_SUPPORTED")
+          }
+
+          BiometricPrompt.ERROR_NO_SPACE,
+          BiometricPrompt.ERROR_CANCELED,
+          BiometricPrompt.ERROR_LOCKOUT_PERMANENT,
+          BiometricPrompt.ERROR_NO_BIOMETRICS,
+          BiometricPrompt.ERROR_NO_DEVICE_CREDENTIAL -> {
+            obj.put("errorCode", "KEY_INVALIDATED")
+          }
+
+          BiometricPrompt.ERROR_UNABLE_TO_PROCESS,
+          BiometricPrompt.ERROR_TIMEOUT,
+          BiometricPrompt.ERROR_LOCKOUT,
+          BiometricPrompt.ERROR_VENDOR -> {
+            obj.put("errorCode", "TIMED_OUT")
+          }
+
+          BiometricPrompt.ERROR_NEGATIVE_BUTTON,
+          BiometricPrompt.ERROR_USER_CANCELED -> {
+            obj.put("errorCode", "USER_CANCELLED")
+          }
+
         }
+        cb(obj)
       }
 
       override fun onAuthenticationFailed() {
