@@ -161,7 +161,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		if (limit !== -1) {
 			queryString = 	`SELECT ${fieldString}, totcount FROM (`
 										+ `SELECT COUNT(*) OVER() AS totcount, T1.* `
-										+ `FROM ${table} T1 WHERE ${conditionStrings.join('')}`
+										+ `FROM ${table} T1 WHERE ${conditionStrings.join(' AND ')}`
 										+ ` ) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`
 			binds.push(`${offset}`)
 			binds.push(`${limit}`)
