@@ -7,13 +7,18 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as https            from 'https'
-import * as http             from 'http'
-import * as zlib             from 'zlib'
-import * as url              from 'url'
-import * as request          from 'request'
-import {RunContextServer}    from '../rc-server'
-import * as stream           from 'stream'
+import {
+         HTTP,
+         Mubble
+       }                      from '@mubble/core'
+import { RunContextServer }   from '../rc-server'
+import { UStream }            from '../util'
+import * as https             from 'https'
+import * as http              from 'http'
+import * as zlib              from 'zlib'
+import * as url               from 'url'
+import * as request           from 'request'
+import * as stream            from 'stream'
 
 export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
 
@@ -285,4 +290,104 @@ export async function httpRequest(rc : RunContextServer , options : NCRequestOpt
   } finally {
     rc.endTraceSpan(traceId, ack)
   }
+}
+
+export type Response = {
+  response   : string
+  statusCode : number
+  headers    : Mubble.uObject<any>
+}
+
+/**
+ * http(s) request for passing http options along with url.
+ * To pass query params, pass in urlObj.query as object.
+ * To pass JSON, pass in data as JSON string.
+ */
+export async function executeHttpsRequestWithOptions(rc       : RunContextServer,
+                                                     urlObj   : url.UrlObject,
+                                                     options ?: http.RequestOptions,
+                                                     data    ?: string) : Promise<Response>{
+
+  rc.isDebug() && rc.debug(rc.getName(this), 'executeHttpsRequestWithOptions', urlObj, options, data)
+  
+  const reqOptions : http.RequestOptions = options ? options : urlObj
+
+  if(!reqOptions.headers) reqOptions.headers = {}
+  if(data && !reqOptions.headers[HTTP.HeaderKey.contentLength]) {
+    reqOptions.headers[HTTP.HeaderKey.contentLength] = data.length
+  }
+
+  const urlStr = url.format(urlObj),
+        resp   = {} as Response
+
+  rc.isStatus() && rc.status(rc.getName(this), 'http(s) request.', urlStr, reqOptions)
+
+  const req          = reqOptions.protocol === HTTP.Const.protocolHttp ? http.request(urlStr, reqOptions)
+                                                                       : https.request(urlStr, reqOptions),
+        writePromise = new Mubble.uPromise(),
+        readPromise  = new Mubble.uPromise(),
+        writeStreams = [] as Array<stream.Writable>,
+        readStreams  = [] as Array<stream.Readable>
+
+  writeStreams.push(req)
+
+  req.on('response', (res : http.IncomingMessage) => {
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Response headers.', urlStr, res.statusCode, res.headers)
+
+    resp.statusCode = res.statusCode || 200
+    resp.headers    = res.headers
+
+    readStreams.push(res)
+
+    if(res.headers[HTTP.HeaderKey.contentEncoding]) {
+      switch(res.headers[HTTP.HeaderKey.contentEncoding]) {
+        case HTTP.HeaderValue.gzip :
+          readStreams.push(zlib.createGunzip())
+          break
+        case HTTP.HeaderValue.deflate :
+          readStreams.push(zlib.createInflate())
+          break
+      }
+    }
+
+    const readUStream = new UStream.ReadStreams(rc, readStreams, readPromise)
+    readUStream.read()
+  })
+
+  req.on('error', (err : Error) => {
+    rc.isError() && rc.error(rc.getName(this), 'Error encountered in http(s) request.', err)
+    writePromise.reject(err)
+    readPromise.reject(err)
+  })
+
+  const writeUStream = new UStream.WriteStreams(rc, writeStreams, writePromise)
+  data ? writeUStream.write(data) : writeUStream.write('')
+
+  const [, output] : Array<any> = await Promise.all([writePromise.promise, readPromise.promise])
+  resp.response = output.toString()
+
+  rc.isStatus() && rc.status(rc.getName(this), 'http(s) request response.', urlStr, resp.response)
+
+  return resp
+}
+
+// example
+async function testHttpRequest(rc : RunContextServer) {
+
+  const urlObj : url.UrlObject = {
+    protocol : HTTP.Const.protocolHttp,
+    hostname : 'localhost',
+    port     : 9003,
+    pathname : '/obopay/serverEcho',
+    query    : { abc : 124, b : 'abc' }
+  }
+
+  const options : http.RequestOptions = urlObj
+  options.method  = HTTP.Method.POST
+  options.headers = {[HTTP.HeaderKey.contentType] : HTTP.HeaderValue.form}
+
+  const resp = await executeHttpsRequestWithOptions(rc, urlObj, options)
+
+  rc.isStatus() && rc.status(rc.getName(this), 'response', resp)
 }
