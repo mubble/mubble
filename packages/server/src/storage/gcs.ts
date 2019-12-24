@@ -57,4 +57,21 @@ export class GoogleCloudStorage {
 
     await file.delete()
   }
+
+  public static async fileExists(rc       : RunContextServer,
+                                 bucket   : string,
+                                 filePath : string) : Promise<boolean> {
+    if (!this.initialized) {
+      rc.isError() && rc.error(rc.getName(this), 'GCS not initialized.')
+      throw new Error('GCS not initialized.')
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Checking if file exists in GCS.', 
+                             bucket, filePath)
+    
+    const file   = await this.storage.bucket(bucket).file(filePath),
+          exists = await file.exists()
+
+    return exists[0]
+  }
 }
