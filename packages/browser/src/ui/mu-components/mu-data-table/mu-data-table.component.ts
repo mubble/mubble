@@ -52,7 +52,7 @@ export interface MuTableToggleEvent {
   rowIndex : number
 }
 
-export interface MuTableButtonEvent {
+export interface MuTableClickEvent {
   rowIndex  : number
   rowData   : Object
   headerKey : string
@@ -83,16 +83,17 @@ export class MuDataTableComponent implements OnInit {
 
   @ViewChild('slctAllBox', {static : false}) slctAllBox : MatCheckbox
 
-  @Input()  tableConfig        : TableConfig
-  @Output() onRowSelect        : EventEmitter<any>    = new EventEmitter()
-  @Output() onRowUnselect      : EventEmitter<any>    = new EventEmitter()
-  @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
-  @Output() onSelectAll        : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
-  @Output() onDeSelectAll      : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
-  @Output() onDetailClick      : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
-  @Output() onToggleActivate   : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
-  @Output() onToggleDeActivate : EventEmitter<MuTableToggleEvent>  = new EventEmitter() 
-  @Output() onButtonClick      : EventEmitter<MuTableButtonEvent>  = new EventEmitter()
+  @Input()  tableConfig         : TableConfig
+  @Output() onRowSelect         : EventEmitter<any>    = new EventEmitter()
+  @Output() onRowUnselect       : EventEmitter<any>    = new EventEmitter()
+  @Output() loadMoreData        : EventEmitter<number> = new EventEmitter() 
+  @Output() onSelectAll         : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
+  @Output() onDeSelectAll       : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
+  @Output() onDetailClick       : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
+  @Output() onToggleActivate    : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
+  @Output() onToggleDeActivate  : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
+  @Output() onButtonClick       : EventEmitter<MuTableClickEvent>   = new EventEmitter()
+  @Output() onCellClick         : EventEmitter<MuTableRowSelEvent>  = new EventEmitter() 
 
   totalRecords      : number
   dispRows          : number 
@@ -114,7 +115,7 @@ export class MuDataTableComponent implements OnInit {
   COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
 
   ngOnInit() {
-     
+      
     if (this.tableConfig) {
 
       for (let header of this.tableConfig.headers) this.headerFields.push(header.dataKey)
@@ -204,7 +205,7 @@ export class MuDataTableComponent implements OnInit {
 
   buttonClick(rowData : Object, headerKey : string) {
 
-    const buttonEvent : MuTableButtonEvent = {
+    const buttonEvent : MuTableClickEvent = {
       headerKey : headerKey,
       rowData   : rowData,
       rowIndex  : rowData['rowIndex']
@@ -270,6 +271,16 @@ export class MuDataTableComponent implements OnInit {
     this.currentIndex   = this.prevIndex
     this.currActivePage = this.prevActivePage
     this.changePageNumbers(this.currActivePage)
+  }
+
+  onDivClick(rowData : Object, headerKey : string) {
+
+    const buttonEvent : MuTableClickEvent = {
+      headerKey : headerKey,
+      rowData   : rowData,
+      rowIndex  : rowData['rowIndex']
+    }
+    this.onCellClick.emit(buttonEvent)
   }
 
 }

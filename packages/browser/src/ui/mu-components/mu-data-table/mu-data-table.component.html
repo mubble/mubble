@@ -44,7 +44,7 @@
       [style.width]="100/tableConfig.headers.length+'%'">
       <ng-container [ngSwitch]="header.colType">
 
-        <div *ngSwitchCase="COL_TYPE.TEXT">
+        <div *ngSwitchCase="COL_TYPE.TEXT" (click)="onDivClick(rowData, header.dataKey)">
           {{ header.constValue || rowData[header.dataKey] }}
         </div>
 
