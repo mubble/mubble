@@ -334,13 +334,12 @@ export class OracleDbClient implements ObmopBaseClient {
 						if (err) return reject(err)
 						return resolve(result)
 					})
+				} else {
+					connection.execute(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
+						if(err) return reject(err)
+						return resolve(result)
+					})
 				}
-			
-				connection.execute(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
-					if(err) return reject(err)
-					return resolve(result)
-				})
-
 			})
 			
 			return result
