@@ -385,6 +385,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.BUTTON_TOGGLE   :
       case DISPLAY_TYPE.ROW_INPUT_BOX :
         this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.setDisabled(params.isDisabled)
         break
 
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
@@ -393,11 +394,13 @@ export class InputContainerComponent implements OnChanges {
                                  startWith(''),
                                  map(value => typeof value === 'string' ? value : value.value),
                                  map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
+        this.setDisabled(params.isDisabled)
         break
 
       case DISPLAY_TYPE.CALENDAR_BOX  :
         formValidations.push(InputValidator.futureDateValidator)
         this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.setDisabled(params.isDisabled)
         break
 
       case DISPLAY_TYPE.DATE_RANGE    : 
@@ -410,6 +413,7 @@ export class InputContainerComponent implements OnChanges {
         if(!params.validators || !params.validators.allowFutureDate) 
           valiArr.push(InputValidator.futureDateValidatorIfAllowed)
         this.dateRange.setValidators(valiArr)
+        if (params.isDisabled) this.dateRange.disable()
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  : 
@@ -420,10 +424,10 @@ export class InputContainerComponent implements OnChanges {
         {
           validator : [InputValidator.amountValidator]
         })
+        if (params.isDisabled) this.numberRange.disable()
         break
     }
 
-    this.setDisabled(params.isDisabled)
   }
 
   private filterOptions(inputText : string): SelectionBoxParams[] {
