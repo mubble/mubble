@@ -111,6 +111,7 @@ export class MuDataTableComponent implements OnInit {
   headerFields      : string[] = []
   dataToDisplay     : Object[] = []
   pageNumbers       : number[] = []
+  toggleActIndexes  : Object   = {}
   moreDetails       : MuTableMoreDetail[] = []
   COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
 
@@ -119,7 +120,13 @@ export class MuDataTableComponent implements OnInit {
     if (this.tableConfig) {
 
       for (let header of this.tableConfig.headers) this.headerFields.push(header.dataKey)
-      for (const index in this.tableConfig.data)   this.tableConfig.data[index]['rowIndex'] = index
+      for (const index in this.tableConfig.data) {
+        this.tableConfig.data[index]['rowIndex'] = index 
+      }
+
+      if (this.tableConfig.selectedItems) {
+        for (const item of this.tableConfig.selectedItems) this.toggleActIndexes[item.toString()] = true
+      }
 
       this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
       this.dispRows      = this.tableConfig.dispRows     || this.tableConfig.data.length
@@ -153,7 +160,7 @@ export class MuDataTableComponent implements OnInit {
       }
       
       this.slctAllBox.checked = false
-      this.selAllMap[this.currActivePage]  = false
+      this.selAllMap[this.currActivePage] = false
       this.selectedIndexes[selectedIndex] = false
       this.onRowUnselect.emit(selEvent)
     }    

@@ -67,7 +67,8 @@
         </div>
 
         <div *ngSwitchCase="COL_TYPE.TOGGLE">
-          <mat-slide-toggle (change)="toggleRow($event, rowData)">
+          <mat-slide-toggle (change)="toggleRow($event, rowData)"
+          [checked]="toggleActIndexes[rowData['rowIndex']]">
           </mat-slide-toggle>
         </div>
 
