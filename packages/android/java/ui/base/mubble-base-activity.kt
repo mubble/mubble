@@ -180,6 +180,16 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
     overridePendingTransition(0, 0)
   }
 
+  fun bringToTop() {
+
+    val intent = Intent(this, this::class.java)
+    if (getIntent().extras != null) intent.putExtras(getIntent().extras!!)
+    intent.addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
+    intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP)
+    startActivity(intent)
+  }
+
   fun showProgressDialog(message: String = "Please wait") {
 
     if (progressDialog == null) {
