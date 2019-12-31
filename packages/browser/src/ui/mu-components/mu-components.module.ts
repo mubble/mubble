@@ -6,6 +6,7 @@ import { FormsModule,
        }                                    from '@angular/forms'
 import { CommonModule }                     from '@angular/common'
 import { FlexLayoutModule }                 from '@angular/flex-layout'
+import { MatRippleModule }                  from '@angular/material'
 
 import { MatCheckboxModule }                from '@angular/material/checkbox'
 import { MatDatepickerModule }              from '@angular/material/datepicker'
@@ -57,6 +58,7 @@ import { AlertDialogComponent }             from './alert-dialog/alert-dialog.co
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
 import { MatCardModule }                    from '@angular/material'
+import { KeypadComponent }                  from './keypad/keypad.component'
 
 
 @NgModule({
@@ -79,7 +81,8 @@ import { MatCardModule }                    from '@angular/material'
     MatButtonToggleModule,
     TableModule,
     MatMenuModule,
-    MatCardModule
+    MatCardModule,
+    MatRippleModule
   ],
 
   declarations: [
@@ -107,11 +110,12 @@ import { MatCardModule }                    from '@angular/material'
     KeyboardDirective,
   
     TranslatePipe,
-  
+    KeypadComponent
   ],
 
   entryComponents : [
-    AlertDialogComponent
+    AlertDialogComponent,
+    KeypadComponent
   ],
   
   exports: [
@@ -131,6 +135,7 @@ import { MatCardModule }                    from '@angular/material'
     InputContainerComponent,
     MuDataTableComponent,
     DialerComponent,
+    KeypadComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -151,7 +156,8 @@ import { MatCardModule }                    from '@angular/material'
     MatProgressBarModule,
     MatSlideToggleModule,
     MatButtonToggleModule,
-    MatMenuModule
+    MatMenuModule,
+    MatRippleModule
   ],
   providers: [
     CustomBreakPointsProvider

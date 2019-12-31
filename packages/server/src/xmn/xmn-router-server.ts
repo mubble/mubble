@@ -376,7 +376,7 @@ export abstract class XmnRouterServer {
   }
 
   public publishToEventQueue(rc : RunContextServer, eventObj : ClientEventObject) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'Publishing event to event queue.', eventObj)
+    rc.isStatus() && rc.status(rc.getName(this), 'Publishing event to event queue.', eventObj)
 
     const channel = EVENT_QUEUE + eventObj.workerId
     this.reqRedis.publish(channel, JSON.stringify(eventObj))
