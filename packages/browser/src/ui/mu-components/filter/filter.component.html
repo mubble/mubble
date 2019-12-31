@@ -22,8 +22,8 @@
 
   <div class="filter-content-body">
 
-    <!-- adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode" -->
-    <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index">
+    <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index"
+      adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
       <div class="input-title txt-lg-bld-dark">
         {{ fItem.title }}
 

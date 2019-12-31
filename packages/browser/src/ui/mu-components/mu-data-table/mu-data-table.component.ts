@@ -10,6 +10,9 @@ import { MatCheckboxChange,
          MatSlideToggleChange,
          MatCheckbox
        }                           from '@angular/material'
+import { FormControl, 
+         FormGroup
+       }                           from '@angular/forms'
 
 export interface TableHeader {
   header        : string
@@ -19,6 +22,8 @@ export interface TableHeader {
   constValue   ?: any
   enableFilter ?: boolean
   enableSort   ?: boolean
+  widthPerc    ?: number
+  isEditable   ?: boolean
 }
 
 export interface TableConfig {
@@ -33,8 +38,9 @@ export interface TableConfig {
 }
 
 export interface MuTableRowSelEvent {
-  rowIndex : number
-  rowData  : Object
+  rowIndex   : number
+  rowData    : Object
+  isSelected : boolean
 }
 
 export interface MuTableDetailEvent {
@@ -42,14 +48,15 @@ export interface MuTableDetailEvent {
   rowData : Object
 }
 
-export interface MuTableSelectEvent {
-  firstIndex : number
-  lastIndex  : number
+export interface MuTableSelAllEvent {
+  selectedRows : Object[]
+  isSelected   : boolean
 }
 
 export interface MuTableToggleEvent {
   rowData  : Object
   rowIndex : number
+  isActive : boolean
 }
 
 export interface MuTableClickEvent {
@@ -63,13 +70,21 @@ export interface MuTableMoreDetail {
   value : string
 }
 
+export interface MuTableEditEvent {
+  rowIndex     : number
+  rowData      : Object
+  editedValues : Object
+}
+
 export enum COL_TYPE  {
   ICON         = 'ICON',
   IMAGE        = 'IMAGE',
   BUTTON       = 'BUTTON',
   TEXT         = 'TEXT',
   DATE         = 'DATE',
+  EDIT         = 'EDIT',
   TOGGLE       = 'TOGGLE',
+  HYPER_LINK   = 'HYPER_LINK',
   MORE_DETAILS = 'MORE_DETAILS'
 }
 
@@ -83,62 +98,75 @@ export class MuDataTableComponent implements OnInit {
 
   @ViewChild('slctAllBox', {static : false}) slctAllBox : MatCheckbox
 
-  @Input()  tableConfig         : TableConfig
-  @Output() onRowSelect         : EventEmitter<any>    = new EventEmitter()
-  @Output() onRowUnselect       : EventEmitter<any>    = new EventEmitter()
-  @Output() loadMoreData        : EventEmitter<number> = new EventEmitter() 
-  @Output() onSelectAll         : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
-  @Output() onDeSelectAll       : EventEmitter<MuTableSelectEvent>  = new EventEmitter()
-  @Output() onDetailClick       : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
-  @Output() onToggleActivate    : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
-  @Output() onToggleDeActivate  : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
-  @Output() onButtonClick       : EventEmitter<MuTableClickEvent>   = new EventEmitter()
-  @Output() onCellClick         : EventEmitter<MuTableRowSelEvent>  = new EventEmitter() 
+  @Input()  tableConfig        : TableConfig
+  @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
+  @Output() onRowSelect        : EventEmitter<MuTableRowSelEvent>  = new EventEmitter()
+  @Output() onSelectAll        : EventEmitter<MuTableSelAllEvent>  = new EventEmitter()
+  @Output() onDetailClick      : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
+  @Output() onRowToggle        : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
+  @Output() onCellClick        : EventEmitter<MuTableClickEvent>   = new EventEmitter()
+  @Output() onRowEdit          : EventEmitter<MuTableEditEvent>    = new EventEmitter()
 
   totalRecords      : number
   dispRows          : number 
-
-  pageIndex         : number   = 0
-  currentIndex      : number   = 0
-  currActivePage    : number   = 1
-
-  prevIndex         : number   = 0
-  prevActivePage    : number   = 1
+  pageIndex         : number   
+  currPageIndex     : number  
+  prevPageIndex     : number   
 
   selectedIndexes   : Object   = {}
   selAllMap         : Object   = {}
   dataMap           : Object   = {}
   headerFields      : string[] = []
+  filterFields      : string[] = []
   dataToDisplay     : Object[] = []
   pageNumbers       : number[] = []
   toggleActIndexes  : Object   = {}
-  moreDetails       : MuTableMoreDetail[] = []
-  COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
+
+  COL_TYPE          : typeof COL_TYPE = COL_TYPE  
+  editForm          : FormGroup       = new FormGroup({})
 
   ngOnInit() {
       
     if (this.tableConfig) {
 
-      for (let header of this.tableConfig.headers) this.headerFields.push(header.dataKey)
-      for (const index in this.tableConfig.data) {
-        this.tableConfig.data[index]['rowIndex'] = index 
+      for (let header of this.tableConfig.headers) {
+        if (header.enableFilter) this.filterFields.push(header.dataKey)
+        if (header.isEditable)   this.editForm.addControl(header.dataKey, new FormControl())
+        this.headerFields.push(header.dataKey)
       }
-
-      if (this.tableConfig.selectedItems) {
+      
+      if (this.tableConfig.selectedItems) 
         for (const item of this.tableConfig.selectedItems) this.toggleActIndexes[item.toString()] = true
-      }
-
+    
       this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
       this.dispRows      = this.tableConfig.dispRows     || this.tableConfig.data.length
       
-      this.mapData(this.tableConfig.data, 0)
-
-      //Setting up the page numbers for pagination
-      let totalPages = this.totalRecords / this.dispRows
-      if (this.totalRecords % this.dispRows) totalPages++
-      for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) this.pageNumbers.push(pageNumber)  
-
+      this.createDataMap(this.tableConfig.data, 0)
+      this.createPageNumbers()
     }
+  }
+
+  /**
+   * Creates the page numbers needed for pagination
+   * Called during initialization of table and updation of data inside table
+   */
+  private createPageNumbers() {
+    
+    this.pageNumbers    = []
+    this.currPageIndex  = this.prevPageIndex = this.pageIndex = 0
+    let totalPages      = this.totalRecords / this.dispRows
+    
+    if (this.totalRecords % this.dispRows) totalPages++
+
+    for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) 
+      this.pageNumbers.push(pageNumber)  
+  }
+
+  private updatePageNumbers(pageIndex : number) {
+    
+    this.pageIndex     = pageIndex - 2
+    if (this.pageIndex <= 0) this.pageIndex = 0
+    if (this.pageIndex > (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
   }
 
   rowSelect(event : MatCheckboxChange, rowData : any) {
@@ -146,36 +174,37 @@ export class MuDataTableComponent implements OnInit {
     const selectedIndex = rowData['rowIndex']
 
     if (event.checked) {
-      this.selectedIndexes[selectedIndex] = true
-      const selEvent : MuTableRowSelEvent = {
-        rowData  : rowData,
-        rowIndex : selectedIndex
-      }
-      this.onRowSelect.emit(selEvent)
-    } else {
 
-      const selEvent : MuTableRowSelEvent = {
-        rowData  : rowData,
-        rowIndex : selectedIndex
-      }
+      this.selectedIndexes[selectedIndex] = true
+    } else {
       
       this.slctAllBox.checked = false
-      this.selAllMap[this.currActivePage] = false
+      this.selAllMap[this.currPageIndex] = false
       this.selectedIndexes[selectedIndex] = false
-      this.onRowUnselect.emit(selEvent)
-    }    
+    }   
+    
+    const selEvent : MuTableRowSelEvent = {
+      rowData    : rowData,
+      rowIndex   : selectedIndex,
+      isSelected : event.checked
+    }
+
+    this.onRowSelect.emit(selEvent) 
   }
 
   selectAll(event : MatCheckboxChange) {
         
     this.slctAllBox.checked = event.checked
-    this.selAllMap[this.currActivePage] = event.checked 
+    this.selAllMap[this.currPageIndex] = event.checked 
+        
+    for (let index = 0; index < (this.currPageIndex + this.dispRows); index++) 
+      this.selectedIndexes[index + (this.currPageIndex * this.dispRows)] = event.checked
     
-    for (let index = this.currentIndex; index < (this.currentIndex + this.dispRows); index++)
-      this.selectedIndexes[index] = event.checked
-    
-    if (event.checked) this.onSelectAll.emit()
-    else this.onDeSelectAll.emit()
+    const selAllEvent : MuTableSelAllEvent = {
+      selectedRows : this.dataMap[this.currPageIndex],
+      isSelected   : event.checked
+    }
+    this.onSelectAll.emit(selAllEvent)
   }
 
   radioSelect(event : MatRadioChange, rowData : Object) {
@@ -184,8 +213,9 @@ export class MuDataTableComponent implements OnInit {
     const selectedIndex  = rowData['rowIndex']
     this.selectedIndexes[selectedIndex] = true
     const selEvent : MuTableRowSelEvent = {
-      rowData  : rowData,
-      rowIndex : selectedIndex
+      rowData    : rowData,
+      rowIndex   : selectedIndex,
+      isSelected : true
     }
     this.onRowSelect.emit(selEvent)
   }
@@ -203,85 +233,88 @@ export class MuDataTableComponent implements OnInit {
 
     const toggleEvent : MuTableToggleEvent = {
       rowData  : rowData,
-      rowIndex : rowData['rowIndex']
+      rowIndex : rowData['rowIndex'],
+      isActive : event.checked
     }
     
-    if (event.checked) this.onToggleActivate.emit(toggleEvent)
-    else this.onToggleDeActivate.emit(toggleEvent)
+    this.onRowToggle.emit(toggleEvent)
   }
 
-  buttonClick(rowData : Object, headerKey : string) {
+  /**
+   * mapData creates a map of row objects that needs to be displayed in the table
+   * with index as the key and array of objects as its value
+   * @param data the data that needs to be mapped
+   * @param startIndex - index from which data needs to be mapped
+   */
 
-    const buttonEvent : MuTableClickEvent = {
-      headerKey : headerKey,
-      rowData   : rowData,
-      rowIndex  : rowData['rowIndex']
-    }
-    this.onButtonClick.emit(buttonEvent)
-  }
-
-  mapData(data : Array<Object>, startIndex : number) {
+  createDataMap(data : Array<Object>, startIndex : number) {
+                
+    const dataSetCount = Math.ceil(data.length/this.dispRows),
+          currData     = Array.from(data)
     
-    const dataSetCount = Math.ceil(data.length/this.dispRows)
+    for (const index in currData) currData[index]['rowIndex'] = index 
 
     for (let i = 0; i < dataSetCount; i++) {
      
-      const mapData = data.splice(0, this.dispRows),
-            mapKey  = startIndex + (i* this.dispRows)
-
+      const mapData = currData.splice(0, this.dispRows),
+            mapKey  = startIndex + i
+                  
       if (mapData.length === this.dispRows 
           || !this.tableConfig.lazyLoad 
-          || (this.tableConfig.lazyLoad && this.tableConfig.totalRecords < (mapKey + this.dispRows))) 
+          || (this.tableConfig.lazyLoad && this.totalRecords < (mapKey + this.dispRows))) 
         this.dataMap[mapKey] = mapData 
-    } 
-    
+    }
+        
     this.dataToDisplay = this.dataMap[startIndex] 
   }
 
+  /**
+   * Called when user clicked on a page with its index as parameter.
+   * Displays the data of that index from the data map, if the data does not exists,
+   * a callback is given to the parent to load more data.
+   * @param pageIndex 
+   */
   onPageClick(pageIndex : number) {
     
-    this.prevActivePage = this.currActivePage
-    this.prevIndex      = this.currentIndex
-    this.currActivePage = pageIndex   
-    if (this.slctAllBox)
-    this.slctAllBox.checked = this.selAllMap[this.currActivePage] || false
-  
-    this.currentIndex  = (pageIndex - 1) * this.dispRows
+    this.prevPageIndex = this.currPageIndex
+    this.currPageIndex = pageIndex 
 
+    if (this.slctAllBox)
+    this.slctAllBox.checked = this.selAllMap[this.currPageIndex] || false
+  
     //Handling page numbers change
-    this.changePageNumbers(pageIndex)
+    if (this.pageNumbers.length > 5) this.updatePageNumbers(pageIndex)
         
     //Handling data change
-    if (this.dataMap[this.currentIndex]) {
-      this.dataToDisplay = this.dataMap[this.currentIndex]
-    } else {
-      this.loadMoreData.emit(this.currentIndex + 1)
+    if (this.dataMap[this.currPageIndex]) {
+      this.dataToDisplay = this.dataMap[pageIndex]
+    } else {      
+      this.loadMoreData.emit(pageIndex * this.dispRows)
     } 
   }  
-
-  private changePageNumbers(pageIndex : number) {
-    if (this.pageNumbers.length > 5) {
-      this.pageIndex     = pageIndex - 3
-      if (this.pageIndex < 0) this.pageIndex = 0
-      if (this.pageIndex > (this.pageNumbers.length - 5)) this.pageIndex = this.pageNumbers.length - 5
-    }
-  }
   
-  updateData(data : Object[]) {
+  updateData(data : Object[], currentIndex ?: number) {
 
-    for (let i = 0; i < data.length; i++) data[i]['rowIndex'] = (i + this.currentIndex).toString()    
-    this.mapData(data, this.currentIndex) 
+    if (currentIndex === 0) {
+      
+      this.currPageIndex = currentIndex
+      this.dataMap       = {}
+      this.createPageNumbers()
+    }
+    
+    for (let i = 0; i < data.length; i++) 
+      data[i]['rowIndex'] = (i + (this.currPageIndex * this.dispRows)).toString()    
+    this.createDataMap(data, this.currPageIndex) 
   }
 
   loadingFailed() {
 
-    this.currentIndex   = this.prevIndex
-    this.currActivePage = this.prevActivePage
-    this.changePageNumbers(this.currActivePage)
+    this.currPageIndex = this.prevPageIndex
+    this.updatePageNumbers(this.currPageIndex)
   }
 
-  onDivClick(rowData : Object, headerKey : string) {
-
+  cellClick(rowData : Object, headerKey : string) {
+    
     const buttonEvent : MuTableClickEvent = {
       headerKey : headerKey,
       rowData   : rowData,
@@ -290,4 +323,80 @@ export class MuDataTableComponent implements OnInit {
     this.onCellClick.emit(buttonEvent)
   }
 
+  search(event : any) {
+
+    const inputText      = event.target.value
+    
+    if (!inputText) {
+      this.dataToDisplay = this.dataMap[this.currPageIndex]
+      return
+    } 
+    
+    this.dataToDisplay = this.dataMap[this.currPageIndex].filter(dataRow => {
+      if (this.filterFields.filter(header => dataRow[header].toString().toLowerCase()
+                                             .includes(inputText.toString().toLowerCase()))
+                                             .length) 
+        return true
+    })
+  }
+
+  /**
+   * Inserts a data row at the beginning of the table by clearing the datamap 
+   * @param obj - data object that needs to be inserted
+   */
+  insertRow(obj : Object) {
+    
+    let firstPageData = this.dataMap[0]
+    this.dataMap = {}
+    firstPageData.unshift(obj)
+    firstPageData.pop()    
+    this.createDataMap(firstPageData, 0)
+    this.totalRecords++
+    this.createPageNumbers()
+  }
+
+  /**
+   * Deletes a row of given row index assuming that the index which is to deleted is currently 
+   * being displayed. Checks whether next page data exists in the map and reorders the sequence by 
+   * shifting the data, if not a callback is sent to parent to load data for that index. 
+   * @param rowIndex - index of the data which needs to be deleted
+   */
+  deleteRow(rowIndex : number) {
+    
+    if (this.dataMap[this.currPageIndex + 1]) {
+
+      this.dataMap[this.currPageIndex].splice(rowIndex%this.dispRows, 1)
+      this.dataMap[this.currPageIndex].push(this.dataMap[this.currPageIndex + 1][0])
+    } else {
+
+      this.loadMoreData.emit(this.currPageIndex * this.dispRows )
+    }   
+
+    this.selectedIndexes = {}
+    const keys = Object.keys(this.dataMap)
+    for (const key of keys) if (Number(key) > this.currPageIndex) delete this.dataMap[key]
+  }
+
+  editRow(rowData : Object, isEdit : boolean) {
+    
+    this.selectedIndexes = {}
+    if (isEdit) {
+
+      this.selectedIndexes[rowData['rowIndex']] = true
+    } else {
+
+      const editEvent : MuTableEditEvent = {
+        editedValues : this.editForm.value,
+        rowData      : rowData,
+        rowIndex     : rowData['rowIndex']
+      }
+      this.onRowEdit.emit(editEvent)
+    }
+    this.editForm.reset()
+  }
+
+  updateRow(rowIndex : number, data : Object) {
+
+    this.dataMap[this.currPageIndex][rowIndex % this.dispRows] = data
+  }
 }

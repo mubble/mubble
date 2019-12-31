@@ -21,9 +21,9 @@
 .table-row-cont {
   display: flex;
   align-items: center;
-  padding: 10px;
   justify-content: space-between;
-  border-top: 1px solid #d2d2d2;;
+  border-top: 1px solid #d2d2d2;
+  padding: 0 10px;
 }
 
 .row-data {
@@ -31,6 +31,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 10px;
+  text-align: center;
 }
 
 .header {
@@ -51,6 +53,9 @@ img {
   padding: 0 20px;
   border: none;
   box-shadow: 1px 1px 1px 1px #dadada;
+}
+
+.click-item {
   cursor: pointer;
 }
 
@@ -64,7 +69,7 @@ img {
 }
 
 .radio-btn {
-  width: 20px;
+  width: 0px;
 }
 
 .more-icon {
@@ -78,11 +83,10 @@ img {
   right: 0px;
 }
 
-
 .paginator {
   display: flex;
-  border-bottom: 1px solid #d2d2d2;;
-  justify-content: flex-end;
+  /* border-bottom: 1px solid #d2d2d2; */
+  justify-content: space-around;
 }
 
 .pagenumber {
@@ -115,3 +119,30 @@ img {
   justify-content: center;
 }
 
+.table-extras {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #d2d2d2;
+}
+
+input {
+  width: 100%;
+  height: 70%;
+  background: #eaeaea !important;
+  padding: 5px;
+  border: none;
+  margin: 5px;
+}
+
+.row-data input {
+  background: white !important;
+}
+
+.no-data {
+  word-break: break-word;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-top: 1px solid #d2d2d2;
+}
