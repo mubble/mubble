@@ -6,7 +6,6 @@
     </div>
     <div class="paginator" *ngIf="pageNumbers.length > 1">
       <div class="firstPage" class="pagenumber" (click)="onPageClick(0)">
-        First
         <i class="fa fa-chevron-left" aria-hidden="true"></i>
       </div>
       <div class="pagenumber txt-lg-reg-dark" *ngFor="let pageNumber of pageNumbers.slice(pageIndex, pageIndex + 5)"
@@ -15,7 +14,6 @@
         {{ pageNumber }}
       </div>
       <div class="lastPage" class="pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
-        Last
         <i class="fa fa-chevron-right" aria-hidden="true"></i>
       </div>
     </div>
