@@ -1,0 +1,55 @@
+<div class="keypad txt-xxl-med-dark bg-white">
+  
+  <div class="first-row">
+    <div matRipple class="key key-one" (click)="keyClick('1')">
+      <span class="text-color-primary">1</span>
+    </div>
+    <div matRipple class="key key-two" (click)="keyClick('2')">
+      <span class="text-color-primary">2</span>
+    </div>
+    <div matRipple class="key key-three" (click)="keyClick('3')">
+      <span class="text-color-primary">3</span>
+    </div>
+  </div>
+
+  <div class="second-row">
+    <div matRipple class="key key-four" (click)="keyClick('4')">
+      <span class="text-color-primary">4</span>
+    </div>
+    <div matRipple class="key key-five" (click)="keyClick('5')">
+      <span class="text-color-primary">5</span>
+    </div>
+    <div matRipple class="key key-six" (click)="keyClick('6')">
+      <span class="text-color-primary" >6</span>
+    </div>
+  </div>
+
+  <div class="third-row">
+    <div matRipple class="key key-seven" (click)="keyClick('7')">
+      <span class="text-color-primary">7</span>
+    </div>
+    <div matRipple class="key key-eight" (click)="keyClick('8')">
+      <span class="text-color-primary">8</span>
+    </div>
+    <div matRipple class="key key-nine" (click)="keyClick('9')">
+      <span class="text-color-primary">9</span>
+    </div>
+  </div>
+
+  <div class="fourth-row">
+    <div matRipple class="key key-back" (click)="onKeyBoardBack()">
+      <span class="text-color-primary">
+        <i class="fa fa-arrow-left fa-lg" aria-hidden="true"></i>
+      </span>
+    </div>
+    <div matRipple class="key key-zero" (click)="keyClick('0')">
+      <span class="text-color-primary">0</span>
+    </div>
+    <div matRipple class="key key-ok" (click)="onKeyBoardOk()">
+      <span class="text-color-primary">
+        <i class="fa fa-check fa-lg" aria-hidden="true"></i>
+      </span>
+    </div>
+  </div>
+
+</div>

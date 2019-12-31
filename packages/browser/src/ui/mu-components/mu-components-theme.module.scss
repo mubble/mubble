@@ -52,4 +52,12 @@
     background: lightgrey
   }
 
+  .keypad {
+    .key {
+      span {
+        // background    : mat-color($background, nc-bg-second);
+      }
+    }
+  }
+
 }
