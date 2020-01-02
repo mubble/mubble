@@ -9,11 +9,6 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { SelectionBoxParams,
-         InputContainerComponent,
-         InputParams,
-         OutputParams
-       }                              from '..'
 import { Moment }                     from 'moment'
 import { Component,
          ViewChildren,
@@ -25,7 +20,12 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
-import { DISPLAY_TYPE }               from '../input-container'
+import { DISPLAY_TYPE,
+         SelectionBoxParams,
+         InputContainerComponent,
+         InputParams,
+         OutputParams
+       }                              from '../input-container/input-container.component'
 
 enum CONTEXT {
   INIT,

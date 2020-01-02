@@ -39,7 +39,6 @@ export class AdjustElementsDirective {
     } else {
       this.element.nativeElement.style.width        = webModeCss.width
       this.element.nativeElement.style.maxWidth     = webModeCss.maxWidth
-      this.element
     }
   }
 
@@ -48,7 +47,7 @@ export class AdjustElementsDirective {
 
     if (!this.webMode) {
       webModeCss.width = '100%'
-      return
+      return webModeCss
     }
 
     switch(this.displayCount) {
