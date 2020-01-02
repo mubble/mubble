@@ -20,7 +20,6 @@ export interface TableHeader {
   colType       : COL_TYPE
   customStyle  ?: string
   constValue   ?: any
-  enableFilter ?: boolean
   enableSort   ?: boolean
   widthPerc    ?: number
   isEditable   ?: boolean
@@ -32,6 +31,7 @@ export interface TableConfig {
   dispRows      ?: number     
   enableSelect  ?: boolean
   enableRadio   ?: boolean
+  enableFilter  ?: boolean
   selectedItems ?: Object[]
   lazyLoad      ?: boolean
   totalRecords  ?: number
@@ -130,9 +130,15 @@ export class MuDataTableComponent implements OnInit {
     if (this.tableConfig) {
 
       for (let header of this.tableConfig.headers) {
-        if (header.enableFilter) this.filterFields.push(header.dataKey)
         if (header.isEditable)   this.editForm.addControl(header.dataKey, new FormControl())
         this.headerFields.push(header.dataKey)
+
+        if (this.tableConfig.enableFilter && 
+            (header.colType === COL_TYPE.HYPER_LINK ||
+            header.colType === COL_TYPE.TEXT)) {
+          this.filterFields.push(header.dataKey)
+        }
+
       }
       
       if (this.tableConfig.selectedItems) 
@@ -330,10 +336,10 @@ export class MuDataTableComponent implements OnInit {
     if (!inputText) {
       this.dataToDisplay = this.dataMap[this.currPageIndex]
       return
-    } 
+    }
     
     this.dataToDisplay = this.dataMap[this.currPageIndex].filter(dataRow => {
-      if (this.filterFields.filter(header => dataRow[header].toString().toLowerCase()
+      if (this.filterFields.filter(header => dataRow[header] && dataRow[header].toString().toLowerCase()
                                              .includes(inputText.toString().toLowerCase()))
                                              .length) 
         return true
