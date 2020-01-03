@@ -47,7 +47,11 @@ import { map,
 import { FileUploadComponent, 
          UploadedDocParams 
        }                                  from '../file-upload/file-upload.component'
-import { DISPLAY_MODE }                   from '../filter/filter.component'
+
+export enum DISPLAY_MODE {
+  HORIZONTAL = 'HORIZONTAL',
+  VERTICAL   = 'VERTICAL'
+}
 
 export enum DISPLAY_TYPE {
   ROW_INPUT_BOX         = 'ROW_INPUT_BOX',

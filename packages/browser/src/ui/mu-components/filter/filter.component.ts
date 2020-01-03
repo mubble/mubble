@@ -24,17 +24,14 @@ import { DISPLAY_TYPE,
          SelectionBoxParams,
          InputContainerComponent,
          InputParams,
-         OutputParams
+         OutputParams,
+         DISPLAY_MODE
        }                              from '../input-container/input-container.component'
+         
 
 enum CONTEXT {
   INIT,
   CLEAR
-}
-
-export enum DISPLAY_MODE {
-  HORIZONTAL = 'HORIZONTAL',
-  VERTICAL   = 'VERTICAL'
 }
 
 export interface FilterItem {
