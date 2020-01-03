@@ -291,9 +291,11 @@ export class HttpsThirdServerProvider implements XmnProvider {
 
     const obj      = querystring.parse(query),
           keywords = {
-                       true  : true,
-                       false : false,
-                       ''    : undefined
+                       true      : true,
+                       false     : false,
+                       null      : null,
+                       undefined : undefined,
+                       ''        : undefined
                      } as Mubble.uObject<any>
 
     for(const key of Object.keys(obj)) {
