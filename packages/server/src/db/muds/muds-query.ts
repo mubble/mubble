@@ -178,7 +178,10 @@ export class MudsQuery<T extends MudsBaseEntity> {
 
     const meField = this.io.getReferredField(rc, fieldName as string, this.entityInfo.entityName) as MeField
     meField.accessor.validateType(value)
-
+    //TODO:( Review this code)
+    if (meField.fieldType === Array) { 
+      value = value.toString()
+    }
     this.filters.push({fieldName : fieldName as string, comparator, value})
     return this
   }
