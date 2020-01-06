@@ -7,21 +7,19 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import {
+         RunContextBase, 
+         LOG_LEVEL,
+         RUN_MODE,
+         InitConfig,
+         RunState,
+         RCLoggerBase,
+         Mubble,
+         MaskingDataParams
+       }                    from '@mubble/core'
+import { MasterMgr }        from './master/ma-manager'
 import * as semver          from 'semver'
 import * as lo              from 'lodash'
-
-import {
-  RunContextBase, 
-  LOG_LEVEL,
-  RUN_MODE,
-  InitConfig,
-  RunState,
-  RCLoggerBase,
-  Mubble
-  MaskingDataParams
-}  from '@mubble/core'
-
-import  {MasterMgr}         from './master/ma-manager'
 
 // Import from external modules without types
 const colors:any = require('colors/safe') // https://github.com/marak/colors.js/
