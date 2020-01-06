@@ -1,73 +1,127 @@
-<p-table #dt
-  [rows]="tableConfig.dispRows"
-  [value]="tableConfig.lazyLoad ? dataToDisplay : tableConfig.data"
-  [lazy]="tableConfig.lazyLoad"
-  [totalRecords]="totalRecords"
-  [columns]="tableConfig.headers"
-  [paginator]="enablePagination"
-  [loading]="loading"
-  (onLazyLoad)="loadLazy($event)"
-  (onRowSelect)="rowSelect($event)" 
-  (onRowUnselect)="rowUnselect($event)"
-  [globalFilterFields]="filterFields"
-  [(selection)]="selectedItems">
-
-  <ng-template pTemplate="caption" *ngIf="filterFields.length || enablePagination">
-    <div class="top-cont">        
-      <i class="fa fa-search icon-class" *ngIf="filterFields.length"></i>
-      <input type="text" class="input-box" pInputText placeholder="Search" 
-      (input)="dt.filterGlobal($event.target.value, 'contains')" 
-      *ngIf="filterFields.length">
+<div class="mu-table-cont">
+  
+  <div class="table-extras">
+    <div class="search-input txt-lg-reg-norm">
+        <input matInput placeholder="Search" (input)="search($event)">
     </div>
-  </ng-template>
+    <div class="paginator" *ngIf="pageNumbers.length > 1">
+      <div class="firstPage" class="pagenumber" (click)="onPageClick(0)">
+        <i class="fa fa-chevron-left" aria-hidden="true"></i>
+      </div>
+      <div class="pagenumber txt-lg-reg-dark" *ngFor="let pageNumber of pageNumbers.slice(pageIndex, pageIndex + 5)"
+        (click)="onPageClick(pageNumber - 1)"
+        [ngClass]="currPageIndex === pageNumber - 1 ? 'sel-ind' : ''">
+        {{ pageNumber }}
+      </div>
+      <div class="lastPage" class="pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
+        <i class="fa fa-chevron-right" aria-hidden="true"></i>
+      </div>
+    </div>
+  </div>
 
-  <ng-template pTemplate="header" let-coloumns>
-    <tr>
-      <th *ngIf="tableConfig.enableSelect" class="checkbox">
-        <mat-checkbox (change)="selectAllRows($event)" #slctAllBox></mat-checkbox>
-      </th>
-      <th *ngIf="tableConfig.enableRadio" class="checkbox">
-      </th>
-      <th *ngFor="let col of coloumns; let i = index" [pSortableColumn]="sortFields[i]">
-        {{ col.header }}
-        <p-sortIcon *ngIf="sortFields[i]" [field]="sortFields[i]"> </p-sortIcon>
-      </th>
-    </tr>
-  </ng-template>
+  <div class="headers-cont">
+    <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
+    <div class="checkbox" *ngIf="tableConfig?.enableSelect">
+      <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
+    </div>
+    <div class="header txt-xl-bld-dark" *ngFor="let header of tableConfig.headers" 
+      [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
+      {{ header.header }}
+    </div>
+  </div>
+  
+  <div class="table-row-cont" *ngFor="let rowData of dataToDisplay"
+    [class.row-active]="selectedIndexes[rowData['rowIndex']]">
+    
+    <div class="radio-btn" *ngIf="tableConfig.enableRadio" >
+      <mat-radio-group name="rowRadio">
+        <mat-radio-button 
+          value="{{ rowData['rowIndex'] }}" 
+          (change)="radioSelect($event, rowData)"
+          [checked]="selectedIndexes[rowData['rowIndex']]">
+        </mat-radio-button>
+      </mat-radio-group>
+    </div>
 
-  <ng-template pTemplate="body" let-rowData>
-    <tr [pSelectableRow]="rowData" style="text-align: center">
-      <td *ngIf="tableConfig.enableSelect">
-        <p-tableCheckbox [value]="rowData"></p-tableCheckbox>
-      </td>
-      <td *ngIf="tableConfig.enableRadio">
-        <p-tableRadioButton [value]="rowData"></p-tableRadioButton>
-      </td>
-      <td *ngFor="let row of tableConfig.headers" [ngClass]="row.customStyle"
-      (click)="cellClick(rowData, row.dataKey)">
+    <div class="checkbox" *ngIf="tableConfig.enableSelect">
+      <mat-checkbox
+       [checked]="selectedIndexes[rowData['rowIndex']]"
+       (change)="rowSelect($event, rowData)">
+      </mat-checkbox>
+    </div>
 
-        <ng-container [ngSwitch]="row.colType">
-          <div *ngSwitchCase="COL_TYPE.TEXT">
-            {{ row.constValue || rowData[row.dataKey] }}
-          </div>
-          <div *ngSwitchCase="COL_TYPE.PRIMARY_KEY">
-            {{ row.constValue || rowData[row.dataKey] }}
-          </div>
-          <div *ngSwitchCase="COL_TYPE.IMAGE">
-            <img src="{{ row.constValue || rowData[row.dataKey] }}">
-          </div>
-          <div *ngSwitchCase="COL_TYPE.ICON">
-            <i class="{{ row.constValue || rowData[row.dataKey] }}"></i>
-          </div>
-          <div *ngSwitchCase="COL_TYPE.BUTTON">
-            <button>{{ row.constValue || rowData[row.dataKey] }}</button>
-          </div>
-          <div *ngSwitchCase="COL_TYPE.DATE">
-            {{ row.constValue || rowData[row.dataKey] | date }}
-          </div>
-        </ng-container>
-        
-      </td>
-    </tr>
-  </ng-template>
-</p-table>
+    <ng-container *ngIf="dataToDisplay">
+      <div class="row-data txt-lg-med-norm" *ngFor="let header of tableConfig.headers" 
+      [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
+      <ng-container [ngSwitch]="header.colType" [formGroup]="editForm">
+
+        <div *ngSwitchCase="COL_TYPE.TEXT">
+         <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)"> 
+           {{ header.constValue || rowData[header.dataKey] }} 
+         </span> 
+        <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
+          formControlName="{{ header.dataKey }}"
+          value="{{ rowData[header.dataKey] }}" type="text">
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.DATE">
+          {{ header.constValue || rowData[header.dataKey] | date }}
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.IMAGE">
+          <img class="click-item" src="{{ header.constValue || rowData[header.dataKey] }}">
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
+          class="click-item text-color-primary">
+          {{ header.constValue || rowData[header.dataKey] }}
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
+          <i class="{{ header.constValue || rowData[header.dataKey] }}"></i>
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.BUTTON" (click)="cellClick(rowData, header.dataKey)">
+          <button class="table-button click-item txt-lg-med-norm primary-bg">
+            {{ header.constValue || rowData[header.dataKey] }}
+          </button>
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.TOGGLE">
+          <mat-slide-toggle (change)="toggleRow($event, rowData)"
+          [checked]="toggleActIndexes[rowData['rowIndex']]">
+          </mat-slide-toggle>
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.MORE_DETAILS">
+          <i class="fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
+          <mat-menu #menu="matMenu" yPosition="below" xPosition="before">
+            <button mat-menu-item *ngFor="let option of header.constValue" 
+            (click)="moreDetailsClick(option.id, rowData)"> 
+              <span> {{ option.value }}</span>
+            </button>
+          </mat-menu>
+        </div>
+
+        <div *ngSwitchCase="COL_TYPE.EDIT">
+          <span class="click-item" (click)="editRow(rowData, true)" 
+          *ngIf="!selectedIndexes[rowData['rowIndex']]">
+            Edit
+          </span>
+          <span class="click-item" (click)="editRow(rowData, false)" 
+          *ngIf="selectedIndexes[rowData['rowIndex']]">
+            Save
+          </span>
+        </div>
+      </ng-container>
+    </div>
+    </ng-container>
+  </div>
+
+  <ng-container *ngIf="!dataToDisplay">
+    <div class="no-data txt-lg-med-norm">
+      No data to display 
+    </div>
+  </ng-container>
+
+</div>

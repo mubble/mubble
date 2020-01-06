@@ -14,7 +14,11 @@ import { Component,
          Output,
          Inject,
          EventEmitter,
-         ViewChild
+         ViewChild,
+         OnChanges,
+         ViewChildren,
+         QueryList,
+         ElementRef
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -26,7 +30,13 @@ import { RunContextBrowser }              from '../../../rc-browser'
 import { MatSelectChange,
          MatDatepickerInputEvent,
          MatAutocompleteSelectedEvent,
-         MatDatepicker
+         MatDatepicker,
+         MatRadioChange,
+         MatCheckboxChange,
+         MatSlideToggleChange,
+         MatCheckbox,
+         MatButtonToggleChange,
+         MatButtonToggle
        }                                  from '@angular/material'
 import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
@@ -34,43 +44,62 @@ import { Observable }                     from 'rxjs'
 import { map,
          startWith
        }                                  from 'rxjs/operators'
+import { FileUploadComponent, 
+         UploadedDocParams 
+       }                                  from '../file-upload/file-upload.component'
+
+export enum DISPLAY_MODE {
+  HORIZONTAL = 'HORIZONTAL',
+  VERTICAL   = 'VERTICAL'
+}
 
 export enum DISPLAY_TYPE {
+  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
   INPUT_BOX             = 'INPUT_BOX',
   SELECTION_BOX         = 'SELECTION_BOX',
   CALENDAR_BOX          = 'CALENDAR_BOX',
   DATE_RANGE            = 'DATE_RANGE',
   NUMBER_RANGE          = 'NUMBER_RANGE',
-  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT'
+  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
+  RADIO                 = 'RADIO',
+  TEXT_AREA             = 'TEXT_AREA',
+  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
+  TOGGLE                = 'TOGGLE',
+  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
+  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
 }
 
 export interface SelectionBoxParams {
-  id    : string
-  value : string
+  id        : string
+  value     : string
+  selected ?: boolean
 }
 
 export interface ValidatorsParams {
+  allowFutureDate ?: boolean
   validation      ?: string | RegExp
   validationError  : string
 }
 
 export interface OutputParams {
-  id    : string
-  value : any
+  id          : string
+  value       : any
+  displayType : DISPLAY_TYPE
 }
 
 export interface InputParams {
-  id            : string
-  displayType   : DISPLAY_TYPE
-  placeHolder   : string | string[]
-  label        ?: string
-  options      ?: SelectionBoxParams[]
-  inputType    ?: string
-  maxLength    ?: number
-  value        ?: any
-  isPassword   ?: boolean
-  validators   ?: ValidatorsParams
-  isRequired   ?: boolean
+  id               : string
+  displayType      : DISPLAY_TYPE
+  placeHolder      : string | string[]
+  label           ?: string
+  options         ?: SelectionBoxParams[]
+  inputType       ?: string
+  maxLength       ?: number
+  value           ?: any
+  isPassword      ?: boolean
+  validators      ?: ValidatorsParams
+  isRequired      ?: boolean
+  isDisabled      ?: boolean
 }
 
 @Component({
@@ -79,78 +108,44 @@ export interface InputParams {
   styleUrls   : ['./input-container.component.scss']
 })
 
-export class InputContainerComponent {
+export class InputContainerComponent implements OnChanges {
 
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
+  @Input()  parentCont      : ElementRef
+  @Input()  displayMode     : DISPLAY_MODE   
+  @Input()  webMode         : boolean           
   @Input()  eventPropagate  : boolean               = false
+
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
   @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
-  @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
-  @Input()  webMode         : boolean           
+
+  @ViewChild(MatDatepicker, { static: false })       picker       : MatDatepicker<any>
+  @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
+  @ViewChildren(MatCheckbox)     matCheckbox   : QueryList<MatCheckbox>
+  @ViewChildren(MatButtonToggle) matBtnToggle  : QueryList<MatButtonToggle>
 
   inputForm       : FormControl
   dateRange       : FormGroup
   numberRange     : FormGroup
   filteredOptions : Observable<SelectionBoxParams[]>
 
-  DISPLAY_TYPE  : typeof DISPLAY_TYPE = DISPLAY_TYPE
+  DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
+  DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
+
+  private fileUploadParams : UploadedDocParams
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
-              private formBuilder                 : FormBuilder) { }
+              private formBuilder                 : FormBuilder) { 
+
+  }
+
+  ngOnChanges() {
+    this.initialize()
+  }
 
   ngOnInit() {
-
-    const params          = this.inputParams,
-          formValidations = []
-
-    if (params.isRequired) {
-      formValidations.push(Validators.required)
-    }
-
-    if (params.validators) {
-      formValidations.push(Validators.pattern(params.validators.validation))
-    }
-
-    switch (params.displayType) {
-      case DISPLAY_TYPE.INPUT_BOX     :
-      case DISPLAY_TYPE.SELECTION_BOX :
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        break
-
-      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        this.filteredOptions = this.inputForm.valueChanges.pipe(
-                                 startWith(''),
-                                 map(value => typeof value === 'string' ? value : value.value),
-                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
-        break
-
-      case DISPLAY_TYPE.CALENDAR_BOX  :
-        formValidations.push(InputValidator.futureDateValidator)
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        break
-
-      case DISPLAY_TYPE.DATE_RANGE    : 
-        this.dateRange = this.formBuilder.group({
-          startDate : [params.value['startDate'] || null, formValidations],
-          endDate   : [params.value['endDate']   || null, formValidations]
-        },
-        {
-          validator : [InputValidator.dateValidator]
-        })
-        break
-
-      case DISPLAY_TYPE.NUMBER_RANGE  : 
-        this.numberRange = this.formBuilder.group({
-          minAmount : [params.value['minAmount'] || null, formValidations],
-          maxAmount : [params.value['maxAmount'] || null, formValidations]
-        },
-        {
-          validator : [InputValidator.amountValidator]
-        })
-        break
-    }
+    this.initialize()      
   }
 
   /*=====================================================================
@@ -158,7 +153,7 @@ export class InputContainerComponent {
   =====================================================================*/
   onSubmit() {
 
-    if (this.inputForm && this.inputParams.validators)  this.inputForm.markAsTouched()
+    if (this.inputForm && (this.inputParams.validators || this.inputParams.isRequired))  this.inputForm.markAsTouched()
 
     if (this.dateRange && this.inputParams.validators) {
       this.dateRange.controls.startDate.markAsTouched()
@@ -172,38 +167,84 @@ export class InputContainerComponent {
 
     if (this.hasError()) return
 
-    let params : OutputParams
-
+    let params    : OutputParams,
+        emitValue : boolean = true    
+    
     switch (this.inputParams.displayType) {
 
       case DISPLAY_TYPE.CALENDAR_BOX        :
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-        params = { id     : this.inputParams.id,
-                   value  : this.inputForm.value }
+      case DISPLAY_TYPE.TEXT_AREA           :
+      case DISPLAY_TYPE.TOGGLE              :
+      case DISPLAY_TYPE.BUTTON_TOGGLE       :
+      case DISPLAY_TYPE.ROW_INPUT_BOX       :
+        params = { 
+                    id          : this.inputParams.id,
+                    value       : this.inputForm.value,
+                    displayType : this.inputParams.displayType
+                 }
         break
 
       case DISPLAY_TYPE.DATE_RANGE  :
-        params = { id     : this.inputParams.id,
-                   value  : {
-                              startDate : this.dateRange.controls.startDate.value,
-                              endDate   : this.dateRange.controls.endDate.value
-                            }
+        params = { 
+                    id          : this.inputParams.id,
+                    value       : {
+                                     startDate : this.dateRange.controls.startDate.value,
+                                     endDate   : this.dateRange.controls.endDate.value
+                                   },
+                    displayType : this.inputParams.displayType
+
                  }
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        params = { id     : this.inputParams.id,
-                   value  : { 
+        params = { 
+                    id     : this.inputParams.id,
+                    value  : { 
                               minAmount : this.numberRange.controls.minAmount.value,
                               maxAmount : this.numberRange.controls.maxAmount.value
-                            }
+                            },
+                    displayType : this.inputParams.displayType
                  }
         break
-    }
 
-    this.value.emit(params)
+      case DISPLAY_TYPE.IMAGE_UPLOAD  : 
+        params  = {
+                    id          : this.inputParams.id,
+                    value       : this.fileUploadParams,
+                    displayType : this.inputParams.displayType
+                  }
+        break
+
+      case DISPLAY_TYPE.RADIO :
+        params = {
+                    id          : this.inputParams.id,
+                    value       : this.inputForm.value ? this.inputForm.value['id'] : null,
+                    displayType : this.inputParams.displayType
+                 }
+        break
+
+      case DISPLAY_TYPE.MULTI_CHECK_BOX :  
+
+        const matCheckboxInst = this.matCheckbox.toArray()
+        let values = []
+
+        matCheckboxInst.forEach((val,index) => {
+          if (val.checked) values.push(val.value['id'])
+        })
+
+        params = { 
+          id          : this.inputParams.id,
+          value       : values,
+          displayType : this.inputParams.displayType
+        }
+        break  
+
+    } 
+        
+    if (emitValue) this.value.emit(params)
   }
 
   isCalanderOpen() : boolean {
@@ -217,8 +258,29 @@ export class InputContainerComponent {
   /*=====================================================================
                               HTML
   =====================================================================*/
-  selectedOption(event : MatSelectChange) {
+  selectedOption(event : MatSelectChange | MatRadioChange) {
     this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
+  onToggleChane(event : MatSlideToggleChange) {
+    
+    this.inputForm.setValue(event.checked)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
+  onBtnToggleChange(event : MatButtonToggleChange, index : number) {
+    this.inputForm.setValue(event.value)
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
+  fileUploadValue(event : UploadedDocParams) {
+    this.fileUploadParams = event
+    if (this.eventPropagate)  this.onSubmit()
+  }
+
+  checkedOption(event : MatCheckboxChange, option : SelectionBoxParams) {
+    this.inputForm.setValue({checked : event.checked, option})
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -262,6 +324,12 @@ export class InputContainerComponent {
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+      case DISPLAY_TYPE.TEXT_AREA           :
+      case DISPLAY_TYPE.MULTI_CHECK_BOX     :
+      case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.TOGGLE              :
+      case DISPLAY_TYPE.BUTTON_TOGGLE       :
+      case DISPLAY_TYPE.ROW_INPUT_BOX   :
 
         hasError = this.inputParams.isRequired 
                    ? this.inputForm.invalid
@@ -283,8 +351,12 @@ export class InputContainerComponent {
                    : this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid
 
         break
-    }
 
+      case DISPLAY_TYPE.IMAGE_UPLOAD  :
+        this.fileUplInst.onSubmit()
+        hasError  = this.inputParams.isRequired ? (!this.fileUploadParams || Object.keys(this.fileUploadParams).length === 0) : false
+    }
+  
     return hasError
   }
 
@@ -295,8 +367,79 @@ export class InputContainerComponent {
   /*=====================================================================
                               PRIVATE
   =====================================================================*/
+  private initialize() {
+    const params          = this.inputParams,
+          formValidations = []
+
+    if (params.isRequired) {
+      formValidations.push(Validators.required)
+    }
+
+    if (params.validators) {
+      formValidations.push(Validators.pattern(params.validators.validation))
+    }
+
+    switch (params.displayType) {
+      case DISPLAY_TYPE.INPUT_BOX     :
+      case DISPLAY_TYPE.TEXT_AREA     :
+      case DISPLAY_TYPE.RADIO         : 
+      case DISPLAY_TYPE.SELECTION_BOX :
+      case DISPLAY_TYPE.TOGGLE        : 
+      case DISPLAY_TYPE.MULTI_CHECK_BOX :
+      case DISPLAY_TYPE.BUTTON_TOGGLE   :
+      case DISPLAY_TYPE.ROW_INPUT_BOX :
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.setDisabled(params.isDisabled)
+        break
+
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.filteredOptions = this.inputForm.valueChanges.pipe(
+                                 startWith(''),
+                                 map(value => typeof value === 'string' ? value : value.value),
+                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
+        this.setDisabled(params.isDisabled)
+        break
+
+      case DISPLAY_TYPE.CALENDAR_BOX  :
+        formValidations.push(InputValidator.futureDateValidator)
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+        this.setDisabled(params.isDisabled)
+        break
+
+      case DISPLAY_TYPE.DATE_RANGE    : 
+        this.dateRange = this.formBuilder.group({
+          startDate : [params.value['startDate'] || null, formValidations],
+          endDate   : [params.value['endDate']   || null, formValidations]
+        }
+       )
+        const valiArr = [InputValidator.dateValidator]
+        if(!params.validators || !params.validators.allowFutureDate) 
+          valiArr.push(InputValidator.futureDateValidatorIfAllowed)
+        this.dateRange.setValidators(valiArr)
+        if (params.isDisabled) this.dateRange.disable()
+        break
+
+      case DISPLAY_TYPE.NUMBER_RANGE  : 
+        this.numberRange = this.formBuilder.group({
+          minAmount : [params.value['minAmount'] || null, formValidations],
+          maxAmount : [params.value['maxAmount'] || null, formValidations]
+        },
+        {
+          validator : [InputValidator.amountValidator]
+        })
+        if (params.isDisabled) this.numberRange.disable()
+        break
+    }
+
+  }
+
   private filterOptions(inputText : string): SelectionBoxParams[] {
     const filterValue = inputText.toLowerCase()
     return this.inputParams.options.filter(option => option.value.toLowerCase().includes(filterValue))
+  }
+
+  private setDisabled(value : boolean) {
+    value ? this.inputForm.disable() : this.inputForm.enable()
   }
 }

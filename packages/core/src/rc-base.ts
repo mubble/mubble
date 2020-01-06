@@ -15,6 +15,8 @@ import { ConnectionInfo,
 import { Timer }                from './util/timer'
 import omit                     from 'lodash/omit'
 import keysIn                   from 'lodash/keysIn'
+import cloneDeep                from 'lodash/cloneDeep'
+import { DataMasker }           from './data-masker'
 
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
@@ -54,7 +56,7 @@ export abstract class RunContextBase {
 
   public  logger  : RCLoggerBase
   public timer    : Timer
-  
+
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
               public contextId   ?: string, 
@@ -172,6 +174,13 @@ export abstract class RunContextBase {
    
 }
 
+export type MaskingDataParams = {
+  maskKey          : string
+  maskWith        ?: string
+  startSkipCount  ?: number
+  endSkipCount    ?: number
+}
+
 export type LogCacheEntry = {
   ts : number ,
   moduleName : string , 
@@ -253,7 +262,7 @@ export abstract class RCLoggerBase {
   abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
 
   public log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
-
+    // args  = JSON.parse(JSON.stringify(args))
     const refLogLevel = this.rc.runState.moduleLLMap[moduleName] || this.rc.initConfig.logLevel
 
     if (level < refLogLevel) return 'not logging'
@@ -359,6 +368,27 @@ export abstract class RCLoggerBase {
     }
     //console.log(`obj: ${obj} ,${typeof(obj)}, ${obj.toString()} , ${typeof(obj.toString())}`)
     if (!isArray && typeof(obj.toString) === 'function') {
+
+      const rc  = this.rc as any
+
+      // if (rc.getMaskingData) {
+      //   const maskKeys  = rc.getMaskingData() as MaskingDataParams[]
+
+      //   if (maskKeys && maskKeys.length) {
+
+      //     for (const key in obj) {
+
+      //       maskKeys.forEach(val => {
+    
+      //         if (val.maskKey === key) {
+      //           obj[key]  = DataMasker.maskData(val, obj[key])
+      //         }
+      //       })
+    
+      //     }
+      //   }
+      // }
+      
       const str = obj.toString()
       if(typeof(str) === 'number' || (typeof(str)==='string' && !str.startsWith('[object'))) return str
     }

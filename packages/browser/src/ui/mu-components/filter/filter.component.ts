@@ -9,11 +9,6 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { SelectionBoxParams,
-         InputContainerComponent,
-         InputParams,
-         OutputParams
-       }                              from '..'
 import { Moment }                     from 'moment'
 import { Component,
          ViewChildren,
@@ -25,7 +20,14 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
-import { DISPLAY_TYPE }               from '../input-container'
+import { DISPLAY_TYPE,
+         SelectionBoxParams,
+         InputContainerComponent,
+         InputParams,
+         OutputParams,
+         DISPLAY_MODE
+       }                              from '../input-container/input-container.component'
+         
 
 enum CONTEXT {
   INIT,
@@ -51,7 +53,7 @@ export interface NumberRangeInterface {
 
 export interface SelectedFilter {
   id    : string
-  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
+  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
 }
 
 @Component({
@@ -66,12 +68,16 @@ export class FilterComponent {
 
   @Input()  filterItems     : FilterItem[]      = []
   @Input()  screen          : TrackableScreen
-  @Input()  webMode        ?: boolean      = false
+  @Input()  webMode         : boolean           = false   //if we want to use filter component as full page
+  @Input()  displayCount    : number            = 1
+  @Input()  displayMode     : DISPLAY_MODE      = DISPLAY_MODE.HORIZONTAL
 
   @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
 
-  filters     : SelectedFilter[] = []
-  inputParams : InputParams[]    = []
+  filters      : SelectedFilter[] = []
+  inputParams  : InputParams[]    = []
+  filterChips  : string[]         = []
+  DISPLAY_MODE : typeof DISPLAY_MODE = DISPLAY_MODE
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
@@ -83,28 +89,41 @@ export class FilterComponent {
                                   HTML
   =====================================================================*/
   applyFilters() {
-    const inputContInstances = this.inputContInstances.toArray()
+    
+    this.filterChips = []
 
+    const inputContInstances = this.inputContInstances.toArray()
+    
     inputContInstances.forEach(inputContInstance => {
       inputContInstance.onSubmit()
     })
 
     if (this.hasError()) return
     
-    if (!this.valueChanged()) {
+    if (!this.valueChanged()) {      
       this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
     }
-
+    
     this.selectedFilter.emit(this.filters)
   }
 
   clearFilters() {
+    const inputContInstances = this.inputContInstances.toArray()
+
+    inputContInstances.forEach(inputContInstance => {
+      inputContInstance.onSubmit()
+    })
+
     this.initialize(CONTEXT.CLEAR)
+    this.filterChips = []
     this.selectedFilter.emit(undefined)   //on clearing, we just return undefined
   }
 
   setFilterItems(event : OutputParams) {
+    
+    if (event.value) this.filterChips = this.filterChips.concat(event.value)
+    
     const index = this.filters.findIndex(element => element.id === event.id)
     this.filters[index].value = event.value
   }
@@ -126,24 +145,35 @@ export class FilterComponent {
     for (const fItem of this.filterItems) {
       const index = this.filters.findIndex(element => element.id === fItem.id)
       let changed : boolean = false
-
+      
       //checking changed value according to the display type
       switch(fItem.params.displayType) {
         case DISPLAY_TYPE.CALENDAR_BOX        :
         case DISPLAY_TYPE.INPUT_BOX           :
         case DISPLAY_TYPE.SELECTION_BOX       :
+        case DISPLAY_TYPE.ROW_INPUT_BOX       :
+        case DISPLAY_TYPE.MULTI_CHECK_BOX     :
+        case DISPLAY_TYPE.RADIO               :
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-          changed = fItem.params.value !== this.filters[index].value
+          (!fItem.params.value && !this.filters[index].value)
+          ? changed = false
+          : changed = fItem.params.value !== this.filters[index].value
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
-          changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
-                    (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
+          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) ||
+          (!fItem.params.value['endDate'] && !this.filters[index].value['endDate']))
+          ? changed = false
+          : changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
+                      (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
-                    (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
+          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) ||
+          (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
+          ? changed = false
+          : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
+                      (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
           break
       }
 
@@ -158,12 +188,10 @@ export class FilterComponent {
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
         this.filters.push({ id : fItem.id, value : fItem.params.value })
-  
-        this.inputParams.push(fItem.params)
       }
     } else {
-      this.inputParams  = []
       this.filters      = []
+      const fItems : FilterItem[] = []
 
       for (const fItem of this.filterItems) {
         const setNull = fItem.params.displayType === DISPLAY_TYPE.DATE_RANGE
@@ -172,10 +200,21 @@ export class FilterComponent {
                         ? { minAmount : null, maxAmount : null }
                         : null
 
+        fItem.params.value  = setNull
+
+        fItems.push({
+          id      : fItem.id,
+          title   : fItem.title,
+          params  : fItem.params
+        })
+
         this.filters.push({ id : fItem.id, value : setNull })
-  
-        this.inputParams.push(fItem.params)
       }
+
+      this.filterItems  = []
+      this.filterItems  = fItems
     }
   }
+
+
 }

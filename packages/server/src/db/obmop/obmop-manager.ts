@@ -15,10 +15,17 @@ import {
 				 ObmopBaseEntity,
 				 ObmopBaseClient
 			 } 														from './obmop-base'
-import { ObmopRegistryManager } 		from './obmop-registry'
+import { ObmopRegistryManager, 
+				 ObmopFieldInfo 
+			 } 														from './obmop-registry'
 import { RunContextServer }   			from '../../rc-server'
 import { Mubble } 								 	from '@mubble/core'
 import * as lo 											from 'lodash'
+
+export type ObmopQueryRetval<T> = {
+	entities   : Array<T>
+	totalCount : number
+}
 
 export class ObmopManager {
 
@@ -40,9 +47,9 @@ export class ObmopManager {
    *  Function to get all rows for an obmop entity.
    */
   public async queryAll<T extends ObmopBaseEntity>(rc         : RunContextServer,
-                      														 entityType : new(rc : RunContextServer) => T) : Promise<Array<T>> {
-
-		let records : Array<any>
+																									 entityType : new(rc : RunContextServer) => T,
+																									 limit			: number = -1,
+																									 offset 		: number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
@@ -50,22 +57,28 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching all data.', tableName)
 
 		try {
-			records = await this.client.queryAll(rc, tableName, fields)
+			const records = await this.client.queryAll(rc, tableName, fields, limit, offset)
+
+
+			const entities = records.entities.map((record) => {
+				const entity = new entityType(rc)
+	
+				Object.assign(entity, record)
+				return entity
+			})
+	
+			const result : ObmopQueryRetval<T> = {
+				entities,
+				totalCount : records.totalCount
+			}
+	
+			return result
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
-		}										
-
-    const entities = records.map((record) => {
-			const entity = new entityType(rc)
-
-			Object.assign(entity, record)
-			return entity
-		})
-
-    return entities
+		}
   }
 
 	/**
@@ -76,9 +89,9 @@ export class ObmopManager {
               			 														entityType : new(rc : RunContextServer) => T,
               			 														key        : keyof T,
               			 														value      : any,
-              			 														operator   : string = '=') : Promise<Array<T>> {
-
-		let records : Array<any>
+																								operator   : string = '=',
+																								limit 		 : number = -1,
+																								offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
@@ -88,24 +101,29 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, value)
 
 		try {
-			records = await this.client.query(rc, tableName, fields, key as string, value, operator)
+			const records = await this.client.query(rc, tableName, fields, key as string, value,
+																						  operator, limit, offset)
 
+
+			const entities = records.entities.map((record) => {
+				const entity = new entityType(rc)
+	
+				Object.assign(entity, record)
+				return entity
+			})
+	
+			const result : ObmopQueryRetval<T> = {
+				entities,
+				totalCount : records.totalCount
+			}
+	
+			return result
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}
-
-    const entities = records.map((record) => {
-			const entity = new entityType(rc)
-
-			Object.assign(entity, record)
-			return entity
-		})
-
-    return entities
 	}
-	
 
 	/**
    *  Function to get rows for an obmop entity with multiple AND queries.
@@ -114,9 +132,9 @@ export class ObmopManager {
 	public async queryAnd<T extends ObmopBaseEntity>(
 														rc 				 : RunContextServer,
 														entityType : new(rc : RunContextServer) => T,
-														conditions : Array<{key : keyof T, value : any, operator ?: string}>) : Promise<Array<T>> {
-
-		let records : Array<any>
+														conditions : Array<{key : keyof T, value : any, operator ?: string}>,
+														limit			 : number = -1,
+														offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName 			 = new entityType(rc).getTableName(),
 					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
@@ -133,22 +151,26 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions)
 
 		try {
-			records = await this.client.queryAnd(rc, tableName, fields, clientConditions)
+			const records = await this.client.queryAnd(rc, tableName, fields, clientConditions,
+																					 			 limit, offset)
+
+			const result : ObmopQueryRetval<T> = {
+				entities   : records.entities.map((record) => {
+																												const entity = new entityType(rc)
+																								
+																												Object.assign(entity, record)
+																												return entity
+																											}),
+				totalCount : records.totalCount
+			}
+	
+			return result
 
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}
-
-    const entities = records.map((record) => {
-			const entity = new entityType(rc)
-
-			Object.assign(entity, record)
-			return entity
-		})
-
-    return entities
 	}
 
 	/**
@@ -156,17 +178,10 @@ export class ObmopManager {
    */
   public async insert<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
 
-		if(entity.deleted) {
-			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
-		}
-
-		const tableName = entity.getTableName()
-
-		entity.createts = Date.now()
-		entity.modts    = entity.createts
-
-    const entityObj = {} as Mubble.uObject<any>,
-          keys      = Object.keys(entity)
+		const tableName = entity.getTableName(),
+					entityObj = {} as Mubble.uObject<any>,
+					keys      = Object.keys(entity)
+					
 
     for(const key of keys) {
       if(entity.hasOwnProperty(key) && !key.startsWith('_')) entityObj[key] = (entity as any)[key]
@@ -180,14 +195,77 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting data.', tableName, entity, '=>', entityObj)
 
 		try {
-			await this.client.insert(rc, tableName, entityObj)
+			const sequenceFields = this.getSequenceFields(tableName)
+				
+			if (sequenceFields.length) {
+				let sequences : Mubble.uObject<string> = {}
+				
+				sequenceFields.forEach(sequenceField => {
+					if(sequenceField.sequence) sequences[sequenceField.name] = sequenceField.sequence
+				})
 
+				await this.client.insert(rc, tableName, entityObj, sequences)
+			} else {
+				await this.client.insert(rc, tableName, entityObj)
+			}
 		} catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in inserting ${entity} into ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}
-  }
+	}
+	/**
+	 *	Function to insert multiple rows into a table at once
+	 */
+	public async mInsert<T extends ObmopBaseEntity>(rc : RunContextServer, entities : T[]) {
+
+		const tableName 	= entities[0].getTableName(),
+					entitiesArr = [] as Array<Mubble.uObject<any>>,
+					keys				= Object.keys(entities[0])
+
+		for (const entity of entities) {
+			const entityObj = {} as Mubble.uObject<any>
+
+			for (const key of keys) {
+				if (entity.hasOwnProperty(key) && !key.startsWith('_')) entityObj[key] = (entity as any)[key]
+			}
+			entitiesArr.push(entityObj)
+		}
+
+		entitiesArr.forEach(entityObj => {
+			const failed = this.verifyEntityBeforeInserting(rc, tableName, entityObj)
+			if(failed) {
+				throw new Mubble.uError(DB_ERROR_CODE, failed)
+			}
+		})
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting multiple rows', tableName, entities, '=>', entitiesArr)
+
+		const sequenceFields = this.getSequenceFields(tableName)
+
+		let sequences : Mubble.uObject<string> | undefined = undefined
+
+		if(sequenceFields.length) {
+			sequences = {}
+
+			sequenceFields.forEach(sequenceField => {
+				if(sequences && sequenceField.sequence) sequences[sequenceField.name] = sequenceField.sequence
+			})
+		}
+
+		try {
+
+			if(this.client.mInsert) {
+				await this.client.mInsert(rc, tableName, entitiesArr, sequences)
+			} else {
+				await Promise.all(entitiesArr.map((ent) => this.client.insert(rc, tableName, ent, sequences)))
+			}
+		} catch(e) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in inserting ${entities} into ${tableName}.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, e)
+			throw mErr
+		}
+	}
 
 	/**
    *  Function to update a row of an obmop entity.
@@ -196,17 +274,11 @@ export class ObmopManager {
    */
 	public async update<T extends ObmopBaseEntity>(rc 		 : RunContextServer,
 																								 entity  : T,
-																								 updates : Mubble.uObject<any>) {
+																								 updates : Mubble.uChildObject<T>) {
 
-		if(entity.deleted) {
-			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
-		}
-
-		const tableName = entity.getTableName()
-
-		updates.modts = Date.now()
-
-		const failed = this.verifyEntityBeforeUpdating(rc, tableName, updates)
+		const tableName = entity.getTableName(),
+					failed    = this.verifyEntityBeforeUpdating(rc, tableName, updates)
+		
 		if(failed) {
 			throw new Mubble.uError(DB_ERROR_CODE, failed)
 		}
@@ -226,39 +298,6 @@ export class ObmopManager {
 		}
 
 		Object.assign(entity, updates)
-	}
-
-	/**
-   *  Function to soft delete a row of an obmop entity.
-	 * 	The entity must have the primary key at least.
-	 *  The entity is also updated with the deleted field as true.
-	 *  Make sure not to operate on a deleted entity.
-   */
-	public async softDelete<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
-
-		if(entity.deleted) {
-			throw new Mubble.uError(DB_ERROR_CODE, ObmopErrorMessage.DELETED_ENTITY)
-		}
-
-		const tableName       = entity.getTableName(),
-					deletets        = Date.now(),
-					primaryKey      = ObmopRegistryManager.getRegistry(tableName).getPrimaryKey(),
-					primaryKeyValue = (entity as any)[primaryKey],
-					updates         = {deletets, deleted : true}
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting (soft-delete) data.', tableName, entity, '=>', updates)
-
-		try {
-			await this.client.update(rc, tableName, updates, primaryKey, primaryKeyValue)
-
-		} catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting (soft) ${entity} from ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
-			throw mErr
-		}
-
-		entity.deletets = deletets
-		entity.deleted  = true
 	}
 
 	/**
@@ -309,30 +348,41 @@ export class ObmopManager {
 			}
 		}
 
-		// verifying if primary key is present if not serialized
+		// verifying if primary key is present if not serialized and not a sequence
 		const primaryKey = registry.getPrimaryKeyInfo()
-		if(!primaryKey.serial && !entityObj[primaryKey.name]) {
+		if(!primaryKey.serial && !primaryKey.sequence && !entityObj[primaryKey.name]) {
 			return ObmopErrorMessage.PK_INSERT
 		}
 
 		// verifying if not null fields are present
-		const notNullFields = registry.getNotNullFields()
+		const notNullFields = registry.getNotNullFields(),
+					notNullVerify = notNullFields.every((field : ObmopFieldInfo) => {
+						if(field.serial || field.sequence) return true
+						return (entityObj[field.name] === undefined || entityObj[field.name] === null)
+					})
 
-		for(const field of notNullFields) {
-			if(field.serial) continue // not checking for serial fields as they are automatically inserted
-
-			if(entityObj[field.name] === undefined || entityObj[field.name] === null) {
-				return ObmopErrorMessage.NOT_NULL_INSERT
-			}
+		if(notNullVerify) {
+			return ObmopErrorMessage.NOT_NULL_INSERT
 		}
 
 		// verifying if serial fields are inserted manually
-		const serialFields = registry.getSerializedFields()
+		const serialFields = registry.getSerializedFields(),
+					serialVerify = serialFields.every((field : ObmopFieldInfo) => {
+						return !entityObj[field.name]
+					})
 
-		for(const field of serialFields) {
-			if(entityObj[field.name]) {
-				return ObmopErrorMessage.SERIAL_INSERT
-			}
+		if(!serialVerify) {
+			return ObmopErrorMessage.SERIAL_INSERT
+		}
+
+		// verifying if sequence fields are inserted manually
+		const sequenceFields = registry.getSequenceFields(),
+		 			sequenceVerify = sequenceFields.every((sequenceField : ObmopFieldInfo) => {
+						return !entityObj[sequenceField.name]
+					})
+
+		if(!sequenceVerify) {
+			return ObmopErrorMessage.SEQUENCE_INSERT
 		}
 
 		// TODO : verify uniqueness
@@ -368,16 +418,31 @@ export class ObmopManager {
 		}
 
 		// verifying if serial fields are updated manually
-		const serialFields = registry.getSerializedFields()
+		const serialFields = registry.getSerializedFields(),
+					serialVerify = serialFields.every((serialField : ObmopFieldInfo) => {
+						return !updates[serialField.name]
+					})
 
-		for(const field of serialFields) {
-			if(updates[field.name]) {
-				return ObmopErrorMessage.SERIAL_UPDATE
-			}
+		if(!serialVerify) {
+			return ObmopErrorMessage.SERIAL_UPDATE
+		}
+
+		// verifying if sequence fields are updated manually
+		const sequenceFields = registry.getSequenceFields(),
+					sequenceVerify = sequenceFields.every((sequenceField : ObmopFieldInfo) => {
+						return !updates[sequenceField.name]
+					})
+
+		if(!sequenceVerify) {
+			return ObmopErrorMessage.SEQUENCE_UPDATE
 		}
 
 		// TODO : verify uniqueness
 
     return false
-  }
+	}
+	
+	private getSequenceFields(entity : string) : ObmopFieldInfo[] {
+		return ObmopRegistryManager.getRegistry(entity).getSequenceFields()
+	}
 }

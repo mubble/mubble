@@ -1,23 +1,50 @@
 import { NgModule,
          ModuleWithProviders
        }                                    from '@angular/core'
-
-import { CommonModule }                     from '@angular/common'
-
 import { FormsModule,
          ReactiveFormsModule 
        }                                    from '@angular/forms'
+import { CommonModule }                     from '@angular/common'
 import { FlexLayoutModule }                 from '@angular/flex-layout'
+import { MatRippleModule }                  from '@angular/material'
+
+import { MatCheckboxModule }                from '@angular/material/checkbox'
 import { MatDatepickerModule }              from '@angular/material/datepicker'
 import { MatFormFieldModule }               from '@angular/material/form-field'
 import { MatInputModule }                   from '@angular/material/input'
 import { MatSelectModule }                  from '@angular/material/select'
 import { MatAutocompleteModule }            from '@angular/material/autocomplete'
+import { MatRadioModule }                   from '@angular/material/radio'
+import { MatProgressBarModule }             from '@angular/material/progress-bar'
+import { MatSliderModule }                  from '@angular/material/slider'
+import { MatSlideToggleModule }             from '@angular/material/slide-toggle'
+import { MatButtonToggleModule }            from '@angular/material/button-toggle'
+import { MatMenuModule }                    from '@angular/material/menu'
+
+
+import { MuComponentsRoutingModule }        from './mu-components-routing.module'
+
+import { TRANSLATION_PROVIDERS,
+         TranslateService,
+         TranslatePipe
+       }                                    from './translate'
+         
+import { CustomBreakPointsProvider }        from './custom-breakpoints'
+
+import { TableModule }                      from 'primeng/table'
+
+import { NcMaxLengthDirective,
+         NcAutoFocusDirective, 
+         LongPressDirective, 
+         NcStyleClassDirective,
+         NextInpFocusDirective,
+         AdjustElementsDirective,
+         NcFallbackCharDirective,
+         KeyboardDirective
+       }                                    from './directives'
 
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
-import { MuComponentsRoutingModule }        from './mu-components-routing.module'
-
 import { LoadingComponent }                 from './loading/loading.component'
 import { LoadingErrorComponent }            from './loading/loading-error/loading-error.component'
 import { LoadingOverlayComponent }          from './loading/loading-overlay/loading-overlay.component'
@@ -25,21 +52,13 @@ import { ToastComponent }                   from './toast/toast.component'
 import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scroll.component'
 import { FilterComponent }                  from './filter/filter.component'
 import { InputContainerComponent}           from './input-container/input-container.component'
+import { DialerComponent }                  from './dialer/dialer.component'
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
-import { NcMaxLengthDirective,
-         NcAutoFocusDirective, 
-         LongPressDirective, 
-         NcStyleClassDirective,
-         NextInpFocusDirective
-       }                                    from './directives'
-import { TRANSLATION_PROVIDERS,
-         TranslateService,
-         TranslatePipe }                    from './translate'
-import { CustomBreakPointsProvider }        from './custom-breakpoints'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
-import { TableModule }                      from 'primeng/table'
-import { MatCheckboxModule }                from '@angular/material'
+import { FileUploadComponent }              from './file-upload/file-upload.component'
+import { MatCardModule }                    from '@angular/material'
+import { KeypadComponent }                  from './keypad/keypad.component'
 
 
 @NgModule({
@@ -55,7 +74,15 @@ import { MatCheckboxModule }                from '@angular/material'
     MatSelectModule,
     MatAutocompleteModule,
     MatCheckboxModule,
-    TableModule
+    MatProgressBarModule,
+    MatRadioModule,
+    MatSliderModule,
+    MatSlideToggleModule,
+    MatButtonToggleModule,
+    TableModule,
+    MatMenuModule,
+    MatCardModule,
+    MatRippleModule
   ],
 
   declarations: [
@@ -70,18 +97,25 @@ import { MatCheckboxModule }                from '@angular/material'
     FilterComponent,
     InputContainerComponent,
     MuDataTableComponent,
+    DialerComponent,
+    FileUploadComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
     LongPressDirective, 
     NcStyleClassDirective,
     NextInpFocusDirective,
+    AdjustElementsDirective,
+    NcFallbackCharDirective,
+    KeyboardDirective,
   
-    TranslatePipe
+    TranslatePipe,
+    KeypadComponent
   ],
 
   entryComponents : [
-    AlertDialogComponent
+    AlertDialogComponent,
+    KeypadComponent
   ],
   
   exports: [
@@ -100,20 +134,30 @@ import { MatCheckboxModule }                from '@angular/material'
     FilterComponent,
     InputContainerComponent,
     MuDataTableComponent,
+    DialerComponent,
+    KeypadComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
     LongPressDirective, 
     NcStyleClassDirective,
     NextInpFocusDirective,
+    AdjustElementsDirective,
+    NcFallbackCharDirective,
+    KeyboardDirective,
 
     TranslatePipe,
     
     FormsModule,
     ReactiveFormsModule,
     CommonModule,
-    FlexLayoutModule
-    
+    FlexLayoutModule,
+    MatRadioModule,
+    MatProgressBarModule,
+    MatSlideToggleModule,
+    MatButtonToggleModule,
+    MatMenuModule,
+    MatRippleModule
   ],
   providers: [
     CustomBreakPointsProvider

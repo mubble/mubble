@@ -8,16 +8,13 @@
 ------------------------------------------------------------------------------*/
 
 import { 
-				 Mubble,
-				 format
-			 }	               				from '@mubble/core'
+				 ObmopBaseClient,
+				 QueryRetval
+			 }      									from '../obmop-base'
 import { RunContextServer }  	 	from '../../../rc-server'
-import { ObmopBaseClient }      from '../obmop-base'
 import { DB_ERROR_CODE }        from '../obmop-util'
+import { Mubble }	              from '@mubble/core'
 import * as oracledb            from 'oracledb'
-
-const STRING_TYPE 			 = 'string',
-			DATE_FORMAT_STRING = '%yyyy%-%mm%-%dd% %hh%:%nn%:%ss%.%ms%'
 
 /*------------------------------------------------------------------------------
    OracleDb Config
@@ -63,15 +60,39 @@ export class OracleDbClient implements ObmopBaseClient {
 		this.initialized = false
 	}
 
-	public async queryAll(rc : RunContextServer, table : string, fields : Array<string>) : Promise<Array<any>> {
+	public async queryAll(rc		 : RunContextServer, 
+												table  : string, 
+												fields : Array<string>, 
+												limit  : number = -1, 
+												offset : number = 0) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.')
 
 		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table}`,
-					result      = await this.queryInternal(rc, queryString)
+					binds				= [] as Array<any>
 
-		return this.convertResultArray(result)
+		let queryString = `SELECT ${fieldString} FROM ${table}`
+
+		if (limit !== -1) {
+			queryString = `SELECT * FROM (
+											SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* 
+											FROM ${table} T1 
+										) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
+			
+			binds.push(`${offset}`)
+			binds.push(`${limit}`)
+		}
+
+		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
+		
+		const result : QueryRetval = {
+			entities,
+			totalCount : entities.length
+		}
+
+		if (limit !== -1) result.totalCount = result.entities[0].totcount
+
+		return (result)
 	}
 
 	public async query(rc       : RunContextServer,
@@ -79,97 +100,246 @@ export class OracleDbClient implements ObmopBaseClient {
 										 fields   : Array<string>,
 										 key      : string,
 										 value    : any,
-										 operator : string = '=') : Promise<Array<any>> {
+										 operator : string = '=',
+										 limit		: number = -1,
+										 offset		: number = 0) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition : ',
 														 key, operator, value)
 
 		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
-					result      = await this.queryInternal(rc, queryString)
+					binds       = [] as Array<any>
 
-		return this.convertResultArray(result)
+		if(value !== undefined) binds.push(value)
+
+		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator} :1`
+
+		if(value === undefined) {
+			queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator}`
+		}
+
+		if (limit !== -1) {
+			queryString = `SELECT * FROM (`
+										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
+										+ `FROM ${table} T1 WHERE ${key} ${operator} :1`
+										+ `) OFFSET :2 ROWS FETCH NEXT :3 ROWS ONLY`
+									
+			if(value === undefined) {
+				queryString = `SELECT * FROM (`
+											+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
+											+ `FROM ${table} T1 WHERE ${key} ${operator}`
+											+ `) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
+			}
+
+			binds.push(`${offset}`)
+			binds.push(`${limit}`)
+		}
+
+		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
+
+		const result : QueryRetval = {
+			entities,
+			totalCount : entities.length
+		}
+
+		if (limit !== -1 && entities.length) result.totalCount = result.entities[0].totcount
+
+		return result
 	}
 
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
 												fields     : Array<string>,
-												conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<any>> {
+												conditions : Array<{key : string, value : any, operator ?: string}>,
+												limit      : number = -1,
+												offset     : number = 0) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
 
 		const fieldString	 		 = fields.join(', '),
-					conditionStrings = conditions.map((condition) =>
-															 this.getConditionString(condition.key, condition.value, condition.operator)),
-					condition        = conditionStrings.join(' AND '),
-					queryString      = `SELECT ${fieldString} FROM ${table} WHERE ${condition}`,
-					result      		 = await this.queryInternal(rc, queryString)
+				  conditionStrings = [] as Array<string>,
+					binds            = [] as Array<any>
 
-		return this.convertResultArray(result)
+		let c = 1
+
+		for(const condition of conditions) {
+			if(condition.value === undefined) {
+				conditionStrings.push(`${condition.key} ${condition.operator || '='}`)
+			} else {
+				conditionStrings.push(`${condition.key} ${condition.operator || '='} :${c++}`)
+				binds.push(condition.value)
+			}
+		}
+
+		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${conditionStrings.join(' AND ')}`
+
+		if (limit !== -1) {
+			queryString = 	`SELECT ${fieldString}, totcount FROM (`
+										+ `SELECT COUNT(*) OVER() AS totcount, T1.* `
+										+ `FROM ${table} T1 WHERE ${conditionStrings.join(' AND ')}`
+										+ ` ) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`
+			binds.push(`${offset}`)
+			binds.push(`${limit}`)
+		}
+		
+		const retval	 = await this.bindsQuery(rc, queryString, binds),
+					entities = this.convertResultArray(retval)
+		
+		const result : QueryRetval = {
+			entities,
+			totalCount : entities.length
+		}
+
+		if (limit !== -1 && entities.length) result.totalCount = entities[0].totcount
+		
+		return result
 	}
 
-	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) {
+	public async insert(rc				 : RunContextServer,
+											table			 : string,
+											entity		 : Mubble.uObject<any>,
+											sequences ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting into table, ' + table + '.', entity)
 
-		const keys        = Object.keys(entity),
-					values      = Object.values(entity),
-					keysStr     = keys.join(', '),
-					valuesStr   = (values.map((value) => this.getStringValue(value))).join(', '),
-					queryString = `INSERT INTO ${table} (${keysStr}) VALUES (${valuesStr})`
+		const keys   = Object.keys(entity),
+					values = [] as Array<string>
 
-		await this.queryInternal(rc, queryString)
+		for(const key of keys) {
+			values.push(`:${key}`)
+		}
+
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			values.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))
+		}
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${values.join(', ')})`
+					
+		await this.bindsQuery(rc, queryString, entity)
 	}
 
-	public async update(rc 				 : RunContextServer,
-											table 		 : string,
-											updates    : Mubble.uObject<any>,
-											queryKey   : string,
-											queryValue : any) {
+	public async mInsert(rc					: RunContextServer,
+											 table 			: string,
+											 entities   : Mubble.uObject<any>[],
+											 sequences ?: Mubble.uObject<string>) {
+		
+		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting multiple rows into table, ' + table + '.' + entities)
+
+		const binds 		: Array<any>		= [],
+					keys			: Array<string>	= Object.keys(entities[0]),
+					bindsKeys : Array<string> = keys.map(key => `:${key}`)
+
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			bindsKeys.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))
+		}
+
+		for (const entity of entities) {
+
+			const bind : any = {}
+
+			for (const key in entity) {
+				if (entity.hasOwnProperty(key)) {
+					bind[key] = entity[key]
+				}
+			}
+
+			binds.push(bind)
+		}
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')})`
+												+ ` values (${bindsKeys.join(', ')})`
+
+		await this.bindsQuery(rc, queryString, binds, true)
+	}
+
+	public async update(rc 				  : RunContextServer,
+											table 		  : string,
+											updates     : Mubble.uObject<any>,
+											queryKey    : string,
+											queryValue  : any, 
+											sequences  ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this),
 														 `Updating ${table} with updates : ${updates} for ${queryKey} : ${queryValue}.`)
 
 		const updateKeys = Object.keys(updates),
-					changes    = [] as Array<string>
+					changes    = [] as Array<string>,
+					binds      = [] as Array<any>
+
+		let c = 1
 
 		for(const key of updateKeys) {
-			changes.push(`${key} = ${this.getStringValue(updates[key])}`)
+			changes.push(`${key} = :${c++}`)
+			binds.push(updates[key])
+		}
+
+		if(sequences) {
+			for (const key in sequences) {
+				if (sequences.hasOwnProperty(key)) {
+					changes.push(`${key} = ${sequences[key]}.NEXTVAL`)
+				}
+			}
 		}
 
 		const queryString = `UPDATE ${table} `
 												+ `SET ${changes.join(', ')} `
-												+ `WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+												+ `WHERE ${queryKey} = :${c}`
 
-		await this.queryInternal(rc, queryString)
+		binds.push(queryValue)
+
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
 		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValue}.`)
 
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :1`,
+					binds 			= [] as Array<any>
 
-		await this.queryInternal(rc, queryString)
+		binds.push(queryValue)
+
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS
 ------------------------------------------------------------------------------*/
-	
-	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<oracledb.Result<any>> {
-		rc.isDebug() && rc.debug(rc.getName(this), 'queryInternal', queryString)
 
-    if(!this.initialized) await this.init(rc)
+	private async bindsQuery(rc					  : RunContextServer,
+													 queryString  : string,
+													 binds 			  : oracledb.BindParameters[] | oracledb.BindParameters,
+													 multiple    ?: boolean) {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery', queryString, binds)
+
+		if(!this.initialized) await this.init(rc)
     
-    const connection = await this.clientPool.getConnection()
+		const connection = await this.clientPool.getConnection(),
+					options    = { autoCommit : true }
 
 		try {
 			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
 
-        connection.execute(queryString, (err : oracledb.DBError, result : oracledb.Result<any>) => {
-          if(err) reject(err)
-          resolve(result)
-        })
+				if(multiple) {
+					connection.executeMany(queryString, binds as oracledb.BindParameters[], options,
+																 (err : oracledb.DBError, result : oracledb.Result<any>) => {
+						if (err) return reject(err)
+						return resolve(result)
+					})
+				} else {
+					connection.execute(queryString, binds, options, (err : oracledb.DBError, result : oracledb.Result<any>) => {
+						if(err) return reject(err)
+						return resolve(result)
+					})
+				}
 			})
 			
 			return result
@@ -180,14 +350,6 @@ export class OracleDbClient implements ObmopBaseClient {
 		} finally {
 			await connection.close()
 		}
-	}
-
-	private getStringValue(value : any) : string {
-		if(value instanceof Date) {
-			return `'${format(value, DATE_FORMAT_STRING)}'`
-		}
-
-		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
 	}
 
 	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
@@ -207,9 +369,5 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 
 		return finArr
-	}
-
-	private getConditionString(key : string, value : any, operator : string = '=') : string {
-		return `${key} ${operator} ${this.getStringValue(value)}`
 	}
 }

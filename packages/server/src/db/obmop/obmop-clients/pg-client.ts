@@ -11,7 +11,10 @@ import {
 				 Mubble,
 				 format
 			 }	               				from '@mubble/core'
-import { ObmopBaseClient }      from '../obmop-base'
+import { 
+				 ObmopBaseClient,
+				 QueryRetval
+			 }      									from '../obmop-base'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { DB_ERROR_CODE }        from '../obmop-util'
 import * as pg                  from 'pg'
@@ -80,7 +83,7 @@ export class PostgresClient implements ObmopBaseClient {
 		this.initialized = false
 	}
 
-	public async queryAll(rc : RunContextServer, table : string, fields : Array<string>) : Promise<Array<any>> {
+	public async queryAll(rc : RunContextServer, table : string, fields : Array<string>) : Promise<QueryRetval> {
 		
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.')
 
@@ -88,7 +91,7 @@ export class PostgresClient implements ObmopBaseClient {
 					queryString = `SELECT ${fieldString} FROM ${table}`,
 					result      = await this.queryInternal(rc, queryString)
 
-		return result.rows
+		return { entities : result.rows, totalCount : result.rows.length }
 	}
 
 	public async query(rc       : RunContextServer,
@@ -96,7 +99,7 @@ export class PostgresClient implements ObmopBaseClient {
 										 fields   : Array<string>,
 										 key      : string,
 										 value    : any,
-										 operator : string = '=') : Promise<Array<any>> {
+										 operator : string = '=') : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition :',
 														 key, operator, value)
@@ -105,13 +108,13 @@ export class PostgresClient implements ObmopBaseClient {
 					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
 					result      = await this.queryInternal(rc, queryString)
 
-		return result.rows
+		return { entities : result.rows, totalCount : result.rows.length }
 	}
 
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
 												fields     : Array<string>,
-												conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<any>> {
+												conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
 
@@ -122,7 +125,7 @@ export class PostgresClient implements ObmopBaseClient {
 					queryString      = `SELECT ${fieldString} FROM ${table} WHERE ${condition}`,
 					result      		 = await this.queryInternal(rc, queryString)
 
-		return result.rows
+		return { entities : result.rows, totalCount : result.rows.length }
 	}
 
 	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) {

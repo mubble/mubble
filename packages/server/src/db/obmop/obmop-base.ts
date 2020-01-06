@@ -39,15 +39,16 @@ export namespace Obmop {
    *  Annotation to mark a obmop model field.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function field(type    : FieldType = FieldType.OPTIONAL,
-                        unique  : boolean   = false,
-                        indexed : boolean   = false,
-                        serial  : boolean   = false) {
+  export function field(type      : FieldType = FieldType.OPTIONAL,
+                        unique    : boolean   = false,
+                        indexed   : boolean   = false,
+                        serial    : boolean   = false,
+                        sequence ?: string) {
 
     return function(target : any , propertyKey : string) {
       const table : string  = target.constructor.name.toLowerCase()
 
-      ObmopRegistryManager.addField(table, propertyKey, type, unique, indexed, serial)
+      ObmopRegistryManager.addField(table, propertyKey, type, unique, indexed, serial, sequence)
     }
   }
 
@@ -55,11 +56,12 @@ export namespace Obmop {
    *  Annotation to mark a obmop model primary key.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function primaryKey(serial : boolean = false) {
+  export function primaryKey(serial : boolean = false, sequence ?: string) {
     return function(target : any , propertyKey : string) {
       const table = target.constructor.name.toLowerCase()
 
-      ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, true, true, serial)
+      ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, true,
+                                    true, serial, sequence)
     }
   }
 }
@@ -75,18 +77,6 @@ export namespace Obmop {
 export class ObmopBaseEntity {
   private _tableName : string
 
-  @Obmop.field()
-  public createts    : number
-
-  @Obmop.field()
-  public modts       : number
-
-  @Obmop.field()
-  public deletets    : number
-
-  @Obmop.field()
-  public deleted     : boolean = false
-
   constructor(rc : RunContextServer, table : string) {
     rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new obmop entity.', table)
 
@@ -101,6 +91,14 @@ export class ObmopBaseEntity {
 /*------------------------------------------------------------------------------
    Obmop Base Client
 ------------------------------------------------------------------------------*/
+
+/**
+ *  Retval to all query functions of an Obmop Client.
+ */
+export type QueryRetval = {
+  entities   : Array<Mubble.uObject<any>>
+  totalCount : number
+}
 
 /**
  *  All obmop clients should have the following functions (implement from this interface).
@@ -123,8 +121,11 @@ export interface ObmopBaseClient {
    * Returns all the entries (rows) of the given table.
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
+   * @param limit Defines the number of results to be fetched.
+   * @param offset The offset to start fetching the values from. 
    */
-  queryAll(rc : RunContextServer, table : string, fields : Array<string>) : Promise<Array<Mubble.uObject<any>>>
+  queryAll(rc : RunContextServer, table : string, fields : Array<string>, 
+           limit ?: number, offset ?: number) : Promise<QueryRetval>
 
   /**
    * Returns all entries (rows) of the given table for <key> <operator> <value>.
@@ -133,26 +134,43 @@ export interface ObmopBaseClient {
    * @param key Key or field name.
    * @param value Value of that field.
    * @param operator Conditional operator compatible with SQL databases. By default it is '='.
+   * @param limit Defines the number of results to be fetched.
+   * @param offset The offset to start fetching the values from.
    */
   query(rc : RunContextServer, table : string, fields : Array<string>, key : string,
-        value : any, operator ?: string) : Promise<Array<Mubble.uObject<any>>>
+        value : any, operator ?: string, limit ?: number, offset ?: number) : Promise<QueryRetval>
 
   /**
    * Returns all entries (rows) of the given table for multiple <key> <operator> <value> seperated by AND.
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
    * @param conditions Given multiple conditions.
+   * @param limit Defines the number of results to be fetched.
+   * @param offset The offset to start fetching the values from.
    */
   queryAnd(rc : RunContextServer, table : string, fields : Array<string>,
-           conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<Array<Mubble.uObject<any>>>
+           conditions : Array<{key : string, value : any, operator ?: string}>,
+           limit ?: number, offset ?: number) : Promise<QueryRetval>
 
   /**
    * Inserts a new entry (row) in the given table.
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
    * @param entity Entity (row) to be inserted in object form.
+   * @param sequences Object containing the information of sequenced fields.
    */
-  insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) : Promise<void>
+  insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>,
+         sequences ?: Mubble.uObject<string>) : Promise<void>
+
+  /**
+   * Inserts multiple entries (rows) in the given table.
+   * @param rc RunContext, used for logging.
+   * @param table Table or entity name.
+   * @param entities Entities (rows) to be inserted in object form.
+   * @param sequences Object containing the information of sequenced fields.
+   */
+  mInsert?(rc : RunContextServer, table : string, entities : Array<Mubble.uObject<any>>,
+           sequences ?: Mubble.uObject<string>) : Promise<void>
 
   /**
    * Updates all entries (rows) of the given table for <queryKey> = <queryValue>.
@@ -161,9 +179,10 @@ export interface ObmopBaseClient {
    * @param updates Updates to be applied to the entity or entities to be updated.
    * @param queryKey Key or field name for the update query.
    * @param queryValue Value of that field.
+   * @param sequences Object containing the information of sequenced fields.
    */
   update(rc : RunContextServer, table : string, updates : Mubble.uObject<any>,
-         queryKey : string, queryValue : any) : Promise<void>
+         queryKey : string, queryValue : any, sequences ?: Mubble.uObject<string>) : Promise<void>
 
   /**
    * Deletes all entries (rows) of the given table for <queryKey> = <queryValue>.

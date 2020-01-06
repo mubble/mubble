@@ -10,7 +10,7 @@
 import { Mubble, RunContextBase } from '..'
 import { CustomData }             from './custom-data'
 
-export enum Protocol {HTTP, WEBSOCKET, HTTP_THIRD, HTTPS}
+export enum Protocol {HTTP, WEBSOCKET, HTTPS, HTTP_THIRD}
 
 export const HANDSHAKE = '__handshake__'
 
@@ -59,7 +59,7 @@ export namespace HTTP {
     PUT    : 'PUT',
     GET    : 'GET',
     POST   : 'POST',
-    DELETE : 'DELETE',
+    DELETE : 'DELETE'
   }
 
   export const CurrentProtocolVersion = HTTP.HeaderValue.version2

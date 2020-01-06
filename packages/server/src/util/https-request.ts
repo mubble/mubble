@@ -7,17 +7,20 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { 
-         HTTP, 
+import {
+         HTTP,
          Mubble
-       }                        from '@mubble/core'
-import { RunContextServer }     from '../rc-server'
-import { UStream }              from './mubble-stream'
-import * as https               from 'https'
-import * as http                from 'http'
-import * as zlib                from 'zlib'
-import * as url                 from 'url'
-import * as stream              from 'stream'
+       }                      from '@mubble/core'
+import { RunContextServer }   from '../rc-server'
+import { UStream }            from '../util'
+import * as https             from 'https'
+import * as http              from 'http'
+import * as zlib              from 'zlib'
+import * as url               from 'url'
+import * as request           from 'request'
+import * as stream            from 'stream'
+
+export type  NCRequestOptions = request.UrlOptions & request.CoreOptions
 
 export async function executeHttpsRequest(rc: RunContextServer, urlStr: string, headers ?: any, encoding ?: string): Promise<string> {
   const traceId = 'executeHttpsRequest',

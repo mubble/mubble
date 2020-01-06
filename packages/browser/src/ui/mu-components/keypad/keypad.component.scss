@@ -1,0 +1,45 @@
+.keypad {
+  flex-direction  : column;
+  height          : 100%;
+  width           : 100vw;
+  @extend .flex-center;
+}
+
+.zero-row {
+  display         : flex;
+  flex-direction  : row;
+  justify-content : flex-end;
+  padding         : 0vh 8vw 2vh 8vw;
+}
+
+.zero-row, .first-row, .second-row, .third-row, .fourth-row {
+  width           : 90vw;
+  display         : flex;
+  flex-direction  : row;
+  justify-content : center;
+}
+
+.typed-text-view {
+  width   : 100%;
+  height  : 100%;
+  @extend .flex-center;
+}
+
+.key {
+  width           : 30vw;
+  padding         : 1vh 0;
+  @extend .flex-center;
+
+  span {
+    width         : 12vw;
+    height        : 12vw;
+    border-radius : 50%;
+    @extend .flex-center;
+  }
+}
+
+.flex-center {
+  display         : flex;
+  align-items     : center;
+  justify-content : center;
+}

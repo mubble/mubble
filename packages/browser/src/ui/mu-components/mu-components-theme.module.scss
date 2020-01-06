@@ -48,13 +48,16 @@
 
   }
 
-
-  .mu-loading-root {
-    background: mat-color($background, background);
+  .filter-content-body::-webkit-scrollbar-thumb {
+    background: lightgrey
   }
 
-  .filter-input-body::-webkit-scrollbar-thumb {
-    background: lightgrey
+  .keypad {
+    .key {
+      span {
+        // background    : mat-color($background, nc-bg-second);
+      }
+    }
   }
 
 }
