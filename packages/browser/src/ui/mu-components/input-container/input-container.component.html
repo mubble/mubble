@@ -1,18 +1,11 @@
 <div [ngClass]="webMode ? ['web-view-input-comp'] : ['input-cont-comp']"
-<<<<<<< HEAD
-=======
   [class.vertical-mode]="displayMode === DISPLAY_MODE.VERTICAL"
->>>>>>> joker
   [ngClass.xl]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.lg]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.sm]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']">
 
-<<<<<<< HEAD
-  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
-=======
   <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
->>>>>>> joker
     {{ inputParams.label }}
   </div>
 
@@ -37,15 +30,6 @@
           required>
       </div>
   
-<<<<<<< HEAD
-      <div class="range-onb-input-box-cont border-primary">
-        <input matInput
-          placeholder="{{inputParams.placeHolder[1]}}"
-          type="number"
-          (input)="setNumberRange($event)"
-          class="txt-lg-bld-norm input-cont" 
-          formControlName="maxAmount"
-=======
     </ng-container> 
     
     <ng-container *ngSwitchCase="DISPLAY_TYPE.TEXT_AREA">
@@ -57,7 +41,6 @@
           (updatedValue)="setChangedValues($event)"
           class="txt-lg-med-norm input-cont" 
           [formControl]="inputForm"
->>>>>>> joker
           name="input-text"
           [ncMaxLength]="inputParams.maxLength || 1000"
           (updatedValue)="inputForm.setValue($event)"

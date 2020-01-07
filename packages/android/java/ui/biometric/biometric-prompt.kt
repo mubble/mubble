@@ -152,10 +152,8 @@ class MuBiometricPrompt(val activity : MubbleBaseActivity, val builder: Biometri
       override fun onAuthenticationFailed() {
         super.onAuthenticationFailed()
 
-        info { "Authentication failed for an unknown reason" }
-
         val obj = JSONObject()
-        obj.put("errorCode", "ERROR_UNKNOWN")
+        obj.put("errorCode", "AUTH_FAILED")
         cb(obj)
       }
 
