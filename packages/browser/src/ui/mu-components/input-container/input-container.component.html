@@ -14,6 +14,10 @@
     <ng-container *ngSwitchCase="DISPLAY_TYPE.INPUT_BOX">
 
       <div class="onb-input-box-cont border-primary">
+        <div class="prefix-image" *ngIf="inputParams.image.prefixParams">
+          <i class="{{ inputParams.image.prefixParams?.iconClass }}"></i>
+          <img src="{{ inputParams.image.prefixParams?.imgUrl }}">
+        </div>
         <input matInput
           placeholder="{{inputParams.placeHolder}}"
           type="{{inputParams.inputType}}"
@@ -28,6 +32,10 @@
           autocomplete="off"
           [keyboard]="parentCont"
           required>
+          <div class="suffix-image" *ngIf="inputParams.image.suffixParams">
+            <i class="{{ inputParams.image.suffixParams?.iconClass }}"></i>
+            <img src="{{ inputParams.image.suffixParams?.imgUrl }}">
+          </div>
       </div>
   
     </ng-container> 
@@ -250,7 +258,7 @@
         [isRequired]="inputParams.isRequired">
       </file-upload>  
     </ng-container>
-    
+
   </ng-container>  
 
   <div *ngIf="inputForm" class="errors-list">

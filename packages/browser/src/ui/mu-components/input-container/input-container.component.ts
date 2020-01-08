@@ -47,59 +47,16 @@ import { map,
 import { FileUploadComponent, 
          UploadedDocParams 
        }                                  from '../file-upload/file-upload.component'
-
-export enum DISPLAY_MODE {
-  HORIZONTAL = 'HORIZONTAL',
-  VERTICAL   = 'VERTICAL'
-}
-
-export enum DISPLAY_TYPE {
-  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
-  INPUT_BOX             = 'INPUT_BOX',
-  SELECTION_BOX         = 'SELECTION_BOX',
-  CALENDAR_BOX          = 'CALENDAR_BOX',
-  DATE_RANGE            = 'DATE_RANGE',
-  NUMBER_RANGE          = 'NUMBER_RANGE',
-  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
-  RADIO                 = 'RADIO',
-  TEXT_AREA             = 'TEXT_AREA',
-  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
-  TOGGLE                = 'TOGGLE',
-  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
-  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
-}
-
-export interface SelectionBoxParams {
-  id        : string
-  value     : string
-  selected ?: boolean
-}
-
-export interface ValidatorsParams {
-  allowFutureDate ?: boolean
-  validation      ?: string | RegExp
-  validationError  : string
-}
+import { DISPLAY_TYPE, 
+         DISPLAY_MODE,
+         InputParams,
+         SelectionBoxParams
+       }                                  from '@mubble/core/interfaces/app-server-interfaces'
 
 export interface OutputParams {
   id          : string
   value       : any
   displayType : DISPLAY_TYPE
-}
-
-export interface InputParams {
-  id               : string
-  displayType      : DISPLAY_TYPE
-  placeHolder      : string | string[]
-  label           ?: string
-  options         ?: SelectionBoxParams[]
-  inputType       ?: string
-  maxLength       ?: number
-  value           ?: any
-  isPassword      ?: boolean
-  validators      ?: ValidatorsParams
-  isRequired      ?: boolean
-  isDisabled      ?: boolean
 }
 
 @Component({

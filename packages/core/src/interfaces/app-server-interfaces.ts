@@ -1,0 +1,98 @@
+/*------------------------------------------------------------------------------
+   About      : Interfaces for mubble core components that are used by both
+                app and server
+
+   Created on : Fri Jan 03 2019
+   Author     : Yaswanth Shankar
+   
+   Copyright (c) 2018 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
+------------------------------------------------------------------------------*/
+
+export enum COL_TYPE  {
+  ICON         = 'ICON',
+  IMAGE        = 'IMAGE',
+  BUTTON       = 'BUTTON',
+  TEXT         = 'TEXT',
+  DATE         = 'DATE',
+  EDIT         = 'EDIT',
+  TOGGLE       = 'TOGGLE',
+  HYPER_LINK   = 'HYPER_LINK',
+  MORE_DETAILS = 'MORE_DETAILS'
+}
+
+export interface TableHeader {
+  header        : string
+  dataKey       : string
+  colType       : COL_TYPE
+  customStyle  ?: string
+  constValue   ?: any
+  enableFilter ?: boolean
+  enableSort   ?: boolean
+  widthPerc    ?: number
+  isEditable   ?: boolean
+}
+
+export interface FilterItem {
+  id      : string
+  title   : string
+  params  : InputParams
+}
+
+export interface InputParams {
+  id               : string
+  displayType      : DISPLAY_TYPE
+  placeHolder      : string | string[]
+  label           ?: string
+  options         ?: SelectionBoxParams[]
+  inputType       ?: string
+  maxLength       ?: number
+  value           ?: any
+  isPassword      ?: boolean
+  validators      ?: ValidatorsParams
+  isRequired      ?: boolean
+  isDisabled      ?: boolean
+  image           ?: FilterImage
+}
+
+export enum DISPLAY_TYPE {
+  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
+  INPUT_BOX             = 'INPUT_BOX',
+  SELECTION_BOX         = 'SELECTION_BOX',
+  CALENDAR_BOX          = 'CALENDAR_BOX',
+  DATE_RANGE            = 'DATE_RANGE',
+  NUMBER_RANGE          = 'NUMBER_RANGE',
+  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
+  RADIO                 = 'RADIO',
+  TEXT_AREA             = 'TEXT_AREA',
+  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
+  TOGGLE                = 'TOGGLE',
+  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
+  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
+}
+
+export interface SelectionBoxParams {
+  id        : string
+  value     : string
+  selected ?: boolean
+}
+
+export interface ValidatorsParams {
+  allowFutureDate ?: boolean
+  validation      ?: string | RegExp
+  validationError  : string
+}
+
+export enum DISPLAY_MODE {
+  HORIZONTAL = 'HORIZONTAL',
+  VERTICAL   = 'VERTICAL'
+}
+
+export interface ImageParams {
+  imgUrl    ?: string
+  iconClass ?: string
+}
+
+export interface FilterImage {
+  prefixParams ?: ImageParams
+  suffixParams ?: ImageParams
+}

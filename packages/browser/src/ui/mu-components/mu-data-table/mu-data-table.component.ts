@@ -14,27 +14,24 @@ import { FormControl,
          FormGroup
        }                           from '@angular/forms'
 
-export interface TableHeader {
-  header        : string
-  dataKey       : string
-  colType       : COL_TYPE
-  customStyle  ?: string
-  constValue   ?: any
-  enableSort   ?: boolean
-  widthPerc    ?: number
-  isEditable   ?: boolean
-}
+import { TableHeader, 
+         FilterItem, 
+         DISPLAY_MODE
+       }                           from '@mubble/core/interfaces/app-server-interfaces'
+import { SelectedFilter }          from '../filter'
 
 export interface TableConfig {
-  headers        : TableHeader[]
-  data           : Array<Object>
-  dispRows      ?: number     
-  enableSelect  ?: boolean
-  enableRadio   ?: boolean
-  enableFilter  ?: boolean
-  selectedItems ?: Object[]
-  lazyLoad      ?: boolean
-  totalRecords  ?: number
+  headers            : TableHeader[]
+  data               : Array<Object>
+  dispRows          ?: number     
+  enableSelect      ?: boolean
+  enableRadio       ?: boolean
+  enableFilter      ?: boolean
+  selectedIndexes   ?: number[]
+  lazyLoad          ?: boolean
+  totalRecords      ?: number
+  horizFilterParams ?: FilterItem[],
+  vertFilterParams  ?: FilterItem[]
 }
 
 export interface MuTableRowSelEvent {
@@ -107,30 +104,34 @@ export class MuDataTableComponent implements OnInit {
   @Output() onCellClick        : EventEmitter<MuTableClickEvent>   = new EventEmitter()
   @Output() onRowEdit          : EventEmitter<MuTableEditEvent>    = new EventEmitter()
 
-  totalRecords      : number
-  dispRows          : number 
+  @Output() selectedFilter     : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
+
   pageIndex         : number   
   currPageIndex     : number  
   prevPageIndex     : number   
 
-  selectedIndexes   : Object   = {}
-  selAllMap         : Object   = {}
-  dataMap           : Object   = {}
+  selectedIndexes   : Object   = {} 
+  selAllMap         : Object   = {} 
   headerFields      : string[] = []
-  filterFields      : string[] = []
   dataToDisplay     : Object[] = []
   pageNumbers       : number[] = []
-  toggleActIndexes  : Object   = {}
 
-  COL_TYPE          : typeof COL_TYPE = COL_TYPE  
-  editForm          : FormGroup       = new FormGroup({})
+  private filterFields : string[] = []
+  private dataMap      : Object   = {}
+
+  editForm          : FormGroup = new FormGroup({})
+  COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
+  DISPLAY_MODE      : typeof DISPLAY_MODE = DISPLAY_MODE
+
 
   ngOnInit() {
       
     if (this.tableConfig) {
 
       for (let header of this.tableConfig.headers) {
-        if (header.isEditable)   this.editForm.addControl(header.dataKey, new FormControl())
+
+        if (header.isEditable) this.editForm.addControl(header.dataKey, new FormControl())
+        
         this.headerFields.push(header.dataKey)
 
         if (this.tableConfig.enableFilter && 
@@ -138,19 +139,18 @@ export class MuDataTableComponent implements OnInit {
             header.colType === COL_TYPE.TEXT)) {
           this.filterFields.push(header.dataKey)
         }
-
       }
-      
-      if (this.tableConfig.selectedItems) 
-        for (const item of this.tableConfig.selectedItems) this.toggleActIndexes[item.toString()] = true
-    
-      this.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
-      this.dispRows      = this.tableConfig.dispRows     || this.tableConfig.data.length
+
+      if (this.tableConfig.selectedIndexes)
+      this.tableConfig.selectedIndexes.map(index => this.selectedIndexes[index]= true)          
+      this.tableConfig.totalRecords  = this.tableConfig.totalRecords || this.tableConfig.data.length
+      this.tableConfig.dispRows      = this.tableConfig.dispRows     || this.tableConfig.data.length
       
       this.createDataMap(this.tableConfig.data, 0)
       this.createPageNumbers()
     }
   }
+
 
   /**
    * Creates the page numbers needed for pagination
@@ -160,21 +160,33 @@ export class MuDataTableComponent implements OnInit {
     
     this.pageNumbers    = []
     this.currPageIndex  = this.prevPageIndex = this.pageIndex = 0
-    let totalPages      = this.totalRecords / this.dispRows
+    let totalPages      = this.tableConfig.totalRecords / this.tableConfig.dispRows
     
-    if (this.totalRecords % this.dispRows) totalPages++
+    if (this.tableConfig.totalRecords % this.tableConfig.dispRows) totalPages++
 
     for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) 
       this.pageNumbers.push(pageNumber)  
   }
 
+
+  /**
+   * changes the pagenumbers according to the current selected page number
+   * @param pageIndex 
+   */
   private updatePageNumbers(pageIndex : number) {
     
     this.pageIndex     = pageIndex - 2
     if (this.pageIndex <= 0) this.pageIndex = 0
-    if (this.pageIndex > (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
+    if (this.pageIndex >= (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
   }
 
+
+  /**
+   * Sends a callback to the parent when a particular row is selected by the user with
+   * the rowIndex and rowData
+   * @param event 
+   * @param rowData 
+   */
   rowSelect(event : MatCheckboxChange, rowData : any) {
     
     const selectedIndex = rowData['rowIndex']
@@ -198,13 +210,18 @@ export class MuDataTableComponent implements OnInit {
     this.onRowSelect.emit(selEvent) 
   }
 
+
+  /**
+   * Selects all the rows in the page that is being displayed and a callback is 
+   * sent to the parent with the rows that are selected.
+   */
   selectAll(event : MatCheckboxChange) {
         
     this.slctAllBox.checked = event.checked
     this.selAllMap[this.currPageIndex] = event.checked 
         
-    for (let index = 0; index < (this.currPageIndex + this.dispRows); index++) 
-      this.selectedIndexes[index + (this.currPageIndex * this.dispRows)] = event.checked
+    for (let index = 0; index < (this.currPageIndex + this.tableConfig.dispRows); index++) 
+      this.selectedIndexes[index + (this.currPageIndex * this.tableConfig.dispRows)] = event.checked
     
     const selAllEvent : MuTableSelAllEvent = {
       selectedRows : this.dataMap[this.currPageIndex],
@@ -213,9 +230,16 @@ export class MuDataTableComponent implements OnInit {
     this.onSelectAll.emit(selAllEvent)
   }
 
+
+  /**
+   * Sends callback to the parent as rowselect when the user selects a particular row
+   * using radio button
+   * @param event 
+   * @param rowData 
+   */
   radioSelect(event : MatRadioChange, rowData : Object) {
 
-    this.selectedIndexes = []
+    this.selectedIndexes = { }
     const selectedIndex  = rowData['rowIndex']
     this.selectedIndexes[selectedIndex] = true
     const selEvent : MuTableRowSelEvent = {
@@ -226,6 +250,13 @@ export class MuDataTableComponent implements OnInit {
     this.onRowSelect.emit(selEvent)
   }
 
+
+  /**
+   * Sends call back to the parent on click of an option inside moredetails along with
+   * the ID of the option and rowData
+   * @param detKey 
+   * @param rowData 
+   */
   moreDetailsClick(detKey : string, rowData : Object) {
 
     const moreSelEvent : MuTableDetailEvent = {
@@ -235,6 +266,12 @@ export class MuDataTableComponent implements OnInit {
     this.onDetailClick.emit(moreSelEvent)
   }
 
+
+  /**
+   * Sends callback to the parent when user changes the state of toggle button
+   * @param event 
+   * @param rowData 
+   */
   toggleRow(event : MatSlideToggleChange, rowData : Object) {
 
     const toggleEvent : MuTableToggleEvent = {
@@ -246,33 +283,35 @@ export class MuDataTableComponent implements OnInit {
     this.onRowToggle.emit(toggleEvent)
   }
 
+
   /**
    * mapData creates a map of row objects that needs to be displayed in the table
    * with index as the key and array of objects as its value
    * @param data the data that needs to be mapped
-   * @param startIndex - index from which data needs to be mapped
+   * @param startPageIndex - index from which data needs to be mapped
    */
-
-  createDataMap(data : Array<Object>, startIndex : number) {
-                
-    const dataSetCount = Math.ceil(data.length/this.dispRows),
-          currData     = Array.from(data)
+  createDataMap(data : Array<Object>, startPageIndex : number) {
+                    
+    const dataSetCount = Math.ceil(data.length/this.tableConfig.dispRows),
+          currData     = JSON.parse(JSON.stringify(data))
     
-    for (const index in currData) currData[index]['rowIndex'] = index 
+    for (let index = 0; index < currData.length; index++) 
+      currData[index]['rowIndex'] = index + (startPageIndex * this.tableConfig.dispRows)
 
     for (let i = 0; i < dataSetCount; i++) {
      
-      const mapData = currData.splice(0, this.dispRows),
-            mapKey  = startIndex + i
+      const mapData = currData.splice(0, this.tableConfig.dispRows),
+            mapKey  = startPageIndex + i
                   
-      if (mapData.length === this.dispRows 
+      if (mapData.length === this.tableConfig.dispRows 
           || !this.tableConfig.lazyLoad 
-          || (this.tableConfig.lazyLoad && this.totalRecords < (mapKey + this.dispRows))) 
+          || (this.tableConfig.lazyLoad && this.tableConfig.totalRecords <= ((mapKey * this.tableConfig.dispRows) + mapData.length))) 
         this.dataMap[mapKey] = mapData 
     }
-        
-    this.dataToDisplay = this.dataMap[startIndex] 
+    
+    this.dataToDisplay = this.dataMap[startPageIndex] || []
   }
+
 
   /**
    * Called when user clicked on a page with its index as parameter.
@@ -295,10 +334,17 @@ export class MuDataTableComponent implements OnInit {
     if (this.dataMap[this.currPageIndex]) {
       this.dataToDisplay = this.dataMap[pageIndex]
     } else {      
-      this.loadMoreData.emit(pageIndex * this.dispRows)
+      this.loadMoreData.emit(pageIndex * this.tableConfig.dispRows)
     } 
   }  
   
+
+  /**
+   * Updates the table data with new data, an optional parameter currentIndex should
+   * be sent as '0' inorder to clear the refresh the table.
+   * @param data 
+   * @param currentIndex 
+   */
   updateData(data : Object[], currentIndex ?: number) {
 
     if (currentIndex === 0) {
@@ -307,44 +353,67 @@ export class MuDataTableComponent implements OnInit {
       this.dataMap       = {}
       this.createPageNumbers()
     }
-    
-    for (let i = 0; i < data.length; i++) 
-      data[i]['rowIndex'] = (i + (this.currPageIndex * this.dispRows)).toString()    
-    this.createDataMap(data, this.currPageIndex) 
+
+    if (!this.tableConfig.lazyLoad) this.tableConfig.totalRecords = data.length
+    this.createDataMap(data, this.currPageIndex)     
   }
 
+
+  /**
+   * Method invoked by the parent in case of api loading failure which brings back
+   * the table to previous state
+   */
   loadingFailed() {
 
     this.currPageIndex = this.prevPageIndex
     this.updatePageNumbers(this.currPageIndex)
   }
 
+
+  /**
+   * Sends callback to the parent when the user clicks on hyperlink
+   * @param rowData 
+   * @param headerKey 
+   */
   cellClick(rowData : Object, headerKey : string) {
     
     const buttonEvent : MuTableClickEvent = {
       headerKey : headerKey,
       rowData   : rowData,
       rowIndex  : rowData['rowIndex']
-    }
+    } 
     this.onCellClick.emit(buttonEvent)
   }
 
-  search(event : any) {
 
-    const inputText      = event.target.value
+  /**
+   * performs search operation on the data available in the table only if table
+   * is not lazy loaded. In case of lazy loading a callback is given to parent.
+   * @param event 
+   */
+  search(inputText ?: string) {
     
+    this.dataMap     = {}
+    let filteredData = []
+
     if (!inputText) {
-      this.dataToDisplay = this.dataMap[this.currPageIndex]
-      return
+
+      filteredData = this.tableConfig.data
+    } else {
+
+      filteredData = this.tableConfig.data.filter(dataRow => {
+        if (this.filterFields.filter(header => dataRow[header] && dataRow[header].toString().toLowerCase()
+                                               .includes(inputText.toString().toLowerCase()))
+                                               .length) 
+          return true
+      })
     }
-    
-    this.dataToDisplay = this.dataMap[this.currPageIndex].filter(dataRow => {
-      if (this.filterFields.filter(header => dataRow[header] && dataRow[header].toString().toLowerCase()
-                                             .includes(inputText.toString().toLowerCase()))
-                                             .length) 
-        return true
-    })
+
+    this.tableConfig.totalRecords = filteredData.length
+    this.createDataMap(filteredData, 0)
+    this.createPageNumbers()
   }
+
 
   /**
    * Inserts a data row at the beginning of the table by clearing the datamap 
@@ -352,14 +421,25 @@ export class MuDataTableComponent implements OnInit {
    */
   insertRow(obj : Object) {
     
-    let firstPageData = this.dataMap[0]
+    let newData = []
+    if (!this.tableConfig.lazyLoad) {
+
+      this.tableConfig.data.unshift(obj)
+      newData = this.tableConfig.data
+    } else {
+
+      let firstPageData = this.dataMap[0]      
+      firstPageData.unshift(obj)
+      firstPageData.pop()    
+      newData = firstPageData
+    }
+    
     this.dataMap = {}
-    firstPageData.unshift(obj)
-    firstPageData.pop()    
-    this.createDataMap(firstPageData, 0)
-    this.totalRecords++
+    this.tableConfig.totalRecords++
+    this.createDataMap(newData, 0)
     this.createPageNumbers()
   }
+
 
   /**
    * Deletes a row of given row index assuming that the index which is to deleted is currently 
@@ -369,13 +449,22 @@ export class MuDataTableComponent implements OnInit {
    */
   deleteRow(rowIndex : number) {
     
+    if (!this.tableConfig.lazyLoad) {
+      this.tableConfig.data.splice(rowIndex, 1)
+      this.dataMap = {}
+      this.createDataMap(this.tableConfig.data, 0)
+      this.tableConfig.totalRecords--
+      this.createPageNumbers()
+      return
+    }
+
     if (this.dataMap[this.currPageIndex + 1]) {
 
-      this.dataMap[this.currPageIndex].splice(rowIndex%this.dispRows, 1)
+      this.dataMap[this.currPageIndex].splice(rowIndex%this.tableConfig.dispRows, 1)
       this.dataMap[this.currPageIndex].push(this.dataMap[this.currPageIndex + 1][0])
     } else {
 
-      this.loadMoreData.emit(this.currPageIndex * this.dispRows )
+      this.loadMoreData.emit(this.currPageIndex * this.tableConfig.dispRows)
     }   
 
     this.selectedIndexes = {}
@@ -383,6 +472,11 @@ export class MuDataTableComponent implements OnInit {
     for (const key of keys) if (Number(key) > this.currPageIndex) delete this.dataMap[key]
   }
 
+
+  /**
+   * Enables editing the data for editable coloumns when the user clicks on edit button.
+   * Sends callback to the parent with new values when user saves the data.
+   */
   editRow(rowData : Object, isEdit : boolean) {
     
     this.selectedIndexes = {}
@@ -401,8 +495,41 @@ export class MuDataTableComponent implements OnInit {
     this.editForm.reset()
   }
 
+
+  /**
+   * updates the data of given rowIndex, usually called after editing the data.
+   * @param rowIndex 
+   * @param data 
+   */
   updateRow(rowIndex : number, data : Object) {
 
-    this.dataMap[this.currPageIndex][rowIndex % this.dispRows] = data
+    this.dataMap[this.currPageIndex][rowIndex % this.tableConfig.dispRows] = data
+  }
+
+
+  /**
+   * Call back from filter component on applying filters that was directly passed
+   * back to the parent
+   * @param event 
+   */
+  applyFilter(event : SelectedFilter[]) {
+    
+    if (!this.tableConfig.lazyLoad) {
+
+      if (event && event[0]) this.search(event[0].value.toString())
+      else this.search()
+      return
+    }
+    this.selectedFilter.emit(event)
+  }
+
+
+  /**
+   * Method invoked by parent to unselect the rows
+   * @param rowIndexes
+   */
+  unselectIndexes(rowIndexes : number[]) {
+
+    for (const index of rowIndexes) this.selectedIndexes[index]  = false
   }
 }
