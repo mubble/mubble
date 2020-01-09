@@ -38,6 +38,7 @@ export interface MuTableRowSelEvent {
   rowIndex   : number
   rowData    : Object
   isSelected : boolean
+  mainEvent  : any
 }
 
 export interface MuTableDetailEvent {
@@ -185,7 +186,8 @@ export class MuDataTableComponent implements OnInit {
     const selEvent : MuTableRowSelEvent = {
       rowData    : rowData,
       rowIndex   : rowData['rowIndex'],
-      isSelected : event.checked
+      isSelected : event.checked,
+      mainEvent  : event
     }
 
     this.onRowSelect.emit(selEvent) 
