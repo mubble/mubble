@@ -49,6 +49,7 @@
         <mat-radio-group name="rowRadio">
           <mat-radio-button 
             value="{{ rowData['rowIndex'] }}" 
+            (click)="rowClick($event, rowData)"
             (change)="radioSelect($event, rowData)"
             [checked]="selectedIndexes[rowData['rowIndex']]">
           </mat-radio-button>
@@ -57,8 +58,9 @@
 
       <div class="checkbox" *ngIf="tableConfig.enableSelect">
         <mat-checkbox
-        [checked]="selectedIndexes[rowData['rowIndex']]"
-        (change)="rowSelect($event, rowData)">
+          (click)="rowClick($event, rowData)"
+          [checked]="selectedIndexes[rowData['rowIndex']]"
+          (change)="rowSelect($event, rowData)">
         </mat-checkbox>
       </div>
 
@@ -100,8 +102,10 @@
           </div>
 
           <div *ngSwitchCase="COL_TYPE.TOGGLE">
-            <mat-slide-toggle (change)="toggleRow($event, rowData)"
-            [checked]="selectedIndexes[rowData['rowIndex']]">
+            <mat-slide-toggle 
+              (click)="rowClick($event, rowData)"
+              (change)="toggleRow($event, rowData)"
+              [checked]="selectedIndexes[rowData['rowIndex']]">
             </mat-slide-toggle>
           </div>
 

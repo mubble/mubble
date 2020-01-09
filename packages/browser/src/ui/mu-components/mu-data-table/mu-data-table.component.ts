@@ -50,12 +50,6 @@ export interface MuTableSelAllEvent {
   isSelected   : boolean
 }
 
-export interface MuTableToggleEvent {
-  rowData  : Object
-  rowIndex : number
-  isActive : boolean
-}
-
 export interface MuTableClickEvent {
   rowIndex  : number
   rowData   : Object
@@ -100,7 +94,6 @@ export class MuDataTableComponent implements OnInit {
   @Output() onRowSelect        : EventEmitter<MuTableRowSelEvent>  = new EventEmitter()
   @Output() onSelectAll        : EventEmitter<MuTableSelAllEvent>  = new EventEmitter()
   @Output() onDetailClick      : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
-  @Output() onRowToggle        : EventEmitter<MuTableToggleEvent>  = new EventEmitter()
   @Output() onCellClick        : EventEmitter<MuTableClickEvent>   = new EventEmitter()
   @Output() onRowEdit          : EventEmitter<MuTableEditEvent>    = new EventEmitter()
 
@@ -182,32 +175,39 @@ export class MuDataTableComponent implements OnInit {
 
 
   /**
-   * Sends a callback to the parent when a particular row is selected by the user with
-   * the rowIndex and rowData
+   * sends a callback to parent with main event and row data on click of radio button, checkbox or 
+   * toggle button so that parent can stop the default action
+   * @param event 
+   * @param rowData 
+   */
+  rowClick(event : any, rowData : any) {
+
+    const selEvent : MuTableRowSelEvent = {
+      rowData    : rowData,
+      rowIndex   : rowData['rowIndex'],
+      isSelected : event.checked
+    }
+
+    this.onRowSelect.emit(selEvent) 
+  }
+
+
+  /**
+   * Changes the select all indexes map according to user preference on click of checkbox
    * @param event 
    * @param rowData 
    */
   rowSelect(event : MatCheckboxChange, rowData : any) {
     
-    const selectedIndex = rowData['rowIndex']
-
     if (event.checked) {
 
-      this.selectedIndexes[selectedIndex] = true
+      this.selectedIndexes[rowData['rowIndex']] = true
     } else {
       
       this.slctAllBox.checked = false
       this.selAllMap[this.currPageIndex] = false
-      this.selectedIndexes[selectedIndex] = false
+      this.selectedIndexes[rowData['rowIndex']] = false
     }   
-    
-    const selEvent : MuTableRowSelEvent = {
-      rowData    : rowData,
-      rowIndex   : selectedIndex,
-      isSelected : event.checked
-    }
-
-    this.onRowSelect.emit(selEvent) 
   }
 
 
@@ -232,8 +232,7 @@ export class MuDataTableComponent implements OnInit {
 
 
   /**
-   * Sends callback to the parent as rowselect when the user selects a particular row
-   * using radio button
+   * Changes the select all indexes map according to user preference on click of radio button
    * @param event 
    * @param rowData 
    */
@@ -242,12 +241,6 @@ export class MuDataTableComponent implements OnInit {
     this.selectedIndexes = { }
     const selectedIndex  = rowData['rowIndex']
     this.selectedIndexes[selectedIndex] = true
-    const selEvent : MuTableRowSelEvent = {
-      rowData    : rowData,
-      rowIndex   : selectedIndex,
-      isSelected : true
-    }
-    this.onRowSelect.emit(selEvent)
   }
 
 
@@ -268,19 +261,13 @@ export class MuDataTableComponent implements OnInit {
 
 
   /**
-   * Sends callback to the parent when user changes the state of toggle button
+   * Changes the select all indexes map according to user preference on click of toggle button
    * @param event 
    * @param rowData 
    */
   toggleRow(event : MatSlideToggleChange, rowData : Object) {
 
-    const toggleEvent : MuTableToggleEvent = {
-      rowData  : rowData,
-      rowIndex : rowData['rowIndex'],
-      isActive : event.checked
-    }
-    
-    this.onRowToggle.emit(toggleEvent)
+    this.selectedIndexes[rowData['rowIndex']] = event.checked
   }
 
 
