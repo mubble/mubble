@@ -119,6 +119,17 @@ object AndroidBase {
     }
   }
 
+  fun getInstallPackages(): JSONArray {
+
+    val insPckgs = JSONArray()
+
+    BaseApp.instance.packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+        .map { it.packageName }
+        .forEach { insPckgs.put(it) }
+
+    return insPckgs
+  }
+
   fun convertUrlFromHashids(url: String): String {
 
     try {

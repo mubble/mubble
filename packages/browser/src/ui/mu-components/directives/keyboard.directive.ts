@@ -14,7 +14,6 @@ import { Directive,
          Inject,
          Renderer2
        }                      from '@angular/core'
-import { RunContextBrowser }  from '@mubble/browser/rc-browser'
 import debounce               from 'lodash/debounce'
 
 @Directive({
