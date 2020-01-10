@@ -111,6 +111,24 @@ export class PostgresClient implements ObmopBaseClient {
 		return { entities : result.rows, totalCount : result.rows.length }
 	}
 
+	public async queryIn(rc 	  : RunContextServer,
+											 table 	: string,
+											 fields : Array<string>,
+											 key 		: string,
+											 values : Array<any>) : Promise<QueryRetval> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :',
+														 key, values)
+
+		const fieldString = fields.join(', '),
+					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN `
+												+ `(${values.map((val) => this.getStringValue(val)).join(', ')})`,
+					result      = await this.queryInternal(rc, queryString)
+
+		return { entities : result.rows, totalCount : result.rows.length }
+
+	}
+
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
 												fields     : Array<string>,

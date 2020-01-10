@@ -66,7 +66,8 @@ export class OracleDbClient implements ObmopBaseClient {
 												limit  : number = -1, 
 												offset : number = 0) : Promise<QueryRetval> {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.')
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.',
+														 limit, offset)
 
 		const fieldString = fields.join(', '),
 					binds				= [] as Array<any>
@@ -105,7 +106,7 @@ export class OracleDbClient implements ObmopBaseClient {
 										 offset		: number = 0) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition : ',
-														 key, operator, value)
+														 key, operator, value, limit, offset)
 
 		const fieldString = fields.join(', '),
 					binds       = [] as Array<any>
@@ -147,6 +148,54 @@ export class OracleDbClient implements ObmopBaseClient {
 		return result
 	}
 
+	public async queryIn(rc 			: RunContextServer,
+											 table	  : string,
+											 fields 	: Array<string>,
+											 key   		: string,
+											 values   : Array<any>,
+											 limit 		: number = -1,
+											 offset 	: number = 0) : Promise<QueryRetval> {
+		
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + 'with condition :',
+														key, values, limit, offset)
+
+		const fieldString = fields.join(', '),
+					binds       = [] as Array<any>,
+					vals        = [] as Array<string>
+
+		let c = 1
+
+		for(const value of values) {
+			vals.push(`:${c++}`)
+			binds.push(value)
+		}
+
+		const valueString = `(${vals.join(', ')})`
+
+		let	queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN ${valueString} `
+
+		if(limit !== -1) {
+			queryString =   `SELECT ${fieldString},totcount FROM (`
+										+ `SELECT COUNT(*) OVER() AS totcount,T1.*`
+										+ `FROM ${table} T1 WHERE ${key} IN ${valueString}`
+									  + `) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`
+									
+			binds.push(`${offset}`)
+			binds.push(`${limit}`)						 
+		}
+
+		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
+
+		const result : QueryRetval = {
+			entities,
+			totalCount : entities.length
+		}
+
+		if(limit !== -1 && entities.length) result.totalCount = result.entities[0].totcount
+
+		return result
+}
+
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
 												fields     : Array<string>,
@@ -154,11 +203,12 @@ export class OracleDbClient implements ObmopBaseClient {
 												limit      : number = -1,
 												offset     : number = 0) : Promise<QueryRetval> {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :',
+														 conditions, limit, offset)
 
 		const fieldString	 		 = fields.join(', '),
 				  conditionStrings = [] as Array<string>,
-					binds            = [] as Array<any>
+					binds            = [] as Array<any>	
 
 		let c = 1
 

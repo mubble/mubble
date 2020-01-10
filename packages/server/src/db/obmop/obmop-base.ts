@@ -153,6 +153,18 @@ export interface ObmopBaseClient {
            limit ?: number, offset ?: number) : Promise<QueryRetval>
 
   /**
+   * Returns all entries (rows) of the given table for multiple <key> <operator> <value> using IN.
+   * @param rc RunContext, used for logging.
+   * @param table Table or entity name.
+   * @param key Key or field name.
+   * @param values Array of values of that field.
+   * @param limit Defines the number of results to be fetched.
+   * @param offset The offset to start fetching the values from.
+   */      
+  queryIn(rc : RunContextServer, table : string, fields : Array<string>, key : string, 
+          values :  Array<any>, limit ?: number, offset ?: number) : Promise<QueryRetval>
+
+  /**
    * Inserts a new entry (row) in the given table.
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.

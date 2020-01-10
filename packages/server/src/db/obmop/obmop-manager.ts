@@ -27,6 +27,13 @@ export type ObmopQueryRetval<T> = {
 	totalCount : number
 }
 
+export type ObmopCondition<T> = {
+	key 			: keyof T
+	value 		: any
+	operator ?: string
+	upper    ?: boolean
+}
+
 export class ObmopManager {
 
   constructor(rc : RunContextServer, private client : ObmopBaseClient) {
@@ -125,7 +132,6 @@ export class ObmopManager {
 		}
 	}
 	
-
 	/**
    *  Function to get rows for an obmop entity with multiple AND queries.
 	 * 	By default the condition is equals (=).
@@ -133,13 +139,21 @@ export class ObmopManager {
 	public async queryAnd<T extends ObmopBaseEntity>(
 														rc 				 : RunContextServer,
 														entityType : new(rc : RunContextServer) => T,
-														conditions : Array<{key : keyof T, value : any, operator ?: string}>,
+														conditions : Array<ObmopCondition<T>>,
 														limit			 : number = -1,
 														offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName 			 = new entityType(rc).getTableName(),
 					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
 					clientConditions = conditions.map((cond) => {
+															 if(cond.upper) {
+																 return {
+																	 key 			: `UPPER(${cond.key})`,
+																	 value 		: cond.value,
+																	 operator : cond.operator
+																 }
+															 }
+
 															 return {
 																				 key	 		: cond.key as string,
 																				 value 		: cond.value,
@@ -174,6 +188,42 @@ export class ObmopManager {
 		}
 	}
 
+	public async queryIn<T extends ObmopBaseEntity>(
+													 rc 				: RunContextServer,
+													 entityType : new(rc: RunContextServer) => T,
+													 key 				: keyof T,
+													 values     : Array<any>,
+													 limit 			: number = -1,
+													 offset 		: number = 0) : Promise<ObmopQueryRetval<T>> {
+
+		const tableName = new entityType(rc).getTableName(),
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
+							
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, values)
+		
+		try {
+			const records = await this.client.queryIn(rc, tableName, fields, key as string,
+																								values, limit, offset)
+
+			const result : ObmopQueryRetval<T> = {
+				entities : records.entities.map((record) => {
+																											const entity = new entityType(rc)
+
+																											Object.assign(entity, record)
+																											return entity
+																										}),
+				totalCount : records.totalCount
+			}			
+			
+			return result
+
+		} catch(err) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			throw mErr
+		}
+	}
+	
 	/**
    *  Function to insert a row of an obmop entity.
    */
