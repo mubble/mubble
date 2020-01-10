@@ -42,7 +42,7 @@ export class HttpsThirdServer {
 
   async requestHandler(req : http.IncomingMessage, res : http.ServerResponse) {
 
-    const rc = this.refRc.copyConstruct('', 'https-request')
+    const rc = this.refRc.copyConstruct('', 'https-third')
 
     rc.isStatus() && rc.status(rc.getName(this), 'Received third party https request.', req.url)
 
