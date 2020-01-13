@@ -23,7 +23,9 @@ enum class PermissionGroup constructor(val group: String, val reqCode: Int, val 
 
   SMS("android.permission-group.SMS", 3, arrayOf(SEND_SMS, RECEIVE_SMS, READ_SMS)),
 
-  CONTACTS("android.permission-group.CONTACTS", 4, arrayOf(READ_CONTACTS, WRITE_CONTACTS, GET_ACCOUNTS));
+  CONTACTS("android.permission-group.CONTACTS", 4, arrayOf(READ_CONTACTS, WRITE_CONTACTS, GET_ACCOUNTS)),
+
+  BLUETOOTH("android.permission-group.BLUETOOTH", 5, arrayOf(BLUETOOTH_ADMIN, Manifest.permission.BLUETOOTH));
 
   fun hasPermission(context: Context): Boolean {
 
