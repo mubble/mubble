@@ -13,19 +13,19 @@ import java.util.*
  * Created by siddharthgarg
  * on 30/11/17
  */
-enum class PermissionGroup constructor(val group: String, val reqCode: Int, val groupPermissions: Array<String>) {
+enum class PermissionGroup constructor(val uiName: String, val group: String, val reqCode: Int, val groupPermissions: Array<String>) {
 
-  STORAGE("android.permission-group.STORAGE", 0, arrayOf(WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE)),
+  STORAGE("Storage","android.permission-group.STORAGE", 0, arrayOf(WRITE_EXTERNAL_STORAGE, READ_EXTERNAL_STORAGE)),
 
-  LOCATION("android.permission-group.LOCATION", 1, arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)),
+  LOCATION("Location","android.permission-group.LOCATION", 1, arrayOf(ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION)),
 
-  CAMERA("android.permission-group.CAMERA", 2, arrayOf(Manifest.permission.CAMERA)),
+  CAMERA("Camera","android.permission-group.CAMERA", 2, arrayOf(Manifest.permission.CAMERA)),
 
-  SMS("android.permission-group.SMS", 3, arrayOf(SEND_SMS, RECEIVE_SMS, READ_SMS)),
+  SMS("SMS","android.permission-group.SMS", 3, arrayOf(SEND_SMS, RECEIVE_SMS, READ_SMS)),
 
-  CONTACTS("android.permission-group.CONTACTS", 4, arrayOf(READ_CONTACTS, WRITE_CONTACTS, GET_ACCOUNTS)),
+  CONTACTS("Contacts","android.permission-group.CONTACTS", 4, arrayOf(READ_CONTACTS, WRITE_CONTACTS, GET_ACCOUNTS)),
 
-  BLUETOOTH("android.permission-group.BLUETOOTH", 5, arrayOf(BLUETOOTH_ADMIN, Manifest.permission.BLUETOOTH));
+  BLUETOOTH("Bluetooth","android.permission-group.BLUETOOTH", 5, arrayOf(BLUETOOTH_ADMIN, Manifest.permission.BLUETOOTH));
 
   fun hasPermission(context: Context): Boolean {
 

@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import core.BaseApp
 import core.MubbleLogger
 import ui.permission.AskedPermission
+import ui.permission.PermissionGroup
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -24,7 +25,7 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
   private var progressDialog    : ProgressDialog? = null
 
   abstract fun showRationaleDialog(groups: MutableSet<AskedPermission>, cb: (Boolean) -> Unit)
-  abstract fun showPermSettingDialog()
+  abstract fun showPermSettingDialog(groups : ArrayList<PermissionGroup>)
 
   final override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
