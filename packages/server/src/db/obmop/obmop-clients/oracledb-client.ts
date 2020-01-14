@@ -9,7 +9,9 @@
 
 import { 
 				 ObmopBaseClient,
-				 QueryRetval
+				 QueryRetval,
+				 QueryRange,
+				 QuerySort
 			 }      									from '../obmop-base'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { DB_ERROR_CODE }        from '../obmop-util'
@@ -60,25 +62,35 @@ export class OracleDbClient implements ObmopBaseClient {
 		this.initialized = false
 	}
 
-	public async queryAll(rc		 : RunContextServer, 
-												table  : string, 
-												fields : Array<string>, 
-												limit  : number = -1, 
-												offset : number = 0) : Promise<QueryRetval> {
+	public async queryAll(rc		  : RunContextServer, 
+												table   : string, 
+												fields  : Array<string>, 
+												limit   : number = -1, 
+												offset  : number = 0,
+												range  ?: QueryRange,
+												sort   ?: QuerySort) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.',
-														 limit, offset)
+														 limit, offset, range, sort)
 
 		const fieldString = fields.join(', '),
-					binds				= [] as Array<any>
+					binds				= [] as Array<any>,
+					addRange    = range ? ` WHERE ${range.key} BETWEEN ${range.low} AND ${range.high}`
+															: '',
+					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
+														 : ''
 
 		let queryString = `SELECT ${fieldString} FROM ${table}`
+											+ addRange  
+											+ addSort
 
 		if (limit !== -1) {
-			queryString = `SELECT * FROM (
-											SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* 
-											FROM ${table} T1 
-										) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
+			queryString = `SELECT * FROM (`
+										+`SELECT COUNT(*) OVER() AS TOTCOUNT, T1.*` 
+										+`FROM ${table} T1`
+										+ addRange
+										+ addSort
+										+`) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
 			
 			binds.push(`${offset}`)
 			binds.push(`${limit}`)
@@ -96,39 +108,53 @@ export class OracleDbClient implements ObmopBaseClient {
 		return (result)
 	}
 
-	public async query(rc       : RunContextServer,
-										 table    : string,
-										 fields   : Array<string>,
-										 key      : string,
-										 value    : any,
-										 operator : string = '=',
-										 limit		: number = -1,
-										 offset		: number = 0) : Promise<QueryRetval> {
+	public async query(rc        : RunContextServer,
+										 table     : string,
+										 fields    : Array<string>,
+										 key       : string,
+										 value     : any,
+										 operator  : string = '=',
+										 limit		 : number = -1,
+										 offset		 : number = 0,
+										 range    ?: QueryRange,
+										 sort     ?: QuerySort) : Promise<QueryRetval> {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition : ',
-														 key, operator, value, limit, offset)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition :',
+														 key, operator, value, limit, offset, range, sort)
 
 		const fieldString = fields.join(', '),
-					binds       = [] as Array<any>
+					binds       = [] as Array<any>,
+					addRange    = range ? ` AND ${range.key} BETWEEN ${range.low} AND ${range.high}`
+															: '',
+					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
+														 : ''
 
 		if(value !== undefined) binds.push(value)
 
 		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator} :1`
+											+ addRange
+											+ addSort
 
 		if(value === undefined) {
 			queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator}`
+										+ addRange
+										+ addSort
 		}
 
 		if (limit !== -1) {
 			queryString = `SELECT * FROM (`
 										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
 										+ `FROM ${table} T1 WHERE ${key} ${operator} :1`
+										+  addRange
+										+  addSort
 										+ `) OFFSET :2 ROWS FETCH NEXT :3 ROWS ONLY`
 									
 			if(value === undefined) {
 				queryString = `SELECT * FROM (`
 											+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
 											+ `FROM ${table} T1 WHERE ${key} ${operator}`
+											+  addRange
+											+  addSort
 											+ `) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
 			}
 
@@ -148,67 +174,25 @@ export class OracleDbClient implements ObmopBaseClient {
 		return result
 	}
 
-	public async queryIn(rc 			: RunContextServer,
-											 table	  : string,
-											 fields 	: Array<string>,
-											 key   		: string,
-											 values   : Array<any>,
-											 limit 		: number = -1,
-											 offset 	: number = 0) : Promise<QueryRetval> {
-		
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + 'with condition :',
-														key, values, limit, offset)
-
-		const fieldString = fields.join(', '),
-					binds       = [] as Array<any>,
-					vals        = [] as Array<string>
-
-		let c = 1
-
-		for(const value of values) {
-			vals.push(`:${c++}`)
-			binds.push(value)
-		}
-
-		const valueString = `(${vals.join(', ')})`
-
-		let	queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN ${valueString} `
-
-		if(limit !== -1) {
-			queryString =   `SELECT ${fieldString},totcount FROM (`
-										+ `SELECT COUNT(*) OVER() AS totcount,T1.*`
-										+ `FROM ${table} T1 WHERE ${key} IN ${valueString}`
-									  + `) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`
-									
-			binds.push(`${offset}`)
-			binds.push(`${limit}`)						 
-		}
-
-		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
-
-		const result : QueryRetval = {
-			entities,
-			totalCount : entities.length
-		}
-
-		if(limit !== -1 && entities.length) result.totalCount = result.entities[0].totcount
-
-		return result
-}
-
-	public async queryAnd(rc 				 : RunContextServer,
-												table 		 : string,
-												fields     : Array<string>,
-												conditions : Array<{key : string, value : any, operator ?: string}>,
-												limit      : number = -1,
-												offset     : number = 0) : Promise<QueryRetval> {
+	public async queryAnd(rc 				  : RunContextServer,
+												table 		  : string,
+												fields      : Array<string>,
+												conditions  : Array<{key : string, value : any, operator ?: string}>,
+												limit       : number = -1,
+												offset      : number = 0,
+												range			 ?: QueryRange,
+												sort       ?: QuerySort) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :',
 														 conditions, limit, offset)
 
 		const fieldString	 		 = fields.join(', '),
 				  conditionStrings = [] as Array<string>,
-					binds            = [] as Array<any>	
+					binds            = [] as Array<any>,
+					addRange         = range ? ` AND ${range.key} BETWEEN ${range.low} AND ${range.high}`
+																	 : '',
+					addSort					 = sort ? ` ORDER BY ${sort.key} ${sort.order}`
+																	: ''
 
 		let c = 1
 
@@ -222,11 +206,15 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 
 		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${conditionStrings.join(' AND ')}`
+											+ addRange
+											+ addSort
 
 		if (limit !== -1) {
 			queryString = 	`SELECT ${fieldString}, totcount FROM (`
 										+ `SELECT COUNT(*) OVER() AS totcount, T1.* `
 										+ `FROM ${table} T1 WHERE ${conditionStrings.join(' AND ')}`
+										+  addRange
+										+  addSort
 										+ ` ) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`
 			binds.push(`${offset}`)
 			binds.push(`${limit}`)
@@ -242,6 +230,64 @@ export class OracleDbClient implements ObmopBaseClient {
 
 		if (limit !== -1 && entities.length) result.totalCount = entities[0].totcount
 		
+		return result
+	}
+
+	public async queryIn(rc      : RunContextServer,
+											 table   : string,
+											 fields  : Array<string>,
+											 key     : string,
+											 values  : Array<any>,
+											 limit   : number = -1,
+											 offset  : number = 0,
+											 range  ?: QueryRange,
+											 sort   ?: QuerySort) : Promise<QueryRetval> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + 'with condition :',
+						 key, values, limit, offset, range, sort)
+
+		const fieldString = fields.join(', '),
+					binds       = [] as Array<any>,
+					vals        = [] as Array<string>
+
+		let c = 1
+
+		for(const value of values) {
+			vals.push(`:${c++}`)
+			binds.push(value)
+		}
+
+		const valueString = `(${vals.join(', ')})`,
+          addRange 		= range ? ` AND ${range.key} BETWEEN ${range.low} AND ${range.high}`
+															: '',
+					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
+														 : ''
+
+		let	queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN ${valueString}`
+											+ addRange
+											+ addSort
+
+		if(limit !== -1) {
+			queryString = `SELECT ${fieldString},totcount FROM (`
+		 						    + `SELECT COUNT(*) OVER() AS totcount,T1.*`
+									  + `FROM ${table} T1 WHERE ${key} IN ${valueString}`
+										+ addRange
+										+ addSort
+									  + `) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`			 
+
+			binds.push(`${offset}`)
+			binds.push(`${limit}`)						 
+		}
+
+		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
+
+		const result : QueryRetval = {
+			entities,
+			totalCount : entities.length
+		}
+
+		if(limit !== -1 && entities.length) result.totalCount = result.entities[0].totcount
+
 		return result
 	}
 
