@@ -56,7 +56,7 @@ data class CustomData(val appName: String, val channel: String,
   var location        : String?     = null // Serialized JSONObject
   var networkType     : String?     = null
   var userRole        : String?     = null
-  var namespaceId     : String?     = null
+  var namespaceId     : Any?        = null
   var mobileNo        : String?     = null
 
   override fun toJsonObject(): JSONObject {
