@@ -1,6 +1,5 @@
 .keypad {
   flex-direction  : column;
-  height          : 100%;
   width           : 100vw;
   @extend .flex-center;
 }
@@ -13,7 +12,7 @@
 }
 
 .zero-row, .first-row, .second-row, .third-row, .fourth-row {
-  width           : 90vw;
+  width           : 100vw;
   display         : flex;
   flex-direction  : row;
   justify-content : center;
@@ -26,7 +25,7 @@
 }
 
 .key {
-  width           : 30vw;
+  width           : 33.33vw;
   padding         : 1vh 0;
   @extend .flex-center;
 
