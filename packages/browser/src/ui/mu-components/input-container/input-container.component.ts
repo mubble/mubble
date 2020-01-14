@@ -185,16 +185,16 @@ export class InputContainerComponent implements OnChanges {
 
       case DISPLAY_TYPE.MULTI_CHECK_BOX :  
 
-        const matCheckboxInst = this.matCheckbox.toArray()
-        let values = []
+        // const matCheckboxInst = this.matCheckbox.toArray(),
+        //       values = []
 
-        matCheckboxInst.forEach((val,index) => {
-          if (val.checked) values.push(val.value['id'])
-        })
+        // matCheckboxInst.forEach((val,index) => {
+        //   if (val.checked) values.push(val.value)
+        // })
 
         params = { 
           id          : this.inputParams.id,
-          value       : values,
+          value       : this.inputForm.value,
           displayType : this.inputParams.displayType
         }
         break  
