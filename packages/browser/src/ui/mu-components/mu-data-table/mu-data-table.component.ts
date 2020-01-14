@@ -186,7 +186,7 @@ export class MuDataTableComponent implements OnInit {
     const selEvent : MuTableRowSelEvent = {
       rowData    : rowData,
       rowIndex   : rowData['rowIndex'],
-      isSelected : event.checked,
+      isSelected : this.selectedIndexes[rowData['rowIndex']] ? false : true,
       mainEvent  : event
     }
 
@@ -520,5 +520,7 @@ export class MuDataTableComponent implements OnInit {
   unselectIndexes(rowIndexes : number[]) {
 
     for (const index of rowIndexes) this.selectedIndexes[index]  = false
+    this.slctAllBox.checked = false
+    this.selAllMap[this.currPageIndex] = false
   }
 }
