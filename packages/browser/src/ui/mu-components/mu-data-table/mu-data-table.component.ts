@@ -103,6 +103,7 @@ export class MuDataTableComponent implements OnInit {
   pageIndex         : number   
   currPageIndex     : number  
   prevPageIndex     : number   
+  isTogglePresent   : boolean
 
   selectedIndexes   : Object   = {} 
   selAllMap         : Object   = {} 
@@ -124,6 +125,8 @@ export class MuDataTableComponent implements OnInit {
 
       for (let header of this.tableConfig.headers) {
 
+        if (header.colType === COL_TYPE.TOGGLE) this.isTogglePresent = true 
+        
         if (header.isEditable) this.editForm.addControl(header.dataKey, new FormControl())
         
         this.headerFields.push(header.dataKey)

@@ -43,9 +43,9 @@
     </div>
     
     <div class="table-row-cont" *ngFor="let rowData of dataToDisplay"
-      [class.row-active]="selectedIndexes[rowData['rowIndex']]">
+      [class.row-active]="selectedIndexes[rowData['rowIndex']] && !isTogglePresent">
       
-      <div class="radio-btn" *ngIf="tableConfig.enableRadio" >
+      <div class="radio-btn" *ngIf="tableConfig.enableRadio">
         <mat-radio-group name="rowRadio">
           <mat-radio-button 
             value="{{ rowData['rowIndex'] }}" 
