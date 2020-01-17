@@ -101,6 +101,23 @@ export type QueryRetval = {
 }
 
 /**
+ *  Optional query range.
+ */
+export type QueryRange = {
+  key  : string
+  low  : any
+  high : any
+}
+
+/**
+ * Optional query sorting
+ */
+export type QuerySort = {
+  key   : string
+  order : string
+}
+
+/**
  *  All obmop clients should have the following functions (implement from this interface).
  */
 export interface ObmopBaseClient {
@@ -123,9 +140,12 @@ export interface ObmopBaseClient {
    * @param table Table or entity name.
    * @param limit Defines the number of results to be fetched.
    * @param offset The offset to start fetching the values from. 
+   * @param range Optional range for query retval.
+   * @param sort Optional sort for query retval.
    */
   queryAll(rc : RunContextServer, table : string, fields : Array<string>, 
-           limit ?: number, offset ?: number) : Promise<QueryRetval>
+           limit ?: number, offset ?: number, range ?: QueryRange, 
+           sort ?: QuerySort) : Promise<QueryRetval>
 
   /**
    * Returns all entries (rows) of the given table for <key> <operator> <value>.
@@ -136,9 +156,12 @@ export interface ObmopBaseClient {
    * @param operator Conditional operator compatible with SQL databases. By default it is '='.
    * @param limit Defines the number of results to be fetched.
    * @param offset The offset to start fetching the values from.
+   * @param range Optional range for query retval.
+   * @param sort Optional sort for query retval.
    */
   query(rc : RunContextServer, table : string, fields : Array<string>, key : string,
-        value : any, operator ?: string, limit ?: number, offset ?: number) : Promise<QueryRetval>
+        value : any, operator ?: string, limit ?: number, offset ?: number,
+        range ?: QueryRange, sort ?: QuerySort) : Promise<QueryRetval>
 
   /**
    * Returns all entries (rows) of the given table for multiple <key> <operator> <value> seperated by AND.
@@ -147,23 +170,29 @@ export interface ObmopBaseClient {
    * @param conditions Given multiple conditions.
    * @param limit Defines the number of results to be fetched.
    * @param offset The offset to start fetching the values from.
+   * @param range Optional range for query retval.
+   * @param sort Optional sort for query retval.
    */
   queryAnd(rc : RunContextServer, table : string, fields : Array<string>,
            conditions : Array<{key : string, value : any, operator ?: string}>,
-           limit ?: number, offset ?: number) : Promise<QueryRetval>
+           limit ?: number, offset ?: number, range ?: QueryRange,
+           sort ?: QuerySort) : Promise<QueryRetval>
 
   /**
-   * Returns all entries (rows) of the given table for multiple <key> <operator> <value> using IN.
+   * Returns all entries (rows) of the given table for multiple <value> using IN.
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
    * @param key Key or field name.
    * @param values Array of values of that field.
    * @param limit Defines the number of results to be fetched.
    * @param offset The offset to start fetching the values from.
+   * @param range Optional range for query retval.
+   * @param sort Optional sort for query retval
    */      
   queryIn(rc : RunContextServer, table : string, fields : Array<string>, key : string, 
-          values :  Array<any>, limit ?: number, offset ?: number) : Promise<QueryRetval>
-
+          values :  Array<any>, limit ?: number, offset ?: number,
+          range ?: QueryRange, sort ?: QuerySort): Promise<QueryRetval>          
+               
   /**
    * Inserts a new entry (row) in the given table.
    * @param rc RunContext, used for logging.

@@ -1,14 +1,16 @@
 package util
 
+import ConstBase
 import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Base64
+import com.facebook.FacebookSdk.getCacheDir
 import core.BaseApp
 import java.io.*
-import android.provider.OpenableColumns
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -320,6 +322,34 @@ object FileBase {
 
     val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
     return convertStreamToBase64(inputStream)
+  }
+
+  fun convertContentUriToFile(contentUri: Uri, parentFile: File, fileName: String): File? {
+
+    val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
+
+    try {
+      val file = File(parentFile, fileName)
+      FileOutputStream(file).use { output ->
+        val buffer = ByteArray(4 * 1024) // or other buffer size
+        var read: Int
+        while (inputStream.read(buffer).also { read = it } != -1) {
+          output.write(buffer, 0, read)
+        }
+        output.flush()
+      }
+
+      return file
+
+    } catch (e: IOException) {
+      e.printStackTrace()
+    } catch (e: FileNotFoundException) {
+      e.printStackTrace()
+    } finally {
+      inputStream.close()
+    }
+
+    return null
   }
 
   fun convertFileToBase64(f: File): String? {

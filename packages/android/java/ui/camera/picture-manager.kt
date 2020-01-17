@@ -3,20 +3,17 @@ package ui.camera
 import android.app.Activity.RESULT_OK
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
 import android.net.Uri
-import android.os.Bundle
 import android.provider.MediaStore
 import androidx.core.content.FileProvider
 import core.BaseApp
 import core.ImageCompressionTask
 import core.MubbleLogger
-import org.jetbrains.anko.info
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
 import util.FileBase
-import util.UtilBase
-import java.io.*
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Created by
@@ -24,25 +21,12 @@ import java.io.*
  */
 
 class PictureManager(private val parentActivity : MubbleBaseActivity,
-                     private val listener       : (JSONObject) -> Unit,
-                     private val fileAuthority  : String) : MubbleLogger {
+                     private val fileAuthority  : String,
+                     private val listener       : (JSONObject) -> Unit) : MubbleLogger {
 
   private var fileUri           : Uri?    = null
-  private var galleryImgBase64  : String? = null
   private var output            : File?   = null
   private var currentReqCode    : Int?    = -1
-  private var aspectRatio       : String  = "1"
-
-  private val pictureCropExtras : Bundle
-    get() {
-
-      val bundle = Bundle()
-      bundle.putString("crop", "true")
-      bundle.putInt("aspectX", 1)
-      bundle.putInt("aspectY", 1)
-      bundle.putBoolean("return-data", true)
-      return bundle
-    }
 
   fun isPictureRequestCode(requestCode: Int) : Boolean = requestCode == currentReqCode
 
@@ -55,14 +39,11 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
 
     try {
 
-      val bm: Bitmap
       when (requestCode) {
 
         REQUEST_TAKE_PHOTO -> {
-          // TODO: compress fileUri
-          bm = FileBase.getBitmapFromUri(fileUri)
-          galleryImgBase64 = FileBase.getBase64Data(bm)
-          cropCapturedImage(fileUri)
+          val uri = fileUri
+          respondWithSuccess(uri, null, false)
         }
 
         REQUEST_SELECT_PHOTO -> {
@@ -71,9 +52,7 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
             return
           }
 
-          bm                = FileBase.getBitmapFromUri(data.data)
-          galleryImgBase64  = FileBase.getBase64Data(bm)
-
+          val bm            = FileBase.getBitmapFromUri(data.data)
           val byteArr       = FileBase.getByteArray(bm)
 
           val storageDir    = File(BaseApp.instance.filesDir, USERS)
@@ -85,26 +64,16 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
 
           fileUri           = FileProvider.getUriForFile(BaseApp.instance, fileAuthority, output!!)
 
-          cropCapturedImage(fileUri)
-        }
-
-        REQUEST_CROP_PHOTO -> {
-          val encImage = FileBase.getBase64Data(fileUri)
-          respondWithSuccess(encImage, true)
+          respondWithSuccess(fileUri, null, false)
         }
       }
 
     } catch (e: Exception) {
       respondWithFailure(ERROR_IO_EXCEPTION)
     }
-
   }
 
-  fun takePicture(aspectRatio : String = "1") {
-
-    if (aspectRatio != "1") {
-      this.aspectRatio = aspectRatio
-    }
+  fun openCamera() {
 
     val takePictureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
 
@@ -125,7 +94,7 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
     takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, fileUri)
     takePictureIntent.putExtra("return-data", true)
 
-    this.currentReqCode = REQUEST_TAKE_PHOTO
+    currentReqCode = REQUEST_TAKE_PHOTO
 
     resolvedIntentActivities.forEach {
       BaseApp.instance.grantUriPermission(it.activityInfo.packageName, fileUri,
@@ -184,71 +153,19 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
     }
   }
 
-  private fun cropCapturedImage(picUri: Uri?) {
-
-    val cropIntent = Intent("com.android.camera.action.CROP")
-    cropIntent.setDataAndType(picUri, MIME_TYPE)
-
-    val list = BaseApp.instance.packageManager.queryIntentActivities(cropIntent,
-        PackageManager.MATCH_DEFAULT_ONLY)
-    val size = list.size
-
-    if (size == 0) {
-      respondWithSuccess(galleryImgBase64, false) // Cropping not supported on device
-      return
-    }
-
-    list.forEach {
-      BaseApp.instance.grantUriPermission(it.activityInfo.packageName, fileUri,
-          Intent.FLAG_GRANT_WRITE_URI_PERMISSION or Intent.FLAG_GRANT_READ_URI_PERMISSION)
-    }
-
-    val bundle = pictureCropExtras
-
-
-    if (this.aspectRatio != "1") {
-
-      val asp    = this.aspectRatio.split("/")
-      val aspect = Pair(asp[0].toInt(), asp[1].toInt())
-
-      info { "Test ${aspect.first} ${aspect.second}" }
-
-      bundle.putInt("aspectX", aspect.first)
-      bundle.putInt("aspectY", aspect.second)
-
-    } else {
-      bundle.putInt("outputX", 256)
-      bundle.putInt("outputY", 256)
-    }
-
-    cropIntent.putExtras(bundle)
-    cropIntent.setDataAndType(picUri, "image/*")
-    cropIntent.putExtra(MediaStore.EXTRA_OUTPUT, picUri)
-    cropIntent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString())
-    cropIntent.putExtra("scale", true)
-
-    this.currentReqCode = REQUEST_CROP_PHOTO
-    if (size == 1) {
-      parentActivity.startActivityForResult(cropIntent, REQUEST_CROP_PHOTO)
-    } else {
-      parentActivity.startActivityForResult(Intent
-          .createChooser(cropIntent, "Crop Using"), REQUEST_CROP_PHOTO)
-    }
-  }
-
   private fun respondWithFailure(failureCode: String) {
 
-    onPictureResult(false, null, null, null,null, failureCode)
+    onPictureResult(false, null,null, null, null,null, failureCode)
   }
 
-  private fun respondWithSuccess(base64: String?, cropped: Boolean) {
+  private fun respondWithSuccess(picUri: Uri?, base64: String?, cropped: Boolean) {
 
     val b64       = if (base64 != null) ImageCompressionTask().compressImage(base64) else base64
     val checkSum  = if (b64 != null) FileBase.getCheckSum(b64) else null
-    onPictureResult(true, b64, MIME_TYPE, cropped, checkSum, null)
+    onPictureResult(true, picUri, b64, MIME_TYPE, cropped, checkSum, null)
   }
 
-  private fun onPictureResult(success: Boolean, base64: String?, mimeType: String?,
+  private fun onPictureResult(success: Boolean, picUri: Uri?, base64: String?, mimeType: String?,
                                cropped: Boolean?, checkSum: String?, failureCode: String?) {
 
     val jsonObject = JSONObject()
@@ -259,6 +176,8 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
     jsonObject.put("checksum", checkSum)
     jsonObject.put("failureCode", failureCode)
 
+    jsonObject.put("picUri", picUri)
+
     listener(jsonObject)
     cleanUp()
   }
@@ -266,18 +185,16 @@ class PictureManager(private val parentActivity : MubbleBaseActivity,
   private fun cleanUp() {
 
     if (output != null && output!!.exists()) output!!.delete()
-    galleryImgBase64 = null
   }
 
   companion object {
 
     const val REQUEST_TAKE_PHOTO              = 2001
-    const val REQUEST_CROP_PHOTO              = 2002
-    const val REQUEST_SELECT_PHOTO            = 2003
+    const val REQUEST_SELECT_PHOTO            = 2002
 
     private const val USERS                   = "users"
     private const val OUTPUT_FILENAME         = "output.jpeg"
-    private const val MIME_TYPE               = "image/jpeg"
+            const val MIME_TYPE               = "image/jpeg"
 
     private const val ERROR_ACT_NOT_FOUND     = "actNotFound"
     private const val ERROR_ACT_RESULT_FAIL   = "actResultFailure"

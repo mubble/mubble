@@ -13,7 +13,9 @@ import {
 			 } 														from './obmop-util'
 import {
 				 ObmopBaseEntity,
-				 ObmopBaseClient
+				 ObmopBaseClient,
+				 QueryRange,
+				 QuerySort
 			 } 														from './obmop-base'
 import { ObmopRegistryManager, 
 				 ObmopFieldInfo 
@@ -32,6 +34,17 @@ export type ObmopCondition<T> = {
 	value 		: any
 	operator ?: string
 	upper    ?: boolean
+}
+
+export type ObmopRange<T> = {
+	key  : keyof T
+	low  : any
+	high : any
+}
+
+export type ObmopSort<T> = {
+	key   : keyof T
+	order : string
 }
 
 export class ObmopManager {
@@ -56,7 +69,9 @@ export class ObmopManager {
   public async queryAll<T extends ObmopBaseEntity>(rc         : RunContextServer,
 																									 entityType : new(rc : RunContextServer) => T,
 																									 limit			: number = -1,
-																									 offset 		: number = 0) : Promise<ObmopQueryRetval<T>> {
+																									 offset 		: number = 0,
+																									 range     ?: ObmopRange<T>,
+																									 sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
@@ -64,7 +79,8 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching all data.', tableName)
 
 		try {
-			const records = await this.client.queryAll(rc, tableName, fields, limit, offset)
+			const records = await this.client.queryAll(rc, tableName, fields, limit, offset, 
+																								 range as QueryRange, sort as QuerySort)
 
 
 			const entities = records.entities.map((record) => {
@@ -98,18 +114,22 @@ export class ObmopManager {
               			 														value      : any,
 																								operator   : string = '=',
 																								limit 		 : number = -1,
-																								offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
+																								offset		 : number = 0,
+																								range     ?: ObmopRange<T>,
+																								sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
 
 		// TODO : Add checks to query only on indexed fields
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, value)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, 
+														 value, range, sort)
 
 		try {
 			const records = await this.client.query(rc, tableName, fields, key as string, value,
-																						  operator, limit, offset)
+																							operator, limit, offset, range as QueryRange,
+																						  sort as QuerySort)
 
 
 			const entities = records.entities.map((record) => {
@@ -141,7 +161,9 @@ export class ObmopManager {
 														entityType : new(rc : RunContextServer) => T,
 														conditions : Array<ObmopCondition<T>>,
 														limit			 : number = -1,
-														offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
+														offset		 : number = 0,
+														range			?: ObmopRange<T>,
+														sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName 			 = new entityType(rc).getTableName(),
 					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
@@ -163,11 +185,12 @@ export class ObmopManager {
 
 		// TODO : Add checks to query only on indexed fields
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions, range, sort)
 
 		try {
 			const records = await this.client.queryAnd(rc, tableName, fields, clientConditions,
-																					 			 limit, offset)
+																								 limit, offset, range as QueryRange,
+																								 sort as QuerySort)
 
 			const result : ObmopQueryRetval<T> = {
 				entities   : records.entities.map((record) => {
@@ -194,16 +217,20 @@ export class ObmopManager {
 													 key 				: keyof T,
 													 values     : Array<any>,
 													 limit 			: number = -1,
-													 offset 		: number = 0) : Promise<ObmopQueryRetval<T>> {
+													 offset 		: number = 0,
+													 range     ?: ObmopRange<T>,
+													 sort 		 ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
 							
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, values)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, 
+														 values, range, sort)
 		
 		try {
 			const records = await this.client.queryIn(rc, tableName, fields, key as string,
-																								values, limit, offset)
+																								values, limit, offset, range as QueryRange,
+																							  sort as QuerySort)
 
 			const result : ObmopQueryRetval<T> = {
 				entities : records.entities.map((record) => {
@@ -223,7 +250,6 @@ export class ObmopManager {
 			throw mErr
 		}
 	}
-	
 	/**
    *  Function to insert a row of an obmop entity.
    */

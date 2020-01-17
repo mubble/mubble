@@ -72,8 +72,6 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
 
       val checksum  = FileBase.getCheckSum(cmpB64)
 
-      info { "Test ${bm.height} ${bm.width} ${bm.allocationByteCount}" }
-
 //      var base64    : String
 //      val checksum  : String?
 //      val mimeType  : String?
