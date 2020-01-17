@@ -3,22 +3,25 @@ import { Component,
          Input, 
          Output, 
          EventEmitter,
-         ViewChild
-       }                           from '@angular/core'
+         ViewChild,
+         Inject
+       }                            from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
          MatSlideToggleChange,
          MatCheckbox
-       }                           from '@angular/material'
+       }                            from '@angular/material'
 import { FormControl, 
          FormGroup
-       }                           from '@angular/forms'
+       }                            from '@angular/forms'
 
 import { TableHeader, 
          FilterItem, 
          DISPLAY_MODE
-       }                           from '@mubble/core/interfaces/app-server-interfaces'
-import { SelectedFilter }          from '../filter'
+       }                            from '@mubble/core/interfaces/app-server-interfaces'
+import { SelectedFilter }           from '../filter'
+import { RunContextBrowser }        from '@mubble/browser/rc-browser'
+import { LOG_LEVEL }                from '@mubble/core'
 
 export interface TableConfig {
   headers            : TableHeader[]
@@ -35,10 +38,10 @@ export interface TableConfig {
 }
 
 export interface MuTableRowSelEvent {
-  rowIndex   : number
-  rowData    : Object
-  isSelected : boolean
-  mainEvent  : any
+  rowIndex      : number
+  rowData       : Object
+  isSelected    : boolean
+  browserEvent  : any
 }
 
 export interface MuTableDetailEvent {
@@ -117,8 +120,13 @@ export class MuDataTableComponent implements OnInit {
   COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
   DISPLAY_MODE      : typeof DISPLAY_MODE = DISPLAY_MODE
 
+  constructor(@Inject('RunContext') protected rc  : RunContextBrowser) {
+    if (rc.getLogLevel() === LOG_LEVEL.DEBUG) window['datatable'] = this
+  }
+
 
   ngOnInit() {
+
       
     if (this.tableConfig) {
 
@@ -187,7 +195,7 @@ export class MuDataTableComponent implements OnInit {
       rowData    : rowData,
       rowIndex   : rowData['rowIndex'],
       isSelected : event.checked,
-      mainEvent  : event
+      browserEvent  : event
     }
 
     this.onRowSelect.emit(selEvent) 

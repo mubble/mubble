@@ -42,7 +42,7 @@ import { NcMaxLengthDirective,
          NcFallbackCharDirective,
          KeyboardDirective
        }                                    from './directives'
-
+import { GenericPipe }                      from './pipes'
 import { BottomInComponent }                from './bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './modal-popup/modal-popup.component'
 import { LoadingComponent }                 from './loading/loading.component'
@@ -110,6 +110,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     KeyboardDirective,
   
     TranslatePipe,
+    GenericPipe,
     KeypadComponent
   ],
 
@@ -147,6 +148,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     KeyboardDirective,
 
     TranslatePipe,
+    GenericPipe,
     
     FormsModule,
     ReactiveFormsModule,
@@ -159,6 +161,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MatMenuModule,
     MatRippleModule
   ],
+
   providers: [
     CustomBreakPointsProvider
   ]
