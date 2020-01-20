@@ -20,10 +20,16 @@ export enum COL_TYPE  {
   MORE_DETAILS = 'MORE_DETAILS'
 }
 
+export interface PipeParams {
+  pipeName   : string
+  value     ?: any
+}
+
 export interface TableHeader {
   header        : string
   dataKey       : string
   colType       : COL_TYPE
+  pipeParmas   ?: PipeParams
   customStyle  ?: string
   constValue   ?: any
   enableFilter ?: boolean

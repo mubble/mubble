@@ -96,6 +96,11 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
     }
   }
 
+  fun logScreenAction(screenAction : String) {
+    val actionV : Int = eventParams.getInt(screenAction, 0)
+    eventParams.putInt(screenAction, actionV + 1)
+  }
+
   interface OnDialogFragmentInteractionListener {
     fun onDialogFragmentInteraction(dialogName: String, actionName: String, result: JSONObject)
     fun onDialogDetach(dialogName: String)
