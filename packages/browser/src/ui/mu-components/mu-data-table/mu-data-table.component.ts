@@ -426,6 +426,12 @@ export class MuDataTableComponent implements OnInit {
 
       this.tableConfig.data.unshift(obj)
       newData = this.tableConfig.data
+
+      //Need to verify
+      let newIndexes = {}
+      for (let index of Object.keys(this.selectedIndexes)) newIndexes[Number(index) + 1] = true
+      this.selectedIndexes = {}
+      this.selectedIndexes = newIndexes
     } else {
 
       let firstPageData = this.dataMap[0]      
@@ -455,6 +461,12 @@ export class MuDataTableComponent implements OnInit {
       this.createDataMap(this.tableConfig.data, 0)
       this.tableConfig.totalRecords--
       this.createPageNumbers()
+
+      //Need to verify
+      let newIndexes = {}
+      for (let index of Object.keys(this.selectedIndexes)) newIndexes[Number(index) - 1] = true
+      this.selectedIndexes = {}
+      this.selectedIndexes = newIndexes
       return
     }
 
