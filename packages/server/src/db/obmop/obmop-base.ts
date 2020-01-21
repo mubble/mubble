@@ -233,4 +233,13 @@ export interface ObmopBaseClient {
    * @param queryValue Value of that field.
    */
   delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) : Promise<void>
+
+  /**
+   * Deletes all entries (rows) of the given table for <queryKey> = <queryValues>.
+   * @param rc RunContext, used for logging.
+   * @param table Table or entity name.
+   * @param queryKey Key or field name for multiple delete query.
+   * @param queryValues Values of that field.
+   */
+  mDelete(rc : RunContextServer, table : string, queryKey : string, queryValues : Array<any>) : Promise<void>
 }

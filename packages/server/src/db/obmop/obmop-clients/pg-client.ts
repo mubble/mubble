@@ -188,7 +188,16 @@ export class PostgresClient implements ObmopBaseClient {
 		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
 
 		await this.queryInternal(rc, queryString)
-	}
+  }
+
+  public async mDelete(rc : RunContextServer, table : string, queryKey : string, queryValues : Array<any>) {
+    rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValues}.`)
+
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = `
+												+ `(${queryValues.map((qv) => this.getStringValue(qv)).join(', ')})`
+
+    await this.queryInternal(rc, queryString)
+  }
 
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS
