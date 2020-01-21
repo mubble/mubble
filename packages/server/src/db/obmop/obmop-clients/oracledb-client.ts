@@ -404,6 +404,24 @@ export class OracleDbClient implements ObmopBaseClient {
 
 		await this.bindsQuery(rc, queryString, binds)
 	}
+	
+	public async mDelete(rc : RunContextServer, table : string, queryKey : string, queryValues : Array<any>) {
+		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValues}.`)
+
+		const binds = [] as Array<any>
+
+		let c 			 = 0,
+				bindKeys = [] as Array<string>
+
+		for(const qValue of queryValues)	{
+			bindKeys.push(`:${++c}`)
+			binds.push(qValue)
+		}
+
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} IN (${bindKeys.join(', ')})`
+
+		await this.bindsQuery(rc, queryString, binds)
+	}
 
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS

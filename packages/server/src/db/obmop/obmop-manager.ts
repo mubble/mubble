@@ -378,23 +378,45 @@ export class ObmopManager {
 	}
 
 	/**
-   *  Function to hard delete a row of an obmop entity.
+   *  Function to delete a row of an obmop entity.
 	 * 	There are no updates to the entity object.
 	 *  Make sure not to operate on a deleted entity.
    */
-	public async hardDelete<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
+	public async delete<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
 
 		const tableName       = entity.getTableName(),
 					primaryKey      = ObmopRegistryManager.getRegistry(tableName).getPrimaryKey(),
 					primaryKeyValue = (entity as any)[primaryKey]
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting (hard-delete) data.', tableName, entity)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting data.', tableName, entity)
 
 		try {
 			await this.client.delete(rc, tableName, primaryKey, primaryKeyValue)
 
 		} catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting (hard) ${entity} from ${tableName}.`)
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting ${entity} from ${tableName}.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			throw mErr
+		}
+	}
+
+	/**
+   *  Function to delete multiple rows of an obmop entity.
+	 * 	There are no updates to the entity object.
+	 *  Make sure not to operate on a deleted entity.
+   */
+	public async mDelete<T extends ObmopBaseEntity>(rc : RunContextServer, entities : T[]) {
+
+		const tableName        = entities[0].getTableName(),
+					primaryKey       = ObmopRegistryManager.getRegistry(tableName).getPrimaryKey(),
+					primaryKeyValues = entities.map(entity => (entity as any)[primaryKey])
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting data.', tableName, entities)					
+
+		try {
+			await this.client.mDelete(rc, tableName, primaryKey, primaryKeyValues)
+		} catch(err) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting ${entities} from ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}
