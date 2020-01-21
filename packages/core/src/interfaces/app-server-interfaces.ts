@@ -32,7 +32,6 @@ export interface TableHeader {
   pipeParmas   ?: PipeParams
   customStyle  ?: string
   constValue   ?: any
-  enableFilter ?: boolean
   enableSort   ?: boolean
   widthPerc    ?: number
   isEditable   ?: boolean
@@ -41,6 +40,7 @@ export interface TableHeader {
 export interface FilterItem {
   id      : string
   title   : string
+  mode    : FILTER_MODE
   params  : InputParams
 }
 
@@ -101,4 +101,28 @@ export interface ImageParams {
 export interface FilterImage {
   prefixParams ?: ImageParams
   suffixParams ?: ImageParams
+}
+
+export enum FILTER_MODE {
+  SEARCH = 'SEARCH',
+  MATCH  = 'MATCH',
+  RANGE  = 'RANGE',
+  SORT   = 'SORT'
+}
+
+export enum SORT_MODE {
+  ASC  = 'ASC',
+  DESC = 'DESC'
+}
+
+export interface FilterParams {
+  mode   : FILTER_MODE
+  params : {[key: string] : string}
+}
+
+//TODO - to be verified
+export interface MuSelectedFilter {
+  id    : string,
+  mode  : FILTER_MODE,
+  value : any
 }
