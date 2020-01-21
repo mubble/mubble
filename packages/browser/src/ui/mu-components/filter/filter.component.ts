@@ -26,8 +26,9 @@ import { RunContextBrowser }          from '../../../rc-browser'
 import { DISPLAY_TYPE, 
          DISPLAY_MODE, 
          FilterItem,
-         SelectionBoxParams
-       }                              from '@mubble/core/interfaces/app-server-interfaces'
+         SelectionBoxParams,
+         FILTER_MODE
+       }                              from '@mubble/core'
 
 enum CONTEXT {
   INIT,
@@ -45,7 +46,8 @@ export interface NumberRangeInterface {
 }
 
 export interface SelectedFilter {
-  id    : string
+  id    : string,
+  mode  : FILTER_MODE,
   value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
 }
 
@@ -179,7 +181,7 @@ export class FilterComponent {
 
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
-        this.filters.push({ id : fItem.id, value : fItem.params.value })
+        this.filters.push({ id : fItem.id, value : fItem.params.value, mode : fItem.mode })
       }
     } else {
       this.filters      = []
@@ -197,10 +199,11 @@ export class FilterComponent {
         fItems.push({
           id      : fItem.id,
           title   : fItem.title,
-          params  : fItem.params
+          params  : fItem.params,
+          mode    : fItem.mode
         })
 
-        this.filters.push({ id : fItem.id, value : setNull })
+        this.filters.push({ id : fItem.id, value : setNull, mode : fItem.mode })
         
       }
 
@@ -208,6 +211,5 @@ export class FilterComponent {
       this.filterItems  = fItems
     }
   }
-
 
 }

@@ -19,9 +19,11 @@ import { TableHeader,
          FilterItem, 
          DISPLAY_MODE
        }                            from '@mubble/core/interfaces/app-server-interfaces'
-import { SelectedFilter }           from '../filter'
 import { RunContextBrowser }        from '@mubble/browser/rc-browser'
-import { LOG_LEVEL }                from '@mubble/core'
+import { LOG_LEVEL,              
+         COL_TYPE 
+       }                            from '@mubble/core'
+import { SelectedFilter }           from '../filter'
 
 export interface TableConfig {
   headers            : TableHeader[]
@@ -69,18 +71,6 @@ export interface MuTableEditEvent {
   rowIndex     : number
   rowData      : Object
   editedValues : Object
-}
-
-export enum COL_TYPE  {
-  ICON         = 'ICON',
-  IMAGE        = 'IMAGE',
-  BUTTON       = 'BUTTON',
-  TEXT         = 'TEXT',
-  DATE         = 'DATE',
-  EDIT         = 'EDIT',
-  TOGGLE       = 'TOGGLE',
-  HYPER_LINK   = 'HYPER_LINK',
-  MORE_DETAILS = 'MORE_DETAILS'
 }
 
 @Component({
@@ -155,7 +145,7 @@ export class MuDataTableComponent implements OnInit {
       this.createPageNumbers()
     }
   }
-
+  
 
   /**
    * Creates the page numbers needed for pagination
