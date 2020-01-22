@@ -40,7 +40,7 @@ export interface TableHeader {
 export interface FilterItem {
   id      : string
   title   : string
-  mode    : FILTER_MODE
+  mode   ?: FILTER_MODE
   params  : InputParams
 }
 
