@@ -4,7 +4,8 @@ import { Component,
          Output, 
          EventEmitter,
          ViewChild,
-         Inject
+         Inject,
+         ElementRef
        }                            from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
@@ -81,7 +82,11 @@ export interface MuTableEditEvent {
 
 export class MuDataTableComponent implements OnInit {
 
-  @ViewChild('slctAllBox', {static : false}) slctAllBox : MatCheckbox
+  @ViewChild('slctAllBox',  {static : false}) slctAllBox : MatCheckbox
+  @ViewChild('filterCont',  {static : false}) filterCont : ElementRef
+  @ViewChild('muTableCont', {static : false}) muTableCont : ElementRef
+
+
 
   @Input()  tableConfig        : TableConfig
   @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
@@ -145,6 +150,19 @@ export class MuDataTableComponent implements OnInit {
       this.createPageNumbers()
     }
   }
+
+
+  ngAfterViewInit() {
+
+    const top = this.filterCont.nativeElement.offsetTop
+    this.filterCont.nativeElement.style.height = `calc(100% - ${top}px)`
+
+
+  }
+
+  /*=====================================================================
+                              PRIVATE
+  =====================================================================*/
   
 
   /**
