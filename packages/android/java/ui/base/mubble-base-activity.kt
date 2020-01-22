@@ -19,6 +19,7 @@ import ui.permission.PermissionGroup
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+@Suppress("DEPRECATION")
 abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
 
   private var loadedPreAppInit  : Boolean         = false
@@ -181,6 +182,7 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
     overridePendingTransition(0, 0)
   }
 
+  @Suppress("UNUSED")
   fun bringToTop() {
 
     val intent = Intent(this, this::class.java)

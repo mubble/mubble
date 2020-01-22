@@ -2,19 +2,18 @@ package ui.document
 
 import android.app.Activity
 import android.content.Intent
-import android.util.Base64
 import core.BaseApp
 import core.ImageCompressionTask
 import core.MubbleLogger
-import org.jetbrains.anko.info
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
 import util.FileBase
 
+@Suppress("UNUSED")
 class DocumentManager(private val parentActivity: MubbleBaseActivity,
                       private val listener: (JSONObject) -> Unit) : MubbleLogger {
 
-  enum class MIME_TYPE constructor(private val types: Array<String>) {
+  enum class MIMETYPE constructor(private val types: Array<String>) {
 
     DOC(arrayOf("application/msword", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", "text/plain", "application/pdf")), // .doc, .docx, .pdf, .txt
     PPT(arrayOf("application/vnd.ms-powerpoint", "application/vnd.openxmlformats-officedocument.presentationml.presentation")),
@@ -43,7 +42,7 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
 
     val intent = Intent(Intent.ACTION_GET_CONTENT)
 
-    val types = MIME_TYPE.IMG.getValue()
+    val types = MIMETYPE.IMG.getValue()
 
     intent.addCategory(Intent.CATEGORY_OPENABLE)
     intent.type = "image/*"
@@ -113,9 +112,9 @@ class DocumentManager(private val parentActivity: MubbleBaseActivity,
     listener(obj)
   }
 
-  private fun checkMimeType(type: String, mime: MIME_TYPE): Boolean {
+  private fun checkMimeType(type: String, mime: MIMETYPE): Boolean {
 
-    return if (type.contains("image") && mime === MIME_TYPE.IMG) true
+    return if (type.contains("image") && mime === MIMETYPE.IMG) true
     else mime.getValue().contains(type)
   }
 

@@ -8,7 +8,6 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.OpenableColumns
 import android.util.Base64
-import com.facebook.FacebookSdk.getCacheDir
 import core.BaseApp
 import java.io.*
 import java.math.BigInteger
@@ -21,14 +20,15 @@ import java.security.NoSuchAlgorithmException
  * siddharthgarg on 16/05/17.
  */
 
+@Suppress("UNUSED")
 object FileBase {
 
-  private val TAG = "FileBase"
+  private const val TAG = "FileBase"
 
   /**
    * The file copy buffer size (30 MB)
    */
-  private val FILE_COPY_BUFFER_SIZE = (1024 * 1024 * 30).toLong()
+  private const val FILE_COPY_BUFFER_SIZE = (1024 * 1024 * 30).toLong()
 
   fun getLocalStoragePath(context: Context): String {
 
@@ -264,7 +264,7 @@ object FileBase {
 
     try {
       // Create SHA-256 Hash
-      val digest = java.security.MessageDigest
+      val digest = MessageDigest
           .getInstance("SHA-256")
       digest.update(s.toByteArray())
       val messageDigest = digest.digest()
