@@ -10,7 +10,7 @@
 <div [ngClass]="tableConfig.vertFilterParams ? 'filter-cont' : ''" #filterCont>
   <div  class="mu-table-cont" #muTableCont>
     
-    <div class="table-extras" #tableExtras>
+    <div class="bg-white table-extras" #tableExtras>
       <div class="search-input txt-lg-reg-norm" *ngIf="dataToDisplay.length">
         showing {{ currPageIndex * tableConfig.dispRows + 1 }} to 
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <div class="headers-cont" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
+    <div class="bg-white headers-cont" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
       <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
       <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
         <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
