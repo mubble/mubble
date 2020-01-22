@@ -32,5 +32,11 @@ export const LANG_EN_TRANS = {
   'mu_fltr_aply_fltr'             : 'Apply Filters',
   'mu_fltr_clr_fltr'              : 'Clear Filters',
   'mu_fltr_rqrd'                  : '*',
-  'mu_fltr_clr_all'               : 'Clear all'
+  'mu_fltr_clr_all'               : 'Clear all',
+
+  //Data table
+  'mu_dt_tbl_edit'                : 'Edit',
+  'mu_dt_tbl_save'                : 'Save',
+  'mu_dt_tbl_empty_state'         : 'No data to display'
+
 }

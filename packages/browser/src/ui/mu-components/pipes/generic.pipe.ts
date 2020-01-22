@@ -27,6 +27,7 @@ export class GenericPipe implements PipeTransform {
 
       return pipe.transform(value)
     }
+    
     return value  
   }
 

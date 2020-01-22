@@ -310,12 +310,19 @@ export class MuDataTableComponent implements OnInit {
    * @param pageIndex 
    */
   onPageClick(pageIndex : number) {
+
+    if (pageIndex >= this.pageNumbers.length) {
+      pageIndex = this.pageNumbers.length - 1
+    } else if (pageIndex < 0) {
+      pageIndex = 0
+    }
     
     this.prevPageIndex = this.currPageIndex
     this.currPageIndex = pageIndex 
 
-    if (this.slctAllBox)
-    this.slctAllBox.checked = this.selAllMap[this.currPageIndex] || false
+    if (this.slctAllBox) {
+      this.slctAllBox.checked = this.selAllMap[this.currPageIndex] || false
+    }
   
     //Handling page numbers change
     if (this.pageNumbers.length > 5) this.updatePageNumbers(pageIndex)

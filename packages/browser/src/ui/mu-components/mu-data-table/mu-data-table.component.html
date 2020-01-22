@@ -16,8 +16,13 @@
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
         of {{ tableConfig.totalRecords }} entries
       </div>
+
+
       <div class="paginator" *ngIf="pageNumbers.length > 1">
-        <div class="firstPage" class="pagenumber" (click)="onPageClick(0)">
+        <div class="fast-backward pagenumber" (click)="onPageClick(0)">
+          <i class="fa fa-fast-backward" aria-hidden="true"></i>
+        </div> 
+        <div class="firstPage" class="pagenumber" (click)="onPageClick(currPageIndex - 1)">
           <i class="fa fa-chevron-left" aria-hidden="true"></i>
         </div>
         <div class="pagenumber txt-lg-reg-dark" *ngFor="let pageNumber of pageNumbers.slice(pageIndex, pageIndex + 5)"
@@ -25,9 +30,14 @@
           [ngClass]="currPageIndex === pageNumber - 1 ? 'sel-ind' : ''">
           {{ pageNumber }}
         </div>
-        <div class="lastPage" class="pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
+        <div class="lastPage" class="pagenumber" (click)="onPageClick(currPageIndex + 1)">
           <i class="fa fa-chevron-right" aria-hidden="true"></i>
         </div>
+
+        <div class="fast-forward pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
+          <i class="fa fa-fast-forward" aria-hidden="true"></i>
+        </div>
+
       </div>
     </div>
 
@@ -121,12 +131,15 @@
 
           <div *ngSwitchCase="COL_TYPE.EDIT">
             <span class="click-item" (click)="editRow(rowData, true)" 
+
             *ngIf="!selectedIndexes[rowData['rowIndex']]">
-              Edit
+              {{ 'mu_dt_tbl_edit' | translate }}
             </span>
+
             <span class="click-item" (click)="editRow(rowData, false)" 
             *ngIf="selectedIndexes[rowData['rowIndex']]">
-              Save
+              {{ 'mu_dt_tbl_save' | translate }}
+
             </span>
           </div>
         </ng-container>
@@ -136,7 +149,7 @@
 
     <ng-container *ngIf="!dataToDisplay.length">
       <div class="no-data txt-lg-med-norm">
-        No data to display 
+        {{ 'mu_dt_tbl_empty_state' | translate }}
       </div>
     </ng-container>
 
