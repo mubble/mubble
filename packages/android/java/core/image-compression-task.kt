@@ -7,9 +7,11 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.lang.Exception
+import kotlin.math.roundToInt
 
 class ImageCompressionTask: MubbleLogger {
 
+  @Suppress("DEPRECATION")
   fun compressImage(base64Data: String): String? {
 
     val filePath = FileBase.getUsersPath(BaseApp.instance)
@@ -106,7 +108,7 @@ class ImageCompressionTask: MubbleLogger {
     return null
   }
 
-
+  @Suppress("UNUSED")
   fun getCompressed(path: String): File? {
 
     val file = File(path)
@@ -160,8 +162,8 @@ class ImageCompressionTask: MubbleLogger {
     var inSampleSize = 1
 
     if (height > reqHeight || width > reqWidth) {
-      val heightRatio = Math.round(height*1f / reqHeight)
-      val widthRatio  = Math.round(width*1f / reqWidth)
+      val heightRatio = (height * 1f / reqHeight).roundToInt()
+      val widthRatio  = (width * 1f / reqWidth).roundToInt()
       inSampleSize    = if (heightRatio < widthRatio) heightRatio else widthRatio
     }
 

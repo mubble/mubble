@@ -4,9 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.media.ExifInterface
 import java.io.IOException
-import android.R.attr.path
-
-
 
 object ImageBase {
 
@@ -14,9 +11,8 @@ object ImageBase {
   fun modifyOrientation(bitmap: Bitmap, imgAbsolutePath: String): Bitmap {
 
     val ei          = ExifInterface(imgAbsolutePath)
-    val orientation = ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
 
-    return when (orientation) {
+    return when (ei.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
       ExifInterface.ORIENTATION_ROTATE_90 -> rotate(bitmap, 90f)
 
       ExifInterface.ORIENTATION_ROTATE_180 -> rotate(bitmap, 180f)
@@ -79,19 +75,15 @@ object ImageBase {
       ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(-90f)
       else -> return bitmap
     }
-    try {
+
+    return try {
       val bmRotated = Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
       bitmap.recycle()
-      return bmRotated
+      bmRotated
     } catch (e: OutOfMemoryError) {
       e.printStackTrace()
-      return null
+      null
     }
-
-  }
-
-  fun compressImage(imageUri: String) {
-
 
   }
 

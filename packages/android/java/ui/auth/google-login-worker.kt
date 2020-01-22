@@ -20,6 +20,7 @@ import util.AndroidBase
  * siddharthgarg on 16/06/17.
  */
 
+@Suppress("DEPRECATION")
 internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, loginMgr: LoginManager)
   : LoginWorker(loginMgr), GoogleApiClient.OnConnectionFailedListener {
 
@@ -130,7 +131,7 @@ internal class GoogleLoginWorker(private val activity: MubbleBaseActivity, login
     mGoogleApiClient!!.registerConnectionCallbacks(object : GoogleApiClient.ConnectionCallbacks {
       override fun onConnected(bundle: Bundle?) {
 
-        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback { _ -> FirebaseAuth.getInstance().signOut() }
+        Auth.GoogleSignInApi.signOut(mGoogleApiClient).setResultCallback { FirebaseAuth.getInstance().signOut() }
         mGoogleApiClient!!.unregisterConnectionCallbacks(this)
       }
 
