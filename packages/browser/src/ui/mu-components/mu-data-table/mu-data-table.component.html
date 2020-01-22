@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <div class="headers-cont" [style.top]="tableExtras.clientHeight+ 'px'">
+    <div class="headers-cont" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
       <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
       <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
         <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
