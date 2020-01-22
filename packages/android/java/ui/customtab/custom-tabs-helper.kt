@@ -55,7 +55,7 @@ internal class CustomTabsHelper {
         }
       }
     }
-    CustomTabsClient.bindCustomTabsService(activity, "com.android.chrome", connection)
+    CustomTabsClient.bindCustomTabsService(activity, "com.android.chrome", connection!!)
   }
 
   fun unbindCustomTabsService(activity: Activity) {

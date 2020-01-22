@@ -31,8 +31,6 @@ import { TRANSLATION_PROVIDERS,
          
 import { CustomBreakPointsProvider }        from './custom-breakpoints'
 
-import { TableModule }                      from 'primeng/table'
-
 import { NcMaxLengthDirective,
          NcAutoFocusDirective, 
          LongPressDirective, 
@@ -79,7 +77,6 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MatSliderModule,
     MatSlideToggleModule,
     MatButtonToggleModule,
-    TableModule,
     MatMenuModule,
     MatCardModule,
     MatRippleModule
