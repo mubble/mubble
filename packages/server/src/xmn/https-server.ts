@@ -51,7 +51,7 @@ export class HttpsServer {
 
   async requestHandler(req : http.IncomingMessage, res : http.ServerResponse) {
 
-    const rc = this.refRc.copyConstruct('', 'https-' + lo.random(100, 999, false))
+    const rc = this.refRc.copyConstruct('', 'https-' + lo.random(1000, 9999, false))
 
     rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
 
