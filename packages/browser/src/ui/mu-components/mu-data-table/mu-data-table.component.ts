@@ -5,7 +5,8 @@ import { Component,
          EventEmitter,
          ViewChild,
          Inject,
-         ElementRef
+         ElementRef,
+         ChangeDetectorRef
        }                            from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
@@ -116,7 +117,9 @@ export class MuDataTableComponent implements OnInit {
   COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
   DISPLAY_MODE      : typeof DISPLAY_MODE = DISPLAY_MODE
 
-  constructor(@Inject('RunContext') protected rc  : RunContextBrowser) {
+  constructor(@Inject('RunContext') protected rc      : RunContextBrowser,
+                                    private changeDet : ChangeDetectorRef) {
+
     if (rc.getLogLevel() === LOG_LEVEL.DEBUG) window['datatable'] = this
   }
 
@@ -156,8 +159,6 @@ export class MuDataTableComponent implements OnInit {
 
     const top = this.filterCont.nativeElement.offsetTop
     this.filterCont.nativeElement.style.height = `calc(100% - ${top}px)`
-
-
   }
 
   /*=====================================================================
@@ -318,6 +319,7 @@ export class MuDataTableComponent implements OnInit {
     }
     
     this.dataToDisplay = this.dataMap[startPageIndex] || []
+    this.changeDet.detectChanges()
   }
 
 

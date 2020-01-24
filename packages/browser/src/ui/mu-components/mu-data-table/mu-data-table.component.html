@@ -8,7 +8,7 @@
 </div>
 
 <div [ngClass]="tableConfig.vertFilterParams ? 'filter-cont' : ''" #filterCont>
-  <div  class="mu-table-cont" #muTableCont>
+  <div  class="mu-table-cont border-light" #muTableCont>
     
     <div class="bg-white table-extras" #tableExtras>
       <div class="search-input txt-lg-reg-norm" *ngIf="dataToDisplay.length">
@@ -41,7 +41,7 @@
       </div>
     </div>
 
-    <div class="bg-white headers-cont" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
+    <div class="bg-white headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
       <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
       <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
         <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
@@ -52,7 +52,7 @@
       </div>
     </div>
     
-    <div class="table-row-cont" *ngFor="let rowData of dataToDisplay"
+    <div class="table-row-cont border-light" *ngFor="let rowData of dataToDisplay"
       [class.row-active]="selectedIndexes[rowData['rowIndex']] && !isTogglePresent">
       
       <div class="radio-btn" *ngIf="tableConfig.enableRadio">
@@ -92,8 +92,9 @@
           <div *ngSwitchCase="COL_TYPE.DATE">
             {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
           </div>
+          
           <div *ngSwitchCase="COL_TYPE.IMAGE">
-            <img class="click-item" src="{{ header.constValue || rowData[header.dataKey] }}">
+            <img src="{{ header.constValue || rowData[header.dataKey] }}">
           </div>
 
           <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
@@ -106,7 +107,7 @@
           </div>
 
           <div *ngSwitchCase="COL_TYPE.BUTTON" (click)="cellClick(rowData, header.dataKey)">
-            <button class="table-button click-item txt-lg-med-norm primary-bg">
+            <button class="table-button curs-pointer txt-lg-med-norm primary-bg">
               {{ header.constValue || rowData[header.dataKey] }}
             </button>
           </div>
@@ -120,9 +121,9 @@
           </div>
 
           <div *ngSwitchCase="COL_TYPE.MORE_DETAILS">
-            <i class="fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
+            <i class="click-item fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
             <mat-menu #menu="matMenu" yPosition="below" xPosition="before">
-              <button mat-menu-item *ngFor="let option of header.constValue" 
+              <button mat-menu-item *ngFor="let option of header.constValue" class="txt-lg-med-norm" 
               (click)="moreDetailsClick(option.id, rowData)"> 
                 <span> {{ option.value }}</span>
               </button>
