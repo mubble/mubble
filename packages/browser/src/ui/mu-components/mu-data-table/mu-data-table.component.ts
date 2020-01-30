@@ -38,7 +38,8 @@ export interface TableConfig {
   lazyLoad          ?: boolean
   totalRecords      ?: number
   horizFilterParams ?: FilterItem[],
-  vertFilterParams  ?: FilterItem[]
+  vertFilterParams  ?: FilterItem[],
+  // eventPropagate    ?: boolean
 }
 
 export interface MuTableRowSelEvent {
@@ -288,8 +289,8 @@ export class MuDataTableComponent implements OnInit {
    * @param rowData 
    */
   toggleRow(event : MatSlideToggleChange, rowData : Object) {
-
-    this.selectedIndexes[rowData['rowIndex']] = event.checked
+  
+    this.selectedIndexes[rowData['rowIndex']] = event.checked    
   }
 
 
@@ -542,16 +543,19 @@ export class MuDataTableComponent implements OnInit {
    * @param event 
    */
   applyFilter(event : SelectedFilter[]) {
-    
+    /*
+    If data table has all the data, filters are applied by the table itself 
+    instead of making an api call
+    */
     if (!this.tableConfig.lazyLoad) {
-
       if (event && event[0]) this.search(event[0].value.toString())
       else this.search()
       return
     }
-    this.selectedFilter.emit(event)
-  }
 
+    this.selectedFilter.emit(event)
+    
+  }
 
   /**
    * Method invoked by parent to unselect the rows
@@ -560,7 +564,7 @@ export class MuDataTableComponent implements OnInit {
   unselectIndexes(rowIndexes : number[]) {
 
     for (const index of rowIndexes) this.selectedIndexes[index]  = false
-    this.slctAllBox.checked = false
+    if (this.slctAllBox) this.slctAllBox.checked = false
     this.selAllMap[this.currPageIndex] = false
   }
 }
