@@ -308,7 +308,7 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
                                                      options ?: http.RequestOptions,
                                                      data    ?: string) : Promise<Response>{
 
-  rc.isDebug() && rc.debug(rc.getName(this), 'executeHttpsRequestWithOptions', urlObj, options, data)
+  rc.isDebug() && rc.debug('executeHttpsRequestWithOptions', urlObj, options, data)
   
   const reqOptions : http.RequestOptions = options ? options : urlObj
 
@@ -320,7 +320,7 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
   const urlStr = url.format(urlObj),
         resp   = {} as Response
 
-  rc.isStatus() && rc.status(rc.getName(this), 'http(s) request.', urlStr, reqOptions)
+  rc.isStatus() && rc.status('executeHttpsRequestWithOptions', 'http(s) request.', urlStr, reqOptions)
 
   const req          = reqOptions.protocol === HTTP.Const.protocolHttp ? http.request(urlStr, reqOptions)
                                                                        : https.request(urlStr, reqOptions),
@@ -333,7 +333,7 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
 
   req.on('response', (res : http.IncomingMessage) => {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Response headers.', urlStr, res.statusCode, res.headers)
+    rc.isDebug() && rc.debug('executeHttpsRequestWithOptions', 'Response headers.', urlStr, res.statusCode, res.headers)
 
     resp.statusCode = res.statusCode || 200
     resp.headers    = res.headers
@@ -356,7 +356,7 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
   })
 
   req.on('error', (err : Error) => {
-    rc.isError() && rc.error(rc.getName(this), 'Error encountered in http(s) request.', err)
+    rc.isError() && rc.error('executeHttpsRequestWithOptions', 'Error encountered in http(s) request.', err)
     writePromise.reject(err)
     readPromise.reject(err)
   })
@@ -367,7 +367,7 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
   const [, output] : Array<any> = await Promise.all([writePromise.promise, readPromise.promise])
   resp.response = output.toString()
 
-  rc.isStatus() && rc.status(rc.getName(this), 'http(s) request response.', urlStr, resp.response)
+  rc.isStatus() && rc.status('executeHttpsRequestWithOptions', 'http(s) request response.', urlStr, resp.response)
 
   return resp
 }
