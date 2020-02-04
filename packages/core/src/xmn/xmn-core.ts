@@ -33,7 +33,8 @@ export namespace HTTP {
     requestType      : 'x-obopay-type',
     bodyEncoding     : 'x-obopay-encoding',
     transferEncoding : 'transfer-encoding',
-    authorization    : 'authorization'
+    authorization    : 'authorization',
+    token            : 'token'
   }
   
   /* HTTP Headers */
