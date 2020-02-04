@@ -26,6 +26,8 @@ export class KeyboardDirective {
 
   private originalParentHeight  : number
   private originalBodyHeight    : number
+
+  private isHeghtAuto   : boolean
   
   constructor(@Inject('RunContext') protected rc  : any,
               private element                     : ElementRef,
@@ -33,7 +35,11 @@ export class KeyboardDirective {
   }
 
   ngAfterViewInit() {
-    this.originalParentHeight = this.parentDiv.getBoundingClientRect().height
+
+    if (this.isHeghtAuto === undefined) {
+      this.isHeghtAuto  = !this.parentDiv.style.height.length
+    } 
+
     this.renderer.addClass(this.element.nativeElement, 'mui-event-adjust-pan-screen')
     this.renderer.listen(this.element.nativeElement, 'mui-event-adjust-pan-screen', this.onCustomEvent.bind(this))
     this.renderer.listen(this.element.nativeElement, 'focus', this.onCustomEvent.bind(this))
@@ -62,7 +68,13 @@ export class KeyboardDirective {
 
     if (this.rc.bridge.isRunningInBrowser() && !this.rc.bridge.isRunningInMWeb()) return
 
-    this.parentDiv.style.height = this.originalParentHeight + 'px'
+    if (this.isHeghtAuto) {
+      this.renderer.removeStyle(this.parentDiv, 'height')
+    } else {
+      this.parentDiv.style.height = this.originalParentHeight + 'px'
+    }
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `onBlur original Height ${this.originalParentHeight}`)
 
     if (this.rc.bridge.isRunningInMWeb()) {
       window.scrollTo(0,0)
@@ -77,10 +89,14 @@ export class KeyboardDirective {
           parentDiv       = this.parentDiv,
           parentDivRect   = parentDiv.getBoundingClientRect()
      
+
+          
     if (document.activeElement !== this.element.nativeElement) return
 
     if (keyboardHeight < 0) {
-      parentDiv.style.height = (parentDivRect.height + keyboardHeight) + 'px'
+      
+      this.originalParentHeight = this.parentDiv.getBoundingClientRect().height
+      parentDiv.style.height = (parentDivRect.height - keyboardHeight) + 'px'
 
       const scrollOptions = {
         behaviour : 'smooth',
