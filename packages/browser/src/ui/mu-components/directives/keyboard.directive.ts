@@ -33,6 +33,7 @@ export class KeyboardDirective {
   }
 
   ngAfterViewInit() {
+    if (!this.parentDiv) return
     this.originalParentHeight = this.parentDiv.getBoundingClientRect().height
     this.renderer.addClass(this.element.nativeElement, 'mui-event-adjust-pan-screen')
     this.renderer.listen(this.element.nativeElement, 'mui-event-adjust-pan-screen', this.onCustomEvent.bind(this))
