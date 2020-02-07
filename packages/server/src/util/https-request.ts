@@ -361,6 +361,11 @@ export async function executeHttpsRequestWithOptions(rc       : RunContextServer
     readPromise.reject(err)
   })
 
+  req.on('timeout', () => {
+    rc.isError() && rc.error('executeHttpsRequestWithOptions', 'Request timed out.', reqOptions.timeout)
+    req.abort()
+  })
+
   const writeUStream = new UStream.WriteStreams(rc, writeStreams, writePromise)
   data ? writeUStream.write(data) : writeUStream.write('')
 
