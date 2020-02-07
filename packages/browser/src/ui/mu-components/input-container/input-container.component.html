@@ -190,13 +190,14 @@
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.AUTOCOMPLETE_SELECT">
       <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParams.isDisabled">
-        <input matInput
+        <input matInput #autoCompInput
           type="text"
           class="txt-lg-med-norm input-cont" 
           placeholder="{{inputParams.placeHolder}}"
           [formControl]="inputForm"
           [matAutocomplete]="auto"
-          [keyboard]="parentCont">
+          [keyboard]="parentCont"
+          (blur)="valueEntered(autoCompInput.value)">
 
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
           (optionSelected)="setAutocompleteValue($event)"

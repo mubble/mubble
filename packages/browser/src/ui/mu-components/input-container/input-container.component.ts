@@ -200,7 +200,7 @@ export class InputContainerComponent implements OnChanges {
         break  
 
     } 
-        
+    
     if (emitValue) this.value.emit(params)
   }
 
@@ -319,6 +319,15 @@ export class InputContainerComponent implements OnChanges {
 
   dropDownToggle(event : boolean) {
     this.dropdownOpen.emit(event)
+  }
+
+  valueEntered(value) {
+    if (this.inputParams.displayType === DISPLAY_TYPE.AUTOCOMPLETE_SELECT) {
+      const option = this.inputParams.options.find(option => option.value === value)
+    
+      option ? this.inputForm.setValue(option) : this.inputForm.setValue('')   
+      if (this.eventPropagate)  this.onSubmit()
+    }
   }
 
   /*=====================================================================
