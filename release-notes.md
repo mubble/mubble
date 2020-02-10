@@ -2,6 +2,7 @@
 
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
+| 1.11.1 | Deepak Kumar    | 2020-02-07 | Approved |
 | 1.10.0 | Deepak Kumar    | 2020-01-24 | Approved |
 | 1.7.0 | Deepak Kumar     | 2019-12-12 | Approved |
 | 1.5.0 | Deepak Kumar     | 2019-11-11 | Approved |
@@ -9,6 +10,28 @@
 | 1.4.0 | Deepak Kumar     | 2019-07-07 | Approved |
 | 1.3.0 | Raghvendra Varma | 2019-05-24 | Approved |
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
+
+
+# Version 1.11.1
+
+## Features
+- None
+
+## Bug Fixes
+- PK prod issue fix
+
+## Improvements
+- None
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
+
 
 # Version 1.5.0
 

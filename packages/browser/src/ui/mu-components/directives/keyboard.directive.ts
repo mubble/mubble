@@ -35,6 +35,8 @@ export class KeyboardDirective {
   }
 
   ngAfterViewInit() {
+    
+    if (!this.parentDiv) return
 
     if (this.isHeghtAuto === undefined) {
       this.isHeghtAuto  = !this.parentDiv.style.height.length
