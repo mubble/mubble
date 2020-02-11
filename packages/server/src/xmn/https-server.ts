@@ -73,7 +73,7 @@ export class HttpsServer {
       return
     }
 
-    const [ apiStr, moduleName, apiName] = pathName.split('/')
+    const [ apiStr, moduleName, apiName ] = pathName.split('/')
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
