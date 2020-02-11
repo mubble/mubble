@@ -125,7 +125,7 @@ export namespace ObopayHttpsClient {
                          encProvider,
                          encBodyObj.streams,
                          encBodyObj.dataStr,
-                         unsecured)
+                         unsecuredConn)
   }
 
   export async function request(rc            : RunContextServer,
