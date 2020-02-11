@@ -101,14 +101,18 @@ export namespace ObopayHttpsClient {
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
     encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
                              : headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
-    
+
+    let unsecuredConn = false
+    if (unsecured !== undefined) unsecuredConn = unsecured
+    if (requestServer.unsecured !== undefined) unsecuredConn = requestServer.unsecured
+
     rc.isDebug() && rc.debug(CLASS_NAME,
-                             `http${unsecured ? '' : 's'} request headers.`,
+                             `http${unsecuredConn ? '' : 's'} request headers.`,
                              headers)
 
     const options : https.RequestOptions = {
       method   : POST,
-      protocol : unsecured ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+      protocol : unsecuredConn ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
       host     : requestServer.host,
       port     : requestServer.port,
       path     : `/${apiName}`,
