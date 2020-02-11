@@ -305,6 +305,11 @@
       (dateRange.get('startDate').hasError('required') || dateRange.get('endDate').hasError('required'))">
       {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
     </mat-error>
+
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf=" (dateRange.get('startDate').touched && 
+      dateRange.get('endDate').touched) && dateRange.get('startDate').value && !dateRange.get('endDate').value">
+      {{ 'mu_inpt_cont_end_date_err' | translate }}
+    </mat-error>
   </div>
   
   <div *ngIf="numberRange" class="errors-list">

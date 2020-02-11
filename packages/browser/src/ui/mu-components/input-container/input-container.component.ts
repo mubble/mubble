@@ -297,8 +297,10 @@ export class InputContainerComponent implements OnChanges {
         if (this.inputParams.isRequired) {
           hasError  = this.dateRange.controls.startDate.invalid || this.dateRange.controls.endDate.invalid
         } else {
-          hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
-          hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
+          hasError  = (this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid)
+                      || ( !this.dateRange.controls.endDate.value || (
+                        this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid))
+
         }
         break
 
@@ -325,7 +327,7 @@ export class InputContainerComponent implements OnChanges {
     if (this.inputParams.displayType === DISPLAY_TYPE.AUTOCOMPLETE_SELECT) {
       const option = this.inputParams.options.find(option => option.value === value)
     
-      option ? this.inputForm.setValue(option) : this.inputForm.setValue('')   
+      option ? this.inputForm.setValue(option) : this.inputForm.setValue({ id : value , value : value})   
       if (this.eventPropagate)  this.onSubmit()
     }
   }
@@ -363,7 +365,8 @@ export class InputContainerComponent implements OnChanges {
         this.filteredOptions = this.inputForm.valueChanges.pipe(
                                  startWith(''),
                                  map(value => typeof value === 'string' ? value : value.value),
-                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
+                                 map(value => value ? this.filterOptions(value)
+                                                    : this.inputParams.options.slice()))
         this.setDisabled(params.isDisabled)
         break
 
