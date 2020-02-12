@@ -341,7 +341,6 @@ export class BottomInComponent extends InjectionParentBase implements
   }
 
   onBackPressed() {
-    console.log('Getting Callback')
     this.backPressed = true
   }
 }   
