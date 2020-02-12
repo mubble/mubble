@@ -6,7 +6,8 @@ import { Component,
          ViewChild,
          Inject,
          ElementRef,
-         ChangeDetectorRef
+         ChangeDetectorRef,
+         SimpleChanges
        }                            from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
@@ -124,10 +125,29 @@ export class MuDataTableComponent implements OnInit {
     if (rc.getLogLevel() === LOG_LEVEL.DEBUG) window['datatable'] = this
   }
 
+  ngOnChanges(changes : SimpleChanges) {
+    this.tableConfig  = changes['tableConfig'].currentValue
+    this.setUpTable()
+  }
+
 
   ngOnInit() {
+    this.setUpTable()
+  }
 
-      
+
+  ngAfterViewInit() {
+
+    const top = this.filterCont.nativeElement.offsetTop
+    this.filterCont.nativeElement.style.maxHeight = `calc(100% - ${top}px)`
+  }
+
+  /*=====================================================================
+                              PRIVATE
+  =====================================================================*/
+
+  private setUpTable() {
+
     if (this.tableConfig) {
 
       for (let header of this.tableConfig.headers) {
@@ -154,17 +174,6 @@ export class MuDataTableComponent implements OnInit {
       this.createPageNumbers()
     }
   }
-
-
-  ngAfterViewInit() {
-
-    const top = this.filterCont.nativeElement.offsetTop
-    this.filterCont.nativeElement.style.height = `calc(100% - ${top}px)`
-  }
-
-  /*=====================================================================
-                              PRIVATE
-  =====================================================================*/
   
 
   /**
