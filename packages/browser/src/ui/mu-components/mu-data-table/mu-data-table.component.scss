@@ -24,23 +24,21 @@
     overflow-y: auto;
   }
 
-
-  .mu-table-cont::-webkit-scrollbar {
-    display: none;
-  }
-
-
 }
 
 .headers-cont {
   display: flex;
   align-items: center;
-  padding: 10px;
+  padding: 10px 10px 10px 0;
   justify-content: space-between;
   position: sticky;
   border-bottom-width: 1px;
   border-bottom-style: solid;
   // border-bottom: 1px solid #d2d2d2;
+}
+
+.checkbox, .radio-btn {
+  margin-left : 20px;
 }
 
 .table-row-cont {
