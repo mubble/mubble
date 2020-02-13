@@ -34,6 +34,7 @@
   position: sticky;
   border-bottom-width: 1px;
   border-bottom-style: solid;
+  z-index: 10;
   // border-bottom: 1px solid #d2d2d2;
 }
 
@@ -144,6 +145,7 @@ img {
   border-bottom: 1px solid #d2d2d2;
   position: sticky;
   top: 0;
+  z-index: 10;
 }
 
 input {
