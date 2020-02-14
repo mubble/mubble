@@ -31,7 +31,7 @@
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
           [keyboard]="parentCont"
-          required>
+          >
           <div class="suffix-image" *ngIf="inputParams?.image?.suffixParams">
             <i class="{{ inputParams.image.suffixParams?.iconClass }}"></i>
             <img src="{{ inputParams.image.suffixParams?.imgUrl }}">
@@ -56,7 +56,7 @@
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
           [keyboard]="parentCont"
-          required>
+          >
         </textarea> 
       </div>
 
@@ -168,7 +168,7 @@
             [class.num-password-input]="inputParams.isPassword"
             autocomplete="off"
             [keyboard]="parentCont"
-            required>
+            >
         </div>
     
         <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParams.isDisabled">
@@ -183,7 +183,7 @@
             [class.num-password-input]="inputParams.isPassword"
             autocomplete="off"
             [keyboard]="parentCont"
-            required>
+            >
         </div>
       </div>
     </ng-container>
@@ -258,7 +258,7 @@
         (value)="fileUploadValue($event)"
         [isRequired]="inputParams.isRequired">
       </file-upload>  
-    </ng-container>
+    </ng-container> 
 
   </ng-container>  
 

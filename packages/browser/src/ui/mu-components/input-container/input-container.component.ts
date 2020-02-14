@@ -298,7 +298,7 @@ export class InputContainerComponent implements OnChanges {
           hasError  = this.dateRange.controls.startDate.invalid || this.dateRange.controls.endDate.invalid
         } else {
           hasError  = (this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid)
-                      || ( !this.dateRange.controls.endDate.value || (
+                      || ( this.dateRange.controls.startDate.value && !this.dateRange.controls.endDate.value || (
                         this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid))
 
         }
