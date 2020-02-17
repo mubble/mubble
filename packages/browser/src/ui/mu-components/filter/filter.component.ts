@@ -27,7 +27,8 @@ import { DISPLAY_TYPE,
          DISPLAY_MODE, 
          FilterItem,
          SelectionBoxParams,
-         FILTER_MODE
+         FILTER_MODE,
+         InputParams
        }                              from '@mubble/core'
 
 enum CONTEXT {
