@@ -50,6 +50,7 @@ import java.io.*
 import java.net.URL
 import java.util.*
 import java.util.regex.Pattern
+import kotlin.math.roundToInt
 
 /**
  * Created by
@@ -58,23 +59,24 @@ import java.util.regex.Pattern
 
 private const val PLAY_SERVICES_RESOLUTION_REQUEST = 1000
 
+@Suppress("UNUSED")
 object AndroidBase {
 
-  private val TAG = "AndroidBase"
+  private const val TAG = "AndroidBase"
 
-  val cpuInfo: String
+  private val cpuInfo: String
     get() {
 
-      try {
-        return readTextFile("/proc/cpuinfo")
+      return try {
+        readTextFile("/proc/cpuinfo")
       } catch (e: Exception) {
-        return "unknown"
+        "unknown"
       }
 
     }
 
   // Get the Number value from the string
-  val ramInfo: String
+  private val ramInfo: String
     get() {
 
       val reader: RandomAccessFile
@@ -87,7 +89,7 @@ object AndroidBase {
         val m = p.matcher(load)
         var value = ""
 
-        while (m.find()) value = m.group(1)
+        while (m.find()) value = m.group(1)!!
         reader.close()
 
         val totRam = java.lang.Double.parseDouble(value) / 1024
@@ -99,7 +101,7 @@ object AndroidBase {
 
     }
 
-  internal enum class NetworkType private constructor(var value: String) {
+  internal enum class NetworkType constructor(var value: String) {
 
     NET_2G("2G"),
     NET_3G("3G"),
@@ -117,6 +119,17 @@ object AndroidBase {
     for (key in params.keys()) {
       if (regExp.matcher(params.getString(key)).find()) params.put(key, "")
     }
+  }
+
+  fun getInstallPackages(): JSONArray {
+
+    val insPckgs = JSONArray()
+
+    BaseApp.instance.packageManager.getInstalledPackages(PackageManager.GET_META_DATA)
+        .map { it.packageName }
+        .forEach { insPckgs.put(it) }
+
+    return insPckgs
   }
 
   fun convertUrlFromHashids(url: String): String {
@@ -169,21 +182,18 @@ object AndroidBase {
 
   fun getBitmapFromUrl(url: String): Bitmap? {
 
-    var bitmap: Bitmap?
-    if (url.isNullOrBlank()) {
-      bitmap = null
-
-    } else {
+    return if (!url.isBlank()) {
       try {
-        bitmap = BitmapFactory.decodeStream(URL(url).content as InputStream)
+        BitmapFactory.decodeStream(URL(url).content as InputStream)
 
       } catch (e: IOException) {
-        bitmap = null
+        null
       }
 
-    }
+    } else {
+      null
 
-    return bitmap
+    }
   }
 
   fun getPhoneContacts(context: Context, cb: (JSONObject) -> Unit) {
@@ -329,6 +339,7 @@ object AndroidBase {
     return !(netType === NetworkType.UNKNOWN.value || netType === NetworkType.ABSENT.value)
   }
 
+  @Suppress("DEPRECATION")
   fun getCurrentNetworkType(context: Context): String {
 
     val cm = context
@@ -336,6 +347,7 @@ object AndroidBase {
     return getNetworkGeneration(cm.activeNetworkInfo).value
   }
 
+  @Suppress("DEPRECATION")
   private fun getNetworkGeneration(actNet: NetworkInfo?): NetworkType {
 
     if (actNet == null) return NetworkType.UNKNOWN
@@ -374,15 +386,16 @@ object AndroidBase {
     }
   }
 
+  @Suppress("DEPRECATION")
   fun getAppVersion(mContext: Context): Int {
 
-    try {
+    return try {
       val pInfo = mContext.packageManager
           .getPackageInfo(mContext.packageName, 0)
-      return pInfo.versionCode
+      pInfo.versionCode
 
     } catch (e: PackageManager.NameNotFoundException) {
-      return -1
+      -1
     }
   }
 
@@ -423,16 +436,16 @@ object AndroidBase {
   fun getBatteryCapacity(context: Context): String {
 
     val POWER_PROFILE_CLASS = "com.android.internal.os.PowerProfile"
-    try {
-      val mPowerProfile_ = Class.forName(POWER_PROFILE_CLASS)
+    return try {
+      val mPowerProfile = Class.forName(POWER_PROFILE_CLASS)
           .getConstructor(Context::class.java).newInstance(context)
 
-      return Class.forName(POWER_PROFILE_CLASS)
+      Class.forName(POWER_PROFILE_CLASS)
           .getMethod("getBatteryCapacity")
-          .invoke(mPowerProfile_).toString() + "mAh"
+          .invoke(mPowerProfile).toString() + "mAh"
 
     } catch (e: Throwable) {
-      return "unknown"
+      "unknown"
     }
 
   }
@@ -527,7 +540,7 @@ object AndroidBase {
   fun getAdvertiserId(context: Context): String? {
 
     val adInfo: AdvertisingIdClient.Info
-    var advertising_id: String? = null
+    var advertisingId: String? = null
 
     try {
       val googleAPI = GoogleApiAvailability.getInstance()
@@ -536,7 +549,7 @@ object AndroidBase {
       if (result == ConnectionResult.SUCCESS) {
         adInfo = AdvertisingIdClient.getAdvertisingIdInfo(context)
         if (!adInfo.isLimitAdTrackingEnabled) {
-          advertising_id = adInfo.id
+          advertisingId = adInfo.id
         }
       }
 
@@ -550,7 +563,7 @@ object AndroidBase {
       e.printStackTrace()
     }
 
-    return advertising_id
+    return advertisingId
   }
 
   fun hasNavBar(activity: Activity): Boolean {
@@ -574,7 +587,7 @@ object AndroidBase {
   fun dpToPx(context: Context, dp: Int): Int {
 
     val scale = context.resources.displayMetrics.density
-    return Math.round(dp * scale)
+    return (dp * scale).roundToInt()
   }
 
   fun pxToDp(px: Float, context: Context): Float {
@@ -584,7 +597,7 @@ object AndroidBase {
   fun calculate(pct1: Int, total: Int): Int {
     var pct = pct1
     if (pct < 0) {
-      pct = pct * -1
+      pct *= -1
       pct = total * pct / 100
       return pct * -1
     }
@@ -609,6 +622,7 @@ object AndroidBase {
     return displaymetrics.heightPixels
   }
 
+  @Suppress("DEPRECATION")
   fun fromHtml(source: String): Spanned =
 
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N)
@@ -640,7 +654,7 @@ object AndroidBase {
       } else if (`val` is Number) {
         bundle.putLong(key, `val`.toLong())
       } else {
-        Log.e(TAG, "Firebase log event: Invalid bundle key:value - " + `val`)
+        Log.e(TAG, "Firebase log event: Invalid bundle key:value - $`val`")
       }
     }
     return bundle
@@ -656,6 +670,7 @@ object AndroidBase {
     return `object`
   }
 
+  @Suppress("DEPRECATION")
   fun getColor(context: Context, @ColorRes resId: Int): Int {
 
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -669,7 +684,7 @@ object AndroidBase {
 
     val i = Intent(Intent.ACTION_SEND)
     i.type = "message/rfc822"
-    Log.d(TAG, "toAddr: " + toAddr)
+    Log.d(TAG, "toAddr: $toAddr")
 
     if (toAddr != "") i.putExtra(Intent.EXTRA_EMAIL, arrayOf(toAddr))
     if (subject != null && subject != "") i.putExtra(Intent.EXTRA_SUBJECT, subject)
@@ -721,10 +736,10 @@ object AndroidBase {
     if (versionToCompare == versionFromCompare) return 0
 
     val versionToSplit = versionToCompare!!.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-    asserT(versionToSplit.size == verMaxLength, "version to compare is in wrong format: " + versionToCompare)
+    asserT(versionToSplit.size == verMaxLength, "version to compare is in wrong format: $versionToCompare")
 
     val versionFromSplit = versionFromCompare!!.split("\\.".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray()
-    asserT(versionFromSplit.size == verMaxLength, "version from compare is in wrong format: " + versionFromCompare)
+    asserT(versionFromSplit.size == verMaxLength, "version from compare is in wrong format: $versionFromCompare")
 
     for (i in 0 until verMaxLength) {
 
@@ -823,18 +838,14 @@ object AndroidBase {
 
   fun checkIfPckgInstalled(pckg: String): Boolean {
 
-    try {
+    return try {
       val appInfo = BaseApp.instance.packageManager.getApplicationInfo(pckg, PackageManager.GET_META_DATA)
 
-      if (appInfo != null) {
-        return appInfo.enabled
-      }
+      appInfo.enabled
 
     } catch (e: PackageManager.NameNotFoundException) {
-      return false
+      false
     }
-
-    return true
   }
 
 }

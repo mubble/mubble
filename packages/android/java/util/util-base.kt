@@ -22,9 +22,6 @@ import org.json.JSONObject
 import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import kotlin.math.roundToInt
 
 
 /*------------------------------------------------------------------------------
@@ -39,7 +36,7 @@ fun <T> JSONObject.toImmutableMap(cb: (key: String, jsonObject: JSONObject)->T):
 
   for (key in allKeys) {
     val obj = getJSONObject(key)
-    map.put(key, cb(key, obj))
+    map[key] = cb(key, obj)
   }
 
   return map
@@ -68,7 +65,7 @@ fun <T> syncExecuteInMainThread(closure: ()->T? ): T? {
   if (Looper.myLooper() === Looper.getMainLooper()) return closure()
 
   var resp: T?  = null
-  val lock      = java.lang.Object()
+  val lock      = Object()
   var obtained  = false
 
   BaseApp.instance.runOnUiThread {
@@ -113,12 +110,16 @@ object UtilBase {
     if (mobNo.startsWith("0")) {
       mobNo = mobNo.substring(1)
 
-      if (mobNo.startsWith("0")) {
-        return "+" + mobNo.substring(1)
-      } else if (mobNo.length == 10) {
-        return "+91$mobNo"
-      } else {
-        return "0$mobNo"
+      return when {
+        mobNo.startsWith("0") -> {
+          "+" + mobNo.substring(1)
+        }
+        mobNo.length == 10 -> {
+          "+91$mobNo"
+        }
+        else -> {
+          "0$mobNo"
+        }
       }
     } else if (mobNo.length == 10) {
       return "+91$mobNo"
@@ -177,17 +178,17 @@ object UReflect {
    */
   fun getMethod(c: Class<*>?, methodName: String?,
                 vararg args: Class<*>): Method? {
-    var c = c
+    var clazz = c
 
-    if (c == null || methodName == null || methodName.isEmpty()) return null
+    if (clazz == null || methodName == null || methodName.isEmpty()) return null
     var method: Method? = null
-    while (method == null && c != null) {
+    while (method == null && clazz != null) {
       try {
-        method = c.getDeclaredMethod(methodName, *args)
+        method = clazz.getDeclaredMethod(methodName, *args)
       } catch (e: NoSuchMethodException) {
       }
 
-      c = c.superclass
+      clazz = clazz.superclass
     }
 
     if (method != null && !method.isAccessible) method.isAccessible = true
@@ -208,11 +209,11 @@ object UReflect {
   </T> */
   fun <T> executeDontReport(m: Method?, o: Any?,
                             vararg args: Any): T? {
-    try {
-      return executeOrThrow<T>(m, o, *args)
+    return try {
+      executeOrThrow<T>(m, o, *args)
     } catch (e: Throwable) {
       e.printStackTrace()
-      return null
+      null
     }
 
   }
@@ -229,6 +230,7 @@ object UReflect {
    * @return The result that comes after executing and cast into Type T. In case
    * of cast failure, null args or any other exception it throws.
   </T> */
+  @Suppress("UNCHECKED_CAST")
   fun <T> executeOrThrow(m: Method?, o: Any?,
                          vararg args: Any): T {
     try {

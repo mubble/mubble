@@ -111,7 +111,7 @@ class UpgradeClient(private val listener: JSUpgradeEvents, serverUrl: String,
     }
 
     val data      = resp.data as JSONObject
-    val toVersion = data.optString(CheckUpgradeVersion.RetVal.toVersion, null)
+    val toVersion = data.optString(CheckUpgradeVersion.RetVal.toVersion)
 
     if (toVersion.isNullOrBlank()) {
       cleanupRouter()
@@ -134,7 +134,7 @@ class UpgradeClient(private val listener: JSUpgradeEvents, serverUrl: String,
 
     } else {
       val manifest = data.optJSONObject(CheckUpgradeVersion.RetVal.manifest)
-      onUpgradeEvent(ManifestStruct.fromJsonObject(manifest))
+      onUpgradeEvent(ManifestStruct.fromJsonObject(manifest!!))
     }
   }
 

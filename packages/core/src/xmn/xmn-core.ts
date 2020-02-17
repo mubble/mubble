@@ -34,7 +34,9 @@ export namespace HTTP {
     bodyEncoding     : 'x-obopay-encoding',
     transferEncoding : 'transfer-encoding',
     location         : 'location',
-    accept           : 'accept'
+    accept           : 'accept',
+    authorization    : 'authorization',
+    token            : 'token'
   }
   
   /* HTTP Headers */

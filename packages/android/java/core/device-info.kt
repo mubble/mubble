@@ -81,7 +81,7 @@ object DeviceInfo {
       buildInfo.put("os", Build.VERSION.SDK_INT)
 
       val abis: Array<String> = Build.SUPPORTED_ABIS
-      buildInfo.put("abi", JSONArray(Arrays.asList(abis)))
+      buildInfo.put("abi", JSONArray(listOf(abis)))
       deviceInfo.put("buildInfo", buildInfo)
 
       json.put("deviceInfo", deviceInfo)
@@ -104,6 +104,7 @@ object DeviceInfo {
     return "" + size.y + "X" + size.x
   }
 
+  @Suppress("UNUSED")
   private fun getSensorList(context: Context): List<Sensor> {
 
     val smm = context.getSystemService(
@@ -149,7 +150,7 @@ object DeviceInfo {
       val m = p.matcher(load)
       var value = ""
 
-      while (m.find()) value = m.group(1)
+      while (m.find()) value = m.group(1)!!
       reader.close()
 
       val totRam = java.lang.Double.parseDouble(value) / 1024
@@ -171,7 +172,7 @@ object DeviceInfo {
 
       Class.forName(powerProfileClass)
           .getMethod("getBatteryCapacity")
-          .invoke(powerProfile).toString() + "mAh"
+          .invoke(powerProfile)?.toString() + "mAh"
 
     } catch (e: Throwable) {
       "unknown"

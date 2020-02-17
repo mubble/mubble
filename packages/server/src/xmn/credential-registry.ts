@@ -13,6 +13,7 @@ export interface ServerCredentials {
   host          : string             // Server host
   port          : number             // Server port
   permittedIps  : Array<string>      // Permitted IPs for client
+  unsecured     : boolean
 }
 
 export interface CredentialRegistry {

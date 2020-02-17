@@ -179,7 +179,7 @@ export namespace UStream {
 
       if (this.body === undefined) {
         this.rc.isWarn() && this.rc.warn(this.rc.getName(this), 'You have tried reading an empty file')
-        this.body = new Buffer('')
+        this.body = Buffer.from('')
       }
 
       if (this.body instanceof Buffer) {

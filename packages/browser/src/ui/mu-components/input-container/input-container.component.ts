@@ -47,59 +47,16 @@ import { map,
 import { FileUploadComponent, 
          UploadedDocParams 
        }                                  from '../file-upload/file-upload.component'
-
-export enum DISPLAY_MODE {
-  HORIZONTAL = 'HORIZONTAL',
-  VERTICAL   = 'VERTICAL'
-}
-
-export enum DISPLAY_TYPE {
-  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
-  INPUT_BOX             = 'INPUT_BOX',
-  SELECTION_BOX         = 'SELECTION_BOX',
-  CALENDAR_BOX          = 'CALENDAR_BOX',
-  DATE_RANGE            = 'DATE_RANGE',
-  NUMBER_RANGE          = 'NUMBER_RANGE',
-  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
-  RADIO                 = 'RADIO',
-  TEXT_AREA             = 'TEXT_AREA',
-  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
-  TOGGLE                = 'TOGGLE',
-  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
-  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
-}
-
-export interface SelectionBoxParams {
-  id        : string
-  value     : string
-  selected ?: boolean
-}
-
-export interface ValidatorsParams {
-  allowFutureDate ?: boolean
-  validation      ?: string | RegExp
-  validationError  : string
-}
+import { DISPLAY_TYPE, 
+         DISPLAY_MODE,
+         InputParams,
+         SelectionBoxParams
+       }                                  from '@mubble/core/interfaces/app-server-interfaces'
 
 export interface OutputParams {
   id          : string
   value       : any
   displayType : DISPLAY_TYPE
-}
-
-export interface InputParams {
-  id               : string
-  displayType      : DISPLAY_TYPE
-  placeHolder      : string | string[]
-  label           ?: string
-  options         ?: SelectionBoxParams[]
-  inputType       ?: string
-  maxLength       ?: number
-  value           ?: any
-  isPassword      ?: boolean
-  validators      ?: ValidatorsParams
-  isRequired      ?: boolean
-  isDisabled      ?: boolean
 }
 
 @Component({
@@ -228,22 +185,22 @@ export class InputContainerComponent implements OnChanges {
 
       case DISPLAY_TYPE.MULTI_CHECK_BOX :  
 
-        const matCheckboxInst = this.matCheckbox.toArray()
-        let values = []
+        // const matCheckboxInst = this.matCheckbox.toArray(),
+        //       values = []
 
-        matCheckboxInst.forEach((val,index) => {
-          if (val.checked) values.push(val.value['id'])
-        })
+        // matCheckboxInst.forEach((val,index) => {
+        //   if (val.checked) values.push(val.value)
+        // })
 
         params = { 
           id          : this.inputParams.id,
-          value       : values,
+          value       : this.inputForm.value,
           displayType : this.inputParams.displayType
         }
         break  
 
     } 
-        
+    
     if (emitValue) this.value.emit(params)
   }
 
@@ -340,8 +297,10 @@ export class InputContainerComponent implements OnChanges {
         if (this.inputParams.isRequired) {
           hasError  = this.dateRange.controls.startDate.invalid || this.dateRange.controls.endDate.invalid
         } else {
-          hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
-          hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
+          hasError  = (this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid)
+                      || ( !this.dateRange.controls.endDate.value || (
+                        this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid))
+
         }
         break
 
@@ -362,6 +321,15 @@ export class InputContainerComponent implements OnChanges {
 
   dropDownToggle(event : boolean) {
     this.dropdownOpen.emit(event)
+  }
+
+  valueEntered(value) {
+    if (this.inputParams.displayType === DISPLAY_TYPE.AUTOCOMPLETE_SELECT) {
+      const option = this.inputParams.options.find(option => option.value === value)
+    
+      option ? this.inputForm.setValue(option) : this.inputForm.setValue({ id : value , value : value})   
+      if (this.eventPropagate)  this.onSubmit()
+    }
   }
 
   /*=====================================================================
@@ -397,7 +365,8 @@ export class InputContainerComponent implements OnChanges {
         this.filteredOptions = this.inputForm.valueChanges.pipe(
                                  startWith(''),
                                  map(value => typeof value === 'string' ? value : value.value),
-                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
+                                 map(value => value ? this.filterOptions(value)
+                                                    : this.inputParams.options.slice()))
         this.setDisabled(params.isDisabled)
         break
 

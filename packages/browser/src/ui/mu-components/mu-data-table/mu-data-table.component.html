@@ -1,127 +1,170 @@
-<div class="mu-table-cont">
-  
-  <div class="table-extras">
-    <div class="search-input txt-lg-reg-norm">
-        <input matInput placeholder="Search" (input)="search($event)">
-    </div>
-    <div class="paginator" *ngIf="pageNumbers.length > 1">
-      <div class="firstPage" class="pagenumber" (click)="onPageClick(0)">
-        <i class="fa fa-chevron-left" aria-hidden="true"></i>
-      </div>
-      <div class="pagenumber txt-lg-reg-dark" *ngFor="let pageNumber of pageNumbers.slice(pageIndex, pageIndex + 5)"
-        (click)="onPageClick(pageNumber - 1)"
-        [ngClass]="currPageIndex === pageNumber - 1 ? 'sel-ind' : ''">
-        {{ pageNumber }}
-      </div>
-      <div class="lastPage" class="pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
-        <i class="fa fa-chevron-right" aria-hidden="true"></i>
-      </div>
-    </div>
-  </div>
+<div class="horz-filter" *ngIf="tableConfig.horizFilterParams">
+  <filter
+    [filterItems]="tableConfig.horizFilterParams"
+    [webMode]="true"
+    [displayCount]="3"
+    (selectedFilter)="applyFilter($event)">
+  </filter>
+</div>
 
-  <div class="headers-cont">
-    <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
-    <div class="checkbox" *ngIf="tableConfig?.enableSelect">
-      <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
-    </div>
-    <div class="header txt-xl-bld-dark" *ngFor="let header of tableConfig.headers" 
-      [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
-      {{ header.header }}
-    </div>
-  </div>
-  
-  <div class="table-row-cont" *ngFor="let rowData of dataToDisplay"
-    [class.row-active]="selectedIndexes[rowData['rowIndex']]">
+<div [ngClass]="tableConfig.vertFilterParams ? 'filter-cont' : ''" #filterCont>
+  <div  class="mu-table-cont border-light" #muTableCont>
     
-    <div class="radio-btn" *ngIf="tableConfig.enableRadio" >
-      <mat-radio-group name="rowRadio">
-        <mat-radio-button 
-          value="{{ rowData['rowIndex'] }}" 
-          (change)="radioSelect($event, rowData)"
-          [checked]="selectedIndexes[rowData['rowIndex']]">
-        </mat-radio-button>
-      </mat-radio-group>
+    <div class="bg-white table-extras" #tableExtras>
+      <div class="search-input txt-lg-reg-norm" *ngIf="dataToDisplay.length">
+        showing {{ currPageIndex * tableConfig.dispRows + 1 }} to 
+        {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
+        of {{ tableConfig.totalRecords }} entries
+      </div>
+
+
+      <div class="paginator" *ngIf="pageNumbers.length > 1">
+        <div class="fast-backward pagenumber" (click)="onPageClick(0)">
+          <i class="fa fa-fast-backward" aria-hidden="true"></i>
+        </div> 
+        <div class="firstPage" class="pagenumber" (click)="onPageClick(currPageIndex - 1)">
+          <i class="fa fa-chevron-left" aria-hidden="true"></i>
+        </div>
+        <div class="pagenumber txt-lg-reg-dark" *ngFor="let pageNumber of pageNumbers.slice(pageIndex, pageIndex + 5)"
+          (click)="onPageClick(pageNumber - 1)"
+          [ngClass]="currPageIndex === pageNumber - 1 ? 'sel-ind' : ''">
+          {{ pageNumber }}
+        </div>
+        <div class="lastPage" class="pagenumber" (click)="onPageClick(currPageIndex + 1)">
+          <i class="fa fa-chevron-right" aria-hidden="true"></i>
+        </div>
+
+        <div class="fast-forward pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
+          <i class="fa fa-fast-forward" aria-hidden="true"></i>
+        </div>
+
+      </div>
     </div>
 
-    <div class="checkbox" *ngIf="tableConfig.enableSelect">
-      <mat-checkbox
-       [checked]="selectedIndexes[rowData['rowIndex']]"
-       (change)="rowSelect($event, rowData)">
-      </mat-checkbox>
+    <div class="bg-white headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
+      <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
+      <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
+        <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
+      </div>
+      <div class="header txt-xl-bld-dark" *ngFor="let header of tableConfig.headers" 
+        [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
+        {{ header.header }}
+      </div>
     </div>
+    
+    <div class="table-row-cont border-light" *ngFor="let rowData of dataToDisplay"
+      [class.row-active]="selectedIndexes[rowData['rowIndex']] && !isTogglePresent">
+      
+      <div class="radio-btn" *ngIf="tableConfig.enableRadio">
+        <mat-radio-group name="rowRadio">
+          <mat-radio-button 
+            value="{{ rowData['rowIndex'] }}" 
+            (click)="rowClick($event, rowData)"
+            (change)="radioSelect($event, rowData)"
+            [checked]="selectedIndexes[rowData['rowIndex']]">
+          </mat-radio-button>
+        </mat-radio-group>
+      </div>
 
-    <ng-container *ngIf="dataToDisplay">
-      <div class="row-data txt-lg-med-norm" *ngFor="let header of tableConfig.headers" 
-      [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
-      <ng-container [ngSwitch]="header.colType" [formGroup]="editForm">
+      <div class="checkbox" *ngIf="tableConfig.enableSelect">
+        <mat-checkbox
+          (click)="rowClick($event, rowData)"
+          [checked]="selectedIndexes[rowData['rowIndex']]"
+          (change)="rowSelect($event, rowData)">
+        </mat-checkbox>
+      </div>
 
-        <div *ngSwitchCase="COL_TYPE.TEXT">
-         <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)"> 
-           {{ header.constValue || rowData[header.dataKey] }} 
-         </span> 
-        <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
-          formControlName="{{ header.dataKey }}"
-          value="{{ rowData[header.dataKey] }}" type="text">
-        </div>
+      <ng-container *ngIf="dataToDisplay">
+        <div class="row-data txt-lg-med-norm" *ngFor="let header of tableConfig.headers" 
+        [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
+        <ng-container [ngSwitch]="header.colType" [formGroup]="editForm">
 
-        <div *ngSwitchCase="COL_TYPE.DATE">
-          {{ header.constValue || rowData[header.dataKey] | date }}
-        </div>
+          <div *ngSwitchCase="COL_TYPE.TEXT">
+            
+            <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)"> 
+              {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+            </span> 
+            <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
+              formControlName="{{ header.dataKey }}"
+              value="{{ rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}" type="text">
+          </div>
 
-        <div *ngSwitchCase="COL_TYPE.IMAGE">
-          <img class="click-item" src="{{ header.constValue || rowData[header.dataKey] }}">
-        </div>
+          <div *ngSwitchCase="COL_TYPE.DATE">
+            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+          </div>
+          
+          <div *ngSwitchCase="COL_TYPE.IMAGE">
+            <img src="{{ header.constValue || rowData[header.dataKey] }}">
+          </div>
 
-        <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
-          class="click-item text-color-primary">
-          {{ header.constValue || rowData[header.dataKey] }}
-        </div>
+          <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
+            class="click-item text-color-primary">
+            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+          </div>
 
-        <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
-          <i class="{{ header.constValue || rowData[header.dataKey] }}"></i>
-        </div>
+          <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
+            <i class="{{ header.constValue || rowData[header.dataKey] }}"></i>
+          </div>
 
-        <div *ngSwitchCase="COL_TYPE.BUTTON" (click)="cellClick(rowData, header.dataKey)">
-          <button class="table-button click-item txt-lg-med-norm primary-bg">
-            {{ header.constValue || rowData[header.dataKey] }}
-          </button>
-        </div>
-
-        <div *ngSwitchCase="COL_TYPE.TOGGLE">
-          <mat-slide-toggle (change)="toggleRow($event, rowData)"
-          [checked]="toggleActIndexes[rowData['rowIndex']]">
-          </mat-slide-toggle>
-        </div>
-
-        <div *ngSwitchCase="COL_TYPE.MORE_DETAILS">
-          <i class="fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
-          <mat-menu #menu="matMenu" yPosition="below" xPosition="before">
-            <button mat-menu-item *ngFor="let option of header.constValue" 
-            (click)="moreDetailsClick(option.id, rowData)"> 
-              <span> {{ option.value }}</span>
+          <div *ngSwitchCase="COL_TYPE.BUTTON" (click)="cellClick(rowData, header.dataKey)">
+            <button class="table-button curs-pointer txt-lg-med-norm primary-bg">
+              {{ header.constValue || rowData[header.dataKey] }}
             </button>
-          </mat-menu>
-        </div>
+          </div>
 
-        <div *ngSwitchCase="COL_TYPE.EDIT">
-          <span class="click-item" (click)="editRow(rowData, true)" 
-          *ngIf="!selectedIndexes[rowData['rowIndex']]">
-            Edit
-          </span>
-          <span class="click-item" (click)="editRow(rowData, false)" 
-          *ngIf="selectedIndexes[rowData['rowIndex']]">
-            Save
-          </span>
-        </div>
+          <div *ngSwitchCase="COL_TYPE.TOGGLE">
+            <mat-slide-toggle 
+              (click)="rowClick($event, rowData)"
+              (change)="toggleRow($event, rowData)"
+              [checked]="selectedIndexes[rowData['rowIndex']]">
+            </mat-slide-toggle>
+          </div>
+
+          <div *ngSwitchCase="COL_TYPE.MORE_DETAILS">
+            <i class="click-item fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
+            <mat-menu #menu="matMenu" yPosition="below" xPosition="before">
+              <button mat-menu-item *ngFor="let option of header.constValue" class="txt-lg-med-norm" 
+              (click)="moreDetailsClick(option.id, rowData)"> 
+                <span> {{ option.value }}</span>
+              </button>
+            </mat-menu>
+          </div>
+
+          <div *ngSwitchCase="COL_TYPE.EDIT">
+            <span class="click-item" (click)="editRow(rowData, true)" 
+
+            *ngIf="!selectedIndexes[rowData['rowIndex']]">
+              {{ 'mu_dt_tbl_edit' | translate }}
+            </span>
+
+            <span class="click-item" (click)="editRow(rowData, false)" 
+            *ngIf="selectedIndexes[rowData['rowIndex']]">
+              {{ 'mu_dt_tbl_save' | translate }}
+
+            </span>
+          </div>
+        </ng-container>
+      </div>
       </ng-container>
     </div>
+
+    <ng-container *ngIf="!dataToDisplay.length">
+      <div class="no-data txt-lg-med-norm">
+        {{ 'mu_dt_tbl_empty_state' | translate }}
+      </div>
     </ng-container>
+
   </div>
 
-  <ng-container *ngIf="!dataToDisplay">
-    <div class="no-data txt-lg-med-norm">
-      No data to display 
-    </div>
-  </ng-container>
-
+  <div class="vert-filter" *ngIf="tableConfig.vertFilterParams">
+    <filter
+      [filterItems]="tableConfig.vertFilterParams"
+      [displayMode]="DISPLAY_MODE.VERTICAL"
+      [webMode]="false"
+      [displayCount]="1"
+      (selectedFilter)="applyFilter($event)">
+    </filter>
+  </div>
 </div>
+
+

@@ -78,7 +78,7 @@ abstract class GlobalKeyValue: MubbleLogger {
 
   fun getEnvConfig(): JSONObject {
 
-    val config = sharedPrefs.getString("envConfig", "{}")
+    val config = sharedPrefs.getString("envConfig", "{}")!!
     return JSONObject(config)
   }
 

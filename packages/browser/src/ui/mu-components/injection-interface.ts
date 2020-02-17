@@ -32,6 +32,7 @@ export interface BottomInInterface extends InjectedChild {
   getHalfHeight()     : number
   getTitle()          : string
   getDefaultState?()  : any
+  onBackPressed?()    : void
 }
 
 export interface ModalInterface extends InjectedChild {

@@ -109,7 +109,17 @@ export class BottomInComponent extends InjectionParentBase implements
   @HostListener('@routeAnimation.done', ['$event']) onRouteAnimationDone(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
     // console.log(event)
-    if (this.childRequestedClose && this.injectedComponent.closeFromParent) this.injectedComponent.closeFromParent()
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
+    if (this.childRequestedClose &&  this.injectedComponent.closeFromParent) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
+      this.injectedComponent.closeFromParent()
+    } else if (this.backPressed && this.injectedComponent.onBackPressed) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
+      this.injectedComponent.onBackPressed()
+    }
   }
 
   @ViewChild('main', { static: true })                                main          : ElementRef
@@ -118,21 +128,24 @@ export class BottomInComponent extends InjectionParentBase implements
 
   @ViewChild('injectAt', { read: ViewContainerRef, static: true })  injectAt;
 
-  injectedComponent : BottomInInterface
+  injectedComponent       : BottomInInterface
 
-  private top       : number
-  @Input() title    : string  = ''
-  @Input() state    : string = STATE.HALF
-  @Input() allowFullPage: boolean = true
+  private top             : number
+  @Input() title          : string  = ''
+  @Input() state          : string = STATE.HALF
+  @Input() allowFullPage  : boolean = true
 
-  private panY      : number
-  private animValue : string
+  private panY        : number
+  private animValue   : string
 
-  private panYMin   : number
-  private panYMax   : number
-  private nail      : Nail
-  private routeName : string
-  private startTop  : number 
+  private panYMin     : number
+  private panYMax     : number
+  private nail        : Nail
+  private routeName   : string
+  private startTop    : number 
+
+  private backPressed       : boolean
+  private routeEndProcessed : boolean = false
 
   constructor(@Inject('RunContext') rc: RunContextBrowser,
               router: UiRouter,
@@ -325,5 +338,9 @@ export class BottomInComponent extends InjectionParentBase implements
   animateClose() {
     this.injectedComponent.closeFromParent()
     this.router.goBack()
+  }
+
+  onBackPressed() {
+    this.backPressed = true
   }
 }   

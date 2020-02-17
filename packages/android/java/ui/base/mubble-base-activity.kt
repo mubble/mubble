@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import core.BaseApp
 import core.MubbleLogger
 import ui.permission.AskedPermission
+import ui.permission.PermissionGroup
 
 /*------------------------------------------------------------------------------
    About      : 
@@ -18,13 +19,14 @@ import ui.permission.AskedPermission
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+@Suppress("DEPRECATION")
 abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
 
   private var loadedPreAppInit  : Boolean         = false
   private var progressDialog    : ProgressDialog? = null
 
   abstract fun showRationaleDialog(groups: MutableSet<AskedPermission>, cb: (Boolean) -> Unit)
-  abstract fun showPermSettingDialog()
+  abstract fun showPermSettingDialog(groups : ArrayList<PermissionGroup>)
 
   final override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -180,6 +182,7 @@ abstract class MubbleBaseActivity: AppCompatActivity(), MubbleLogger {
     overridePendingTransition(0, 0)
   }
 
+  @Suppress("UNUSED")
   fun bringToTop() {
 
     val intent = Intent(this, this::class.java)

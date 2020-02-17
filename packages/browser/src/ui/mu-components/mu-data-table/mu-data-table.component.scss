@@ -5,10 +5,31 @@
 
 .mu-table-cont {
   width: 100%;
-  border: 1px solid #d2d2d2;
+  // border: 1px solid #d2d2d2;
+  border-style: solid;
+  border-width: 1px;
   box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.2);
   display: flex;
   flex-direction: column;
+  height: fit-content;
+}
+
+.filter-cont {
+
+  display: flex;
+
+  .mu-table-cont {
+    width: 85%;
+    height: 100%;
+    overflow-y: auto;
+  }
+
+
+  .mu-table-cont::-webkit-scrollbar {
+    display: none;
+  }
+
+
 }
 
 .headers-cont {
@@ -16,14 +37,19 @@
   align-items: center;
   padding: 10px;
   justify-content: space-between;
+  position: sticky;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  // border-bottom: 1px solid #d2d2d2;
 }
 
 .table-row-cont {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #d2d2d2;
-  padding: 0 10px;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  // border-bottom: 1px solid #d2d2d2;
 }
 
 .row-data {
@@ -31,7 +57,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px;
+  padding: 5px;
   text-align: center;
 }
 
@@ -56,6 +82,16 @@ img {
 }
 
 .click-item {
+  cursor: pointer;
+  padding: 5px 10px;
+}
+
+.click-item:hover {
+  background: #d2d2d2;
+  border-radius: 5px;
+}
+
+.curs-pointer {
   cursor: pointer;
 }
 
@@ -85,8 +121,8 @@ img {
 
 .paginator {
   display: flex;
-  /* border-bottom: 1px solid #d2d2d2; */
   justify-content: space-around;
+  float: right;
 }
 
 .pagenumber {
@@ -106,23 +142,10 @@ img {
   display: flex;
 }
 
-.loader {
-  background: #e0e0e0;
-  color: black;
-  width: 90%;
-  height: 100%;
-  z-index: 2;
-  position: absolute;
-  opacity: 0.5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
 .table-extras {
-  display: flex;
-  justify-content: space-between;
   border-bottom: 1px solid #d2d2d2;
+  position: sticky;
+  top: 0;
 }
 
 input {
@@ -146,3 +169,15 @@ input {
   padding: 10px;
   border-top: 1px solid #d2d2d2;
 }
+
+.search-input  {
+  float: left;
+  margin: 10px;
+}
+
+.vert-filter {
+  width: 14%;
+  margin-left: 1%;
+}
+
+

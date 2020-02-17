@@ -5,6 +5,7 @@ import androidx.annotation.NonNull
 import androidx.core.app.ActivityCompat
 import ui.base.MubbleBaseActivity
 import java.util.*
+import kotlin.collections.ArrayList
 
 /**
  * Created by
@@ -110,7 +111,7 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
           cb(rejectedGroups, dialogShown, false)
         }
       }
-      requestTime + 500 > Calendar.getInstance().timeInMillis -> showPermSettingDialog()
+      requestTime + 500 > Calendar.getInstance().timeInMillis -> showPermSettingDialog(rejectedGroups)
       //else -> activity.toast(R.string.prm_rationale_toast)
     }
   }
@@ -126,12 +127,19 @@ class PermissionManager(private val activity      : MubbleBaseActivity,
       } else {
         val perms = mutableListOf<String>()
         for (groupPerms in groups) perms.addAll(groupPerms.getPermissionGroup().groupPermissions)
-        ActivityCompat.requestPermissions(activity, perms.toTypedArray(), PermissionManager.APP_PERMISSIONS_REQ_CODE)
+        ActivityCompat.requestPermissions(activity, perms.toTypedArray(), APP_PERMISSIONS_REQ_CODE)
       }
     }
   }
 
-  private fun showPermSettingDialog() {
-    activity.showPermSettingDialog()
+  private fun showPermSettingDialog(rejectedGroups: MutableSet<AskedPermission>) {
+
+    val arr = ArrayList<PermissionGroup>()
+
+    rejectedGroups.forEach {
+      arr.add(it.getPermissionGroup())
+    }
+
+    activity.showPermSettingDialog(arr)
   }
 }

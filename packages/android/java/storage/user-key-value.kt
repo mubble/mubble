@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import core.BaseApp
 import core.MubbleLogger
-import org.jetbrains.anko.info
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -53,14 +52,16 @@ abstract class UserKeyValue: MubbleLogger {
     return  lastUserClientId?.toLong()
   }
 
+  @Suppress("UNUSED")
   fun isMultiUser(): Boolean {
-    val users = JSONObject(sharedPrefs.getString(USERS, "{}"))
+    val users = JSONObject(sharedPrefs.getString(USERS, "{}")!!)
     return users.length() > 1
   }
 
+  @Suppress("UNUSED")
   fun getAllClientIds(): JSONArray {
 
-    val users = JSONObject(sharedPrefs.getString(USERS, "{}"))
+    val users = JSONObject(sharedPrefs.getString(USERS, "{}")!!)
 
     val arr = JSONArray()
 
@@ -73,7 +74,7 @@ abstract class UserKeyValue: MubbleLogger {
 
   protected fun getUsers(): JSONObject {
 
-    return JSONObject(sharedPrefs.getString(USERS, "{}"))
+    return JSONObject(sharedPrefs.getString(USERS, "{}")!!)
   }
 
   fun setValue(key: String, value: String?) {

@@ -16,6 +16,7 @@ import ui.base.MubbleBaseActivity
  * siddharthgarg on 23/03/18.
  */
 
+@Suppress("DEPRECATION")
 open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleLogger,
     GoogleApiClient.OnConnectionFailedListener {
 
@@ -67,8 +68,8 @@ open class HintRequestManager(private val activity: MubbleBaseActivity): MubbleL
   fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
 
     if (resultCode == Activity.RESULT_OK && data != null) {
-      val credential: Credential = data.getParcelableExtra(Credential.EXTRA_KEY)
-      cb(credential.id)
+      val credential: Credential? = data.getParcelableExtra(Credential.EXTRA_KEY)
+      cb(credential?.id)
     } else {
       cb(null)
     }

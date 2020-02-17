@@ -111,6 +111,24 @@ export class PostgresClient implements ObmopBaseClient {
 		return { entities : result.rows, totalCount : result.rows.length }
 	}
 
+	public async queryIn(rc 	  : RunContextServer,
+											 table 	: string,
+											 fields : Array<string>,
+											 key 		: string,
+											 values : Array<any>) : Promise<QueryRetval> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :',
+														 key, values)
+
+		const fieldString = fields.join(', '),
+					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN `
+												+ `(${values.map((val) => this.getStringValue(val)).join(', ')})`,
+					result      = await this.queryInternal(rc, queryString)
+
+		return { entities : result.rows, totalCount : result.rows.length }
+
+	}
+
 	public async queryAnd(rc 				 : RunContextServer,
 												table 		 : string,
 												fields     : Array<string>,
@@ -170,7 +188,16 @@ export class PostgresClient implements ObmopBaseClient {
 		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
 
 		await this.queryInternal(rc, queryString)
-	}
+  }
+
+  public async mDelete(rc : RunContextServer, table : string, queryKey : string, queryValues : Array<any>) {
+    rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValues}.`)
+
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = `
+												+ `(${queryValues.map((qv) => this.getStringValue(qv)).join(', ')})`
+
+    await this.queryInternal(rc, queryString)
+  }
 
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS

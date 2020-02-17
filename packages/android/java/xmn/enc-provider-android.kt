@@ -27,7 +27,7 @@ import javax.crypto.spec.SecretKeySpec
 
 ------------------------------------------------------------------------------*/
 
-class EncProviderAndroid(ci                     : ConnectionInfo,
+class EncProviderAndroid(val ci                 : ConnectionInfo,
                          private val rsaPubKey  : ByteArray?) : MubbleLogger {
 
   private var syncKey    : ByteArray = ByteArray(32)
@@ -127,7 +127,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
 
     arOut[0] = leader.toByte()
 
-    for (i in 0 until secondPassArray.size) arOut[i+1] = secondPassArray[i]
+    for (i in secondPassArray.indices) arOut[i+1] = secondPassArray[i]
 
     info { "encodeBody,\n" +
            "first       : ${data[0].name}, \n" +
@@ -155,7 +155,7 @@ class EncProviderAndroid(ci                     : ConnectionInfo,
     if (leader == DataLeader.BINARY.toByte()) {
 
       val newLineCode = "\n".toByteArray(Charset.defaultCharset())[0] // TODO: Verify
-      for (i in 0 until temp.size) {
+      for (i in temp.indices) {
         if (temp[index] == newLineCode) {
           break
         }

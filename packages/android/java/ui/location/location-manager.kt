@@ -9,8 +9,11 @@ import android.os.Looper
 import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.common.api.ResolvableApiException
 import com.google.android.gms.location.*
+import core.MubbleLogger
+import location.ULocation
 import org.json.JSONObject
 import ui.base.MubbleBaseActivity
+import util.AndroidBase
 import java.util.*
 
 /**
@@ -18,7 +21,7 @@ import java.util.*
  * siddharthgarg on 29/01/18.
  */
 
-class ULocationManager(private val parentActivity: MubbleBaseActivity) {
+class ULocationManager(private val parentActivity: MubbleBaseActivity): MubbleLogger {
 
   private var mFusedLocationClient        : FusedLocationProviderClient?  = null
   private var mSettingsClient             : SettingsClient?               = null
@@ -37,14 +40,14 @@ class ULocationManager(private val parentActivity: MubbleBaseActivity) {
     const val REQUEST_CHECK_SETTINGS                  : Int     = 0x1
     const val UPDATE_INTERVAL_IN_MILLISECONDS         : Long    = 10000
     const val FASTEST_UPDATE_INTERVAL_IN_MILLISECONDS : Long    = 2000
-    const val TIMEOUT                                 : Long    = 10000
+    const val TIMEOUT                                 : Long    = 20000
   }
 
   fun getLocation(listener: (JSONObject) -> Unit) {
 
-    this.listener = listener
+    finishLocationTask?.cancel()
 
-    if (finishLocationTask != null) finishLocationTask!!.cancel()
+    this.listener = listener
 
     if (mLocationCallback == null) {
 
@@ -139,6 +142,8 @@ class ULocationManager(private val parentActivity: MubbleBaseActivity) {
 
   private fun setTimeout() {
 
+    finishLocationTask?.cancel()
+
     finishLocationTask = Timer()
     finishLocationTask!!.schedule(object : TimerTask() {
       override fun run() {
@@ -149,6 +154,8 @@ class ULocationManager(private val parentActivity: MubbleBaseActivity) {
 
   private fun updateLocationUI() {
 
+    finishLocationTask?.cancel()
+
     stopLocationUpdates()
 
     val location = JSONObject()
@@ -156,6 +163,11 @@ class ULocationManager(private val parentActivity: MubbleBaseActivity) {
     if (mCurrentLocation != null) {
       location.put("lat", mCurrentLocation!!.latitude)
       location.put("lng", mCurrentLocation!!.longitude)
+
+    } else {
+      val locJson = AndroidBase.getCurrentLocation(parentActivity)
+      location.put("lat", locJson.get(ULocation.LAT))
+      location.put("lng", locJson.get(ULocation.LNG))
     }
 
     listener(location)

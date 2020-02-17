@@ -9,6 +9,9 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import { InputContainerComponent,
+         OutputParams
+       }                              from '..'
 import { Moment }                     from 'moment'
 import { Component,
          ViewChildren,
@@ -20,26 +23,17 @@ import { Component,
        }                              from '@angular/core'
 import { TrackableScreen }            from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }          from '../../../rc-browser'
-import { DISPLAY_TYPE,
+import { DISPLAY_TYPE, 
+         DISPLAY_MODE, 
+         FilterItem,
          SelectionBoxParams,
-         InputContainerComponent,
-         InputParams,
-         OutputParams,
-         DISPLAY_MODE
-       }                              from '../input-container/input-container.component'
-         
+         FILTER_MODE
+       }                              from '@mubble/core'
 
 enum CONTEXT {
   INIT,
   CLEAR
 }
-
-export interface FilterItem {
-  id      : string
-  title   : string
-  params  : InputParams
-}
-
 
 export interface DateRangeInterface { 
   startDate  : Moment
@@ -52,7 +46,8 @@ export interface NumberRangeInterface {
 }
 
 export interface SelectedFilter {
-  id    : string
+  id    : string,
+  mode  : FILTER_MODE,
   value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
 }
 
@@ -187,7 +182,7 @@ export class FilterComponent {
 
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
-        this.filters.push({ id : fItem.id, value : fItem.params.value })
+        this.filters.push({ id : fItem.id, value : fItem.params.value, mode : fItem.mode })
       }
     } else {
       this.filters      = []
@@ -205,16 +200,17 @@ export class FilterComponent {
         fItems.push({
           id      : fItem.id,
           title   : fItem.title,
-          params  : fItem.params
+          params  : fItem.params,
+          mode    : fItem.mode
         })
 
-        this.filters.push({ id : fItem.id, value : setNull })
+        this.filters.push({ id : fItem.id, value : setNull, mode : fItem.mode })
+        
       }
 
       this.filterItems  = []
       this.filterItems  = fItems
     }
   }
-
 
 }

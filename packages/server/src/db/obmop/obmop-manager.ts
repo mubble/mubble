@@ -13,7 +13,9 @@ import {
 			 } 														from './obmop-util'
 import {
 				 ObmopBaseEntity,
-				 ObmopBaseClient
+				 ObmopBaseClient,
+				 QueryRange,
+				 QuerySort
 			 } 														from './obmop-base'
 import { ObmopRegistryManager, 
 				 ObmopFieldInfo 
@@ -25,6 +27,24 @@ import * as lo 											from 'lodash'
 export type ObmopQueryRetval<T> = {
 	entities   : Array<T>
 	totalCount : number
+}
+
+export type ObmopCondition<T> = {
+	key 			: keyof T
+	value 		: any
+	operator ?: string
+	upper    ?: boolean
+}
+
+export type ObmopRange<T> = {
+	key  : keyof T
+	low  : any
+	high : any
+}
+
+export type ObmopSort<T> = {
+	key   : keyof T
+	order : string
 }
 
 export class ObmopManager {
@@ -49,7 +69,9 @@ export class ObmopManager {
   public async queryAll<T extends ObmopBaseEntity>(rc         : RunContextServer,
 																									 entityType : new(rc : RunContextServer) => T,
 																									 limit			: number = -1,
-																									 offset 		: number = 0) : Promise<ObmopQueryRetval<T>> {
+																									 offset 		: number = 0,
+																									 range     ?: ObmopRange<T>,
+																									 sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
@@ -57,7 +79,8 @@ export class ObmopManager {
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching all data.', tableName)
 
 		try {
-			const records = await this.client.queryAll(rc, tableName, fields, limit, offset)
+			const records = await this.client.queryAll(rc, tableName, fields, limit, offset, 
+																								 range as QueryRange, sort as QuerySort)
 
 
 			const entities = records.entities.map((record) => {
@@ -91,18 +114,22 @@ export class ObmopManager {
               			 														value      : any,
 																								operator   : string = '=',
 																								limit 		 : number = -1,
-																								offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
+																								offset		 : number = 0,
+																								range     ?: ObmopRange<T>,
+																								sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
 
 		// TODO : Add checks to query only on indexed fields
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, value)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, 
+														 value, range, sort)
 
 		try {
 			const records = await this.client.query(rc, tableName, fields, key as string, value,
-																						  operator, limit, offset)
+																							operator, limit, offset, range as QueryRange,
+																						  sort as QuerySort)
 
 
 			const entities = records.entities.map((record) => {
@@ -125,6 +152,7 @@ export class ObmopManager {
 		}
 	}
 
+	
 	/**
    *  Function to get rows for an obmop entity with multiple AND queries.
 	 * 	By default the condition is equals (=).
@@ -132,13 +160,23 @@ export class ObmopManager {
 	public async queryAnd<T extends ObmopBaseEntity>(
 														rc 				 : RunContextServer,
 														entityType : new(rc : RunContextServer) => T,
-														conditions : Array<{key : keyof T, value : any, operator ?: string}>,
+														conditions : Array<ObmopCondition<T>>,
 														limit			 : number = -1,
-														offset		 : number = 0) : Promise<ObmopQueryRetval<T>> {
+														offset		 : number = 0,
+														range			?: ObmopRange<T>,
+														sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName 			 = new entityType(rc).getTableName(),
 					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
 					clientConditions = conditions.map((cond) => {
+															 if(cond.upper) {
+																 return {
+																	 key 			: `UPPER(${cond.key})`,
+																	 value 		: cond.value,
+																	 operator : cond.operator
+																 }
+															 }
+
 															 return {
 																				 key	 		: cond.key as string,
 																				 value 		: cond.value,
@@ -148,11 +186,12 @@ export class ObmopManager {
 
 		// TODO : Add checks to query only on indexed fields
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions, range, sort)
 
 		try {
 			const records = await this.client.queryAnd(rc, tableName, fields, clientConditions,
-																					 			 limit, offset)
+																								 limit, offset, range as QueryRange,
+																								 sort as QuerySort)
 
 			const result : ObmopQueryRetval<T> = {
 				entities   : records.entities.map((record) => {
@@ -173,6 +212,45 @@ export class ObmopManager {
 		}
 	}
 
+	public async queryIn<T extends ObmopBaseEntity>(
+													 rc 				: RunContextServer,
+													 entityType : new(rc: RunContextServer) => T,
+													 key 				: keyof T,
+													 values     : Array<any>,
+													 limit 			: number = -1,
+													 offset 		: number = 0,
+													 range     ?: ObmopRange<T>,
+													 sort 		 ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
+
+		const tableName = new entityType(rc).getTableName(),
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
+							
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, 
+														 values, range, sort)
+		
+		try {
+			const records = await this.client.queryIn(rc, tableName, fields, key as string,
+																								values, limit, offset, range as QueryRange,
+																							  sort as QuerySort)
+
+			const result : ObmopQueryRetval<T> = {
+				entities : records.entities.map((record) => {
+																											const entity = new entityType(rc)
+
+																											Object.assign(entity, record)
+																											return entity
+																										}),
+				totalCount : records.totalCount
+			}			
+			
+			return result
+
+		} catch(err) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			throw mErr
+		}
+	}
 	/**
    *  Function to insert a row of an obmop entity.
    */
@@ -301,23 +379,45 @@ export class ObmopManager {
 	}
 
 	/**
-   *  Function to hard delete a row of an obmop entity.
+   *  Function to delete a row of an obmop entity.
 	 * 	There are no updates to the entity object.
 	 *  Make sure not to operate on a deleted entity.
    */
-	public async hardDelete<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
+	public async delete<T extends ObmopBaseEntity>(rc : RunContextServer, entity : T) {
 
 		const tableName       = entity.getTableName(),
 					primaryKey      = ObmopRegistryManager.getRegistry(tableName).getPrimaryKey(),
 					primaryKeyValue = (entity as any)[primaryKey]
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting (hard-delete) data.', tableName, entity)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting data.', tableName, entity)
 
 		try {
 			await this.client.delete(rc, tableName, primaryKey, primaryKeyValue)
 
 		} catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting (hard) ${entity} from ${tableName}.`)
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting ${entity} from ${tableName}.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			throw mErr
+		}
+	}
+
+	/**
+   *  Function to delete multiple rows of an obmop entity.
+	 * 	There are no updates to the entity object.
+	 *  Make sure not to operate on a deleted entity.
+   */
+	public async mDelete<T extends ObmopBaseEntity>(rc : RunContextServer, entities : T[]) {
+
+		const tableName        = entities[0].getTableName(),
+					primaryKey       = ObmopRegistryManager.getRegistry(tableName).getPrimaryKey(),
+					primaryKeyValues = entities.map(entity => (entity as any)[primaryKey])
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Deleting data.', tableName, entities)					
+
+		try {
+			await this.client.mDelete(rc, tableName, primaryKey, primaryKeyValues)
+		} catch(err) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting ${entities} from ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
 			throw mErr
 		}

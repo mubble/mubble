@@ -34,6 +34,7 @@ object Encoder  {
   const val MIN_SIZE_TO_COMPRESS = 500
 }
 
+@Suppress("unused")
 object DataLeader {
 
   const val BINARY       = 0x01
@@ -44,6 +45,7 @@ object DataLeader {
   const val ENC_JSON     = 0x06
 }
 
+@Suppress("unused")
 object XmnError {
 
   const val errorCode           = 555
@@ -67,10 +69,10 @@ open class WireObject(val type: String, val name: String, var data: Any,
 
       val type          = json.getString("type")
       val name          = json.getString("name")
-      val data          = json.opt("data")
+      val data          = json.get("data")
       val ts            = json.getLong("ts")
-      val errorCode     = json.optString("errorCode", null)
-      val errorMessage  = json.optString("errorMessage", null)
+      val errorCode     = json.optString("errorCode", "")
+      val errorMessage  = json.optString("errorMessage", "")
 
       return when (type) {
 
@@ -175,6 +177,7 @@ data class WsProviderConfig(var pingSecs: Int, var maxOpenSecs: Int, var toleran
   }
 }
 
+@Suppress("unused")
 class ConnectionError(data: Any) {
   val json  : JSONObject  = data as JSONObject
   val code  : String      = json.optString("code", "")

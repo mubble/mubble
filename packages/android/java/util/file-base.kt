@@ -1,14 +1,15 @@
 package util
 
+import ConstBase
 import android.content.Context
 import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
+import android.provider.OpenableColumns
 import android.util.Base64
 import core.BaseApp
 import java.io.*
-import android.provider.OpenableColumns
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
@@ -19,14 +20,15 @@ import java.security.NoSuchAlgorithmException
  * siddharthgarg on 16/05/17.
  */
 
+@Suppress("UNUSED")
 object FileBase {
 
-  private val TAG = "FileBase"
+  private const val TAG = "FileBase"
 
   /**
    * The file copy buffer size (30 MB)
    */
-  private val FILE_COPY_BUFFER_SIZE = (1024 * 1024 * 30).toLong()
+  private const val FILE_COPY_BUFFER_SIZE = (1024 * 1024 * 30).toLong()
 
   fun getLocalStoragePath(context: Context): String {
 
@@ -262,7 +264,7 @@ object FileBase {
 
     try {
       // Create SHA-256 Hash
-      val digest = java.security.MessageDigest
+      val digest = MessageDigest
           .getInstance("SHA-256")
       digest.update(s.toByteArray())
       val messageDigest = digest.digest()
@@ -320,6 +322,34 @@ object FileBase {
 
     val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
     return convertStreamToBase64(inputStream)
+  }
+
+  fun convertContentUriToFile(contentUri: Uri, parentFile: File, fileName: String): File? {
+
+    val inputStream = BaseApp.instance.contentResolver.openInputStream(contentUri)!!
+
+    try {
+      val file = File(parentFile, fileName)
+      FileOutputStream(file).use { output ->
+        val buffer = ByteArray(4 * 1024) // or other buffer size
+        var read: Int
+        while (inputStream.read(buffer).also { read = it } != -1) {
+          output.write(buffer, 0, read)
+        }
+        output.flush()
+      }
+
+      return file
+
+    } catch (e: IOException) {
+      e.printStackTrace()
+    } catch (e: FileNotFoundException) {
+      e.printStackTrace()
+    } finally {
+      inputStream.close()
+    }
+
+    return null
   }
 
   fun convertFileToBase64(f: File): String? {

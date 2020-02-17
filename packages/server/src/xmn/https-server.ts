@@ -31,6 +31,7 @@ import { UStream }            from '../util'
 import * as http              from 'http'
 import * as urlModule         from 'url'
 import * as querystring       from 'querystring'
+import * as lo                from 'lodash'
 
 const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
       HTTP_TIMEOUT_MS    = 60 * 1000,  // timeout in ms
@@ -52,7 +53,7 @@ export class HttpsServer {
 
   async requestHandler(req : http.IncomingMessage, res : http.ServerResponse) {
 
-    const rc = this.refRc.copyConstruct('', 'https-request')
+    const rc = this.refRc.copyConstruct('', 'https-' + lo.random(1000, 9999, false))
 
     rc.isStatus() && rc.status(rc.getName(this), 'Received a new request.', req.url)
 

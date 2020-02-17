@@ -270,8 +270,29 @@ export abstract class MudsIo {
         }
       }
     }
-    
+
     this.upsertQueue = []
+
+    //Remove key from cache after successful execution
+    await this.removeUniquesFromCache(rc, modifiedEntities)
+  }
+
+  /* 
+    This method will be called once the execution of the upsert called. 
+    so that unique key will be removed once after success.
+  */
+  private async removeUniquesFromCache(rc:RunContextServer, entities:MudsBaseEntity[]) {
+    const uniques = this.getAllUniques(rc, ...entities)
+    if (!uniques.length) { return }
+
+    const trRedis      = this.manager.getCacheReference(),
+          multi        = trRedis.redisMulti()
+
+    for (const uniqueVal of uniques) {
+      const key = this.getCacheKey(rc, uniqueVal.entity.getInfo().entityName, uniqueVal.key, uniqueVal.value)
+      multi.del(key)
+    }
+    await trRedis.execRedisMulti(multi)
   }
 
   /* ?????
@@ -335,7 +356,7 @@ export abstract class MudsIo {
     return uniqueValues
   }
 
-  private async  lockEntityInCache(rc: RunContextServer, uniqueVals: any[]) {
+  private async lockEntityInCache(rc: RunContextServer, uniqueVals: any[]) {
 
     const trRedis      = this.manager.getCacheReference(),
           multi        = trRedis.redisMulti(),

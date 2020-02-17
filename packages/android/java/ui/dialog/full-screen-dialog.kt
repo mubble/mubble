@@ -24,6 +24,7 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
   abstract fun getScreenName(): String
   abstract fun onBackPressed()
 
+  @Suppress("DEPRECATION")
   override fun onAttach(activity: Activity) {
     super.onAttach(activity)
     onAttachInternal(activity)
@@ -57,7 +58,7 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
     val dialog = super.onCreateDialog(savedInstanceState)
     dialog.requestWindowFeature(Window.FEATURE_NO_TITLE)
 
-    dialog.setOnKeyListener { _, keyCode, event ->
+    dialog.setOnKeyListener { _, keyCode, _ ->
 
       if (keyCode == KeyEvent.KEYCODE_BACK) {
         onBackPressed()
@@ -92,8 +93,13 @@ abstract class FullScreenDialog : DialogFragment(), MubbleLogger {
     if (context is OnDialogFragmentInteractionListener) {
       listener = context
     } else {
-      throw RuntimeException(context.toString() + " must implement OnFragmentInteractionListener")
+      throw RuntimeException("$context must implement OnFragmentInteractionListener")
     }
+  }
+
+  fun logScreenAction(screenAction : String) {
+    val actionV : Int = eventParams.getInt(screenAction, 0)
+    eventParams.putInt(screenAction, actionV + 1)
   }
 
   interface OnDialogFragmentInteractionListener {
