@@ -561,7 +561,7 @@ export class MuDataTableComponent implements OnInit {
       else this.search()
       return
     }
-
+    this.changeDet.detectChanges()
     this.selectedFilter.emit(event)
     
   }
