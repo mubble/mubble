@@ -3,7 +3,7 @@
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
 
-| 1.12.0 | Deepak Kumar    | 2020-02-18 | |
+| 1.12.0 | Deepak Kumar    | 2020-02-18 | Approved |
 | 1.11.1 | Deepak Kumar    | 2020-02-07 | Approved |
 | 1.10.0 | Deepak Kumar    | 2020-01-24 | Approved |
 | 1.7.0 | Deepak Kumar     | 2019-12-12 | Approved |
