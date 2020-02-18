@@ -10,15 +10,15 @@
 <div [ngClass]="tableConfig.vertFilterParams ? 'filter-cont' : ''" #filterCont>
   <div  class="mu-table-cont border-light" #muTableCont>
     
-    <div class="bg-white table-extras" #tableExtras>
-      <div class="search-input txt-lg-reg-norm" *ngIf="dataToDisplay.length">
+    <div class="primary-bg table-extras" #tableExtras>
+      <div class="search-input txt-lg-reg-norm text-color-white" *ngIf="dataToDisplay.length">
         showing {{ currPageIndex * tableConfig.dispRows + 1 }} to 
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
         of {{ tableConfig.totalRecords }} entries
       </div>
 
 
-      <div class="paginator" *ngIf="pageNumbers.length > 1">
+      <div class="paginator text-color-white" *ngIf="pageNumbers.length > 1">
         <div class="fast-backward pagenumber" (click)="onPageClick(0)">
           <i class="fa fa-fast-backward" aria-hidden="true"></i>
         </div> 
@@ -41,12 +41,12 @@
       </div>
     </div>
 
-    <div class="bg-white headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
+    <div class="primary-bg headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
       <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
       <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
         <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
       </div>
-      <div class="header txt-xl-bld-dark" *ngFor="let header of tableConfig.headers" 
+      <div class="header txt-xl-bld-dark text-color-white" *ngFor="let header of tableConfig.headers" 
         [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
         {{ header.header }}
       </div>
