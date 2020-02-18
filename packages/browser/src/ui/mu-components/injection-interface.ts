@@ -26,19 +26,19 @@ export interface InjectedChild {
   closeFromParent?()        : void
   ngOnDestroy?()            : void
   canGoBack?()              : boolean
+  onBackPressed?()          : void
+
 }
 
 export interface BottomInInterface extends InjectedChild {
   getHalfHeight()     : number
   getTitle()          : string
   getDefaultState?()  : any
-  onBackPressed?()    : void
 }
 
 export interface ModalInterface extends InjectedChild {
   getWidth()          : string
   getCssClassName?()  : string  
   isNotDismissable?() : boolean
-  onBackPressed?()    : void
   isNotScrollable?()  : boolean
 }
