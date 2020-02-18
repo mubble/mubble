@@ -162,7 +162,7 @@ export class FilterComponent {
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) ||
+          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) &&
           (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
           ? changed = false
           : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||

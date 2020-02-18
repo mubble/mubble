@@ -84,9 +84,10 @@ export interface SelectionBoxParams {
 }
 
 export interface ValidatorsParams {
-  allowFutureDate ?: boolean
-  validation      ?: string | RegExp
-  validationError  : string
+  allowFutureDate    ?: boolean
+  rangeInputsReqd    ?: boolean
+  validation         ?: string | RegExp
+  validationError     : string
 }
 
 export enum DISPLAY_MODE {
