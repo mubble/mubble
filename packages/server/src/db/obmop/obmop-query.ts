@@ -12,7 +12,7 @@ import { ObmopBaseEntity }    from './obmop-base'
 import * as lo                from 'lodash'
 
 export type ObmopSeparator = 'AND' | 'OR'
-export type ObmopOperator  = '=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'NOT NULL' | '!='
+export type ObmopOperator  = '=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'NOT NULL' | '!=' | 'IS NULL'
 
 export type ObmopQueryCondition<T extends ObmopBaseEntity> = {
   queryStr : string
@@ -52,6 +52,9 @@ export namespace QueryBuilder {
       
       queryString = upper ? `(UPPER(${key}) ${operator} (${conds.join(', ')}))`
                           : `(${key} ${operator} (${conds.join(', ')}))`
+    } else if(value === undefined) {
+        queryString = upper ? `(UPPER(${key}) ${operator})` 
+                            : `(${key} ${operator})`  
     } else {
       binds.push(value)
       queryString = upper ? `(UPPER(${key}) ${operator} :${c++})` 
