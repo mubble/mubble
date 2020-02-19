@@ -13,7 +13,6 @@ export enum COL_TYPE  {
   IMAGE        = 'IMAGE',
   BUTTON       = 'BUTTON',
   TEXT         = 'TEXT',
-  DATE         = 'DATE',
   EDIT         = 'EDIT',
   TOGGLE       = 'TOGGLE',
   HYPER_LINK   = 'HYPER_LINK',

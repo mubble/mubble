@@ -81,16 +81,12 @@
 
           <div *ngSwitchCase="COL_TYPE.TEXT">
             
-            <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)"> 
+            <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)" class="text-cls"> 
               {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
             </span> 
             <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
               formControlName="{{ header.dataKey }}"
               value="{{ rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}" type="text">
-          </div>
-
-          <div *ngSwitchCase="COL_TYPE.DATE">
-            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
           </div>
           
           <div *ngSwitchCase="COL_TYPE.IMAGE">
