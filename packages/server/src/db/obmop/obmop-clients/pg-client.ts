@@ -168,15 +168,15 @@ export class PostgresClient implements ObmopBaseClient {
 											sequences  ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this),
-														 `Updating ${table} with updates : ${updates} for ${queryKey} : ${queryValue}.`)
+														 `Updating ${table} with updates :`, updates, `for ${queryKey} : ${queryValue}.`)
 
-		const updateKeys = Object.keys(updates),
-					changes    = [] as Array<string>,
-					binds      = [] as Array<any>
+		const keys		= Object.keys(updates),
+					changes = [] as Array<string>,
+					binds   = [] as Array<any>
 
 		let c = 1
 		
-		for(const key of updateKeys) {
+		for(const key of keys) {
 			changes.push(`${key} = $${c++}`)
 			binds.push(updates[key])
 		}
@@ -235,7 +235,7 @@ export class PostgresClient implements ObmopBaseClient {
                            queryString : string, 
                            binds       : Array<any>) : Promise<pg.QueryResult> {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'bindsQuery', queryString, binds)
+    rc.isDebug() && rc.debug(rc.getName(this), 'bindsQuery executing', queryString, binds)
     
     if(!this.initialized) await this.init(rc)
 
@@ -247,7 +247,9 @@ export class PostgresClient implements ObmopBaseClient {
           err ? reject(err)
               : resolve(result)
         })
-      })
+			})
+
+			rc.isDebug() && rc.debug(rc.getName(this), 'bindsQuery executed', queryString, binds)
 
       return result
     } catch(e) {
