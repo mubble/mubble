@@ -96,7 +96,7 @@ export class PostgresClient implements ObmopBaseClient {
 
 		let c = query ? query.binds.length : 0
 
-		const fieldString = fields.map((field) => 'X.' + field).join(', '),
+		const fieldString = fields.join(', '),
 					binds       = query ? query.binds : [] as Array<any>,
 					addQuery    = query ? range ? ` WHERE ${query.queryStr.replace(/:/g, '$')} AND`
 																			: ` WHERE ${query.queryStr.replace(/:/g, '$')}`
@@ -115,7 +115,7 @@ export class PostgresClient implements ObmopBaseClient {
 										+ addQuery
 										+ addRange
 										+ addSort
-										+ `) AS X OFFSET $${++c} ROWS FETCH NEXT $${++c} ROWS ONLY`
+										+ `) AS x OFFSET $${++c} ROWS FETCH NEXT $${++c} ROWS ONLY`
 
 			binds.push(`${offset}`)
 			binds.push(`${limit}`)						 				
