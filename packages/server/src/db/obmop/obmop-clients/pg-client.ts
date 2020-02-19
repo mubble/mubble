@@ -111,8 +111,7 @@ export class PostgresClient implements ObmopBaseClient {
 
 		if(limit !== -1) {
 			queryString = `SELECT ${fieldString}, totcount FROM (`
-										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.*` 
-										+ `FROM ${table} T1`
+										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* FROM ${table} T1`
 										+ addQuery
 										+ addRange
 										+ addSort
