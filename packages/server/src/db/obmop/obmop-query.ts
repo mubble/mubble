@@ -39,8 +39,8 @@ export namespace ObmopQueryBuilder {
     const binds = [] as Array<any>,
           conds = [] as Array<any>
 
-      let queryStr : string,
-          c           : number = 1
+    let queryStr : string,
+        c        : number = 1
 
     if(value instanceof Array) {
       for(const val of value) {

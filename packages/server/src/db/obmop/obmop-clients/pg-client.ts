@@ -22,10 +22,6 @@ import { RunContextServer }  	 	from '../../../rc-server'
 import { DB_ERROR_CODE }        from '../obmop-util'
 import * as pg                  from 'pg'
 import * as stream              from 'stream'
-import { resolve } from 'dns'
-
-const STRING_TYPE 			 = 'string',
-			DATE_FORMAT_STRING = '%yyyy%-%mm%-%dd% %hh%:%nn%:%ss%.%ms%'
 
 /*------------------------------------------------------------------------------
    Postgres Config
@@ -98,13 +94,12 @@ export class PostgresClient implements ObmopBaseClient {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table', table) 
 
-    
 		let c = query ? query.binds.length : 0
 
 		const fieldString = fields.join(', '),
 					binds       = query ? query.binds : [] as Array<any>,
-					addQuery    = query ? range ? ` WHERE ${query.queryStr} AND`
-																			: ` WHERE ${query.queryStr}`
+					addQuery    = query ? range ? ` WHERE ${query.queryStr.replace(':', '$')} AND`
+																			: ` WHERE ${query.queryStr.replace(':', '$')}`
 															: range ? ' WHERE'
 																		  : '',
 					addRange    = range ? ` ${range.key} BETWEEN ${range.low} AND ${range.high}`
@@ -121,7 +116,7 @@ export class PostgresClient implements ObmopBaseClient {
 										+ addQuery
 										+ addRange
 										+ addSort
-										+ `) OFFSET :${++c} ROWS FETCH NEXT :${++c} ROWS ONLY`
+										+ `) OFFSET $${++c} ROWS FETCH NEXT $${++c} ROWS ONLY`
 
 			binds.push(`${offset}`)
 			binds.push(`${limit}`)						 				
@@ -130,7 +125,7 @@ export class PostgresClient implements ObmopBaseClient {
     const result = await this.bindsQuery(rc, queryString, binds)
 
     return {
-      entities : result.rows,
+      entities   : result.rows,
       totalCount : result.rows.length
     }      
   }
@@ -147,7 +142,7 @@ export class PostgresClient implements ObmopBaseClient {
 					binds    = [] as Array<any>
 
 		for(const key of keys) {
-			bindKeys.push(`:${key}`)
+			bindKeys.push(`$${key}`)
 		}			
 
 		if(sequences) {
@@ -189,7 +184,7 @@ export class PostgresClient implements ObmopBaseClient {
 		let c = 1
 		
 		for(const key of updateKeys) {
-			changes.push(`${key} = :${c++}`)
+			changes.push(`${key} = $${c++}`)
 			binds.push(updates[key])
 		}
 
@@ -203,7 +198,7 @@ export class PostgresClient implements ObmopBaseClient {
 
 		const queryString = `UPDATE ${table} `
 												+ `SET ${changes.join(', ')} `
-												+ `WHERE ${queryKey} = :${c}`
+												+ `WHERE ${queryKey} = $${c}`
 
 		binds.push(queryValue)							
 		
@@ -213,7 +208,7 @@ export class PostgresClient implements ObmopBaseClient {
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
 		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValue}.`)
 
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :1`,
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = $1`,
 					binds       = [] as Array<any>
 
 		binds.push(queryValue)			
@@ -230,7 +225,7 @@ export class PostgresClient implements ObmopBaseClient {
 				bindKeys = [] as Array<string>
 				
 		for(const qValue of queryValues) {
-			bindKeys.push(`:${++c}`)
+			bindKeys.push(`$${++c}`)
 			binds.push(qValue)
 		}		
 
