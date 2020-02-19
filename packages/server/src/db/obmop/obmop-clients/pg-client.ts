@@ -98,8 +98,8 @@ export class PostgresClient implements ObmopBaseClient {
 
 		const fieldString = fields.join(', '),
 					binds       = query ? query.binds : [] as Array<any>,
-					addQuery    = query ? range ? ` WHERE ${query.queryStr.replace(':', '$')} AND`
-																			: ` WHERE ${query.queryStr.replace(':', '$')}`
+					addQuery    = query ? range ? ` WHERE ${query.queryStr.replace(/:+/, '$')} AND`
+																			: ` WHERE ${query.queryStr.replace(/:+/, '$')}`
 															: range ? ' WHERE'
 																		  : '',
 					addRange    = range ? ` ${range.key} BETWEEN ${range.low} AND ${range.high}`
