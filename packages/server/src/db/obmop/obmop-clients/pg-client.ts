@@ -141,8 +141,11 @@ export class PostgresClient implements ObmopBaseClient {
 					bindKeys = [] as Array<string>,
 					binds    = [] as Array<any>
 
+		let c = 1
+
 		for(const key of keys) {
-			bindKeys.push(`$${key}`)
+			bindKeys.push(`$${c++}`)
+			binds.push(entity[key])
 		}			
 
 		if(sequences) {
@@ -152,15 +155,6 @@ export class PostgresClient implements ObmopBaseClient {
 			keys.push(...sequenceKeys)
 			bindKeys.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))			
 		}
-
-		const bind : any = {}
-		
-		for(const key in entity) {
-			if(entity.hasOwnProperty(key)) {
-				bind[key] = entity[key]
-			}
-		}
-		binds.push(bind)
 
 		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${bindKeys.join(', ')})`
 
