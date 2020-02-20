@@ -25,7 +25,7 @@
     <div class="single-filter-cont" *ngFor="let fItem of filterItems; let i = index"
       adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
       <div class="input-title txt-lg-bld-dark">
-        {{ fItem.params.label }}
+        {{ fItem.params.label || fItem.title }}
 
         <span class="txt-lg-reg-norm error-text" *ngIf="fItem.params.isRequired">
           {{ 'mu_fltr_rqrd' | translate }}
