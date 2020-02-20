@@ -44,7 +44,6 @@ export type PostgresConfig = {
 export class PostgresClient implements ObmopBaseClient {
 
 	private clientPool  : pg.Pool
-	private db     			: string
 	private initialized : boolean		      = false
 	private pgConfig    : pg.ClientConfig
 
@@ -55,11 +54,10 @@ export class PostgresClient implements ObmopBaseClient {
 		pgConfig.statement_timeout = config.statementTimeout
 
 		this.pgConfig = pgConfig
-		this.db       = config.database
 	}
 
 	public async init(rc : RunContextServer) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing PostgresClient.', this.db)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing PostgresClient.', this.pgConfig)
 
 		this.clientPool = new pg.Pool(this.pgConfig)
 
@@ -74,7 +72,7 @@ export class PostgresClient implements ObmopBaseClient {
 	public async close(rc : RunContextServer) {
 		if(!this.initialized) return
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Closing PostgresClient.', this.db)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Closing PostgresClient.', this.pgConfig)
 
 		await this.clientPool.end()
 		this.initialized = false
