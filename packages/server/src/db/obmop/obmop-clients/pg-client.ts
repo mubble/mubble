@@ -8,10 +8,6 @@
 ------------------------------------------------------------------------------*/
 
 import { 
-				 Mubble,
-				 format
-			 }	               				from '@mubble/core'
-import { 
 				 ObmopBaseClient,
 				 QueryRetval,
          QueryCondition,
@@ -20,6 +16,7 @@ import {
 			 }      									from '../obmop-base'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { DB_ERROR_CODE }        from '../obmop-util'
+import { Mubble }	              from '@mubble/core'
 import * as pg                  from 'pg'
 import * as stream              from 'stream'
 
