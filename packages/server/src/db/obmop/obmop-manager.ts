@@ -30,13 +30,6 @@ export type ObmopQueryRetval<T> = {
 	totalCount : number
 }
 
-export type ObmopCondition<T> = {
-	key 			: keyof T
-	value 		: any
-	operator ?: string
-	upper    ?: boolean
-}
-
 export type ObmopRange<T> = {
 	key  : keyof T
 	low  : any

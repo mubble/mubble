@@ -40,7 +40,6 @@ export interface TableConfig {
   totalRecords      ?: number
   horizFilterParams ?: FilterItem[],
   vertFilterParams  ?: FilterItem[],
-  // eventPropagate    ?: boolean
 }
 
 export interface MuTableRowSelEvent {
@@ -499,14 +498,22 @@ export class MuDataTableComponent implements OnInit {
 
       this.dataMap[this.currPageIndex].splice(rowIndex%this.tableConfig.dispRows, 1)
       this.dataMap[this.currPageIndex].push(this.dataMap[this.currPageIndex + 1][0])
+    } else if(this.tableConfig.totalRecords <= this.tableConfig.dispRows) {
+
+      this.tableConfig.totalRecords--
+      this.dataMap[this.currPageIndex].splice(rowIndex%this.tableConfig.dispRows, 1)
     } else {
 
       this.loadMoreData.emit(this.currPageIndex * this.tableConfig.dispRows)
-    }   
+    }
+    
 
-    this.selectedIndexes = {}
+    if (this.tableConfig.enableSelect) this.selectedIndexes = { }
     const keys = Object.keys(this.dataMap)
     for (const key of keys) if (Number(key) > this.currPageIndex) delete this.dataMap[key]
+
+    this.changeDet.detectChanges()
+
   }
 
 
