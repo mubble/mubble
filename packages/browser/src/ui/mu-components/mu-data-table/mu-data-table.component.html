@@ -82,15 +82,15 @@
           <div *ngSwitchCase="COL_TYPE.TEXT">
             
             <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)"> 
-              {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+              {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
             </span> 
             <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
               formControlName="{{ header.dataKey }}"
-              value="{{ rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}" type="text">
+              value="{{ rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}" type="text">
           </div>
 
           <div *ngSwitchCase="COL_TYPE.DATE">
-            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
           </div>
           
           <div *ngSwitchCase="COL_TYPE.IMAGE">
@@ -99,7 +99,7 @@
 
           <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
             class="click-item text-color-primary">
-            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
           </div>
 
           <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
@@ -160,7 +160,7 @@
     <filter
       [filterItems]="tableConfig.vertFilterParams"
       [displayMode]="DISPLAY_MODE.VERTICAL"
-      [webMode]="false"
+      [webMode]="true"
       [displayCount]="1"
       (selectedFilter)="applyFilter($event)">
     </filter>

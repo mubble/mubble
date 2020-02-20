@@ -29,6 +29,7 @@ export interface TableHeader {
   header        : string
   dataKey       : string
   colType       : COL_TYPE
+  pipeParams   ?: PipeParams
   pipeParmas   ?: PipeParams
   customStyle  ?: string
   constValue   ?: any
@@ -38,8 +39,8 @@ export interface TableHeader {
 }
 
 export interface FilterItem {
-  id      : string
-  title   : string
+  id     ?: string // will be removed in future releases
+  title  ?: string // will be removed in future releases
   params  : InputParams
   mode   ?: FILTER_MODE
 
@@ -85,7 +86,7 @@ export interface SelectionBoxParams {
 
 export interface ValidatorsParams {
   allowFutureDate    ?: boolean
-  rangeInputsReqd    ?: boolean
+  rangeInputsReqd    ?: boolean // will be removed in future releases
   validation         ?: string | RegExp
   validationError     : string
 }

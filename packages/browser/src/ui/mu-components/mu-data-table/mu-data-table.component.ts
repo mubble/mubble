@@ -89,8 +89,6 @@ export class MuDataTableComponent implements OnInit {
   @ViewChild('filterCont',  {static : false}) filterCont : ElementRef
   @ViewChild('muTableCont', {static : false}) muTableCont : ElementRef
 
-
-
   @Input()  tableConfig        : TableConfig
   @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
   @Output() onRowSelect        : EventEmitter<MuTableRowSelEvent>  = new EventEmitter()

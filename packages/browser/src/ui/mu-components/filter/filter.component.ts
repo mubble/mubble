@@ -45,8 +45,8 @@ export interface NumberRangeInterface {
 }
 
 export interface SelectedFilter {
-  id    : string,
-  mode  : FILTER_MODE,
+  id    : string
+  mode  : FILTER_MODE
   value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
 }
 
@@ -115,8 +115,8 @@ export class FilterComponent {
 
   setFilterItems(event : OutputParams) {
 
-    if (event.value) this.filterChips = this.filterChips.concat(event.value)
-    
+    this.setFilterChips(event)
+
     const index = this.filters.findIndex(element => element.id === event.id)
     this.filters[index].value = event.value
   }
@@ -136,11 +136,12 @@ export class FilterComponent {
   private valueChanged() : boolean {
 
     for (const fItem of this.filterItems) {
-      const index = this.filters.findIndex(element => element.id === fItem.id)
+      const index = this.filters.findIndex(element => element.id === fItem.params.id)
       let changed : boolean = false
       
       //checking if the previous filter value has changed or not according to the display type
       switch(fItem.params.displayType) {
+
         case DISPLAY_TYPE.CALENDAR_BOX        :
         case DISPLAY_TYPE.INPUT_BOX           :
         case DISPLAY_TYPE.SELECTION_BOX       :
@@ -180,7 +181,7 @@ export class FilterComponent {
 
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
-        this.filters.push({ id : fItem.id, value : fItem.params.value, mode : fItem.mode })
+        this.filters.push({ id : fItem.params.id, value : fItem.params.value, mode : fItem.mode })
       }
     } else {
       this.filters      = []
@@ -196,19 +197,63 @@ export class FilterComponent {
         fItem.params.value  = setNull
 
         fItems.push({
-          id      : fItem.id,
-          title   : fItem.title,
           params  : fItem.params,
           mode    : fItem.mode
         })
 
-        this.filters.push({ id : fItem.id, value : setNull, mode : fItem.mode })
+        this.filters.push({ id : fItem.params.id, value : setNull, mode : fItem.mode })
         
       }
 
       this.filterItems  = []
       this.filterItems  = fItems
     }
+  }
+
+  private setFilterChips(event : OutputParams) {
+
+    switch(event.displayType) {
+
+      case DISPLAY_TYPE.CALENDAR_BOX  :
+        //Do we need it?
+        break
+
+      case DISPLAY_TYPE.INPUT_BOX     :
+      case DISPLAY_TYPE.ROW_INPUT_BOX :
+        if (event.value) this.filterChips.push(event.value)
+        break
+
+      case DISPLAY_TYPE.MULTI_CHECK_BOX :
+
+        if (event.value) {
+
+          const checkboxValues  = event.value
+
+          checkboxValues.forEach(val => {
+            this.filterChips.push(val.value)
+          })
+
+        }
+
+        break
+
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+        if (event.value) this.filterChips.push(event.value.value)
+        break
+
+      case DISPLAY_TYPE.DATE_RANGE  :
+        //Do we need it?
+        break
+
+      case DISPLAY_TYPE.NUMBER_RANGE  :
+        //Do we need it?
+        break
+
+
+    }
+
   }
 
 }

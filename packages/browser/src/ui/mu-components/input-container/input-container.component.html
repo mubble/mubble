@@ -5,7 +5,7 @@
   [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.sm]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']">
 
-  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
+  <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
     {{ inputParams.label }}
   </div>
 
@@ -229,7 +229,7 @@
     <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
       <div class="input-container">
 
-        <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
+        <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParams.label">
           {{ inputParams.label }}
         </div>
 

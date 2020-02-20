@@ -91,12 +91,11 @@
   flex-direction  : column;
   overflow-y      : auto;
   height          : auto !important;
-  max-height      : 40% ;
 
   .filter-subtitle {
     padding : 4px 6px;
     height  : 10%;
-    max-height: 10%;
+    max-height: 10%; 
   }
 
   .filter-content-body {
@@ -167,7 +166,6 @@
   flex-direction  : column;
   overflow-y      : auto;
   height          : auto !important;
-  max-height      : 40%;
 
   .filter-subtitle {
     padding : 2vw 5vw;
@@ -221,6 +219,8 @@
 
 
 .vertical-mode {
+
+  max-height: 600px !important;
   box-shadow: 0 2px 5px 0 rgba(0,0,0,0.2);
 
  .filter-content-body {
@@ -231,6 +231,8 @@
     flex-direction: column !important;
     padding: 0 10px;
     border-bottom: 1px solid #dedede;
+    width: calc(100% - 20px) !important;
+    align-items: flex-start
   }
 
   .checkbox {
@@ -243,7 +245,7 @@
   }
 
   .button-primary {
-    width: 100% !important;
+    width: calc(100% - 12px);
     height: 1rem;
   }
 
