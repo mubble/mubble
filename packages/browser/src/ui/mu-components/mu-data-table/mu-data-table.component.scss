@@ -17,6 +17,11 @@
 .filter-cont {
 
   display: flex;
+  height: 100%;
+
+  ::-webkit-scrollbar {
+    display: none;
+  }
 
   .mu-table-cont {
     width: 85%;
@@ -29,7 +34,7 @@
 .headers-cont {
   display: flex;
   align-items: center;
-  padding: 10px 10px 10px 0;
+  padding: 10px 10px 10px 0; 
   justify-content: space-between;
   position: sticky;
   border-bottom-width: 1px;

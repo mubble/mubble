@@ -297,6 +297,10 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
     }
   }
 
+  public requestClose() {
+    this.ci.provider.requestClose()
+  }
+
   private async processSysEvent(rc: RunContextBrowser, se: WireSysEvent) {
 
     if (se.name === SYS_EVENT.WS_PROVIDER_CONFIG) {
