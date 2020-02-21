@@ -174,8 +174,8 @@ export interface ObmopBaseClient {
    * @param entities Entities (rows) to be inserted in object form.
    * @param sequences Object containing the information of sequenced fields.
    */
-  mInsert?(rc : RunContextServer, table : string, entities : Array<Mubble.uObject<any>>,
-           sequences ?: Mubble.uObject<string>) : Promise<void>
+  mInsert(rc : RunContextServer, table : string, entities : Array<Mubble.uObject<any>>,
+          sequences ?: Mubble.uObject<string>) : Promise<void>
 
   /**
    * Updates all entries (rows) of the given table for <queryKey> = <queryValue>.

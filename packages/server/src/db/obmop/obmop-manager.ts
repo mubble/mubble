@@ -185,12 +185,7 @@ export class ObmopManager {
 		}
 
 		try {
-
-			if(this.client.mInsert) {
-				await this.client.mInsert(rc, tableName, entitiesArr, sequences)
-			} else {
-				await Promise.all(entitiesArr.map((ent) => this.client.insert(rc, tableName, ent, sequences)))
-			}
+			await this.client.mInsert(rc, tableName, entitiesArr, sequences)
 		} catch(e) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in inserting ${entities} into ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, e)
