@@ -147,10 +147,47 @@ export class PostgresClient implements ObmopBaseClient {
 						sequenceVals : Array<string> = Object.values(sequences)
 
 			keys.push(...sequenceKeys)
-			bindKeys.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))			
+			bindKeys.push(...sequenceVals.map(sequenceName => `NEXTVAL('${sequenceName}')`))			
 		}
 
 		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${bindKeys.join(', ')})`
+
+		await this.bindsQuery(rc, queryString, binds)
+	}
+
+	public async mInsert(rc 				: RunContextServer, 
+											 table 			: string, 
+											 entities 	: Mubble.uObject<any>[],
+											 sequences ?: Mubble.uObject<string>) {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting multiple rows into table ' + table + '.' + entities)
+
+		const binds				 : Array<any> 	 = [],
+					sequenceKeys : Array<string> = sequences ? Object.keys(sequences) : [],
+					sequenceVals : Array<string> = sequences ? Object.values(sequences)
+																													 .map(sequence => `NEXTVAL('${sequence}')`) 
+																									 : [],
+					bindsValues	 : Array<string> = [],
+					keys 				 : Array<string> = Object.keys(entities[0])
+
+		let c = 0
+
+		entities.forEach(entity => {
+			const bindValues = []
+
+			for (const key in entity) {
+				if (entity.hasOwnProperty(key)) {
+					binds.push(entity[key])
+					bindValues.push(`$${++c}`)
+				}
+			}
+
+			sequenceVals.forEach(sequenceVal => bindValues.push(`${sequenceVal}`))
+			bindsValues.push(`(${bindValues.join(', ')})`)
+		})
+
+		const queryString = `INSERT INTO ${table} (${[...keys, ...sequenceKeys].join(', ')})`
+											  + ` VALUES ${bindsValues.join(', ')}`
 
 		await this.bindsQuery(rc, queryString, binds)
 	}
@@ -179,7 +216,7 @@ export class PostgresClient implements ObmopBaseClient {
 		if(sequences) {
 			for(const key in sequences) {
 				if(sequences.hasOwnProperty(key)) {
-					changes.push(`${key} = ${sequences[key]}.NEXTVAL`)
+					changes.push(`${key} = NEXTVAL('${sequences[key]}')`)
 				}
 			}
 		}
