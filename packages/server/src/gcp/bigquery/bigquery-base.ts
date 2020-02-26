@@ -1,37 +1,74 @@
 /*------------------------------------------------------------------------------
-   About      : Initialize google-cloud with the respective credentials
+   About      : Bigquery model decorators
    
-   Created on : Thu Feb 20 2020
+   Created on : Thu Feb 27 2020
    Author     : Siddharth Garg
    
    Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { RunContextServer } from "../../rc-server"
-import { BigQuery }         from '@google-cloud/bigquery'
-import { GcloudEnv }        from "../gcloud-env"
+import { BqRegistryManager }          from "./bigquery-registry"
 
-export class BigQueryBase {
+type UnionKeyToValue<U extends string> = {
+  [K in U]: K
+}
 
-          static _bigQuery   : BigQuery
-  private static initialized : boolean = false
+export namespace BigqueryBase {
+  
+  export type FIELD_TYPE = 'INTEGER' | 'FLOAT' | 'STRING' | 'TIMESTAMP' | 'RECORD'
+  export const FIELD_TYPE :UnionKeyToValue<FIELD_TYPE> = {
+    INTEGER   : 'INTEGER',
+    FLOAT     : 'FLOAT',
+    STRING    : 'STRING',
+    TIMESTAMP : 'TIMESTAMP',
+    RECORD    : 'RECORD'
+  }
 
-  constructor(rc: RunContextServer) {}
+  export type FIELD_MODE = 'NULLABLE' | 'REPEATED'
+  export const FIELD_MODE :UnionKeyToValue<FIELD_MODE> = {
+    NULLABLE : 'NULLABLE',
+    REPEATED : 'REPEATED'
+  }
 
-  public static init(rc : RunContextServer, gcloudEnv : GcloudEnv) {
-
-    if(this.initialized) {
-      rc.isError() && rc.error(rc.getName(this), 'Calling init twice.')
-      throw new Error('Calling init twice.')
+  /**
+   *  Annotation to mark a Bq model.
+   *  Make sure the table name is same as the name of the class in lower case.
+   */
+  export function model(dataset: string, dayPartition : boolean = false, version ?: number) {
+    return function(target: any) {
+      BqRegistryManager.addEntity(dataset, target.name.toLowerCase(), 
+                                  dayPartition, version)
     }
+  }
 
-    gcloudEnv.bigQuery = new BigQuery({ 
-      projectId   : gcloudEnv.projectId, 
-      keyFilename : gcloudEnv.credentialFilePath
-    })
+  /**
+   *  Annotation to mark a Bq model field.
+   */
+  export function field(type : FIELD_TYPE = FIELD_TYPE.STRING,
+                        mode : FIELD_MODE = FIELD_MODE.NULLABLE) {
 
-    this._bigQuery    = gcloudEnv.bigQuery
-    this.initialized  = true
+    return function(target : any , propertyKey : string) {
+      BqRegistryManager.addField(target.constructor.name.toLowerCase(), 
+                                 propertyKey, type, mode)
+    }
+  }
+
+  export function record(mode : FIELD_MODE = FIELD_MODE.NULLABLE) {
+
+    return function(target : any , propertyKey : string) {
+      BqRegistryManager.addRecord(target.constructor.name.toLowerCase(), 
+                                  propertyKey, mode)
+    }                           
+  }
+
+  export function recordField(parent  : string,
+                              type    : FIELD_TYPE = FIELD_TYPE.STRING,
+                              mode    : FIELD_MODE = FIELD_MODE.NULLABLE) {
+
+    return function(target : any , propertyKey : string) {
+      BqRegistryManager.addRecordField(target.constructor.name.toLowerCase(), 
+                                       parent, propertyKey, type, mode)
+    }
   }
 
 }

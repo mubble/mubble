@@ -10,10 +10,14 @@
 import * as lo                        from 'lodash'  
 import { format }                     from '@mubble/core'
 import { RunContextServer }           from '../../rc-server'
-import { BigQueryBase }               from './bigquery-base'
-import { Dataset, Table }                    from '@google-cloud/bigquery'
+import { BigQueryClient }             from './bigquery-client'
+import { Dataset, 
+         Table 
+       }                              from '@google-cloud/bigquery'
+import { BqRegistryManager
+       }                              from './bigquery-registry'
 
-export type table_create_options = {schema : any }
+export type TABLE_CREATE_OPTIONS = {schema : any }
 
 export function CheckUndefined(obj : any , nestingLevel : number = 2) {
   if(nestingLevel === 0) return
@@ -23,35 +27,15 @@ export function CheckUndefined(obj : any , nestingLevel : number = 2) {
   })
 }
 
-export type BigQueryTableOptions = {
-  
-  DATA_STORE_NAME : string ,
-  _tableName      : string ,
-  table_options   : table_create_options ,
-  day_partition   : boolean,
-  version        ?: number 
-}
-
-export function getTableName(rc : RunContextServer , bqTableOptions : BigQueryTableOptions , dayStamp ?: string){
-  
-  const verStr    = bqTableOptions.version ? ('v'+ bqTableOptions.version).replace(/\./gi,'') : '',  //v01
-        tableName = bqTableOptions.day_partition ?
-         `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BigQueryBaseModel.DATE_FORMAT)}`:
-         `${bqTableOptions._tableName}${verStr ? '_' + verStr : ''}`
-
-  return tableName.replace(/\./gi, '_')       
-}
-
 export abstract class BigQueryBaseModel {
 
   public abstract fieldsError(rc : RunContextServer) : string | null
 
   public static DATE_FORMAT = '%yyyy%%mm%%dd%'
   
-  protected static today_table : string
-  protected static options : BigQueryTableOptions
+  protected today_table : string
 
-  public constructor() {}
+  public constructor(rc : RunContextServer) {}
 
   protected copyConstruct(bqItem : any) {
     
@@ -68,30 +52,60 @@ export abstract class BigQueryBaseModel {
     lo.assign(this , bqItemClone)
   }
 
-  public static async tableExists(rc : RunContextServer): Promise<boolean> {
+  getTableName(rc : RunContextServer, dayStamp ?: string) {
+  
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
-    const dataset   : any    = await BigQueryBase._bigQuery.dataset(this.options.DATA_STORE_NAME),
-          tableName : string = getTableName(rc , this.options) ,
+    const verStr    = registry.getVersion() ? ('v'+ registry.getVersion()).replace(/\./gi,'') : '',  //v01
+          tableName = registry.isDayPartition() ?
+           `${registry.getTableName()}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BigQueryBaseModel.DATE_FORMAT)}`:
+           `${registry.getTableName()}${verStr ? '_' + verStr : ''}`
+  
+    return tableName.replace(/\./gi, '_')       
+  }
+
+  public async tableExists(rc : RunContextServer): Promise<boolean> {
+
+    console.log(`Test came to tableExists`);
+    
+
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+
+    const dataset   : any    = await BigQueryClient._bigQuery.dataset(registry.getDataset()),
+          tableName : string = this.getTableName(rc) ,
           table     : any    = dataset.table(tableName),
           tableRes  : any    = await table.exists()
    
     return !!tableRes[0]
   }
 
-  public static async init(rc : RunContextServer) {
+  public getTableOptions(rc : RunContextServer) : TABLE_CREATE_OPTIONS {
+
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+    rc.isAssert() && rc.assert(rc.getName(this), registry.getFields().length > 0, 'Fields are empty')
+
+    return {
+      "schema" : {
+        "fields" : registry.getFields()
+      }
+    }
+  }
+
+  public async init(rc : RunContextServer) {
     
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+
     rc.isDebug() && rc.debug(rc.getName(this), 'init')
     
     rc.isAssert() && rc.assert(rc.getName(this), 
-        !lo.isEmpty(this.options) && 
-        !lo.isEmpty(this.options._tableName) && 
-        !lo.isEmpty(this.options.DATA_STORE_NAME) && 
-        !lo.isEmpty(this.options.table_options) , 'Table properties not set' )
+        !lo.isEmpty(registry.getDataset()) && 
+        !lo.isEmpty(registry.getTableName()) && 
+        !lo.isEmpty(this.getTableOptions(rc)) , 'Table properties not set' )
 
-    const dataset  : Dataset  = await BigQueryBase._bigQuery.dataset(this.options.DATA_STORE_NAME),
+    const dataset  : Dataset  = await BigQueryClient._bigQuery.dataset(registry.getDataset()),
           dsRes    : any      = await dataset.get({autoCreate : true})
     
-    const tableName : string  = getTableName(rc , this.options) ,
+    const tableName : string  = this.getTableName(rc) ,
           table     : Table   = dataset.table(tableName),
           tableRes  : any     = await table.exists()
     
@@ -106,14 +120,14 @@ export abstract class BigQueryBaseModel {
       for(const field of oldFields){
         delete field.description
       }      
-      if(lo.isEqual( oldSchema , this.options.table_options.schema ) ) {
-        rc.isDebug() && rc.debug(rc.getName(this), 'Table [ Version ' + this.options.version + ' ] exists with correct schema')
+      if(lo.isEqual( oldSchema , this.getTableOptions(rc).schema ) ) {
+        rc.isDebug() && rc.debug(rc.getName(this), 'Table [ Version ' + registry.getVersion() + ' ] exists with correct schema')
         return
       }
-      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + this.options.version + ' ] schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
-      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + this.options.version + ' ] schema is changed. new schema ',JSON.stringify(this.options.table_options.schema))
+      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + registry.getVersion() + ' ] schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
+      rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + registry.getVersion() + ' ] schema is changed. new schema ',JSON.stringify(this.getTableOptions(rc).schema))
       
-      throw new Error(this.options._tableName +' Table [ Version ' + this.options.version + ' ] schema changed . Change Version'+this.options + '' + oldSchema)
+      throw new Error(registry.getTableName() +' Table [ Version ' + registry.getVersion() + ' ] schema changed . Change Version'+this.getTableOptions(rc) + '' + oldSchema)
       /*
       // Table schema is changed. Delete the old table and create new
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
@@ -129,33 +143,32 @@ export abstract class BigQueryBaseModel {
     
     rc.isDebug() && rc.debug(rc.getName(this), 'creating the new BQ table', tableName)
     // create new table . First time or after dropping the old schema
-    const res = await dataset.createTable(tableName , this.options.table_options)
+    const res = await dataset.createTable(tableName , this.getTableOptions(rc))
     rc.isDebug && rc.debug(rc.getName(this), 'bigQuery table result', 
         JSON.stringify( res[1].schema) , res[1].timePartitioning)
   }
 
-  public static async getDataStoreTable(rc : RunContextServer , day_timestamp ?: string) {
+  public async getDataStoreTable(rc : RunContextServer , day_timestamp ?: string) {
 
-    const clazz         : any                  = this as any ,
-          options       : BigQueryTableOptions = clazz.options ,
-          dataset       : any                  = BigQueryBase._bigQuery.dataset(options.DATA_STORE_NAME),
-          table_options : table_create_options = options.table_options,
-          tableName     : string               = getTableName(rc , options , day_timestamp) ,
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+
+    const dataset       : Dataset              = BigQueryClient._bigQuery.dataset(registry.getDataset()),
+          tableName     : string               = this.getTableName(rc, day_timestamp) ,
           table         : any                  = dataset.table(tableName)
         
-    if(options.day_partition && clazz.today_table!== tableName){
+    if(registry.isDayPartition() && this.today_table !== tableName){
       // check day partition table exists
       const tableRes : any = await table.exists()
       if(!tableRes[0]){
       // table does not exists. Create it
-      const res = await dataset.createTable(tableName , table_options)
-      rc.isDebug() && rc.debug(rc.getName(this), 'created table ',tableName , '[ Version ' + options.version + ']')
+      const res = await dataset.createTable(tableName , this.getTableOptions(rc))
+      rc.isDebug() && rc.debug(rc.getName(this), 'created table ',tableName , '[ Version ' + registry.getVersion() + ']')
       
       }
-      clazz.today_table = tableName
+      this.today_table = tableName
     }
     
-    rc.isDebug() && rc.debug(rc.getName(this), clazz.name , ' insert data to table',tableName, '[ Version ' + options.version + ']')
+    rc.isDebug() && rc.debug(rc.getName(this), (this as any).name , ' insert data to table',tableName, '[ Version ' + registry.getVersion() + ']')
     return table
   }
 
@@ -193,32 +206,28 @@ export abstract class BigQueryBaseModel {
       query : query,
       useLegacySql: useLegacySql // Use standard SQL syntax for queries.
     }
-    const result = await BigQueryBase._bigQuery.query(options) 
+    const result = await BigQueryClient._bigQuery.query(options) 
     return result
   } 
 
-  static async bulkInsert(rc : RunContextServer , items : BigQueryBaseModel[] , day_timestamp ?: string) {
+  async bulkInsert<T extends BigQueryBaseModel>(rc : RunContextServer, items : T[], day_timestamp ?: string) {
   
-    for(const item of items){
-      // check if all items are instance of this class
-      if(!(item instanceof this)){
-        rc.isError() && rc.error(rc.getName(this), 'item ',item , 'is not an instance of model',this.name)
-        throw new Error('Bulk Insert Failure' + item + this.name)
-      }
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+
+    for(const item of items) {
       // check the fields sanity of all items
       const str=item.fieldsError(rc)
       if(str){
-        rc.isError() && rc.error(rc.getName(this), 'data sanity check failed for item',item , this.name)
-        throw new Error('Data Sanity Failure' + item + this.name)
+        rc.isError() && rc.error(rc.getName(this), 'data sanity check failed for item',item , registry.getTableName())
+        throw new Error('Data Sanity Failure' + item + registry.getTableName())
       }
     }
   
     const  table  : any = await this.getDataStoreTable(rc , day_timestamp)
-    rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert ',this.name , items.length)
+    rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert ',registry.getTableName() , items.length)
     const res  = await table.insert(items)
     rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert Successful')
   }
-
 
   static async listTables(rc : RunContextServer, dsName : string) {
 
@@ -226,7 +235,7 @@ export abstract class BigQueryBaseModel {
           ack     = rc.startTraceSpan(traceId)
 
     try {
-      const dataset = BigQueryBase._bigQuery.dataset(dsName),
+      const dataset = BigQueryClient._bigQuery.dataset(dsName),
             data    = await dataset.getTables()
 
       rc.isDebug() && rc.debug(rc.getName(this), 'Table Listing Success')
@@ -247,7 +256,7 @@ export abstract class BigQueryBaseModel {
           ack     = rc.startTraceSpan(traceId)
 
     try {
-      const dataset = BigQueryBase._bigQuery.dataset(dsName),
+      const dataset = BigQueryClient._bigQuery.dataset(dsName),
             table   = dataset.table(id)
 
       await table.delete()
@@ -260,10 +269,5 @@ export abstract class BigQueryBaseModel {
       rc.endTraceSpan(traceId, ack)
     }
   }
-  
-  
-
-
 
 }
-

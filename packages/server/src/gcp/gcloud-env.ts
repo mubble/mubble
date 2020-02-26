@@ -13,7 +13,7 @@ import {
         RUN_MODE,
        }                            from '../rc-server'
 import {
-        BigQueryBase
+        BigQueryClient
        }                            from '../index'
 import { BigQuery }                 from '@google-cloud/bigquery'
 
@@ -38,6 +38,6 @@ export class GcloudEnv {
   }
 
   private static async initGcpComponents(rc : RunContextServer, gcloudEnv : GcloudEnv) {
-    await BigQueryBase.init(rc, gcloudEnv)
+    await BigQueryClient.init(rc, gcloudEnv)
   }
 }
