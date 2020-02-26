@@ -70,6 +70,7 @@ export enum DISPLAY_TYPE {
   NUMBER_RANGE          = 'NUMBER_RANGE',
   AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
   RADIO                 = 'RADIO',
+  ROW_RADIO             = 'ROW_RADIO',
   TEXT_AREA             = 'TEXT_AREA',
   IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
   TOGGLE                = 'TOGGLE',

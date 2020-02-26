@@ -126,6 +126,16 @@
   .errors-list {
     padding-top: 5px;
   }
+
+  .radio-button {
+    padding-bottom: 10px !important;
+  }
+
+  .radio-group {
+    padding: 5px 0 !important;
+  }
+
+  
 }
 
 .web-view-input-comp {
@@ -160,9 +170,30 @@
   .errors-list {
     padding-top: 5px;
   }
+
+  .radio-button {
+    padding-bottom: 10px !important;
+  }
+
+  .radio-group {
+    padding: 5px 0 !important;
+  }
+
+  .vert-radio-group {
+
+    padding: 8px 0 !important;
+    
+    .radio-button {
+      padding-right: 10px !important;
+    }
+  
+  }
+
+
 }
 
 .vertical-mode {
+
   .radio-group {
     padding: 5px 0 !important;
   }

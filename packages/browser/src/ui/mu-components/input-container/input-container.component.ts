@@ -16,8 +16,6 @@ import { Component,
          EventEmitter,
          ViewChild,
          OnChanges,
-         ViewChildren,
-         QueryList,
          ElementRef
        }                                  from '@angular/core'
 import { FormControl,
@@ -181,10 +179,12 @@ export class InputContainerComponent implements OnChanges {
                   }
         break
 
-      case DISPLAY_TYPE.RADIO :
+      case DISPLAY_TYPE.RADIO     : 
+      case DISPLAY_TYPE.ROW_RADIO :
+
         params  = {
                     id          : this.inputParams.id,
-                    value       : this.inputForm.value ? this.inputForm.value['id'] : null,
+                    value       : this.inputForm.value ? this.inputForm.value : null,
                     displayType : this.inputParams.displayType
                   }
         break
@@ -310,6 +310,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.TEXT_AREA           :
       case DISPLAY_TYPE.MULTI_CHECK_BOX     :
       case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.ROW_RADIO           :
       case DISPLAY_TYPE.TOGGLE              :
       case DISPLAY_TYPE.BUTTON_TOGGLE       :
       case DISPLAY_TYPE.ROW_INPUT_BOX       :
@@ -376,6 +377,8 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.INPUT_BOX     :
       case DISPLAY_TYPE.TEXT_AREA     :
       case DISPLAY_TYPE.RADIO         : 
+      case DISPLAY_TYPE.ROW_RADIO     :
+
       case DISPLAY_TYPE.SELECTION_BOX :
       case DISPLAY_TYPE.TOGGLE        : 
       case DISPLAY_TYPE.MULTI_CHECK_BOX :
