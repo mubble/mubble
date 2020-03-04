@@ -18,12 +18,12 @@ import {
 				 QuerySort
 			 } 														from './obmop-base'
 import { ObmopRegistryManager, 
-				 ObmopFieldInfo 
+				 ObmopFieldInfo, 
+				 ObmopFieldNameMapping
 			 } 														from './obmop-registry'
 import { ObmopQueryCondition }			from './obmop-query'			 
 import { RunContextServer }   			from '../../rc-server'
 import { Mubble } 									from '@mubble/core'
-import * as lo 											from 'lodash'
 
 export type ObmopQueryRetval<T> = {
 	entities   : Array<T>
@@ -78,7 +78,8 @@ export class ObmopManager {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, query, limit,
 														 offset, range, sort)
-
+		
+		if (query) query.queryStr = this.convertQueryFieldNamesToMappings(rc, query.queryStr, fields)
 		try {
 			const records = await this.client.query(rc, tableName, fields.map((f) => f.mapping), query, limit, offset,
 																								 range as QueryRange, sort as QuerySort)
@@ -372,4 +373,22 @@ export class ObmopManager {
 
     return false
 	}
+
+	private convertQueryFieldNamesToMappings(rc 		: RunContextServer, 
+																					 query	: string, 
+																					 fields : Array<ObmopFieldNameMapping>) : string {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'convertQueryFieldNamesToMappings original string', query)
+		
+		let queryWithMappings : string	 = query
+
+		for (const field of fields) {
+			queryWithMappings = queryWithMappings.replace(new RegExp(`[\(](${field.name})`, 'g'), `(${field.mapping}`)
+		}
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'convertQueryFieldNamesToMappings converted string', queryWithMappings)
+
+		return queryWithMappings
+	}
+
 }

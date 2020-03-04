@@ -26,6 +26,11 @@ export type ObmopFieldInfo = {
   sequence ?: string
 }
 
+export type ObmopFieldNameMapping = {
+  name    : string
+  mapping : string
+}
+
 /*------------------------------------------------------------------------------
    Obmop Registry
 ------------------------------------------------------------------------------*/
@@ -94,7 +99,7 @@ export class ObmopRegistry {
     return this.fields.filter((field : ObmopFieldInfo) => field.type != Obmop.FieldType.OPTIONAL)
   }
 
-  getFieldNamesAndMappings() : Array<{name : string, mapping : string}> {
+  getFieldNamesAndMappings() : Array<ObmopFieldNameMapping> {
     return this.fields.map((field : ObmopFieldInfo) => { return { name : field.name, mapping : field.mapping} })
   }
 
