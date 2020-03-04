@@ -7,7 +7,8 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { Query as DsQuery }                       from '@google-cloud/datastore/query'
+import { Query as DsQuery, 
+          QueryResult }                           from '@google-cloud/datastore/query'
 import { DatastoreTransaction as DSTransaction }  from '@google-cloud/datastore/transaction'
 import { Muds,
          DatastoreInt,
@@ -199,6 +200,17 @@ export abstract class MudsIo {
     return new MudsQuery(this.rc, this,
       this.verifyAncestorKeys(this.rc, entityClass, ancestorKeys),
       entityClass)
+  }
+
+  public async getEntityBasedOnKeys(entityInfo : MudsEntityInfo, keys: any) : Promise<QueryResult> {
+    const exec = this.getExec(),
+          internalKeys = []
+
+    for(const key of keys) { 
+      internalKeys.push(this.buildKeyForDs(this.rc, entityInfo.cons, [], key))
+    }
+    const results = (await exec.get(internalKeys))[0] as Object[]
+    return [results, { moreResults : "NO_MORE_RESULTS" }]
   }
 
   private async deleteInternal<T extends MudsBaseEntity>(
@@ -670,7 +682,7 @@ export class MudsTransaction extends MudsIo {
     return await this.doCallback()
   }
 
-  protected getExec(): Datastore | DSTransaction {
+  getExec(): Datastore | DSTransaction {
     return this.transaction
   }
 
