@@ -34,6 +34,7 @@ export abstract class BigQueryBaseModel {
   public static DATE_FORMAT = '%yyyy%%mm%%dd%'
   
   protected today_table : string
+  private options : TABLE_CREATE_OPTIONS
 
   public constructor(rc : RunContextServer) {}
 
@@ -66,9 +67,6 @@ export abstract class BigQueryBaseModel {
 
   public async tableExists(rc : RunContextServer): Promise<boolean> {
 
-    console.log(`Test came to tableExists`);
-    
-
     const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
     const dataset   : any    = await BigQueryClient._bigQuery.dataset(registry.getDataset()),
@@ -81,14 +79,29 @@ export abstract class BigQueryBaseModel {
 
   public getTableOptions(rc : RunContextServer) : TABLE_CREATE_OPTIONS {
 
-    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
-    rc.isAssert() && rc.assert(rc.getName(this), registry.getFields().length > 0, 'Fields are empty')
+    if (!this.options) {
 
-    return {
-      "schema" : {
-        "fields" : registry.getFields()
+      const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+      rc.isAssert() && rc.assert(rc.getName(this), registry.getFields().length > 0, 'Fields are empty')
+  
+      const fields       = registry.getFields().filter((field) => field.parent === undefined),
+            recordFields = registry.getFields().filter((field) => field.parent !== undefined)
+  
+      for (const recField of recordFields) {
+        const parentField = fields.find((fld) => fld.name === recField.parent)
+        if (!parentField!!.fields) parentField!!.fields = []
+        parentField!!.fields.push(recField)
       }
+  
+      this.options = {
+        "schema" : {
+          "fields" : fields
+        }
+      }
+  
     }
+
+    return this.options
   }
 
   public async init(rc : RunContextServer) {

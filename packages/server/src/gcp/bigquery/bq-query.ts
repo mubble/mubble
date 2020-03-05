@@ -9,9 +9,35 @@
 
 import { RunContextServer }   from '../../rc-server'
 import { BigQueryBaseModel }  from './bigquery-base-model'
+import { BqRegistryManager, BqFieldInfo }  from './bigquery-registry'
+
+type UnionKeyToValue<U extends string> = {
+  [K in U]: K
+}
 
 export type BqSeparator = 'AND' | 'OR'
-export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL'
+export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL' | 'BETWEEN'
+
+export type QUERY_FIELD_FUNCTION = 'CONVERT_TO_DATE' | 'ROUND' | 'SUM' | 'DISTINCT' | 'COUNT'
+export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
+  CONVERT_TO_DATE : 'CONVERT_TO_DATE',
+  ROUND           : 'ROUND',
+  SUM             : 'SUM',
+  DISTINCT        : 'DISTINCT',
+  COUNT           : 'COUNT'
+}
+
+export interface QueryField {
+  name       : string
+  functions  : QUERY_FIELD_FUNCTION[]
+  as        ?: string
+}
+
+export interface NestedField {
+  field     : BqFieldInfo
+  functions : QUERY_FIELD_FUNCTION[]
+  as       ?: string
+}
 
 export namespace BqQueryBuilder {
 
@@ -22,31 +48,29 @@ export namespace BqQueryBuilder {
    * @param operator Conditional operator compatible with Bigquery. By default it is '='.
    * @param upper optional for case insensitive search. By default it is false.
    */
-  export function newCondition<T extends BigQueryBaseModel>(rc        : RunContextServer, 
-                                                            key       : keyof T, 
-                                                            value    ?: any, 
-                                                            operator  : BqOperator = '=',
-                                                            upper     : boolean    = false): string {
+  export function newCondition(rc        : RunContextServer, 
+                               key       : string, 
+                               value    ?: any, 
+                               operator  : BqOperator = '='): string {
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Creating new condition.', key, value, operator, upper)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Creating new condition.', key, value, operator)
 
     let queryStr : string,
-        c        : number     = 1,
         conds    : Array<any> = []
 
     if(value instanceof Array) {
+
       for(const val of value) {
-        conds.push(val)
+        conds.push(typeof val === 'string' ? `\'${val}\'` : `${val}`)
       }
       
-      queryStr = upper ? `(UPPER(${key}) ${operator} (${conds.join(', ')}))`
-                       : `(${key} ${operator} (${conds.join(', ')}))`
+      queryStr = operator === 'BETWEEN' ? `(${key} ${operator} ${conds[0]} AND ${conds[1]})` 
+                                        : `(${key} ${operator} (${conds.join(', ')}))`
+ 
     } else if(value === undefined || value === null) {
-        queryStr = upper ? `(UPPER(${key}) ${operator})` 
-                         : `(${key} ${operator})`  
+      queryStr = `(${key} ${operator})`  
     } else {
-      queryStr = upper ? `(UPPER(${key}) ${operator} ${value})` 
-                       : `(${key} ${operator} ${value})`                   
+      queryStr = `(${key} ${operator} ${typeof value === 'string' ? `\'${value}\'` : value})`                   
     }
 
     rc.isDebug() && rc.debug(rc.getName(this), 'newCondition', queryStr)
@@ -59,24 +83,150 @@ export namespace BqQueryBuilder {
    * @param conditions array of ObmopQueryCondition.
    * @param separator separator to join conditions.
    */
-  export function joinConditions<T extends BigQueryBaseModel>(rc          : RunContextServer,
-                                                              conditions  : Array<string>,
-                                                              separator   : BqSeparator) : string {
+  export function joinConditions(rc          : RunContextServer,
+                                 conditions  : Array<string>,
+                                 separator   : BqSeparator) : string {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'joinConditons', conditions, separator)
 
+    if (conditions.length === 0) return ''
     const queryString  = `(${conditions.join(` ${separator} `)})`
     return queryString
   }
 
-  export function query(rc : RunContextServer, tableName: string, 
-                        fields : Array<string>, query ?: string,
-                        orderBy ?: string[], groupBy ?: string[], 
-                        limit ?: number) {
+  export function query(rc          : RunContextServer, 
+                        table       : string, 
+                        fields      : Array<string | QueryField>, 
+                        condition  ?: string,
+                        orderBy    ?: string[], 
+                        groupBy    ?: string[], 
+                        limit      ?: number): string {
 
+    const registry     = BqRegistryManager.getRegistry(table),
+          regFields    = registry.getFields(),
+          nestedFields = {} as any
+    
+    let select = 'SELECT '
+    const from = `FROM \`obopay-chakra-staging.${registry.getDataset()}.${registry.getTableName()}\``
+
+    for (const fld of fields) {
+
+      // Normalizing to QueryField
+      let field : QueryField
+      if (typeof fld !== 'string') {
+        field = fld
+      } else {
+        field = {
+                  name      : fld,
+                  functions : []
+                }
+      }
+
+      const regField = regFields.find((regField) => regField.name === field.name)
+
+      rc.isAssert() && rc.assert(rc.getName(this), regField, `Field ${field.name} does not exist on schema`)
+
+      if (regField!!.parent) {
+        if (!nestedFields[regField!!.parent]) nestedFields[regField!!.parent] = []
+        const nestedField : NestedField = {
+                                            field     : regField!!,
+                                            functions : field.functions || [],
+                                            as        : field.as
+                                          }
+        nestedFields[regField!!.parent].push(nestedField)
+
+      } else {
+        let selectField = field.name
+        for (const func of field.functions) {
+          selectField = BqQueryHelper.applyBqFunction(selectField, func)
+        }
+        select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
+                                             : `${selectField}, `
+      }
+    }
+
+    // For record
+    let unnest = ''
+    for (const key in nestedFields) {
+      unnest += `,UNNEST (${key}) as unnest_${key} ` 
+      for (const nestedField of nestedFields[key]) {
+
+        let selectField = `unnest_${key}.${nestedField.field.name}`
+        for (const func of nestedField.functions) {
+          selectField = BqQueryHelper.applyBqFunction(selectField, func)
+        }
+        select += `${selectField} as ${nestedField.field.as || nestedField.field.name}, `
+      }
+    }
+
+    let retval = `${select} ${from} ${unnest}`
+    if (condition) retval += `WHERE ${condition} `
+    if (groupBy) retval += `GROUP BY ${groupBy} `
+    if (orderBy) retval += `ORDER BY ${orderBy} `
+    if (limit) retval += `LIMIT ${limit}`
+
+    return retval
   }
 
-  export function nestedQuery() {
+  /**
+   * Field names are not checked in schema.  
+   * Does not support UNNEST
+   */
+  export function nestedQuery(rc          : RunContextServer, 
+                              fields      : Array<string | QueryField>,
+                              query       : string,
+                              condition  ?: string,
+                              orderBy    ?: string[], 
+                              groupBy    ?: string[], 
+                              limit      ?: number) {
+
+    let select = 'SELECT '
+    const from = `FROM ( ${query} )`
+
+    for (const fld of fields) {
+
+      // Normalizing to QueryField
+      let field : QueryField
+      if (typeof fld !== 'string') {
+        field = fld
+      } else {
+        field = {
+                  name      : fld,
+                  functions : []
+                }
+      }
+
+      let selectField = field.name
+      for (const func of field.functions) {
+        selectField = BqQueryHelper.applyBqFunction(selectField, func)
+      }
+
+      select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
+                                           : `${selectField}, `
+    }
+    
+    let retval = `${select} ${from} `
+    if (condition) retval += `WHERE ${condition} `
+    if (groupBy) retval += `GROUP BY ${groupBy} `
+    if (orderBy) retval += `ORDER BY ${orderBy} `
+    if (limit) retval += `LIMIT ${limit}`
+
+    return retval
+  }
+
+  class BqQueryHelper {
+
+    static applyBqFunction(field : string, func : QUERY_FIELD_FUNCTION): string {
+
+      switch(func) {
+  
+        case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
+          return `EXTRACT(DATE FROM (${field}))`
+  
+        default :
+          return `${func}(${field})`
+      }
+    }
 
   }
 

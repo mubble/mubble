@@ -61,9 +61,7 @@ export class BigqueryRegistry {
                               `Field ${field.name} has upper case characters in table ${this.tableName}.`)
     }
 
-    const parentField = this.fields.find((fld) => fld.name === field.parent)
-    if (!parentField!!.fields) parentField!!.fields = []
-    parentField!!.fields.push(field)
+    this.fields.push(field)
   }
 
   getFields() : Array<BqFieldInfo> {
