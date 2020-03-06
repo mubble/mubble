@@ -13,7 +13,7 @@ export const LANG_EN_TRANS = {
 
   //Input Container Component
   'mu_inpt_cont_futr_date_err'    : 'Future dates are invalid',
-  'mu_inpt_cont_min_amnt_err'     : 'Provide a minimum amount',
+  'mu_inpt_cont_min_amnt_err'     : 'Minimum amount should be greater than 0',
   'mu_inpt_cont_strt_date_err'    : 'Provide a start date',
   'mu_inpt_cont_end_date_err'     : 'Provide an end date',
   'mu_inpt_cont_date_err'         : 'Start date should not exceed end date',

@@ -13,7 +13,6 @@ export enum COL_TYPE  {
   IMAGE        = 'IMAGE',
   BUTTON       = 'BUTTON',
   TEXT         = 'TEXT',
-  DATE         = 'DATE',
   EDIT         = 'EDIT',
   TOGGLE       = 'TOGGLE',
   HYPER_LINK   = 'HYPER_LINK',
@@ -29,6 +28,7 @@ export interface TableHeader {
   header        : string
   dataKey       : string
   colType       : COL_TYPE
+  pipeParams   ?: PipeParams
   pipeParmas   ?: PipeParams
   customStyle  ?: string
   constValue   ?: any
@@ -38,8 +38,8 @@ export interface TableHeader {
 }
 
 export interface FilterItem {
-  id      : string
-  title   : string
+  id     ?: string // will be removed in future releases
+  title  ?: string // will be removed in future releases
   params  : InputParams
   mode   ?: FILTER_MODE
 
@@ -70,6 +70,7 @@ export enum DISPLAY_TYPE {
   NUMBER_RANGE          = 'NUMBER_RANGE',
   AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
   RADIO                 = 'RADIO',
+  ROW_RADIO             = 'ROW_RADIO',
   TEXT_AREA             = 'TEXT_AREA',
   IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
   TOGGLE                = 'TOGGLE',
@@ -85,7 +86,7 @@ export interface SelectionBoxParams {
 
 export interface ValidatorsParams {
   allowFutureDate    ?: boolean
-  rangeInputsReqd    ?: boolean
+  rangeInputsReqd    ?: boolean // will be removed in future releases
   validation         ?: string | RegExp
   validationError     : string
 }

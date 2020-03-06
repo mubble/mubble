@@ -102,6 +102,7 @@
 }
 
 .web-input-cont-comp {
+
   margin: 10px 20px;
 
   .range-onb-input-box-cont {
@@ -123,11 +124,22 @@
   }
 
   .errors-list {
-    padding-top: 2%;
+    padding-top: 5px;
   }
+
+  .radio-button {
+    padding-bottom: 10px !important;
+  }
+
+  .radio-group {
+    padding: 5px 0 !important;
+  }
+
+  
 }
 
 .web-view-input-comp {
+
   .onb-input-box-cont {
     position: relative;
     display: flex;
@@ -154,9 +166,34 @@
     border: 0;
     background: none;
   }
+
+  .errors-list {
+    padding-top: 5px;
+  }
+
+  .radio-button {
+    padding-bottom: 10px !important;
+  }
+
+  .radio-group {
+    padding: 5px 0 !important;
+  }
+
+  .vert-radio-group {
+
+    padding: 8px 0 !important;
+    
+    .radio-button {
+      padding-right: 10px !important;
+    }
+  
+  }
+
+
 }
 
 .vertical-mode {
+
   .radio-group {
     padding: 5px 0 !important;
   }

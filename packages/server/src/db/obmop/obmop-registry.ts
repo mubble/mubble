@@ -18,6 +18,7 @@ import { Mubble }                 from '@mubble/core'
 
 export type ObmopFieldInfo = {
   name      : string
+  mapping   : string
   type      : Obmop.FieldType
   unique    : boolean
   indexed   : boolean
@@ -25,38 +26,41 @@ export type ObmopFieldInfo = {
   sequence ?: string
 }
 
+export type ObmopFieldNameMapping = {
+  name    : string
+  mapping : string
+}
+
 /*------------------------------------------------------------------------------
    Obmop Registry
 ------------------------------------------------------------------------------*/
 
 export class ObmopRegistry {
-  private tableName  : string
-  private fields     : Array<ObmopFieldInfo> = []
-  private primaryKey : string
+  private tableName         : string
+  private fields            : Array<ObmopFieldInfo> = []
+  private primaryKey        : string
+  private primaryKeyMapping : string
 
   constructor(table : string) {
     this.tableName = table
   }
 
   addField(field : ObmopFieldInfo) {
-    if(field.name != field.name.toLowerCase()) {
-      throw new Mubble.uError(DB_ERROR_CODE,
-                              `Field ${field.name} has upper case characters in table ${this.tableName}.`)
-    }
 
     if(field.type === Obmop.FieldType.PRIMARY) {
       if(this.primaryKey) {
         throw new Mubble.uError(DB_ERROR_CODE, `Trying to add more than one primary key in table ${this.tableName}.`)
       }
 
-      this.primaryKey = field.name
+      this.primaryKey        = field.name
+      this.primaryKeyMapping = field.mapping
     }
 
     this.fields.push(field)
   }
 
-  getPrimaryKey() : string {
-    return this.primaryKey
+  getPrimaryKey() : { name : string, mapping : string } {
+    return { name : this.primaryKey, mapping : this.primaryKeyMapping }
   }
 
   getPrimaryKeyInfo() : ObmopFieldInfo {
@@ -73,6 +77,16 @@ export class ObmopRegistry {
     return this.fields
   }
 
+  getFieldMapping(name : string) : string {
+    const field = this.fields.find((f : ObmopFieldInfo) => f.name === name)
+
+    if(!field) {
+      throw new Mubble.uError(DB_ERROR_CODE, `Field doesnot exsist in table ${this.tableName}.`)
+    }
+
+    return field.mapping
+  }
+
   getSerializedFields() : Array<ObmopFieldInfo> {
     return this.fields.filter((field : ObmopFieldInfo) => field.serial)
   }
@@ -85,12 +99,12 @@ export class ObmopRegistry {
     return this.fields.filter((field : ObmopFieldInfo) => field.type != Obmop.FieldType.OPTIONAL)
   }
 
-  getFieldNames() : Array<string> {
-    return this.fields.map((field : ObmopFieldInfo) => field.name)
+  getFieldNamesAndMappings() : Array<ObmopFieldNameMapping> {
+    return this.fields.map((field : ObmopFieldInfo) => { return { name : field.name, mapping : field.mapping} })
   }
 
   getFieldInfo(field : string) : ObmopFieldInfo {
-    const info = this.fields.find((f : ObmopFieldInfo) => f.name === field)
+    const info = this.fields.find((f : ObmopFieldInfo) => f.mapping === field)
 
     if(!info) {
       throw new Mubble.uError(DB_ERROR_CODE, `Field ${field} doesnot exsist in table ${this.tableName}.`)
@@ -128,6 +142,7 @@ export class ObmopRegistryManager {
     const registry  : ObmopRegistry  = this.getRegistry(entity),
           fieldInfo : ObmopFieldInfo = {
                                          name    : fieldName,
+                                         mapping : fieldName.toLowerCase(),
                                          type    : fieldType,
                                          unique,
                                          indexed,

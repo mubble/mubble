@@ -14,7 +14,6 @@ import { RunContextBrowser } from '@mubble/browser/rc-browser'
  
 export abstract class TrackableScreen  {
   
-  abstract isUserVisited(): boolean
   abstract getRouteName(): string
   
   constructor(protected rc : RunContextBrowser) {

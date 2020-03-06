@@ -8,5 +8,4 @@
 ------------------------------------------------------------------------------*/
 
 export *                      from './gcloud-env'
-export *                      from './bigquery/bigquery-base'
-export *                      from './bigquery/base-bq-model'
+export *                      from './bigquery'

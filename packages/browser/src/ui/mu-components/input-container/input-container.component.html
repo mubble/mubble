@@ -5,7 +5,7 @@
   [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.sm]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']">
 
-  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
+  <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
     {{ inputParams.label }}
   </div>
 
@@ -98,12 +98,28 @@
         class="txt-lg-med-norm input-cont radio-group"
         (change)="selectedOption($event)">
         <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
-          class="txt-lg-med-norm radio-button">
+          class="txt-lg-med-norm radio-button"
+          [checked]="option.selected">
           {{ option.value }}
         </mat-radio-button>
       </mat-radio-group>
 
     </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_RADIO">
+
+      <mat-radio-group [formControl]="inputForm"
+        class="txt-lg-med-norm vert-input-cont vert-radio-group"
+        (change)="selectedOption($event)">
+        <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
+          class="txt-lg-med-norm radio-button"
+          [checked]="option.selected">
+          {{ option.value }}
+        </mat-radio-button>
+      </mat-radio-group>
+
+    </ng-container>
+
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.TOGGLE">
       <mat-slide-toggle class="toggle-cont"
@@ -229,7 +245,7 @@
     <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
       <div class="input-container">
 
-        <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
+        <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParams.label">
           {{ inputParams.label }}
         </div>
 

@@ -237,6 +237,20 @@ export class MudsQuery<T extends MudsBaseEntity> {
     }
   }
 
+  public async runBasedOnMultipleKeys(keys : string[] | number[]) : 
+                                      Promise<MudsQueryResult<T>> {
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), keys.length != 0, 
+      `runBasedOnMultipleKeys keys should not be empty : ${keys}`)
+
+    const dsQuery = this.io.createQuery(this.entityInfo.entityName),
+          res     = await this.io.getEntityBasedOnKeys(this.entityInfo, keys)
+
+    this.result =  new MudsQueryResult(this.rc, this.io, this.entityClass, 
+          dsQuery, keys.length, res, false)
+    return this.result
+  }
+
   public async run(limit: number) {
     const rc = this.rc
     this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query cannot run again')

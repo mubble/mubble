@@ -18,6 +18,10 @@
 
   display: flex;
 
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
   .mu-table-cont {
     width: 85%;
     height: 100%;
@@ -29,7 +33,7 @@
 .headers-cont {
   display: flex;
   align-items: center;
-  padding: 10px 10px 10px 0;
+  padding: 10px 10px 10px 0; 
   justify-content: space-between;
   position: sticky;
   border-bottom-width: 1px;
@@ -180,4 +184,6 @@ input {
   margin-left: 1%;
 }
 
-
+.text-cls {
+  user-select: text;
+}

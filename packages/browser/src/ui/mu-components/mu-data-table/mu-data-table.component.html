@@ -10,15 +10,15 @@
 <div [ngClass]="tableConfig.vertFilterParams ? 'filter-cont' : ''" #filterCont>
   <div  class="mu-table-cont border-light" #muTableCont>
     
-    <div class="bg-white table-extras" #tableExtras>
-      <div class="search-input txt-lg-reg-norm" *ngIf="dataToDisplay.length">
+    <div class="primary-bg table-extras" #tableExtras>
+      <div class="search-input txt-lg-reg-norm text-color-white" *ngIf="dataToDisplay.length">
         showing {{ currPageIndex * tableConfig.dispRows + 1 }} to 
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
         of {{ tableConfig.totalRecords }} entries
       </div>
 
 
-      <div class="paginator" *ngIf="pageNumbers.length > 1">
+      <div class="paginator text-color-white" *ngIf="pageNumbers.length > 1">
         <div class="fast-backward pagenumber" (click)="onPageClick(0)">
           <i class="fa fa-fast-backward" aria-hidden="true"></i>
         </div> 
@@ -41,12 +41,12 @@
       </div>
     </div>
 
-    <div class="bg-white headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height+ 'px'">
+    <div class="primary-bg headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height.toFixed(2)+ 'px'">
       <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
       <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
         <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
       </div>
-      <div class="header txt-xl-bld-dark" *ngFor="let header of tableConfig.headers" 
+      <div class="header txt-xl-bld-dark text-color-white" *ngFor="let header of tableConfig.headers" 
         [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
         {{ header.header }}
       </div>
@@ -81,16 +81,12 @@
 
           <div *ngSwitchCase="COL_TYPE.TEXT">
             
-            <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)"> 
+            <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)" class="text-cls"> 
               {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
             </span> 
             <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
               formControlName="{{ header.dataKey }}"
-              value="{{ rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}" type="text">
-          </div>
-
-          <div *ngSwitchCase="COL_TYPE.DATE">
-            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+              value="{{ rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}" type="text">
           </div>
           
           <div *ngSwitchCase="COL_TYPE.IMAGE">
@@ -99,7 +95,7 @@
 
           <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
             class="click-item text-color-primary">
-            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
           </div>
 
           <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
@@ -160,7 +156,7 @@
     <filter
       [filterItems]="tableConfig.vertFilterParams"
       [displayMode]="DISPLAY_MODE.VERTICAL"
-      [webMode]="false"
+      [webMode]="true"
       [displayCount]="1"
       (selectedFilter)="applyFilter($event)">
     </filter>
