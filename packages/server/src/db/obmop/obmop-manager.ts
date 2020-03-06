@@ -20,8 +20,9 @@ import {
 import { ObmopRegistryManager, 
 				 ObmopFieldInfo 
 			 } 														from './obmop-registry'
+import { ObmopQueryCondition }			from './obmop-query'			 
 import { RunContextServer }   			from '../../rc-server'
-import { Mubble } 								 	from '@mubble/core'
+import { Mubble } 									from '@mubble/core'
 import * as lo 											from 'lodash'
 
 export type ObmopQueryRetval<T> = {
@@ -42,9 +43,14 @@ export type ObmopRange<T> = {
 	high : any
 }
 
+export enum SORT_MODE  {
+	ASC  = 'ASC',
+  DESC = 'DESC'
+}
+
 export type ObmopSort<T> = {
 	key   : keyof T
-	order : string
+	order : SORT_MODE
 }
 
 export class ObmopManager {
@@ -64,74 +70,27 @@ export class ObmopManager {
   }
 
 	/**
-   *  Function to get all rows for an obmop entity.
-   */
-  public async queryAll<T extends ObmopBaseEntity>(rc         : RunContextServer,
-																									 entityType : new(rc : RunContextServer) => T,
-																									 limit			: number = -1,
-																									 offset 		: number = 0,
-																									 range     ?: ObmopRange<T>,
-																									 sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
+	 * Function to fetch all entries/row(S) of given table as per condition
+	 */
+  public async query<T extends ObmopBaseEntity>(
+		rc         : RunContextServer,
+		entityType : new(rc : RunContextServer) => T,
+		query     ?: ObmopQueryCondition<T>,
+		limit      : number = -1,
+		offset     : number = 0,
+		range     ?: ObmopRange<T>,
+		sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
 					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching all data.', tableName)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, query, limit,
+														 offset, range, sort)
 
 		try {
-			const records = await this.client.queryAll(rc, tableName, fields, limit, offset, 
+			const records = await this.client.query(rc, tableName, fields, query, limit, offset,
 																								 range as QueryRange, sort as QuerySort)
 
-
-			const entities = records.entities.map((record) => {
-				const entity = new entityType(rc)
-	
-				Object.assign(entity, record)
-				return entity
-			})
-	
-			const result : ObmopQueryRetval<T> = {
-				entities,
-				totalCount : records.totalCount
-			}
-	
-			return result
-
-		}	catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
-			throw mErr
-		}
-  }
-
-	/**
-   *  Function to get rows for an obmop entity with a specific query.
-	 * 	By default the condition is equals (=).
-   */
-  public async query<T extends ObmopBaseEntity>(rc         : RunContextServer,
-              			 														entityType : new(rc : RunContextServer) => T,
-              			 														key        : keyof T,
-              			 														value      : any,
-																								operator   : string = '=',
-																								limit 		 : number = -1,
-																								offset		 : number = 0,
-																								range     ?: ObmopRange<T>,
-																								sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
-
-		const tableName = new entityType(rc).getTableName(),
-					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
-
-		// TODO : Add checks to query only on indexed fields
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, operator, 
-														 value, range, sort)
-
-		try {
-			const records = await this.client.query(rc, tableName, fields, key as string, value,
-																							operator, limit, offset, range as QueryRange,
-																						  sort as QuerySort)
-
-
 			const entities = records.entities.map((record) => {
 				const entity = new entityType(rc)
 	
@@ -152,105 +111,6 @@ export class ObmopManager {
 		}
 	}
 
-	
-	/**
-   *  Function to get rows for an obmop entity with multiple AND queries.
-	 * 	By default the condition is equals (=).
-   */
-	public async queryAnd<T extends ObmopBaseEntity>(
-														rc 				 : RunContextServer,
-														entityType : new(rc : RunContextServer) => T,
-														conditions : Array<ObmopCondition<T>>,
-														limit			 : number = -1,
-														offset		 : number = 0,
-														range			?: ObmopRange<T>,
-														sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
-
-		const tableName 			 = new entityType(rc).getTableName(),
-					fields    			 = ObmopRegistryManager.getRegistry(tableName).getFieldNames(),
-					clientConditions = conditions.map((cond) => {
-															 if(cond.upper) {
-																 return {
-																	 key 			: `UPPER(${cond.key})`,
-																	 value 		: cond.value,
-																	 operator : cond.operator
-																 }
-															 }
-
-															 return {
-																				 key	 		: cond.key as string,
-																				 value 		: cond.value,
-																				 operator : cond.operator
-																			}
-														 })
-
-		// TODO : Add checks to query only on indexed fields
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, conditions, range, sort)
-
-		try {
-			const records = await this.client.queryAnd(rc, tableName, fields, clientConditions,
-																								 limit, offset, range as QueryRange,
-																								 sort as QuerySort)
-
-			const result : ObmopQueryRetval<T> = {
-				entities   : records.entities.map((record) => {
-																												const entity = new entityType(rc)
-																								
-																												Object.assign(entity, record)
-																												return entity
-																											}),
-				totalCount : records.totalCount
-			}
-	
-			return result
-
-		}	catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
-			throw mErr
-		}
-	}
-
-	public async queryIn<T extends ObmopBaseEntity>(
-													 rc 				: RunContextServer,
-													 entityType : new(rc: RunContextServer) => T,
-													 key 				: keyof T,
-													 values     : Array<any>,
-													 limit 			: number = -1,
-													 offset 		: number = 0,
-													 range     ?: ObmopRange<T>,
-													 sort 		 ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
-
-		const tableName = new entityType(rc).getTableName(),
-					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNames()
-							
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, key, 
-														 values, range, sort)
-		
-		try {
-			const records = await this.client.queryIn(rc, tableName, fields, key as string,
-																								values, limit, offset, range as QueryRange,
-																							  sort as QuerySort)
-
-			const result : ObmopQueryRetval<T> = {
-				entities : records.entities.map((record) => {
-																											const entity = new entityType(rc)
-
-																											Object.assign(entity, record)
-																											return entity
-																										}),
-				totalCount : records.totalCount
-			}			
-			
-			return result
-
-		} catch(err) {
-			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
-			throw mErr
-		}
-	}
 	/**
    *  Function to insert a row of an obmop entity.
    */

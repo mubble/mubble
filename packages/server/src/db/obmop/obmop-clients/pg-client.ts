@@ -13,12 +13,16 @@ import {
 			 }	               				from '@mubble/core'
 import { 
 				 ObmopBaseClient,
-				 QueryRetval
+				 QueryRetval,
+         QueryCondition,
+         QueryRange,
+         QuerySort
 			 }      									from '../obmop-base'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { DB_ERROR_CODE }        from '../obmop-util'
 import * as pg                  from 'pg'
 import * as stream              from 'stream'
+import { resolve } from 'dns'
 
 const STRING_TYPE 			 = 'string',
 			DATE_FORMAT_STRING = '%yyyy%-%mm%-%dd% %hh%:%nn%:%ss%.%ms%'
@@ -82,160 +86,187 @@ export class PostgresClient implements ObmopBaseClient {
 		await this.clientPool.end()
 		this.initialized = false
 	}
+  
+  public async query(rc      : RunContextServer,
+                     table   : string,
+                     fields  : Array<string>,
+                     query  ?: QueryCondition,
+                     limit   : number = -1,
+                     offset  : number = 0,
+                     range  ?: QueryRange,
+                     sort   ?: QuerySort) : Promise<QueryRetval> {  
 
-	public async queryAll(rc : RunContextServer, table : string, fields : Array<string>) : Promise<QueryRetval> {
-		
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.')
+    rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table', table) 
 
-		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table}`,
-					result      = await this.queryInternal(rc, queryString)
-
-		return { entities : result.rows, totalCount : result.rows.length }
-	}
-
-	public async query(rc       : RunContextServer,
-										 table    : string,
-										 fields   : Array<string>,
-										 key      : string,
-										 value    : any,
-										 operator : string = '=') : Promise<QueryRetval> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition :',
-														 key, operator, value)
+    
+		let c = query ? query.binds.length : 0
 
 		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${this.getConditionString(key, value, operator)}`,
-					result      = await this.queryInternal(rc, queryString)
+					binds       = query ? query.binds : [] as Array<any>,
+					addQuery    = query ? range ? ` WHERE ${query.queryStr} AND`
+																			: ` WHERE ${query.queryStr}`
+															: range ? ' WHERE'
+																		  : '',
+					addRange    = range ? ` ${range.key} BETWEEN ${range.low} AND ${range.high}`
+														  : '',
+					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
+														 : ''
 
-		return { entities : result.rows, totalCount : result.rows.length }
-	}
+		let queryString = `SELECT ${fieldString} FROM ${table}` + addQuery + addRange + addSort		
 
-	public async queryIn(rc 	  : RunContextServer,
-											 table 	: string,
-											 fields : Array<string>,
-											 key 		: string,
-											 values : Array<any>) : Promise<QueryRetval> {
+		if(limit !== -1) {
+			queryString = `SELECT ${fieldString}, totcount FROM (`
+										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.*` 
+										+ `FROM ${table} T1`
+										+ addQuery
+										+ addRange
+										+ addSort
+										+ `) OFFSET :${++c} ROWS FETCH NEXT :${++c} ROWS ONLY`
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :',
-														 key, values)
+			binds.push(`${offset}`)
+			binds.push(`${limit}`)						 				
+		}
+    
+    const result = await this.bindsQuery(rc, queryString, binds)
 
-		const fieldString = fields.join(', '),
-					queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN `
-												+ `(${values.map((val) => this.getStringValue(val)).join(', ')})`,
-					result      = await this.queryInternal(rc, queryString)
+    return {
+      entities : result.rows,
+      totalCount : result.rows.length
+    }      
+  }
 
-		return { entities : result.rows, totalCount : result.rows.length }
-
-	}
-
-	public async queryAnd(rc 				 : RunContextServer,
-												table 		 : string,
-												fields     : Array<string>,
-												conditions : Array<{key : string, value : any, operator ?: string}>) : Promise<QueryRetval> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :', conditions)
-
-		const fieldString      = fields.join(', '),
-					conditionStrings = conditions.map((condition) =>
-															 this.getConditionString(condition.key, condition.value, condition.operator)),
-					condition        = conditionStrings.join(' AND '),
-					queryString      = `SELECT ${fieldString} FROM ${table} WHERE ${condition}`,
-					result      		 = await this.queryInternal(rc, queryString)
-
-		return { entities : result.rows, totalCount : result.rows.length }
-	}
-
-	public async insert(rc : RunContextServer, table : string, entity : Mubble.uObject<any>) {
+	public async insert(rc 				 : RunContextServer, 
+											table 		 : string, 
+											entity 		 : Mubble.uObject<any>,
+											sequences ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Inserting into table, ' + table + '.', entity)
 
-		const keys        = Object.keys(entity),
-					values      = Object.values(entity),
-					keysStr     = keys.join(', '),
-					valuesStr   = (values.map((value) => this.getStringValue(value))).join(', '),
-					queryString = `INSERT INTO ${table} (${keysStr}) VALUES (${valuesStr})`
+		const keys     = Object.keys(entity),
+					bindKeys = [] as Array<string>,
+					binds    = [] as Array<any>
 
-		await this.queryInternal(rc, queryString)
+		for(const key of keys) {
+			bindKeys.push(`:${key}`)
+		}			
+
+		if(sequences) {
+			const sequenceKeys : Array<string> = Object.keys(sequences),
+						sequenceVals : Array<string> = Object.values(sequences)
+
+			keys.push(...sequenceKeys)
+			bindKeys.push(...sequenceVals.map(sequenceName => `${sequenceName}.NEXTVAL`))			
+		}
+
+		const bind : any = {}
+		
+		for(const key in entity) {
+			if(entity.hasOwnProperty(key)) {
+				bind[key] = entity[key]
+			}
+		}
+		binds.push(bind)
+
+		const queryString = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${bindKeys.join(', ')})`
+
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
-	public async update(rc 				 : RunContextServer,
-											table 		 : string,
-											updates    : Mubble.uObject<any>,
-											queryKey   : string,
-											queryValue : any) {
+	public async update(rc 				  : RunContextServer,
+											table 		  : string,
+											updates     : Mubble.uObject<any>,
+											queryKey    : string,
+											queryValue  : any,
+											sequences  ?: Mubble.uObject<string>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this),
 														 `Updating ${table} with updates : ${updates} for ${queryKey} : ${queryValue}.`)
 
 		const updateKeys = Object.keys(updates),
-					changes    = [] as Array<string>
+					changes    = [] as Array<string>,
+					binds      = [] as Array<any>
 
+		let c = 1
+		
 		for(const key of updateKeys) {
-			changes.push(`${key} = ${this.getStringValue(updates[key])}`)
+			changes.push(`${key} = :${c++}`)
+			binds.push(updates[key])
+		}
+
+		if(sequences) {
+			for(const key in sequences) {
+				if(sequences.hasOwnProperty(key)) {
+					changes.push(`${key} = ${sequences[key]}.NEXTVAL`)
+				}
+			}
 		}
 
 		const queryString = `UPDATE ${table} `
 												+ `SET ${changes.join(', ')} `
-												+ `WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+												+ `WHERE ${queryKey} = :${c}`
 
-		await this.queryInternal(rc, queryString)
+		binds.push(queryValue)							
+		
+		await this.bindsQuery(rc, queryString, binds)
 	}
 
 	public async delete(rc : RunContextServer, table : string, queryKey : string, queryValue : any) {
 		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValue}.`)
 
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = ${this.getStringValue(queryValue)}`
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = :1`,
+					binds       = [] as Array<any>
 
-		await this.queryInternal(rc, queryString)
+		binds.push(queryValue)			
+
+		await this.bindsQuery(rc, queryString, binds)
   }
 
   public async mDelete(rc : RunContextServer, table : string, queryKey : string, queryValues : Array<any>) {
-    rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValues}.`)
+		rc.isDebug() && rc.debug(rc.getName(this), `Deleting from ${table}, ${queryKey} : ${queryValues}.`)
+		
+		const binds = [] as Array<any>
 
-		const queryString = `DELETE FROM ${table} WHERE ${queryKey} = `
-												+ `(${queryValues.map((qv) => this.getStringValue(qv)).join(', ')})`
+		let c 			 = 0,
+				bindKeys = [] as Array<string>
+				
+		for(const qValue of queryValues) {
+			bindKeys.push(`:${++c}`)
+			binds.push(qValue)
+		}		
 
-    await this.queryInternal(rc, queryString)
-  }
+		const queryString = `DELETE FROM ${table} WHERE ${queryKey} IN (${bindKeys.join(', ')})`
+
+		await this.bindsQuery(rc, queryString, binds)
+	}
 
 /*------------------------------------------------------------------------------
 	 PRIVATE METHODS
 ------------------------------------------------------------------------------*/
-	
-	private async queryInternal(rc : RunContextServer, queryString : string) : Promise<pg.QueryResult> {
-		rc.isDebug() && rc.debug(rc.getName(this), 'queryInternal', queryString)
+  
+  private async bindsQuery(rc          : RunContextServer, 
+                           queryString : string, 
+                           binds       : Array<any>) : Promise<pg.QueryResult> {
 
-		if(!this.initialized) await this.init(rc)
+    rc.isDebug() && rc.debug(rc.getName(this), 'bindsQuery', queryString, binds)
+    
+    if(!this.initialized) await this.init(rc)
 
-		const client : pg.PoolClient = await this.clientPool.connect()
+    const client : pg.PoolClient = await this.clientPool.connect()
 
-		try {
-			const result = await new Promise<pg.QueryResult>((resolve, reject) => {
-				client.query(queryString, (err : Error, result : pg.QueryResult) => {
-					err ? reject(err)
-							: resolve(result)
-				})
-			})
-			
-			return result
-		} catch(e) {
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
-			throw new Mubble.uError(DB_ERROR_CODE, e.message)
-		} finally {
-			client.release()
-		}
-	}
+    try {
+      const result = await new Promise<pg.QueryResult>((resolve, reject) => {
+        client.query(queryString, binds, (err : Error, result : pg.QueryResult) => {
+          err ? reject(err)
+              : resolve(result)
+        })
+      })
 
-	private getStringValue(value : any) : string {
-		if(value instanceof Date) {
-			return `'${format(value, DATE_FORMAT_STRING)}'`
-		}
-
-		return `${typeof(value) == STRING_TYPE ? '\'' + value + '\'' : value}`
-	}
-
-	private getConditionString(key : string, value : any, operator : string = '=') : string {
-		return `${key} ${operator} ${this.getStringValue(value)}`
+      return result
+    } catch(e) {
+      rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, binds, e)
+      throw new Mubble.uError(DB_ERROR_CODE, e.message)
+    } finally {
+      client.release()
+    }
 	}
 }

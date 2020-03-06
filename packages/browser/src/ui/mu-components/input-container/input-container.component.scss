@@ -4,7 +4,7 @@
   align-items: center;
   border-width: 2px;
   border-style: solid;
-  margin: 2% 0;
+  margin: 2% 0 0;
 }
 
 .button-toggle {
@@ -59,7 +59,6 @@
   align-items: center;
   border-width: 2px;
   border-style: solid;
-  margin: 2% 0;
   width: 46%
 }
 
@@ -99,6 +98,7 @@
 .errors-list {
   display: flex;
   flex-direction: column;
+  padding-top: 1vw;
 }
 
 .web-input-cont-comp {
@@ -120,6 +120,10 @@
     padding: 15px;
     border: 0;
     background: none;
+  }
+
+  .errors-list {
+    padding-top: 2%;
   }
 }
 

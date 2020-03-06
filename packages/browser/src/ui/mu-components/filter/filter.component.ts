@@ -12,7 +12,6 @@
 import { InputContainerComponent,
          OutputParams
        }                              from '..'
-import { Moment }                     from 'moment'
 import { Component,
          ViewChildren,
          QueryList,
@@ -37,8 +36,8 @@ enum CONTEXT {
 }
 
 export interface DateRangeInterface { 
-  startDate  : Moment
-  endDate   ?: Moment
+  startDate  : number
+  endDate   ?: number
 }
 
 export interface NumberRangeInterface {
@@ -49,7 +48,7 @@ export interface NumberRangeInterface {
 export interface SelectedFilter {
   id    : string,
   mode  : FILTER_MODE,
-  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
+  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
 }
 
 @Component({
@@ -95,7 +94,7 @@ export class FilterComponent {
     })
 
     if (this.hasError()) return
-    
+
     if (!this.valueChanged()) {      
       this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
@@ -117,7 +116,7 @@ export class FilterComponent {
   }
 
   setFilterItems(event : OutputParams) {
-    
+
     if (event.value) this.filterChips = this.filterChips.concat(event.value)
     
     const index = this.filters.findIndex(element => element.id === event.id)
@@ -142,7 +141,7 @@ export class FilterComponent {
       const index = this.filters.findIndex(element => element.id === fItem.id)
       let changed : boolean = false
       
-      //checking changed value according to the display type
+      //checking if the previous filter value has changed or not according to the display type
       switch(fItem.params.displayType) {
         case DISPLAY_TYPE.CALENDAR_BOX        :
         case DISPLAY_TYPE.INPUT_BOX           :
@@ -157,7 +156,7 @@ export class FilterComponent {
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
-          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) ||
+          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) &&
           (!fItem.params.value['endDate'] && !this.filters[index].value['endDate']))
           ? changed = false
           : changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
@@ -165,7 +164,7 @@ export class FilterComponent {
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) ||
+          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) &&
           (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
           ? changed = false
           : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
