@@ -1,5 +1,5 @@
 /*------------------------------------------------------------------------------
-   About      : Replacement of input-container
+   About      : Replacement of input-container. Ranges are not handled as of now
    
    Created on : Fri Mar 06 2020
    Author     : Aditya Baddur
@@ -15,7 +15,10 @@ import { Component,
          EventEmitter,
          ViewChild,
          OnChanges,
-         ElementRef
+         ElementRef,
+         ViewChildren,
+         QueryList,
+         ChangeDetectorRef
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -31,8 +34,7 @@ import { MatSelectChange,
          MatRadioChange,
          MatCheckboxChange,
          MatSlideToggleChange,
-         MatButtonToggleChange,
-         MatSelect
+         MatButtonToggleChange
        }                                  from '@angular/material'
 import { InputValidator }                 from '../input-container/input-validator'
 import { Observable }                     from 'rxjs'
@@ -62,7 +64,7 @@ export class FormContainerComponent implements OnChanges {
 
   @ViewChild(MatDatepicker, { static: false }) picker             : MatDatepicker<any>
   @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
-  @ViewChild(MatSelect, { static : false}) matSelect              : MatSelect
+  @ViewChildren('inputCont') inputCont                            : QueryList<ElementRef>
 
   @Input()  formParams      : FormParams
   @Input()  screen          : TrackableScreen
@@ -83,10 +85,12 @@ export class FormContainerComponent implements OnChanges {
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
 
+  inputContainers : ElementRef[]
   private fileUploadParams : UploadedDocParams
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
-              private formBuilder                 : FormBuilder) { 
+              private formBuilder                 : FormBuilder,
+              private changeRef                   : ChangeDetectorRef) { 
 
     this.inputForm  = this.formBuilder.group({}) 
     
@@ -98,6 +102,11 @@ export class FormContainerComponent implements OnChanges {
 
   ngOnInit() {
     this.initialize()      
+  }
+
+  ngAfterViewInit() {
+    this.inputContainers  = this.inputCont.toArray().map(val => val.nativeElement)
+    this.changeRef.detectChanges()
   }
 
   /*=====================================================================
