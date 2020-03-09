@@ -23,6 +23,7 @@ export *                      from './master'
 export *                      from './vision'
 export *                      from './storage'
 export *                      from './gcp'
+export *                      from './sms'
 
 /* TODO:
 
