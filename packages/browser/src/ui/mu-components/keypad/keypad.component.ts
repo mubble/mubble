@@ -38,7 +38,6 @@ export class KeypadComponent {
   constructor(@Inject('RunContext') public rc : RunContextApp) { }
 
   ngOnInit() {
-    console.log(this.mode)
     if(!this.mode) this.mode = KEYBOARD_MODE.NORMAL
   }
 
