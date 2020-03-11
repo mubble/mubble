@@ -17,7 +17,6 @@ import { RunContextServer }     from '../rc-server'
 import * as http                from 'http'
 import * as https               from 'https'
 import * as winston             from 'winston'
-import * as path                from 'path'
 import * as url                 from 'url'
 import * as stream              from 'stream'
 import * as zlib                from 'zlib'
@@ -44,7 +43,7 @@ export type LogResult = {
   url               : string
   requestTimeoutTs  : number
   requestHeaders   ?: Mubble.uObject<any>
-  payLoad           : string
+  payload           : string
 
   timeTakenMs       : number
 
@@ -100,7 +99,9 @@ export class HttpsRequest {
 
   constructor(rc : RunContextServer, logBaseDir : string, private hostname : string) {
 
-    this.logPath = logBaseDir ? logBaseDir as string : path.join(process.cwd(), 'log')
+    rc.isDebug() && rc.debug(rc.getName(this), 'Constructing HttpsRequest.')
+
+    this.logPath = logBaseDir
 
     this.hostname = hostname.replace('.', '-')
     this.createLogger(this.hostname)
@@ -321,9 +322,10 @@ export class HttpsRequest {
 
     return logResults
   }
-  /*---------------------------------------------------------------------------------
-                                  PRIVATE FUNCTIONS
-  -----------------------------------------------------------------------------------*/        
+
+/*------------------------------------------------------------------------------
+                          PRIVATE FUNCTIONS
+------------------------------------------------------------------------------*/        
   
   private createLogger(hostname : string) {
 
@@ -361,7 +363,7 @@ export class HttpsRequest {
       url               : requestLogData.requestObj.url,
       requestTimeoutTs  : requestLogData.requestObj.options.timeout || DEFAULT_TIMEOUT_MS,
       requestHeaders    : requestLogData.requestObj.options.headers,
-      payLoad           : requestLogData.requestObj.data,
+      payload           : requestLogData.requestObj.data,
       timeTakenMs       : 0
     }
 
