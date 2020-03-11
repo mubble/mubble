@@ -22,6 +22,7 @@ import * as stream              from 'stream'
 import * as zlib                from 'zlib'
 import * as DailyRotateFile     from 'winston-daily-rotate-file'
 import * as lo                  from 'lodash'
+import * as path                from 'path'
 import * as fs                  from 'fs'
 
 const STRING_TYPE        = 'string',
@@ -232,7 +233,8 @@ export class HttpsRequest {
 
     const date         : string                  = format(dateTs, '%yyyy%-%mm%-%dd%'),
           rowsArr      : Array<LogData>          = [],
-          data         : string                  = fs.readFileSync(`./log/third-party/${this.hostname.replace('.', '-')}-${date}.log`).toString(),
+          filePath     : string                  = path.join(this.logPath, `${this.hostname}-${date}.log`),
+          data         : string                  = fs.readFileSync(filePath).toString(),
           linesArr     : Array<string>           = data.split('\n'),
           requestIdMap : Mubble.uObject<boolean> = {}
 
