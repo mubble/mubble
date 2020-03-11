@@ -46,13 +46,9 @@ import { DISPLAY_TYPE,
          DISPLAY_MODE,
          InputParams,
          SelectionBoxParams
-       }                                  from '@mubble/core/interfaces/app-server-interfaces'
+       }                                  from '@mubble/core'
+import { OutputParams }                   from '../cmn-inp-cont/cmn-inp-cont-interfaces'
 
-export interface OutputParams {
-  id          : string
-  value       : any
-  displayType : DISPLAY_TYPE
-}
 
 @Component({
   selector    : 'input-container',

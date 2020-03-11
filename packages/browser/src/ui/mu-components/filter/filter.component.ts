@@ -9,9 +9,7 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { InputContainerComponent,
-         OutputParams
-       }                              from '..'
+import { InputContainerComponent }    from '..'
 import { Component,
          ViewChildren,
          QueryList,
@@ -29,6 +27,7 @@ import { DISPLAY_TYPE,
          FILTER_MODE,
          InputParams
        }                              from '@mubble/core'
+import { OutputParams }               from '../cmn-inp-cont'
 
 enum CONTEXT {
   INIT,

@@ -61,6 +61,16 @@ export interface InputParams {
   image           ?: FilterImage
 }
 
+export interface FomrValidation {
+  validation  : any[]
+  errorMsg    : string
+}
+
+export interface FormParams {
+  inputParams     : InputParams[]
+  formValidators  : FomrValidation
+}
+
 export enum DISPLAY_TYPE {
   ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
   INPUT_BOX             = 'INPUT_BOX',

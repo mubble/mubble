@@ -25,7 +25,6 @@
 }
 
 .key {
-  width           : 33.33vw;
   padding         : 1vh 0;
   @extend .flex-center;
 
@@ -41,4 +40,16 @@
   display         : flex;
   align-items     : center;
   justify-content : center;
+}
+
+.key-normal {
+  width : 33.33vw !important;
+}
+
+.key-dot {
+  width : 28vw;
+}
+
+.key-ok, .key-empty {
+  width           : 16vw !important;
 }
