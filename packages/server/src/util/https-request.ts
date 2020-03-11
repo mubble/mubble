@@ -105,7 +105,7 @@ export class HttpsRequest {
     this.logPath = logBaseDir
 
     this.hostname = hostname.replace('.', '-')
-    this.createLogger(this.hostname)
+    this.createLogger()
   }
 
   async executeHttpRequest(rc       : RunContextServer,
@@ -329,7 +329,7 @@ export class HttpsRequest {
                           PRIVATE FUNCTIONS
 ------------------------------------------------------------------------------*/        
   
-  private createLogger(hostname : string) {
+  private createLogger() {
 
     const logFormat = winston.format.combine(
                         winston.format.timestamp({ format : 'DD/MM/YYYY HH:mm:ss.SSS' }),
@@ -338,7 +338,7 @@ export class HttpsRequest {
                       ),
           transport = new DailyRotateFile({
                         dirname     : this.logPath,
-                        filename    : `${hostname}-%DATE%.log`,
+                        filename    : `${this.hostname}-%DATE%.log`,
                         datePattern : 'YYYY-MM-DD',
                         level       : 'info',
                         json        : true
