@@ -12,7 +12,7 @@ import { ObmopBaseEntity }    from './obmop-base'
 import * as lo                from 'lodash'
 
 export type ObmopSeparator = 'AND' | 'OR'
-export type ObmopOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL'
+export type ObmopOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'IS NULL' | 'IS NOT NULL'
 
 export type ObmopQueryCondition<T extends ObmopBaseEntity> = {
   queryStr : string
