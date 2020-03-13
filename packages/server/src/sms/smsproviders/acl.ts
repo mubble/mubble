@@ -10,14 +10,15 @@
 import {
 				 AclCredentials,
 				 SmsProviderClient,
-				 SmsSendResponse
+				 SmsSendResponse,
+				 SMS_LOG_DIR
 			 }																	from '../sms-interfaces'
 import { RunContextServer }								from '../../rc-server'
 import { ActiveUserRequest }							from '../request'
-import { executeHttpsRequestWithOptions }	from '../../util'
+import { HttpsRequest }										from '../../util'
 import { HTTP } 													from '@mubble/core'
 import { UrlObject } 											from 'url'
-import { RequestOptions }									from 'http'
+import * as http													from 'http'
 
 export class Acl extends SmsProviderClient {
 
@@ -33,28 +34,31 @@ export class Acl extends SmsProviderClient {
 
 		if(mobileNo.includes('+91')) mobileNo = mobileNo.substring(3, 13)
 
-		const urlObj : UrlObject = {
-			protocol : aclKeys.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
-			hostname : aclKeys.host,
-			port	   : aclKeys.port,
-			pathname : aclKeys.path,
-			query    : {
-				enterpriseId    : aclKeys.enterpriseId,
-				subEnterpriseId : aclKeys.subEnterpriseId,
-				pusheid         : aclKeys.pushId,
-				pushepwd        : aclKeys.pushpwd,
-				sender          : aclKeys.sender,
-				msisdn          : mobileNo,
-				msgtext         : message
-			}
-		}
 
-		const options : RequestOptions = urlObj
-		options.method = HTTP.Method.GET
+		const https = new HttpsRequest(rc, SMS_LOG_DIR, aclKeys.host),
+					urlObj : UrlObject = {
+						protocol : aclKeys.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+						hostname : aclKeys.host,
+						port	   : aclKeys.port,
+						pathname : aclKeys.path,
+						query    : {
+							enterpriseId    : aclKeys.enterpriseId,
+							subEnterpriseId : aclKeys.subEnterpriseId,
+							pusheid         : aclKeys.pushId,
+							pushepwd        : aclKeys.pushpwd,
+							sender          : aclKeys.sender,
+							msisdn          : mobileNo,
+							msgtext         : message
+						}
+					}
+
+		const options : http.RequestOptions = urlObj
+		options.method  = HTTP.Method.GET
+		options.headers = {[HTTP.HeaderKey.contentType] : HTTP.HeaderValue.json}
 
 		rc.isStatus() && rc.status(rc.getName(this), 'RequestOptions : ', options)
 
-		const resp = await executeHttpsRequestWithOptions(rc, urlObj, options)
+		const resp = await https.executeRequest(rc, urlObj, options)
 
 		// if(resp.error) return {success : false, gwTranId : resp.data}
 		return {success : true, gwTranId : resp.response}

@@ -11,6 +11,8 @@ import { ActiveUserRequest }	from './request'
 import { RunContextServer }		from '../rc-server'
 import { Mubble }							from '@mubble/core'
 
+export const SMS_LOG_DIR = '../sms-logs'
+
 export interface SendSmsResponse {
 	isIndianNumber           : boolean       // Is the mobile number from India?
 	smsSent                  : boolean       // Did provider send the sms?
