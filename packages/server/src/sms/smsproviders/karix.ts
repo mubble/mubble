@@ -10,7 +10,8 @@
 import { 
          SmsProviderClient,
          SmsSendResponse,
-         KarixCredentials
+         KarixCredentials,
+				 SMS_LOG_DIR
        }																		from '../sms-interfaces'
 import { HTTP } 														from '@mubble/core'
 import * as http 														from 'http'
@@ -18,7 +19,7 @@ import * as urlModule												from 'url'
 import * as qs 															from 'querystring'
 import { RunContextServer }									from '../../rc-server'
 import { ActiveUserRequest }								from '../request'
-import { executeHttpsRequestWithOptions }		from '../../util'
+import { HttpsRequest }											from '../../util'
 
 export class Karix extends SmsProviderClient {
 
@@ -26,29 +27,29 @@ export class Karix extends SmsProviderClient {
 											 request 		 : ActiveUserRequest,
 											 credentials : KarixCredentials) : Promise<SmsSendResponse> {
 
-		const urlObj : urlModule.UrlObject = {
-			protocol : credentials.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
-			hostname : credentials.host,
-			port     : credentials.port,
-			pathname : credentials.path
-		}
-
-		const query = {
-			targetDeviceId : request.mobNo,
-			message        : request.sms,
-			messageData    : '',
-			smsPort        : credentials.smsPort,
-			class_id       : credentials.classId,
-			carrier_id     : credentials.carrierId,
-			appType        : credentials.applicationType				
-		}
+		const https = new HttpsRequest(rc, SMS_LOG_DIR, credentials.host),
+					urlObj : urlModule.UrlObject = {
+						protocol : credentials.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+						hostname : credentials.host,
+						port     : credentials.port,
+						pathname : credentials.path
+					},
+					query = {
+						targetDeviceId : request.mobNo,
+						message        : request.sms,
+						messageData    : '',
+						smsPort        : credentials.smsPort,
+						class_id       : credentials.classId,
+						carrier_id     : credentials.carrierId,
+						appType        : credentials.applicationType				
+					}
 
 		const options : http.RequestOptions = urlObj
 
 		options.method  = HTTP.Method.POST
 		options.headers = { [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.form }
 
-		const resp = await executeHttpsRequestWithOptions(rc, urlObj, options, qs.stringify(query))
+		const resp = await https.executeRequest(rc, urlObj, options, qs.stringify(query))
 
 		return { success : true, gwTranId : resp.response }
   }

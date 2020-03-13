@@ -176,8 +176,8 @@ export class Sms {
 														 smsInfo	: SmsTransactionInfo,
 											 			 msTaken	: number, 
 														 manual		: boolean, 
-														 cb 			: (...args : Array<any>) => Promise<T>,
-														 ...args  : Array<any>) : Promise<T> {
+														 cb 		 ?: (...args : Array<any>) => Promise<T>,
+														 ...args  : Array<any>) : Promise<T | void> {
 
 		const isIndianNumber = SmsConstants.RX_INDIAN_MOBILE.test(smsInfo.mobileNo) 
 		if (!isIndianNumber) {
@@ -220,7 +220,7 @@ export class Sms {
 			Date.now()
 		)
 
-		return await cb(...args)
+		if (cb) return await cb(...args)
 	}
 
 	/**
@@ -233,10 +233,10 @@ export class Sms {
 	 * 
 	 * @returns The retval returned by the callback
 	 */
-	public async smsFailed<T>(rc 			: RunContextServer,
-														smsInfo	: SmsTransactionInfo,
-														cb			: (...args : Array<any>) => Promise<T>,
-														...args	: Array<any>) : Promise<T> {
+	public async smsFailed<T>(rc 			 : RunContextServer,
+														smsInfo	 : SmsTransactionInfo,
+														cb			?: (...args : Array<any>) => Promise<T>,
+														...args	 : Array<any>) : Promise<T | void> {
 		let request : ActiveUserRequest =  await this.smsLogger.getActiveUserRequest(rc, smsInfo)
 
 		const {service, userId, transactionId: smsTransId, mobileNo} = smsInfo
@@ -271,7 +271,7 @@ export class Sms {
 			Date.now()
 		)
 
-		return await cb(...args)
+		if (cb) return await cb(...args)
 	}
 
 	/*----------------------------------------------------------------------------
