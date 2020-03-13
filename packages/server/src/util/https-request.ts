@@ -108,10 +108,10 @@ export class HttpsRequest {
     this.createLogger()
   }
 
-  async executeHttpRequest(rc       : RunContextServer,
-                           urlObj   : url.UrlObject,
-                           options ?: http.RequestOptions,
-                           data    ?: Mubble.uObject<any> | string) : Promise<Response> {                        
+  async executeRequest(rc       : RunContextServer,
+                       urlObj   : url.UrlObject,
+                       options ?: http.RequestOptions,
+                       data    ?: Mubble.uObject<any> | string) : Promise<Response> {                        
 
     const requestId = `req-${lo.random(100000, 999999, false)}`                     
 
