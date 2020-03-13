@@ -68,8 +68,8 @@ type Request = {
 }
 
 type Timeout = {
-  timeoutMs   : number
   timeTakenMs : number
+  timeoutMs   : number
 }
 
 type ErrorResp = {
@@ -115,8 +115,7 @@ export class HttpsRequest {
 
     const requestId = `req-${lo.random(100000, 999999, false)}`                     
 
-    rc.isStatus() && rc.status(rc.getName(this), 'executeHttpRequest', 'http(s) request.',
-                               requestId, urlObj, options, data)
+    rc.isDebug() && rc.debug(rc.getName(this), requestId, 'executeHttpRequest', urlObj, options, data)
 
     const request    : Request             = {} as Request,
           start      : number              = Date.now(),
@@ -143,6 +142,8 @@ export class HttpsRequest {
 
     request.url = urlStr      
 
+    rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request.', urlStr, reqOptions, dataStr)
+
     this.logger.info('%s %s %s', requestId, LOG_ID.REQUEST, JSON.stringify(request))
     
     const req          = reqOptions.protocol === HTTP.Const.protocolHttp
@@ -157,7 +158,7 @@ export class HttpsRequest {
 
     req.on('response', (res : http.IncomingMessage) => {
 
-      rc.isDebug() && rc.debug(rc.getName(this), 'executeHttpsRequest', requestId, 'http(s) response headers.',
+      rc.isDebug() && rc.debug(rc.getName(this), requestId, 'http(s) response headers.',
                                urlStr, res.statusCode, res.headers)                        
 
       resp.statusCode = res.statusCode || 200
@@ -181,14 +182,13 @@ export class HttpsRequest {
 
     req.on('error', (err : Error) => {
 
-      rc.isError() && rc.error(rc.getName(this), 'executeHttpRequest', requestId, 
-                               'Error encountered in http(s) request.', err)                         
+      rc.isError() && rc.error(rc.getName(this), requestId, 'Error encountered in http(s) request.', err)                         
 
       const timeTakenMs = Date.now() - start
 
       const errorResp : ErrorResp = {
         timeTakenMs,
-        error       : err
+        error : err
       }
 
       const timeoutCond = (err as any).code === ECONNRESET && reqOptions.timeout && timeTakenMs > reqOptions.timeout
@@ -202,12 +202,14 @@ export class HttpsRequest {
 
     req.on('timeout', () => {
 
-      rc.isError() && rc.error(rc.getName(this), 'executeHttpRequest', requestId, 'Request timed out.', 
-                               reqOptions.timeout)
+      const timeTakenMs = Date.now() - start
+
+      rc.isError() && rc.error(rc.getName(this), requestId, 'http(s) request timed out.',
+                               reqOptions.timeout, timeTakenMs)
 
       const timeout : Timeout = {
-        timeoutMs   : reqOptions.timeout || DEFAULT_TIMEOUT_MS,
-        timeTakenMs : Date.now() - start
+        timeTakenMs,
+        timeoutMs : reqOptions.timeout || DEFAULT_TIMEOUT_MS
       }
 
       this.logger.info('%s %s %s %s', requestId, LOG_ID.TIMEOUT, JSON.stringify(request), JSON.stringify(timeout))
@@ -221,8 +223,7 @@ export class HttpsRequest {
     resp.response    = output.toString()
     resp.timeTakenMs = Date.now() - start
 
-    rc.isStatus() && rc.status(rc.getName(this), 'executeHttpRequest', requestId, 
-                               'http(s) request response.', urlStr, resp.response)
+    rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request response.', urlStr, resp.response)
 
     this.logger.info('%s %s %s %s', requestId, LOG_ID.RESPONSE, JSON.stringify(request), JSON.stringify(resp))
 
@@ -231,12 +232,66 @@ export class HttpsRequest {
 
   public extractResults(rc : RunContextServer, dateTs : number) : Array<LogResult> {
 
-    const date         : string                  = format(dateTs, '%yyyy%-%mm%-%dd%'),
-          rowsArr      : Array<LogData>          = [],
-          filePath     : string                  = path.join(this.logPath, `${this.hostname}-${date}.log`),
-          data         : string                  = fs.readFileSync(filePath).toString(),
-          linesArr     : Array<string>           = data.split('\n'),
-          requestIdMap : Mubble.uObject<boolean> = {}
+    const date     = format(dateTs, '%yyyy%-%mm%-%dd%'),
+          filePath = path.join(this.logPath, `${this.hostname}-${date}.log`)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'extractResults', 'Reading file.', filePath)
+
+    const data     = fs.readFileSync(filePath).toString(),
+          linesArr = data.split('\n')
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'extractResults', 'Converting lines to rows.', linesArr.length)
+
+    const rowsArr    : Array<LogData>                 = this.convertLinesToRows(linesArr),
+          rows       : Mubble.uObject<Array<LogData>> = lo.groupBy(rowsArr, 'requestId'),
+          requestIds : Array<string>                  = Object.keys(rows),
+          logResults : Array<LogResult>               = []
+
+    for(const requestId of requestIds) {
+      const row = rows[requestId]
+
+      try {
+        const logResult = this.convertToLogResult(requestId, row)
+
+        logResults.push(logResult)
+      } catch(e) {
+        rc.isWarn() && rc.warn(rc.getName(this), 'Error in converting to log result. Not pushing in array', row, e)
+      }
+    }
+
+    return logResults
+  }
+
+/*------------------------------------------------------------------------------
+                          PRIVATE FUNCTIONS
+------------------------------------------------------------------------------*/        
+  
+  private createLogger() {
+
+    const logFormat = winston.format.combine(
+                        winston.format.timestamp({ format : 'DD/MM/YYYY HH:mm:ss.SSS' }),
+                        winston.format.splat(),                        
+                        winston.format.printf(info => `${info.timestamp} ${info.message}`),
+                      ),
+          transport = new DailyRotateFile({
+                        dirname     : this.logPath,
+                        filename    : `${this.hostname}-%DATE%.log`,
+                        datePattern : 'YYYY-MM-DD',
+                        level       : 'info',
+                        json        : true
+                      })         
+    
+    this.logger = winston.createLogger({
+                    format     : logFormat,
+                    transports : transport
+                  })           
+                    
+  }
+
+  private convertLinesToRows(linesArr : Array<string>) : Array<LogData> {
+
+    const requestIdMap : Mubble.uObject<boolean> = {},
+          rowsArr      : Array<LogData>          = []
 
     for(const line of linesArr) {
       const words : Array<string> = line.split(' '),
@@ -306,49 +361,7 @@ export class HttpsRequest {
       }
     }
 
-    const rows       : Mubble.uObject<Array<LogData>> = lo.groupBy(rowsArr, 'requestId'),
-          requestIds : Array<string>                  = Object.keys(rows),
-          logResults : Array<LogResult>               = []
-
-    for(const requestId of requestIds) {
-      const row = rows[requestId]
-
-      try {
-        const logResult = this.convertToLogResult(requestId, row)
-
-        logResults.push(logResult)
-      } catch(e) {
-        rc.isError() && rc.error(rc.getName(this), 'Error in converting to log result.', e)
-      }
-    }
-
-    return logResults
-  }
-
-/*------------------------------------------------------------------------------
-                          PRIVATE FUNCTIONS
-------------------------------------------------------------------------------*/        
-  
-  private createLogger() {
-
-    const logFormat = winston.format.combine(
-                        winston.format.timestamp({ format : 'DD/MM/YYYY HH:mm:ss.SSS' }),
-                        winston.format.splat(),                        
-                        winston.format.printf(info => `${info.timestamp} ${info.message}`),
-                      ),
-          transport = new DailyRotateFile({
-                        dirname     : this.logPath,
-                        filename    : `${this.hostname}-%DATE%.log`,
-                        datePattern : 'YYYY-MM-DD',
-                        level       : 'info',
-                        json        : true
-                      })         
-    
-    this.logger = winston.createLogger({
-                    format     : logFormat,
-                    transports : transport
-                  })           
-                    
+    return rowsArr
   }
 
   private convertToLogResult(requestId : string, arr : Array<LogData>) : LogResult {
