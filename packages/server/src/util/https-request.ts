@@ -28,7 +28,8 @@ import * as fs                  from 'fs'
 const STRING_TYPE        = 'string',
       OBJECT_TYPE        = 'object',
       DEFAULT_TIMEOUT_MS = 60000,
-      ECONNRESET         = 'ECONNRESET'
+      ECONNRESET         = 'ECONNRESET',
+      NO_EXTRA_LOG_INFO  = 'NO_EXTRA_LOG_INFO'
 
 export type Response = {
   timeTakenMs : number
@@ -59,6 +60,9 @@ export type LogResult = {
 
   // timeout
   timedOut         ?: boolean
+
+  //extraLogInfo
+  extraLogInfo     ?: string
 }
 
 type Request = {
@@ -85,12 +89,13 @@ enum LOG_ID {
 }
 
 type LogData = {
-  date        : string
-  time        : string
-  requestId   : string
-  logId       : LOG_ID
-  requestObj  : Request
-  otherObj   ?: Response | ErrorResp | Timeout
+  date          : string
+  time          : string
+  requestId     : string
+  logId         : LOG_ID
+  extraLogInfo ?: string
+  requestObj    : Request
+  otherObj     ?: Response | ErrorResp | Timeout
 }
 
 export class HttpsRequest {
@@ -104,14 +109,15 @@ export class HttpsRequest {
 
     this.logPath = logBaseDir
 
-    this.hostname = hostname.replace('.', '-')
+    this.hostname = hostname.replace(/\./g, '-')
     this.createLogger()
   }
-
-  async executeRequest(rc       : RunContextServer,
-                       urlObj   : url.UrlObject,
-                       options ?: http.RequestOptions,
-                       data    ?: Mubble.uObject<any> | string) : Promise<Response> {                        
+                     
+  async executeRequest(rc            : RunContextServer,
+                       urlObj        : url.UrlObject,
+                       options      ?: http.RequestOptions,
+                       data         ?: Mubble.uObject<any> | string,
+                       extraLogInfo ?: string) : Promise<Response> {                        
 
     const requestId = `req-${lo.random(100000, 999999, false)}`                     
 
@@ -123,7 +129,9 @@ export class HttpsRequest {
           dataStr    : string              = data
                                              ? typeof data === STRING_TYPE ? data as string
                                                                            : JSON.stringify(data)
-                                             : ''                                   
+                                             : ''
+
+    const extraLogInfoStr : string = extraLogInfo ? extraLogInfo : NO_EXTRA_LOG_INFO                                                             
                                            
     request.options = reqOptions 
     request.data    = dataStr                                    
@@ -144,7 +152,7 @@ export class HttpsRequest {
 
     rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request.', urlStr, reqOptions, dataStr)
 
-    this.logger.info('%s %s %s', requestId, LOG_ID.REQUEST, JSON.stringify(request))
+    this.logger.info('%s %s %s %s', requestId, LOG_ID.REQUEST, extraLogInfoStr, JSON.stringify(request))
     
     const req          = reqOptions.protocol === HTTP.Const.protocolHttp
                          ? http.request(urlStr, reqOptions)
@@ -194,7 +202,8 @@ export class HttpsRequest {
       const timeoutCond = (err as any).code === ECONNRESET && reqOptions.timeout && timeTakenMs > reqOptions.timeout
 
       if(!timeoutCond) {
-        this.logger.info('%s %s %s %s', requestId, LOG_ID.ERROR, JSON.stringify(request), JSON.stringify(errorResp))
+        this.logger.info('%s %s %s %s %s', requestId, LOG_ID.ERROR, extraLogInfoStr,
+                         JSON.stringify(request), JSON.stringify(errorResp))
       }
       writePromise.reject(err)
       readPromise.reject(err)
@@ -212,7 +221,8 @@ export class HttpsRequest {
         timeoutMs : reqOptions.timeout || DEFAULT_TIMEOUT_MS
       }
 
-      this.logger.info('%s %s %s %s', requestId, LOG_ID.TIMEOUT, JSON.stringify(request), JSON.stringify(timeout))
+      this.logger.info('%s %s %s %s %s', requestId, LOG_ID.TIMEOUT, extraLogInfoStr,
+                       JSON.stringify(request), JSON.stringify(timeout))
       req.abort()
     })
 
@@ -225,7 +235,8 @@ export class HttpsRequest {
 
     rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request response.', urlStr, resp.response)
 
-    this.logger.info('%s %s %s %s', requestId, LOG_ID.RESPONSE, JSON.stringify(request), JSON.stringify(resp))
+    this.logger.info('%s %s %s %s %s', requestId, LOG_ID.RESPONSE, extraLogInfoStr,
+                     JSON.stringify(request), JSON.stringify(resp))
 
     return resp
   }
@@ -298,9 +309,11 @@ export class HttpsRequest {
             date                  = words.shift() as string,
             time                  = words.shift() as string,
             requestId             = words.shift() as string,
-            logId                 = words.shift() as LOG_ID
-
-      const objsStr = words.join(' ')
+            logId                 = words.shift() as LOG_ID,
+            restOfTheLog          = words.join(' '),
+            restOfTheWords        = restOfTheLog.split(' {'),
+            extraLogInfo          = restOfTheWords.shift() as string,
+            objsStr               = '{' + restOfTheWords.join(' {')
 
       if(logId === LOG_ID.REQUEST) {
 
@@ -319,9 +332,10 @@ export class HttpsRequest {
         const logData : LogData = {
           date,
           time,
-          requestId : reqId,
+          requestId    : reqId,
           logId,
-          requestObj : JSON.parse(objsStr.trim())
+          extraLogInfo : extraLogInfo === NO_EXTRA_LOG_INFO ? undefined : extraLogInfo,
+          requestObj   : JSON.parse(objsStr.trim())
         }
 
         rowsArr.push(logData)   
@@ -340,13 +354,14 @@ export class HttpsRequest {
           if(requestIdMap[reqId] === false) {
 
             const requestObj = JSON.parse(found[0].trim()),
-            otherObj   = JSON.parse(objsStr.split(found[0])[1])
+                  otherObj   = JSON.parse(objsStr.split(found[0])[1])
 
             const logData : LogData = {
               date,
               time,
               requestId : reqId,
               logId,
+              extraLogInfo,
               requestObj,
               otherObj
             }
@@ -379,7 +394,8 @@ export class HttpsRequest {
       requestTimeoutTs  : requestLogData.requestObj.options.timeout || DEFAULT_TIMEOUT_MS,
       requestHeaders    : requestLogData.requestObj.options.headers,
       payload           : requestLogData.requestObj.data,
-      timeTakenMs       : 0
+      timeTakenMs       : 0,
+      extraLogInfo      : requestLogData.extraLogInfo
     }
 
     const respLogData = arr.find((ld) => ld.logId === LOG_ID.RESPONSE)
