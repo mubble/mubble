@@ -109,7 +109,7 @@ export class HttpsRequest {
 
     this.logPath = logBaseDir
 
-    this.hostname = hostname.replace('.', '-')
+    this.hostname = hostname.replace(/./g, '-')
     this.createLogger()
   }
                      
