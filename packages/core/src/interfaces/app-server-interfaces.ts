@@ -61,14 +61,14 @@ export interface InputParams {
   image           ?: FilterImage
 }
 
-export interface FomrValidation {
+export interface MuFomrValidation {
   validation  : any[]
   errorMsg    : string
 }
 
-export interface FormParams {
+export interface MuFormParams {
   inputParams     : InputParams[]
-  formValidators  : FomrValidation
+  formValidators  : MuFomrValidation
 }
 
 export enum DISPLAY_TYPE {

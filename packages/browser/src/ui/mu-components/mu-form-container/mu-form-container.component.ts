@@ -48,25 +48,25 @@ import { DISPLAY_TYPE,
          DISPLAY_MODE,
          InputParams,
          SelectionBoxParams,
-         FormParams
+         MuFormParams
        }                                  from '@mubble/core/interfaces/app-server-interfaces'
-import { FormOutputParams, 
+import { MuFormOutputParams, 
          FormOutputValue 
        }                                  from '../cmn-inp-cont/cmn-inp-cont-interfaces'
 
 @Component({
-  selector    : 'form-container',
-  templateUrl : './form-container.component.html',
-  styleUrls   : ['./form-container.component.scss']
+  selector    : 'mu-form-container',
+  templateUrl : './mu-form-container.component.html',
+  styleUrls   : ['./mu-form-container.component.scss']
 })
 
-export class FormContainerComponent implements OnChanges {
+export class MuFormContainerComponent implements OnChanges {
 
   @ViewChild(MatDatepicker, { static: false }) picker             : MatDatepicker<any>
   @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
   @ViewChildren('inputCont') inputCont                            : QueryList<ElementRef>
 
-  @Input()  formParams      : FormParams
+  @Input()  formParams      : MuFormParams
   @Input()  screen          : TrackableScreen
   @Input()  webMode         : boolean
   @Input()  parentCont      : ElementRef
@@ -74,7 +74,7 @@ export class FormContainerComponent implements OnChanges {
   @Input()  displayMode     : DISPLAY_MODE         
   @Input()  displayLabel    : boolean               = true
 
-  @Output() value           : EventEmitter<FormOutputParams>  = new EventEmitter<FormOutputParams>()
+  @Output() value           : EventEmitter<MuFormOutputParams>  = new EventEmitter<MuFormOutputParams>()
   @Output() dropdownOpen    : EventEmitter<boolean>         = new EventEmitter<boolean>()
 
   inputForm       : FormGroup = {} as FormGroup
@@ -132,7 +132,7 @@ export class FormContainerComponent implements OnChanges {
 
     if (this.hasError()) return
 
-    const formOutputParams  : FormOutputParams  = { } as FormOutputParams
+    const formOutputParams  : MuFormOutputParams  = { } as MuFormOutputParams
 
     for (const inputParams of this.formParams.inputParams) {
 

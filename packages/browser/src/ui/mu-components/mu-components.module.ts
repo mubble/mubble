@@ -51,7 +51,7 @@ import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scr
 import { FilterComponent }                  from './filter/filter.component'
 import { InputContainerComponent}           from './input-container/input-container.component'
 import { DialerComponent }                  from './dialer/dialer.component'
-import { FormContainerComponent }       from './form-container/form-container.component'
+import { MuFormContainerComponent }         from './mu-form-container/mu-form-container.component'
 
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
@@ -98,7 +98,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MuDataTableComponent,
     DialerComponent,
     FileUploadComponent,
-    FormContainerComponent,
+    MuFormContainerComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -137,7 +137,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MuDataTableComponent,
     DialerComponent,
     KeypadComponent,
-    FormContainerComponent,
+    MuFormContainerComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
