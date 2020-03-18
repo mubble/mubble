@@ -15,6 +15,8 @@ import { BQSmsVerificationLog } from './bq-models'
 import { SmsTransactionInfo } 	from './sms-interfaces'
 import * as lo									from 'lodash'
 
+
+// TODO (Vedant) : Shift constants
 			// Sms send results will belogged every 10 minutes
 const SMS_LOGGER_MS 							 : number = 10 * 60 * 1000,
 			// Ongoing user request. It is hash of service | userId and value is JSON of ActiveUserRequest.
@@ -203,8 +205,10 @@ export class SmsLogger {
 																		 request  : ActiveUserRequest, 
 																		 success ?: boolean) : Promise<number> {
 
-		const smsLog = lo.cloneDeep(request) as any
-		delete smsLog.failedGw
+		const requestClone = lo.cloneDeep(request)
+		delete requestClone.failedGws
+
+		const smsLog = requestClone as any as SmsVerficationLog
 
 		if (success === undefined) 	smsLog.status = VERIFICATION_UNKNOWN
 		else if (success === true)	smsLog.status = VERIFICATION_SUCCESS

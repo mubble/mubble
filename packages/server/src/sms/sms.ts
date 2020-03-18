@@ -13,7 +13,8 @@ import { SmsErrorCodes,
 			 } 										 from './sms-errors'
 import { SmsProviderConfig, 
 				 SendSmsResponse,
-				 SmsTransactionInfo
+				 SmsTransactionInfo,
+				 Provider
 			 }										 from './sms-interfaces'
 import { RunContextServer }  from '../rc-server'
 import { SmsLogger } 				 from './sms-logger'
@@ -295,9 +296,9 @@ export class Sms {
 				rc.isError() && rc.error(rc.getName(this), 'Invalid provider config.', provider)
 				throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
 			}
-	}
+		}
 
-		const allProvidersDisabled = providers.every((provider : any) => provider.enabled === false)
+		const allProvidersDisabled = providers.every((provider : Provider) => provider.enabled === false)
 		if(allProvidersDisabled) {
 			rc.isError() && rc.error(rc.getName(this), 'All providers disabled.', providers)
 			throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
@@ -320,7 +321,9 @@ export class Sms {
         rc.isError() && rc.error(rc.getName(this), `OTP or Transaction Id tag missing in ${service} SMS Template.`, sms)
         throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
       }
-    })
+		})
+		
+		// TODO (Vedant) : verify provider credentials (keys) for enabled provviders
 	}
 
 	checkRequestInfo(rc : RunContextServer, request : ActiveUserRequest, mobileNo : string, smsTransId : string) {

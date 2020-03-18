@@ -23,6 +23,10 @@ import { HttpsRequest }											from '../../util'
 
 export class Karix extends SmsProviderClient {
 
+	constructor() {
+		super()
+	}
+
 	public async request(rc					 : RunContextServer,
 											 request 		 : ActiveUserRequest,
 											 credentials : KarixCredentials) : Promise<SmsSendResponse> {

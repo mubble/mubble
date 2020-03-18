@@ -31,6 +31,8 @@ const table_options = {
 	}
 }
 
+// TODO (Vedant) : Shift to new bq model - Discuss with Sid and Suman for kt
+
 export class BQSmsVerificationLog extends BigQueryBaseModel {
 
 	public fieldsError(rc : RunContextServer) : string | null {

@@ -34,6 +34,9 @@ export class SmsSender {
 
 	private providercredentials  : Mubble.uObject<any>
 
+	// TODO (Vedant) :
+	// private acl : Acl | undefined
+
 	constructor(rc : RunContextServer, providercredentials : Mubble.uObject<any>) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing SMS sender.', providercredentials)

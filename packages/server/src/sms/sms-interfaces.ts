@@ -20,6 +20,7 @@ export interface SendSmsResponse {
 	msTaken                 ?: number        // Milliseconds taken to send the sms
 }
 
+// TODO (Vedant) : Remove template
 export interface SmsProviderConfig {
 	PROVIDERS     : Array<Provider>
 	SMS_TEMPLATE  : SmsTemplate
@@ -27,8 +28,8 @@ export interface SmsProviderConfig {
 }
 
 export interface Provider {
-	name         : string
-	enabled      : boolean
+	name     : string
+	enabled  : boolean
 }
 
 export interface SmsTransactionInfo {
