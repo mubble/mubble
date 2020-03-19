@@ -18,25 +18,41 @@ type UnionKeyToValue<U extends string> = {
 export type BqSeparator = 'AND' | 'OR'
 export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL' | 'BETWEEN'
 
-export type QUERY_FIELD_FUNCTION = 'CONVERT_TO_DATE' | 'ROUND' | 'SUM' | 'DISTINCT' | 'COUNT'
+export type EXTRACT_PART = 'DAYOFWEEK' | 'DAY' | 'DAYOFYEAR' | 'WEEK' | 'ISOWEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ISOYEAR'
+export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
+  DAYOFWEEK : 'DAYOFWEEK',
+  DAY       : 'DAY',
+  DAYOFYEAR : 'DAYOFYEAR',
+  WEEK      : 'WEEK',
+  ISOWEEK   : 'ISOWEEK',
+  MONTH     : 'MONTH',
+  QUARTER   : 'QUARTER',
+  YEAR      : 'YEAR',
+  ISOYEAR   : 'ISOYEAR'
+}
+
+export type QUERY_FIELD_FUNCTION = 'CONVERT_TO_DATE' | 'ROUND' | 'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   CONVERT_TO_DATE : 'CONVERT_TO_DATE',
   ROUND           : 'ROUND',
   SUM             : 'SUM',
   DISTINCT        : 'DISTINCT',
-  COUNT           : 'COUNT'
+  COUNT           : 'COUNT',
+  EXTRACT         : 'EXTRACT'
 }
 
 export interface QueryField {
   name       : string
   functions  : QUERY_FIELD_FUNCTION[]
+  extract   ?: EXTRACT_PART
   as        ?: string
 }
 
 export interface NestedField {
-  field     : BqFieldInfo
-  functions : QUERY_FIELD_FUNCTION[]
-  as       ?: string
+  field      : BqFieldInfo
+  functions  : QUERY_FIELD_FUNCTION[]
+  extract   ?: EXTRACT_PART
+  as        ?: string
 }
 
 export namespace BqQueryBuilder {
