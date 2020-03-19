@@ -10,42 +10,51 @@
 
 import {
 				 Acl,
-				 GupShup,
+				 Gupshup,
 				 Karix,
 				 RouteMobile
 			 }                        from './smsproviders'
 import { 
 				 SmsSendResponse,
-				 SmsProviderClient,
-				 SmsProvider
+				 SmsProvider,
+				 ProviderConfigs,
+				 ClientInfo,
+				 ClientMap,
+				 Client
 			 }                        from './sms-interfaces'
+import { SmsError, 
+				 SmsErrorCodes, 
+				 SmsErrorMessages } 		from './sms-errors'
 import { ActiveUserRequest }    from './request'
-import { Mubble }               from '@mubble/core'
 import { RunContextServer }     from '../rc-server'
 
-const SmsClientMap : Mubble.uObject<typeof SmsProviderClient> = {
-	[SmsProvider.ACL]          : Acl,
-	[SmsProvider.GUPSHUP]      : GupShup,
-	[SmsProvider.KARIX]        : Karix,
-	[SmsProvider.ROUTE_MOBILE] : RouteMobile
-}
-
 export class SmsSender {
+	
+	private providercredentials : ProviderConfigs
+	private smsClientMap        : ClientMap = {}
 
-	private providercredentials  : Mubble.uObject<any>
-
-	// TODO (Vedant) :
-	// private acl : Acl | undefined
-
-	constructor(rc : RunContextServer, providercredentials : Mubble.uObject<any>) {
+	constructor(rc : RunContextServer, providercredentials : ProviderConfigs) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing SMS sender.', providercredentials)
+
+		if (providercredentials.ACL) {
+			this.smsClientMap.ACL = new Acl(rc, providercredentials.ACL.host)
+		}
+		if (providercredentials.KARIX) {
+			this.smsClientMap.KARIX = new Karix(rc, providercredentials.KARIX.host)
+		}
+		if (providercredentials.GUPSHUP) {
+			this.smsClientMap.GUPSHUP = new Gupshup(rc, providercredentials.GUPSHUP.host)
+		}
+		if (providercredentials.ROUTE_MOBILE) {
+			this.smsClientMap.ROUTE_MOBILE = new RouteMobile(rc, providercredentials.ROUTE_MOBILE.host)
+		}
 
 		this.providercredentials  = providercredentials
 	}
 
 	async sendSms(rc      : RunContextServer,
-								gw      : string,
+								gw      : keyof typeof SmsProvider,
 								request : ActiveUserRequest) : Promise<SmsSendResponse> {
 
 		try {
@@ -57,14 +66,23 @@ export class SmsSender {
 	}
 
 	private async sendSmsRequest(rc      : RunContextServer,
-															 gw      : string,
+															 gw      : keyof typeof SmsProvider,
 															 request : ActiveUserRequest) : Promise<SmsSendResponse> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), `Sending SMS using ${gw}.`)
 
-		const clientType = SmsClientMap[gw],
-					client     = new (clientType as any)() as SmsProviderClient
+		const client = this.smsClientMap[gw],
+					creds	 = this.providercredentials[gw]
+		if (!client) {
+			rc.isError() && rc.error(rc.getName(this), 'Requesting provider without initialization.')
+			throw new SmsError(SmsErrorCodes.PROVIDER_NOT_INITIALIZED, SmsErrorMessages.PROVIDER_NOT_INITIALIZED)
+		}
 
-		return await client.request(rc, request, this.providercredentials[gw])
+		if (!creds) {
+			throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
+		}
+
+
+		return await client.request<ClientInfo>(rc, request, { client, creds })
 	}
 }

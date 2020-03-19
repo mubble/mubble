@@ -11,41 +11,45 @@ import {
          SmsProviderClient,
          SmsSendResponse,
          KarixCredentials,
-				 SMS_LOG_DIR
+				 ClientInfo
        }																		from '../sms-interfaces'
 import { HTTP } 														from '@mubble/core'
-import * as http 														from 'http'
-import * as urlModule												from 'url'
-import * as qs 															from 'querystring'
 import { RunContextServer }									from '../../rc-server'
 import { ActiveUserRequest }								from '../request'
 import { HttpsRequest }											from '../../util'
+import { SmsConstants } 										from '../sms-constants'
+import * as http 														from 'http'
+import * as urlModule												from 'url'
+import * as qs 															from 'querystring'
 
 export class Karix extends SmsProviderClient {
 
-	constructor() {
+	https : HttpsRequest
+
+	constructor(rc : RunContextServer, hostname : string) {
 		super()
+		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
 	}
 
-	public async request(rc					 : RunContextServer,
-											 request 		 : ActiveUserRequest,
-											 credentials : KarixCredentials) : Promise<SmsSendResponse> {
+	public async request<T extends ClientInfo>(rc			: RunContextServer,
+											 												request : ActiveUserRequest,
+											 												info 		: T) : Promise<SmsSendResponse> {
 
-		const https = new HttpsRequest(rc, SMS_LOG_DIR, credentials.host),
+		const karixKeys = info.creds as KarixCredentials,
 					urlObj : urlModule.UrlObject = {
-						protocol : credentials.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
-						hostname : credentials.host,
-						port     : credentials.port,
-						pathname : credentials.path
+						protocol : karixKeys.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+						hostname : karixKeys.host,
+						port     : karixKeys.port,
+						pathname : karixKeys.path
 					},
 					query = {
 						targetDeviceId : request.mobNo,
 						message        : request.sms,
 						messageData    : '',
-						smsPort        : credentials.smsPort,
-						class_id       : credentials.classId,
-						carrier_id     : credentials.carrierId,
-						appType        : credentials.applicationType				
+						smsPort        : karixKeys.smsPort,
+						class_id       : karixKeys.classId,
+						carrier_id     : karixKeys.carrierId,
+						appType        : karixKeys.applicationType				
 					}
 
 		const options : http.RequestOptions = urlObj
@@ -53,7 +57,7 @@ export class Karix extends SmsProviderClient {
 		options.method  = HTTP.Method.POST
 		options.headers = { [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.form }
 
-		const resp = await https.executeRequest(rc, urlObj, options, qs.stringify(query))
+		const resp = await this.https.executeRequest(rc, urlObj, options, qs.stringify(query))
 
 		return { success : true, gwTranId : resp.response }
   }

@@ -7,11 +7,14 @@
 	 Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import { Acl, 
+				 RouteMobile, 
+				 Karix, 
+				 Gupshup 
+			 } 											from './smsproviders'
 import { ActiveUserRequest }	from './request'
 import { RunContextServer }		from '../rc-server'
 import { Mubble }							from '@mubble/core'
-
-export const SMS_LOG_DIR = '../sms-logs'
 
 export interface SendSmsResponse {
 	isIndianNumber           : boolean       // Is the mobile number from India?
@@ -20,11 +23,9 @@ export interface SendSmsResponse {
 	msTaken                 ?: number        // Milliseconds taken to send the sms
 }
 
-// TODO (Vedant) : Remove template
 export interface SmsProviderConfig {
 	PROVIDERS     : Array<Provider>
-	SMS_TEMPLATE  : SmsTemplate
-	PROVIDER_KEYS : Mubble.uObject<any>
+	PROVIDER_KEYS : ProviderConfigs
 }
 
 export interface Provider {
@@ -38,8 +39,6 @@ export interface SmsTransactionInfo {
 	transactionId : string
 	mobileNo	    : string
 }
-
-export type SmsTemplate = Mubble.uObject<string>
 
 export interface SmsVerficationLog { // Stores ActiveUserRequest data, used for logging in BigQuery
 	service  : string
@@ -67,11 +66,48 @@ export enum SmsProvider {
 	ROUTE_MOBILE = 'ROUTE_MOBILE'
 }
 
+export type Credentials = AclCredentials | GupshupCredentials | KarixCredentials | RouteMobileCredentials
+
+export type ProviderConfigs = {
+	[key in SmsProvider] ?: Credentials
+}
+
+export type ClientMap = {
+	[key in SmsProvider] ?: Client
+}
+
+export type Client = Acl | Gupshup | Karix | RouteMobile
+
+// export type AclInfo = {
+// 	client : Acl
+// 	creds : AclCredentials
+// }
+
+// export type GupshupInfo = {
+// 	client : Gupshup
+// 	creds : GupshupCredentials
+// }
+
+// export type KarixInfo = {
+// 	client : Karix
+// 	creds : KarixCredentials
+// }
+
+// export type RouteMobileInfo = {
+// 	client : RouteMobile
+// 	creds : RouteMobileCredentials
+// }
+
+export type ClientInfo = {
+	client : Client
+	creds  : Credentials
+}
+
 export abstract class SmsProviderClient {
 
-	abstract async request(rc          : RunContextServer,
-												 request     : ActiveUserRequest,
-												 credentials : any) : Promise<SmsSendResponse>
+	abstract async request<T extends ClientInfo>(rc      : RunContextServer,
+																							 request : ActiveUserRequest,
+																							 info 	 : T) : Promise<SmsSendResponse>
 
 }
 

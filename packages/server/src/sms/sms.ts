@@ -14,7 +14,8 @@ import { SmsErrorCodes,
 import { SmsProviderConfig, 
 				 SendSmsResponse,
 				 SmsTransactionInfo,
-				 Provider
+				 Provider,
+				 ProviderConfigs
 			 }										 from './sms-interfaces'
 import { RunContextServer }  from '../rc-server'
 import { SmsLogger } 				 from './sms-logger'
@@ -282,12 +283,11 @@ export class Sms {
 	private verifySmsProviderConfig(rc : RunContextServer, smsProviderConfig : SmsProviderConfig) {
 
 		const providers		 = smsProviderConfig.PROVIDERS,
-					smsTemplate	 = smsProviderConfig.SMS_TEMPLATE,
 					providerKeys = smsProviderConfig.PROVIDER_KEYS
 
-		if(!smsProviderConfig || !providers.length || !smsTemplate || !providerKeys) {
+		if(!smsProviderConfig || !providers.length || !providerKeys) {
 			rc.isError() && rc.error(rc.getName(this), 'SMS provider config not present or invalid.', smsProviderConfig,
-															 providers, smsTemplate, providerKeys)
+															 providers, providerKeys)
 			throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
 		}
 
@@ -312,18 +312,11 @@ export class Sms {
       throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
     }
 
-    const smsTemplateObject = lo.cloneDeep(smsTemplate),
-          serviceNames      = Object.keys(smsTemplateObject)
-
-    serviceNames.forEach((service : string) => {
-      const sms = smsTemplateObject[service]
-      if(!sms.includes('%otp%') || !sms.includes('%tranId%')) {
-        rc.isError() && rc.error(rc.getName(this), `OTP or Transaction Id tag missing in ${service} SMS Template.`, sms)
-        throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
-      }
-		})
-		
-		// TODO (Vedant) : verify provider credentials (keys) for enabled provviders
+		for (const provider of providers) {
+			if (provider.enabled && !Object.keys(smsProviderConfig.PROVIDER_KEYS).length) {
+				throw new SmsError(SmsErrorCodes.INVALID_SMS_CONFIG, SmsErrorMessages.INVALID_SMS_CONFIG)
+			}
+		}
 	}
 
 	checkRequestInfo(rc : RunContextServer, request : ActiveUserRequest, mobileNo : string, smsTransId : string) {

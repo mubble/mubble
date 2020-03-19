@@ -11,24 +11,34 @@ import {
 				 GupshupCredentials,
 				 SmsProviderClient,
 				 SmsSendResponse,
-				 SMS_LOG_DIR
-			 }                              		 from '../sms-interfaces'
-import { RunContextServer }           		 from '../../rc-server'
-import { ActiveUserRequest }          		 from '../request'
-import { HttpsRequest }										 from '../../util'
-import { UrlObject } 											 from 'url'
-import { HTTP } 													 from '@mubble/core'
-import * as http													 from 'http'
+				 ClientInfo
+			 }											from '../sms-interfaces'
+import { RunContextServer }		from '../../rc-server'
+import { ActiveUserRequest }	from '../request'
+import { HttpsRequest }				from '../../util'
+import { SmsConstants } 			from '../sms-constants'
+import { HTTP } 							from '@mubble/core'
+import { UrlObject } 					from 'url'
+import * as http							from 'http'
 
 const VERSION 		= '1.1',
 			MSG_TYPE   	= 'TEXT',
 			AUTH_SCHEME = 'PLAIN'
 
-export class GupShup extends SmsProviderClient {
+export class Gupshup extends SmsProviderClient {
 
-	async request(rc          : RunContextServer,
-								request     : ActiveUserRequest,
-								gupshupKeys : GupshupCredentials) : Promise<SmsSendResponse> {
+	https : HttpsRequest
+
+	constructor(rc : RunContextServer, hostname : string) {
+		super()
+		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+	}
+
+	async request<T extends ClientInfo>(rc      : RunContextServer,
+																			 request : ActiveUserRequest,
+																			 info	 	 : T) : Promise<SmsSendResponse> {
+
+		const gupshupKeys = info.creds as GupshupCredentials
 
 		let mobileNo = request.mobNo,
 				message  = request.sms
@@ -38,23 +48,22 @@ export class GupShup extends SmsProviderClient {
 
 		if(mobileNo.includes('+91')) mobileNo = mobileNo.substring(3, 13)
 
-		const https = new HttpsRequest(rc, SMS_LOG_DIR, gupshupKeys.host),
-					urlObj : UrlObject = {
-						protocol : gupshupKeys.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
-						hostname : gupshupKeys.host,
-						port     : gupshupKeys.port,
-						pathname : gupshupKeys.path,
-						query    : {
-							userId       : gupshupKeys.userId,
-							password     : encodeURIComponent(gupshupKeys.password),
-							msg          : message,
-							send_to      : encodeURIComponent(mobileNo),
-							v            : VERSION,
-							msg_type     : MSG_TYPE,
-							auth_scheme  : AUTH_SCHEME,
-							override_dnd : true
-						}
-					}
+		const urlObj : UrlObject = {
+			protocol : gupshupKeys.http ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+			hostname : gupshupKeys.host,
+			port     : gupshupKeys.port,
+			pathname : gupshupKeys.path,
+			query    : {
+				userId       : gupshupKeys.userId,
+				password     : encodeURIComponent(gupshupKeys.password),
+				msg          : message,
+				send_to      : encodeURIComponent(mobileNo),
+				v            : VERSION,
+				msg_type     : MSG_TYPE,
+				auth_scheme  : AUTH_SCHEME,
+				override_dnd : true
+			}
+		}
 
 		const options : http.RequestOptions = urlObj
 		options.method  = HTTP.Method.GET
@@ -62,7 +71,7 @@ export class GupShup extends SmsProviderClient {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'UrlObj :', urlObj, 'Options :', options)
 
-		const resp = await https.executeRequest(rc, urlObj, options)
+		const resp = await this.https.executeRequest(rc, urlObj, options)
 
 		return { success : true, gwTranId : resp.response }
 	}

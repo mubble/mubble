@@ -11,12 +11,13 @@ import {
 				 SmsProviderClient,
 				 SmsSendResponse,
 				 RouteMobileCredentials,
-				 SMS_LOG_DIR
+				 ClientInfo
 			 }																		from '../sms-interfaces'
 import { ActiveUserRequest }								from '../request'
-import { HTTP } 														from '@mubble/core'
 import { RunContextServer } 								from '../../rc-server'
 import { HttpsRequest } 										from '../../util'
+import { SmsConstants } 										from '../sms-constants'
+import { HTTP } 														from '@mubble/core'
 import * as http 														from 'http'
 import * as urlModule												from 'url'
 
@@ -29,23 +30,30 @@ const PORT = 8080,
 
 export class RouteMobile extends SmsProviderClient {
 
-	public async request(rc          : RunContextServer,
-											 request     : ActiveUserRequest,
-											 credentials : RouteMobileCredentials) : Promise<SmsSendResponse> {
+	https : HttpsRequest
 
-		const https = new HttpsRequest(rc, SMS_LOG_DIR, credentials.host),
+	constructor(rc : RunContextServer, hostname : string) {
+		super()
+		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+	}
+
+	public async request<T extends ClientInfo>(rc      : RunContextServer,
+											 												request : ActiveUserRequest,
+											 												info 	: T) : Promise<SmsSendResponse> {
+
+		const RMKeys = info.creds as RouteMobileCredentials,
 					urlObj : urlModule.UrlObject = {
 						protocol : HTTP.Const.protocolHttp,
-						hostname : credentials.host,
+						hostname : RMKeys.host,
 						port     : PORT,
 						pathname : PATH,
 						query    : {
-							username    : credentials.username,
-							password    : credentials.password,
+							username    : RMKeys.username,
+							password    : RMKeys.password,
 							type        : TYPE,
 							dlr         : DLR,
 							destination : request.mobNo,
-							source      : credentials.source,
+							source      : RMKeys.source,
 							message     : request.sms
 						}
 					}
@@ -53,7 +61,7 @@ export class RouteMobile extends SmsProviderClient {
 		const options : http.RequestOptions = urlObj
 		options.method = HTTP.Method.GET
 
-		const resp = await https.executeRequest(rc, urlObj, options)
+		const resp = await this.https.executeRequest(rc, urlObj, options)
 
 		return { success : true, gwTranId : resp.response }
 	}
