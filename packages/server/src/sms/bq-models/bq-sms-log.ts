@@ -12,41 +12,41 @@ import { BigQueryBaseModel,
 			 }										 from '../../gcp'
 import { RunContextServer }	 from '../../rc-server'
 
-@BigqueryBase.model('')
+// @BigqueryBase.model('')
 export class BQSmsVerificationLog extends BigQueryBaseModel {
 
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	service	 : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	userId	 : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	mobNo		 : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	tranId	 : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	sms			 : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	gwTranId : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	gw			 : string
 	
-	@BigqueryBase.field()
+	// @BigqueryBase.field()
 	status	 : string
 	
-	@BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
+	// @BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
 	ts			 : number
 	
-	@BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
+	// @BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
 	gwSendMs : number
 	
-	@BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
+	// @BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
 	gwRespMs : number
 
 	public constructor(rc : RunContextServer) {
