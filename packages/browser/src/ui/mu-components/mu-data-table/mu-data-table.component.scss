@@ -189,3 +189,33 @@ input {
 .text-cls {
   user-select: text;
 }
+
+.multi-line {
+  display: flex;
+  flex-direction: row;
+}
+
+.header-width {
+  width : 80px;
+}
+
+.data-width {
+  width: 100px;
+}
+
+.colon-width {
+  width: 20px;
+}
+
+.profile-align {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 20px;
+  text-align: left;
+}
+
+.multi-line-text-align {
+  display: flex;
+  align-items: center;
+}

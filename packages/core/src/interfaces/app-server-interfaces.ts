@@ -16,7 +16,8 @@ export enum COL_TYPE  {
   EDIT         = 'EDIT',
   TOGGLE       = 'TOGGLE',
   HYPER_LINK   = 'HYPER_LINK',
-  MORE_DETAILS = 'MORE_DETAILS'
+  MORE_DETAILS = 'MORE_DETAILS',
+  MULTI_LINE   = 'MULTI_LINE'
 }
 
 export interface PipeParams {
@@ -26,8 +27,8 @@ export interface PipeParams {
 
 export interface TableHeader {
   header        : string
-  dataKey       : string
-  colType       : COL_TYPE
+  dataKey      ?: string
+  colType       : COL_TYPE 
   pipeParams   ?: PipeParams
   pipeParmas   ?: PipeParams
   customStyle  ?: string
@@ -35,6 +36,10 @@ export interface TableHeader {
   enableSort   ?: boolean
   widthPerc    ?: number
   isEditable   ?: boolean
+  multiLineKey ?: string[] // It takes input as image text and icon
+  dataKeyType  ?: string[] // it consists of the COL_TYPE of keys in multiLineKey
+  dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
+  headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
 }
 
 export interface FilterItem {
