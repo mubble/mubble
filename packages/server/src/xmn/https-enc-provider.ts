@@ -246,6 +246,8 @@ export class HttpsEncProvider {
   }
 
   private decryptUsingPrivateKey(encData : Buffer) : Buffer {
+
+    console.log(`Going to decryptUsingPrivateKey, PrivateKey: `, this.privateKey)
     const data = crypto.privateDecrypt(this.privateKey, encData)
 
     return data

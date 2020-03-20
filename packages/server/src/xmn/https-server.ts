@@ -87,6 +87,8 @@ export class HttpsServer {
     ci.msOffset       = 0
     ci.lastEventTs    = 0
 
+    console.log(`Request Details ci:`, JSON.stringify(ci))
+
     const clientId = ci.headers[HTTP.HeaderKey.clientId],
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
 
