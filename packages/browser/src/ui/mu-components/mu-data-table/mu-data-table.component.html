@@ -96,7 +96,8 @@
           </div>
 
           <!-- Column to display multi line text along with image and icon -->
-          <div class="multi-line" *ngSwitchCase="COL_TYPE.MULTI_LINE">
+          <div class="multi-line click-item" *ngSwitchCase="COL_TYPE.MULTI_LINE"
+               (click)="cellClick(rowData, header.dataKeyArr[0])">
             <div class="multi-line-text-align" *ngFor="let colType of header.dataKeyType; let i = index">
               <div *ngIf="colType === COL_TYPE.IMAGE">
                 <img src="{{ header.multiLineKey[i] }}">

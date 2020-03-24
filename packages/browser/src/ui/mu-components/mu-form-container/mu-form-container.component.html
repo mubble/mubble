@@ -23,7 +23,7 @@
           <input matInput #inputCont
             placeholder="{{inputParam.placeHolder}}"
             type="{{inputParam.inputType}}"
-            [nextInpFocus]=" inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+            [nextInpFocus]=" inputContainers ? (inputContainers[i !== (formParams.inputParams.length) ? i + 1 : undefined]) : undefined"
             (updatedValue)="setChangedValues($event, i)"
             class="txt-lg-med-norm input-cont" 
             formControlName="{{inputParam.id}}"

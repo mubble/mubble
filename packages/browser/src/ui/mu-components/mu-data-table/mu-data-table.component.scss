@@ -17,7 +17,7 @@
 .filter-cont {
 
   display: flex;
-  height: 100%;
+  height: auto;
 
   ::-webkit-scrollbar {
     display: none;
@@ -195,7 +195,7 @@ input {
 }
 
 .header-width {
-  width : 80px;
+  width : 65px;
 }
 
 .data-width {
@@ -203,7 +203,7 @@ input {
 }
 
 .colon-width {
-  width: 20px;
+  width: 10px;
 }
 
 .profile-align {
