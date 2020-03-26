@@ -38,6 +38,9 @@ export const LANG_EN_TRANS = {
   //Data table
   'mu_dt_tbl_edit'                : 'Edit',
   'mu_dt_tbl_save'                : 'Save',
-  'mu_dt_tbl_empty_state'         : 'No data to display'
+  'mu_dt_tbl_empty_state'         : 'No data to display',
+
+  //Page Not Found
+  'page_not_fond_vist_home'       : 'Visit Home'
 
 }

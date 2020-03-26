@@ -58,7 +58,8 @@ import { AlertDialogComponent }             from './alert-dialog/alert-dialog.co
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
 import { MatCardModule }                    from '@angular/material'
-import { KeypadComponent }                  from './keypad/keypad.component'
+import { KeypadComponent }                  from './keypad/keypad.component' 
+import { PageNotFoundComponent }            from './page-not-found/page-not-found.component'
 
 
 @NgModule({
@@ -99,6 +100,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     DialerComponent,
     FileUploadComponent,
     MuFormContainerComponent,
+    PageNotFoundComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -138,6 +140,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     DialerComponent,
     KeypadComponent,
     MuFormContainerComponent,
+    PageNotFoundComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,

@@ -1,0 +1,60 @@
+.nc-content-div {
+  height: 100vh;
+}
+
+.web-img-cont {
+  display: none;
+}
+
+.img-cont {
+  height: 100%
+}
+
+.footer {
+  display: flex;
+  justify-content: center;
+  position: absolute;
+  bottom: 30vh;
+  width: 100vw;
+}
+
+.button {
+  height: 3rem;
+  width: 92vw;
+}
+
+.mob-pnf-img {
+  width: 100vw;
+  height: 100vh;
+}
+
+.web-content-div {
+  max-height: 100% !important;
+  height: 100%;
+
+  .web-img-cont {
+    display: block;
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .pnf-img {
+    width: 100%;
+    height: 100%;
+  }
+
+  .footer {
+    width: 100%;
+    top: 84%;
+  }
+
+  .img-cont {
+    display: none;
+  }
+  
+  .button {
+    width: 16%;
+  }
+}
+
