@@ -263,7 +263,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
       case HTTP.HeaderValue.form :
         return this.parseQuery(rc, data)
 
-      default                    :
+      default :
         try {
           return JSON.parse(data)
         } catch (err) {
