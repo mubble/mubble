@@ -37,7 +37,7 @@ import { MatSelectChange,
          MatButtonToggleChange
        }                                  from '@angular/material'
 import { InputValidator }                 from '../input-container/input-validator'
-import { Observable }                     from 'rxjs'
+import { Observable, Subscription }                     from 'rxjs'
 import { map,
          startWith
        }                                  from 'rxjs/operators'
@@ -75,7 +75,7 @@ export class MuFormContainerComponent implements OnChanges {
   @Input()  displayLabel    : boolean               = true
 
   @Output() value           : EventEmitter<MuFormOutputParams>  = new EventEmitter<MuFormOutputParams>()
-  @Output() dropdownOpen    : EventEmitter<boolean>         = new EventEmitter<boolean>()
+  @Output() dropdownOpen    : EventEmitter<boolean>             = new EventEmitter<boolean>()
 
   inputForm       : FormGroup = {} as FormGroup
   dateRange       : FormGroup
@@ -86,7 +86,9 @@ export class MuFormContainerComponent implements OnChanges {
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
 
   inputContainers : ElementRef[]
-  private fileUploadParams : UploadedDocParams
+
+  private fileUploadParams  : UploadedDocParams
+  private subscriber        : Subscription
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
               private formBuilder                 : FormBuilder,
@@ -105,8 +107,11 @@ export class MuFormContainerComponent implements OnChanges {
   }
 
   ngAfterViewInit() {
-    this.inputContainers  = this.inputCont.toArray().map(val => val.nativeElement)
-    this.changeRef.detectChanges()
+
+    setTimeout(() => {
+      this.inputContainers  = this.inputCont.toArray().map(val => val.nativeElement)
+    }, 10)
+
   }
 
   /*=====================================================================
@@ -228,9 +233,10 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               HTML
   =====================================================================*/
-  selectedOption(event : MatSelectChange | MatRadioChange, i : number) {
+  selectedOption(event : MatSelectChange | MatRadioChange, i : number, elem : HTMLElement) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.value)
+    if (elem) elem.focus()
     if (this.eventPropagate)  this.onSubmit()
   }
 

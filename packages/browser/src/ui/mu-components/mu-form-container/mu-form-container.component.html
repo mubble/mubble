@@ -23,7 +23,7 @@
           <input matInput #inputCont
             placeholder="{{inputParam.placeHolder}}"
             type="{{inputParam.inputType}}"
-            [nextInpFocus]=" inputContainers ? (inputContainers[i !== (formParams.inputParams.length) ? i + 1 : undefined]) : undefined"
+            [nextInpFocus]=" inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
             (updatedValue)="setChangedValues($event, i)"
             class="txt-lg-med-norm input-cont" 
             formControlName="{{inputParam.id}}"
@@ -116,7 +116,7 @@
         <mat-radio-group 
         formControlName="{{inputParam.id}}"
           class="txt-lg-med-norm vert-input-cont vert-radio-group"
-          (change)="selectedOption($event, i)">
+          (change)="selectedOption($event, i, inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined)">
           <mat-radio-button  *ngFor="let option of inputParam.options" [value]="option" 
             class="txt-lg-med-norm radio-button"
             [checked]="option.selected">
@@ -255,6 +255,7 @@
       </ng-container>
 
       <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
+        
         <div class="input-container">
 
           <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParam.label">
