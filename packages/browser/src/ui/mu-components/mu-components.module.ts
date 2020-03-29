@@ -51,14 +51,15 @@ import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scr
 import { FilterComponent }                  from './filter/filter.component'
 import { InputContainerComponent}           from './input-container/input-container.component'
 import { DialerComponent }                  from './dialer/dialer.component'
-import { FormContainerComponent }       from './form-container/form-container.component'
+import { MuFormContainerComponent }         from './mu-form-container/mu-form-container.component'
 
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
 import { MatCardModule }                    from '@angular/material'
-import { KeypadComponent }                  from './keypad/keypad.component'
+import { KeypadComponent }                  from './keypad/keypad.component' 
+import { PageNotFoundComponent }            from './page-not-found/page-not-found.component'
 
 
 @NgModule({
@@ -98,7 +99,8 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MuDataTableComponent,
     DialerComponent,
     FileUploadComponent,
-    FormContainerComponent,
+    MuFormContainerComponent,
+    PageNotFoundComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -137,7 +139,8 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MuDataTableComponent,
     DialerComponent,
     KeypadComponent,
-    FormContainerComponent,
+    MuFormContainerComponent,
+    PageNotFoundComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,

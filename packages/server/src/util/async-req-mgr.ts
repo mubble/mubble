@@ -28,7 +28,7 @@
 import * as lo                                         from 'lodash'
 
 import {RunContextServer}                              from '../rc-server'
-import {executeHttpResultResponse}                     from './https-request'
+import {executeHttpResultResponse}                     from './https-request-2'
 
 
 export type NcAsyncReq = {id : string , reqTs : number , rc : RunContextServer , func : any  , args : any[] , resolve : (val : any) => void , reject : (val : any) => void }

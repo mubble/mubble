@@ -87,14 +87,15 @@ export namespace ObopayHttpsClient {
 
     rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)
 
-
     const encProvider = new HttpsEncProvider(privateKey)
 
     headers[HTTP.HeaderKey.clientId]      = selfId
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
     headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
-    headers[HTTP.HeaderKey.symmKey]       = encProvider.encodeRequestKey(syncHash)
-    headers[HTTP.HeaderKey.requestTs]     = encProvider.encodeRequestTs(requestTs)
+    headers[HTTP.HeaderKey.symmKey]       = encProvider.encodeRequestKey(rc, syncHash)
+    headers[HTTP.HeaderKey.requestTs]     = encProvider.encodeRequestTs(rc, requestTs)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Encoding body.', params)
 
     const encBodyObj = encProvider.encodeBody(params, false)
 
@@ -157,8 +158,8 @@ export namespace ObopayHttpsClient {
 
       if(!resp.headers[HTTP.HeaderKey.bodyEncoding])
         resp.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
-
-      encProvider.decodeResponseKey(serverPubKey, resp.headers[HTTP.HeaderKey.symmKey] as string)
+    
+      encProvider.decodeResponseKey(rc, serverPubKey, resp.headers[HTTP.HeaderKey.symmKey] as string)
 
       const readStreams = encProvider.decodeBody([resp],
                                                  resp.headers[HTTP.HeaderKey.bodyEncoding] as string,
@@ -215,8 +216,8 @@ export namespace ObopayHttpsClient {
     if(!headers[HTTP.HeaderKey.symmKey]) {
       throw new Error(`${HTTP.HeaderKey.symmKey} missing in request headers.`)
     }
-                        
-    encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
+
+    encProvider.decodeRequestKey(rc, headers[HTTP.HeaderKey.symmKey])
 
     const clientCredentials = credentialRegistry.getCredential(clientId)
 
@@ -240,7 +241,7 @@ export namespace ObopayHttpsClient {
       if(!headers[HTTP.HeaderKey.bodyEncoding])
         headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 
-      const requestTs = encProvider.decodeRequestTs(clientCredentials.syncHash,
+      const requestTs = encProvider.decodeRequestTs(rc, clientCredentials.syncHash,
                                                     headers[HTTP.HeaderKey.requestTs])
 
       rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)

@@ -17,6 +17,7 @@
 .filter-cont {
 
   display: flex;
+  height: auto;
 
   ::-webkit-scrollbar {
     display: none;
@@ -59,16 +60,16 @@
   word-break: break-word;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 5px;
-  text-align: center;
 }
 
 .header {
   word-break: break-word;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  padding: 0 5px;
 }
 
 img {
@@ -186,4 +187,34 @@ input {
 
 .text-cls {
   user-select: text;
+}
+
+.multi-line {
+  display: flex;
+  flex-direction: row;
+}
+
+.header-width {
+  width : 65px;
+}
+
+.data-width {
+  width: 100px;
+}
+
+.colon-width {
+  width: 10px;
+}
+
+.profile-align {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  margin-left: 20px;
+  text-align: left;
+}
+
+.multi-line-text-align {
+  display: flex;
+  align-items: center;
 }

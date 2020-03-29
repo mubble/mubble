@@ -8,17 +8,23 @@
 </div>
 
 <div [ngClass]="tableConfig.vertFilterParams ? 'filter-cont' : ''" #filterCont>
-  <div  class="mu-table-cont border-light" #muTableCont>
+  <div  class="bg-white mu-table-cont border-light" #muTableCont>
     
-    <div class="primary-bg table-extras" #tableExtras>
-      <div class="search-input txt-lg-reg-norm text-color-white" *ngIf="dataToDisplay.length">
-        showing {{ currPageIndex * tableConfig.dispRows + 1 }} to 
-        {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
-        of {{ tableConfig.totalRecords }} entries
+    <div class="table-extras" #tableExtras>
+      <div class="search-input txt-lg-med-dark text-color-primary" 
+            *ngIf="dataToDisplay.length && pageNumbers.length === 1">
+        
+        Total Records : {{ tableConfig.totalRecords }}  
       </div>
 
+      <div class="search-input txt-lg-med-dark text-color-primary" 
+            *ngIf="dataToDisplay.length && pageNumbers.length > 1">
 
-      <div class="paginator text-color-white" *ngIf="pageNumbers.length > 1">
+        {{ currPageIndex * tableConfig.dispRows + 1 }} to 
+        {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
+        of {{ tableConfig.totalRecords }} records 
+      </div>
+      <div class="paginator text-color-primary" *ngIf="pageNumbers.length > 1">
         <div class="fast-backward pagenumber" (click)="onPageClick(0)">
           <i class="fa fa-fast-backward" aria-hidden="true"></i>
         </div> 
@@ -46,7 +52,7 @@
       <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
         <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
       </div>
-      <div class="header txt-xl-bld-dark text-color-white" *ngFor="let header of tableConfig.headers" 
+      <div class="header txt-xl-bld-dark text-color-white" *ngFor="let header of tableConfig.headers"
         [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
         {{ header.header }}
       </div>
@@ -75,7 +81,7 @@
       </div>
 
       <ng-container *ngIf="dataToDisplay">
-        <div class="row-data txt-lg-med-norm" *ngFor="let header of tableConfig.headers" 
+        <div class="row-data txt-md-med-norm" *ngFor="let header of tableConfig.headers"
         [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
         <ng-container [ngSwitch]="header.colType" [formGroup]="editForm">
 
@@ -87,6 +93,35 @@
             <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
               formControlName="{{ header.dataKey }}"
               value="{{ rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}" type="text">
+          </div>
+
+          <!-- Column to display multi line text along with image and icon -->
+          <div class="multi-line click-item" *ngSwitchCase="COL_TYPE.MULTI_LINE"
+               (click)="cellClick(rowData, header.dataKeyArr[0])">
+            <div class="multi-line-text-align" *ngFor="let colType of header.dataKeyType; let i = index">
+              <div *ngIf="colType === COL_TYPE.IMAGE">
+                <img src="{{ header.multiLineKey[i] }}">
+              </div>
+              <div *ngIf="colType === COL_TYPE.ICON">
+                <i class="{{ rowData[header.multiLineKey[i]] }}"></i>
+              </div>
+              <div *ngIf="colType === COL_TYPE.TEXT">
+                <div *ngFor="let data of header.dataKeyArr; let j = index" class="profile-align">
+                  <div class="multi-line">
+                    <div *ngIf="header.headerArr"
+                      class="text-color-primary txt-md-med-norm header-width"> 
+                      {{ header.headerArr[j] }} 
+                    </div>
+                    <div *ngIf="header.headerArr" class="colon-width">
+                      :
+                    </div>
+                    <div class="txt-md-med-norm data-width">
+                      {{ rowData[data] }}
+                    </div>
+                  </div>  
+                </div>
+              </div>
+            </div>
           </div>
           
           <div *ngSwitchCase="COL_TYPE.IMAGE">

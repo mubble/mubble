@@ -16,7 +16,9 @@ export enum SmsErrorCodes {
 	DUPLICATED_REQUEST          = 'DUPLICATED_REQUEST',
 	PROVIDER_NOT_AVAILABLE      = 'PROVIDER_NOT_AVAILABLE',
 	REQUEST_INFO_MISMATCH       = 'REQUEST_INFO_MISMATCH',
-	INVALID_SMS_CONFIG					= 'INVALID_SMS_CONFIG'
+	INVALID_SMS_CONFIG					= 'INVALID_SMS_CONFIG',
+	INVALID_GW_NAME							= 'INVALID_GW_NAME',
+	PROVIDER_NOT_INITIALIZED		= 'PROVIDER_NOT_INITIALIZED',
 }
 
 export enum SmsErrorMessages {
@@ -26,7 +28,9 @@ export enum SmsErrorMessages {
 	DUPLICATED_REQUEST          = 'The request made is duplicated. Please wait and try again.',
 	PROVIDER_NOT_AVAILABLE      = 'Some error occured. Please try again later.',
 	REQUEST_INFO_MISMATCH			  = 'Skipping entry in SMS verification logs due to mismatch.',
-  INVALID_SMS_CONFIG        	= 'Invalid server config.',
+	INVALID_SMS_CONFIG        	= 'Invalid server config.',
+	INVALID_GW_NAME							= 'The gateway name provided was not valid, or disabled.',
+	PROVIDER_NOT_INITIALIZED 		= 'The sms gateway provider requested was not initialized.',
 }
 
 export class SmsError extends Mubble.uError {

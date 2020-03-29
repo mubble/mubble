@@ -10,12 +10,14 @@
 import { 
 				 SmsProviderClient,
 				 SmsSendResponse,
-				 RouteMobileCredentials
+				 RouteMobileCredentials,
+				 ClientInfo
 			 }																		from '../sms-interfaces'
 import { ActiveUserRequest }								from '../request'
-import { HTTP } 														from '@mubble/core'
 import { RunContextServer } 								from '../../rc-server'
-import { executeHttpsRequestWithOptions } 	from '../../util'
+import { HttpsRequest } 										from '../../util'
+import { SmsConstants } 										from '../sms-constants'
+import { HTTP } 														from '@mubble/core'
 import * as http 														from 'http'
 import * as urlModule												from 'url'
 
@@ -28,30 +30,38 @@ const PORT = 8080,
 
 export class RouteMobile extends SmsProviderClient {
 
-	public async request(rc          : RunContextServer,
-											 request     : ActiveUserRequest,
-											 credentials : RouteMobileCredentials) : Promise<SmsSendResponse> {
+	https : HttpsRequest
 
-		const urlObj : urlModule.UrlObject = {
-			protocol : HTTP.Const.protocolHttp,
-			hostname : credentials.host,
-			port     : PORT,
-			pathname : PATH,
-			query    : {
-				username    : credentials.username,
-				password    : credentials.password,
-				type        : TYPE,
-				dlr         : DLR,
-				destination : request.mobNo,
-				source      : credentials.source,
-				message     : request.sms
-			}
-		}
+	constructor(rc : RunContextServer, hostname : string) {
+		super()
+		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+	}
+
+	public async request<T extends ClientInfo>(rc      : RunContextServer,
+											 												request : ActiveUserRequest,
+											 												info 	: T) : Promise<SmsSendResponse> {
+
+		const RMKeys = info.creds as RouteMobileCredentials,
+					urlObj : urlModule.UrlObject = {
+						protocol : HTTP.Const.protocolHttp,
+						hostname : RMKeys.host,
+						port     : PORT,
+						pathname : PATH,
+						query    : {
+							username    : RMKeys.username,
+							password    : RMKeys.password,
+							type        : TYPE,
+							dlr         : DLR,
+							destination : request.mobNo,
+							source      : RMKeys.source,
+							message     : request.sms
+						}
+					}
 
 		const options : http.RequestOptions = urlObj
 		options.method = HTTP.Method.GET
 
-		const resp = await executeHttpsRequestWithOptions(rc, urlObj, options)
+		const resp = await this.https.executeRequest(rc, urlObj, options)
 
 		return { success : true, gwTranId : resp.response }
 	}

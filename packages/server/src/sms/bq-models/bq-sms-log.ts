@@ -7,68 +7,80 @@
 	 Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { BigQueryBaseModel }		from '../../gcp'
-import { RunContextServer }			from '../../rc-server'
-import { SmsVerficationLog }		from '../sms-interfaces'
-import * as lo									from 'lodash'
+import { BigQueryBaseModel, 
+				 BigqueryBase 
+			 }										 from '../../gcp'
+import { RunContextServer }	 from '../../rc-server'
 
-const table_options = {
-	schema : {
-		fields : [
-			{ name : 'service',  type : 'STRING',    mode : 'NULLABLE' },
-			{ name : 'userId',   type : 'STRING',    mode : 'REQUIRED' },
-			{ name : 'mobNo',    type : 'STRING',    mode : 'NULLABLE' },
-			{ name : 'tranId',   type : 'STRING',    mode : 'NULLABLE' },
-			{ name : 'otp',      type : 'INTEGER',   mode : 'NULLABLE' },
-			{ name : 'sms',      type : 'STRING',    mode : 'NULLABLE' },
-			{ name : 'ts',       type : 'TIMESTAMP', mode : 'NULLABLE' },
-			{ name : 'gwTranId', type : 'STRING',    mode : 'NULLABLE' },
-			{ name : 'gw',       type : 'STRING',    mode : 'NULLABLE' },
-			{ name : 'gwSendMs', type : 'INTEGER',   mode : 'NULLABLE' },
-			{ name : 'gwRespMs', type : 'INTEGER',   mode : 'NULLABLE' },
-			{ name : 'service',  type : 'STRING',    mode : 'NULLABLE' }
-		]
-	}
-}
-
+// @BigqueryBase.model('')
 export class BQSmsVerificationLog extends BigQueryBaseModel {
+
+	
+	// @BigqueryBase.field()
+	service	 : string
+	
+	// @BigqueryBase.field()
+	userId	 : string
+	
+	// @BigqueryBase.field()
+	mobNo		 : string
+	
+	// @BigqueryBase.field()
+	tranId	 : string
+	
+	// @BigqueryBase.field()
+	sms			 : string
+	
+	// @BigqueryBase.field()
+	gwTranId : string
+	
+	// @BigqueryBase.field()
+	gw			 : string
+	
+	// @BigqueryBase.field()
+	status	 : string
+	
+	// @BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
+	ts			 : number
+	
+	// @BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
+	gwSendMs : number
+	
+	// @BigqueryBase.field(BigqueryBase.FIELD_TYPE.INTEGER)
+	gwRespMs : number
+
+	public constructor(rc : RunContextServer) {
+		super(rc)
+	}
+
+	initModel(rc 			 : RunContextServer,
+						service	 : string,
+						userId	 : string,
+						mobNo		 : string,
+						tranId	 : string,
+						sms			 : string,
+						gwTranId : string,
+						gw			 : string,
+						status	 : string,
+						ts			 : number,
+						gwSendMs : number,
+						gwRespMs : number) {
+
+		this.service  = service
+		this.userId   = userId
+		this.mobNo    = mobNo
+		this.tranId   = tranId
+		this.sms      = sms
+		this.gwTranId = gwTranId
+		this.gw       = gw
+		this.status   = status
+		this.ts       = ts
+		this.gwSendMs = gwSendMs
+		this.gwRespMs = gwRespMs
+	}
 
 	public fieldsError(rc : RunContextServer) : string | null {
 		return null
 	}
 
-	// protected static options : BigQueryTableOptions = {
-	// 	_tableName      : 'sms_verification_logs',
-	// 	DATA_STORE_NAME : '',
-	// 	table_options   : table_options,
-	// 	day_partition   : true
-	// }
-
-	// public static getOptions() : BigQueryTableOptions {
-	// 	return lo.clone(this.options)
-	// }
-
-	service  : string = null as any
-	userId   : string = null as any
-	mobNo    : string = null as any
-	tranId   : string = null as any
-	otp      : number = null as any
-	sms      : string = null as any
-	ts       : number = null as any
-	gwTranId : string = null as any
-	gw       : string = null as any
-	gwSendMs : number = null as any
-	gwRespMs : number = null as any
-	status   : string = null as any
-
-	public constructor(rc : RunContextServer, smsLog : SmsVerficationLog) {
-		super(rc)
-		this.copyConstruct(smsLog)
-	}
-
-	public static async insertBQItems(rc : RunContextServer, bqArr : Array<BQSmsVerificationLog>) {
-		for(const bqItem of bqArr) {
-			await bqItem.insert(rc)
-		}
-	}
 }

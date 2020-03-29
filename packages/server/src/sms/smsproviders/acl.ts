@@ -10,20 +10,31 @@
 import {
 				 AclCredentials,
 				 SmsProviderClient,
-				 SmsSendResponse
+				 SmsSendResponse,
+				 ClientInfo,
 			 }																	from '../sms-interfaces'
 import { RunContextServer }								from '../../rc-server'
 import { ActiveUserRequest }							from '../request'
-import { executeHttpsRequestWithOptions }	from '../../util'
+import { HttpsRequest }										from '../../util'
 import { HTTP } 													from '@mubble/core'
+import { SmsConstants } 									from '../sms-constants'
 import { UrlObject } 											from 'url'
-import { RequestOptions }									from 'http'
+import * as http													from 'http'
 
 export class Acl extends SmsProviderClient {
 
-	public async request(rc      : RunContextServer,
-											 request : ActiveUserRequest,
-											 aclKeys : AclCredentials) : Promise<SmsSendResponse> {
+	https : HttpsRequest
+
+	constructor(rc : RunContextServer, hostname : string) {
+		super()
+		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+	}
+
+	public async request<T extends ClientInfo>(rc      : RunContextServer,
+																							request : ActiveUserRequest,
+																							info 		: T) : Promise<SmsSendResponse> {
+
+		const aclKeys = info.creds as AclCredentials
 
 		let mobileNo = request.mobNo,
 				message  = request.sms
@@ -49,14 +60,14 @@ export class Acl extends SmsProviderClient {
 			}
 		}
 
-		const options : RequestOptions = urlObj
-		options.method = HTTP.Method.GET
+		const options : http.RequestOptions = urlObj
+		options.method  = HTTP.Method.GET
+		options.headers = {[HTTP.HeaderKey.contentType] : HTTP.HeaderValue.json}
 
 		rc.isStatus() && rc.status(rc.getName(this), 'RequestOptions : ', options)
 
-		const resp = await executeHttpsRequestWithOptions(rc, urlObj, options)
+		const resp = await this.https.executeRequest(rc, urlObj, options)
 
-		// if(resp.error) return {success : false, gwTranId : resp.data}
 		return {success : true, gwTranId : resp.response}
 	}
 }

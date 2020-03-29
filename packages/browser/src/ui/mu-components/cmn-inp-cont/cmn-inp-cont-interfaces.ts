@@ -11,6 +11,6 @@ export interface FormOutputValue {
   displayType : DISPLAY_TYPE
 }
 
-export interface FormOutputParams {
+export interface MuFormOutputParams {
   [key : string] : FormOutputValue
 }

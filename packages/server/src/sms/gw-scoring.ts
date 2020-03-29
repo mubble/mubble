@@ -11,14 +11,16 @@ import { SmsError,
 				 SmsErrorCodes, 
 				 SmsErrorMessages 
 			 }                    from './sms-errors'
-import { RunContextServer } from '../rc-server'
-import { RedisWrapper }     from '../cache'
 import { 
 				 format 
 			 }   									from '@mubble/core'
-import { Provider }         from './sms-interfaces'
+import { Provider, 
+				 SmsProvider 
+				}										from './sms-interfaces'
+import { RunContextServer } from '../rc-server'
+import { RedisWrapper }     from '../cache'
+import { SmsConstants } 		from './sms-constants'
 import * as lo  						from 'lodash'
-import { SmsConstants } from './sms-constants'
 
 
 interface GatewayScore {
@@ -62,7 +64,9 @@ export class GatewayScoring {
 	 * 
 	 * @returns name of the provider
 	 */
-	public async findBestGatewayProvider(rc : RunContextServer, ts : number, excludedGws ?: Array<string>) : Promise<string> {
+	public async findBestGatewayProvider(rc 					: RunContextServer, 
+																			 ts 					: number, 
+																			 excludedGws ?: Array<string>) : Promise<keyof typeof SmsProvider> {
 
 		const providers : Array<string> = this.getAllGatewayProviders()
 
@@ -77,7 +81,7 @@ export class GatewayScoring {
 															 `since they failed earlier. ${excludedGws}`)
 		}
 
-		if (providers.length === 1) return providers[0]
+		if (providers.length === 1) return providers[0] as keyof typeof SmsProvider
 
 		let filteredProviders
 
@@ -98,7 +102,7 @@ export class GatewayScoring {
 					`After performance consideration, only one provider left, returning ${filteredProviders[0]}`
 				)
 
-				return filteredProviders[0]
+				return filteredProviders[0] as keyof typeof SmsProvider
 			}
 
 			const scores = await Promise.all(filteredProviders.map(provider => 
@@ -112,7 +116,7 @@ export class GatewayScoring {
 
 			rc.isDebug() && rc.debug(rc.getName(this), `Best gw provider : ${winningGw} with score : ${winningScore}.`)
 
-			return winningGw
+			return winningGw as keyof typeof SmsProvider
 		} else {
 			rc.isError() && rc.error(rc.getName(this), 'No working provider available.', filteredProviders)
 			throw new SmsError(SmsErrorCodes.PROVIDER_NOT_AVAILABLE, SmsErrorMessages.PROVIDER_NOT_AVAILABLE)

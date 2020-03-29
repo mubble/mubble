@@ -90,6 +90,8 @@ export class HttpsServer {
     ci.lastEventTs    = 0
     ci.customData     = {} as CustomData
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'ci', ci)
+
     const clientId = ci.headers[HTTP.HeaderKey.clientId],
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
 
@@ -216,7 +218,7 @@ export class HttpsServerProvider implements XmnProvider {
     const headers = {
             [HTTP.HeaderKey.clientId]      : this.ci.headers[HTTP.HeaderKey.clientId],
             [HTTP.HeaderKey.versionNumber] : this.ci.headers[HTTP.HeaderKey.versionNumber],
-            [HTTP.HeaderKey.symmKey]       : this.encProvider.encodeResponseKey(),
+            [HTTP.HeaderKey.symmKey]       : this.encProvider.encodeResponseKey(rc),
             [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.stream
           }
 
