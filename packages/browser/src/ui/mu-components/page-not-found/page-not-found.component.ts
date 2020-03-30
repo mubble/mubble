@@ -2,8 +2,9 @@ import { Component,
          OnInit,
          Inject
        }                      from '@angular/core'
-import { RunContextBrowser }  from '@mubble/browser/rc-browser'
-import { RunContextApp, ComponentRoute } from 'framework'
+import { RunContextApp, 
+         ComponentRoute
+       }                      from 'framework'
 
 @Component({
   selector    : 'page-not-found',
