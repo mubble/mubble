@@ -120,6 +120,7 @@ export class InputValidator {
   }
 
   static amountValidator(control : AbstractControl) {
+
     const minAmount = control.get('minAmount').value
                       ? control.get('minAmount').value
                       : null,

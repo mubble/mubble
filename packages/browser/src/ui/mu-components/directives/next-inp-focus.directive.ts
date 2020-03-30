@@ -8,8 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 
-import { Directive, 
-         ElementRef, 
+import { Directive,
          Input, 
          Inject,
          HostListener,
@@ -35,11 +34,10 @@ export class NextInpFocusDirective {
   }
 
   private onEnter(event : any) {
-    if (this.nextInpFocusElem) this.nextInpFocusElem.focus()
-    this.onSubmit.emit(event)
+    if (this.nextInpFocusElem) {
+      this.nextInpFocusElem.focus()
+    } else {
+      this.onSubmit.emit(event)
+    }
   }
-
-  
-
-  
 }

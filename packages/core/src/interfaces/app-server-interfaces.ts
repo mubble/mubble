@@ -47,7 +47,6 @@ export interface FilterItem {
   title  ?: string // will be removed in future releases
   params  : InputParams
   mode   ?: FILTER_MODE
-
 }
 
 export interface InputParams {

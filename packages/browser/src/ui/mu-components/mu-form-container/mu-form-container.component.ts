@@ -37,7 +37,9 @@ import { MatSelectChange,
          MatButtonToggleChange
        }                                  from '@angular/material'
 import { InputValidator }                 from '../input-container/input-validator'
-import { Observable, Subscription }                     from 'rxjs'
+import { Observable,
+         Subscription
+       }                                  from 'rxjs'
 import { map,
          startWith
        }                                  from 'rxjs/operators'
@@ -76,11 +78,10 @@ export class MuFormContainerComponent implements OnChanges {
 
   @Output() value           : EventEmitter<MuFormOutputParams>  = new EventEmitter<MuFormOutputParams>()
   @Output() dropdownOpen    : EventEmitter<boolean>             = new EventEmitter<boolean>()
+  @Output() lastInpField    : EventEmitter<any>                 = new EventEmitter<any>()
 
-  inputForm       : FormGroup = {} as FormGroup
-  dateRange       : FormGroup
-  numberRange     : FormGroup
-  filteredOptions : Observable<SelectionBoxParams[]>
+  inputForm         : FormGroup = {} as FormGroup
+  filteredOptions   : Observable<SelectionBoxParams[]>
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
@@ -123,16 +124,6 @@ export class MuFormContainerComponent implements OnChanges {
     
       if (this.inputForm && (inputParams.validators || inputParams.isRequired))
         this.inputForm.get(inputParams.id).markAsTouched()
-
-      if (this.dateRange && inputParams.validators) {
-        this.dateRange.controls.startDate.markAsTouched()
-        this.dateRange.controls.endDate.markAsTouched()
-      }
-
-      if (this.numberRange && inputParams.validators) {
-        this.numberRange.controls.minAmount.markAsTouched()
-        this.numberRange.controls.maxAmount.markAsTouched()
-      }
     }
 
     if (this.hasError()) return
@@ -166,13 +157,15 @@ export class MuFormContainerComponent implements OnChanges {
           break
 
         case DISPLAY_TYPE.DATE_RANGE  :
+          const dateFormGroup : FormGroup = this.inputForm.get(inputParams.id) as FormGroup
+
           params  = { 
                       value       : {
-                                      startDate : this.dateRange.controls.startDate.value
-                                                  ? this.dateRange.controls.startDate.value.getTime()
+                                      startDate : dateFormGroup.controls.startDate.value
+                                                  ? dateFormGroup.controls.startDate.value.getTime()
                                                   : null,
-                                      endDate   : this.dateRange.controls.endDate.value
-                                                  ? this.dateRange.controls.endDate.value.getTime()
+                                      endDate   : dateFormGroup.controls.endDate.value
+                                                  ? dateFormGroup.controls.endDate.value.getTime()
                                                   : null
                                     },
                       displayType : inputParams.displayType
@@ -180,10 +173,12 @@ export class MuFormContainerComponent implements OnChanges {
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
+          const numFormGroup : FormGroup = this.inputForm.get(inputParams.id) as FormGroup
+
           params  = { 
                       value       : { 
-                                      minAmount : this.numberRange.controls.minAmount.value,
-                                      maxAmount : this.numberRange.controls.maxAmount.value
+                                      minAmount : numFormGroup.controls.minAmount.value,
+                                      maxAmount : numFormGroup.controls.maxAmount.value
                                     },
                       displayType : inputParams.displayType
                     }
@@ -211,7 +206,6 @@ export class MuFormContainerComponent implements OnChanges {
                       displayType : inputParams.displayType
                     }
           break  
-
       }
       
       formOutputParams[inputParams.id]  = params
@@ -285,6 +279,7 @@ export class MuFormContainerComponent implements OnChanges {
   setChangedValues(event : string, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event)
+
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -299,21 +294,27 @@ export class MuFormContainerComponent implements OnChanges {
   }
 
   setDateRange(event : MatDatepickerInputEvent<Date>, i : number) {
-    const sDate = this.dateRange.controls.startDate.value,
-          eDate = this.dateRange.controls.endDate.value
+    const formName  : string    = this.formParams.inputParams[i].id,
+          dateGroup : FormGroup = this.inputForm.get(formName) as FormGroup
 
-    sDate && !this.isDateObj(sDate) ? this.dateRange.controls.startDate.setValue(sDate.toDate())
-                                    : this.dateRange.controls.startDate.setValue(sDate)
+    const sDate = dateGroup.controls.startDate.value,
+          eDate = dateGroup.controls.endDate.value
 
-    eDate && !this.isDateObj(eDate) ? this.dateRange.controls.endDate.setValue(eDate.toDate())
-                                    : this.dateRange.controls.endDate.setValue(eDate)
+    sDate && !this.isDateObj(sDate) ? dateGroup.controls.startDate.setValue(sDate.toDate())
+                                    : dateGroup.controls.startDate.setValue(sDate)
+
+    eDate && !this.isDateObj(eDate) ? dateGroup.controls.endDate.setValue(eDate.toDate())
+                                    : dateGroup.controls.endDate.setValue(eDate)
 
     if (this.eventPropagate)  this.onSubmit()
   }
 
   setNumberRange(event : string, i : number) {
-    this.numberRange.controls.minAmount.setValue(this.numberRange.controls.minAmount.value)
-    this.numberRange.controls.maxAmount.setValue(this.numberRange.controls.maxAmount.value)
+    const formName  : string    = this.formParams.inputParams[i].id,
+          numGroup  : FormGroup = this.inputForm.get(formName) as FormGroup
+
+    numGroup.controls.minAmount.setValue(numGroup.controls.minAmount.value)
+    numGroup.controls.maxAmount.setValue(numGroup.controls.maxAmount.value)
 
     if (this.eventPropagate)  this.onSubmit()
   }
@@ -354,19 +355,23 @@ export class MuFormContainerComponent implements OnChanges {
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
+          const dateFormGroup : FormGroup = this.inputForm.get(inputParams.id) as FormGroup
+
           hasError  = inputParams.isRequired 
-                      ? this.dateRange.invalid
-                      : ((this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid )
-                        || (this.dateRange.controls.startDate.value && !this.dateRange.controls.endDate.value)
-                        || ( this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid) )
+                      ? dateFormGroup.invalid
+                      : ((dateFormGroup.controls.startDate.value && dateFormGroup.controls.startDate.invalid)
+                        || (dateFormGroup.controls.startDate.value && !dateFormGroup.controls.endDate.value)
+                        || (dateFormGroup.controls.endDate.value && dateFormGroup.controls.endDate.invalid))
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
+          const numFormGroup : FormGroup = this.inputForm.get(inputParams.id) as FormGroup
+
           hasError  = inputParams.isRequired 
-                      ? this.numberRange.invalid
-                      : ((this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid )
-                        || ( this.numberRange.controls.minAmount.value && !this.numberRange.controls.maxAmount.value ) 
-                        || (this.numberRange.controls.maxAmount.value && this.numberRange.controls.maxAmount.invalid) )
+                      ? numFormGroup.invalid
+                      : ((numFormGroup.controls.minAmount.value && numFormGroup.controls.minAmount.invalid)
+                        || (numFormGroup.controls.minAmount.value && !numFormGroup.controls.maxAmount.value) 
+                        || (numFormGroup.controls.maxAmount.value && numFormGroup.controls.maxAmount.invalid))
           break
 
         case DISPLAY_TYPE.IMAGE_UPLOAD  :
@@ -397,6 +402,10 @@ export class MuFormContainerComponent implements OnChanges {
     }
   }
 
+  enterOnLastInput(event : any) {
+    this.lastInpField.emit(event)
+  }
+
   /*=====================================================================
                               PRIVATE
   =====================================================================*/
@@ -422,7 +431,7 @@ export class MuFormContainerComponent implements OnChanges {
         case DISPLAY_TYPE.BUTTON_TOGGLE   :
         case DISPLAY_TYPE.ROW_INPUT_BOX :
 
-          this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations) )
+          this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
 
           if (params.options && params.options.length) {
             const selectedValues  = []
@@ -436,7 +445,7 @@ export class MuFormContainerComponent implements OnChanges {
     
 
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-          this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations) )
+          this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
           this.filteredOptions      = this.inputForm.valueChanges.pipe(
                                       startWith(''),
                                       map(value => typeof value === 'string' ? value : value.value),
@@ -451,40 +460,42 @@ export class MuFormContainerComponent implements OnChanges {
 
           formValidations.push(InputValidator.futureDateValidator)
 
-          this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations) )
+          this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
           this.setDisabled(params.isDisabled)
           break
 
-        case DISPLAY_TYPE.DATE_RANGE    : 
-          if (params.value) {
-
-            if (params.value.startDate) params.value.startDate = new Date(params.value.startDate)
-            if (params.value.endDate) params.value.endDate = new Date(params.value.endDate)
-          } else {
-            params.value  = {}
-          }
-
-          this.dateRange = this.formBuilder.group({
-            startDate : [params.value['startDate'] || null, formValidations],
-            endDate   : [params.value['endDate']   || null, formValidations]
-          })
+        case DISPLAY_TYPE.DATE_RANGE  : 
+          if (!params.value) params.value  = {}
 
           const valiArr = [InputValidator.dateValidator]
-          if(!params.validators || !params.validators.allowFutureDate) 
+          if(!params.validators || !params.validators.allowFutureDate)
             valiArr.push(InputValidator.futureDateValidatorIfAllowed)
-          this.dateRange.setValidators(valiArr)
-          if (params.isDisabled) this.dateRange.disable()
+
+          this.inputForm.addControl(params.id, new FormGroup({
+            startDate : new FormControl(params.value['startDate'] ? new Date(params.value.startDate)
+                                                                  : null, formValidations),
+            endDate   : new FormControl(params.value['endDate'] ? new Date(params.value.endDate)
+                                                                : null, formValidations),
+          },
+          {
+            validators : valiArr
+          }))
+
+          this.setDisabled(params.isDisabled)
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  : 
-          this.numberRange = this.formBuilder.group({
-            minAmount : [params.value['minAmount'] || null, formValidations],
-            maxAmount : [params.value['maxAmount'] || null, formValidations]
+          if (!params.value) params.value  = {}
+
+          this.inputForm.addControl(params.id, new FormGroup({
+            minAmount : new FormControl(params.value['minAmount'] || null, formValidations),
+            maxAmount : new FormControl(params.value['maxAmount'] || null, formValidations),
           },
           {
-            validator : [InputValidator.amountValidator]
-          })
-          if (params.isDisabled) this.numberRange.disable()
+            validators : [InputValidator.amountValidator]
+          }))
+
+          this.setDisabled(params.isDisabled)
           break
       }
     }
@@ -521,5 +532,13 @@ export class MuFormContainerComponent implements OnChanges {
     }
 
     return isDate
+  }
+
+  /*=====================================================================
+                              UTILS
+  =====================================================================*/
+
+  focusElement(index : number) {
+    (this.inputContainers[index] as unknown as HTMLElement).focus()
   }
 }
