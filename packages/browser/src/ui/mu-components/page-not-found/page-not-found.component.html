@@ -1,0 +1,29 @@
+<div class="nc-root-div page-not-found-comp"
+  [ngClass.xl]="['web-root-div']"
+  [ngClass.lg]="['web-root-div']"
+  [ngClass.md]="['web-root-div']"
+  [ngClass.sm]="['web-root-div']">
+  
+  <div class="nc-content-div bg-pnf"
+    [ngClass.xl]="['web-content-div']"
+    [ngClass.lg]="['web-content-div']"
+    [ngClass.md]="['web-content-div']"
+    [ngClass.sm]="['web-content-div']">
+
+    <div class="web-img-cont">
+      <img class="pnf-img" src='images/pnf.png'>
+    </div>
+
+    <div class="img-cont">
+      <img class="mob-pnf-img" src='images/pnf-mobile.png'>
+    </div>
+
+    <footer class="footer">
+      <button class="button bg-white txt-lg-reg-dark text-color-primary" (click)="onHomeClick()">
+        {{ 'page_not_fond_vist_home' | translate }}
+      </button>
+    </footer>
+
+  </div>
+  
+</div>
