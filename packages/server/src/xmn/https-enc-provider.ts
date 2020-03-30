@@ -12,7 +12,6 @@ import {
          HTTP
        }                      from '@mubble/core'
 import { SecurityErrorCodes } from './security-errors'
-import { RunContextServer }   from '../rc-server'
 import * as crypto            from 'crypto'
 import * as zlib              from 'zlib'
 import * as stream            from 'stream'
@@ -35,23 +34,16 @@ export class HttpsEncProvider {
     this.privateKey = pk
   }
 
-  public encodeRequestKey(rc : RunContextServer, publicKey : string) : string {
+  public encodeRequestKey(publicKey : string) : string {
     if(!this.reqAesKey) this.reqAesKey = this.getNewAesKey()
 
     const encKeyBuf = this.encryptUsingPublicKey(publicKey, this.reqAesKey),
           encKey    = encKeyBuf.toString(BASE64)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeRequestKey encKey', encKey)
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeRequestKey publicKey', publicKey)
-
     return encKey
   }
 
-  public decodeRequestKey(rc : RunContextServer, encKey : string) : Buffer {
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeRequestKey encKey', encKey)
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeRequestKey privateKey', this.privateKey)
-
+  public decodeRequestKey(encKey : string) : Buffer {
     const encKeyBuf = Buffer.from(encKey, BASE64)
 
     this.reqAesKey = this.decryptUsingPrivateKey(encKeyBuf)
@@ -59,21 +51,13 @@ export class HttpsEncProvider {
     return this.reqAesKey
   }
 
-  public encodeRequestTs(rc : RunContextServer, ts : number) : string {
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeRequestTs ts', ts)
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeRequestTs privateKey', this.privateKey)
-
+  public encodeRequestTs(ts : number) : string {
     const encReqTs = this.encryptRequestTs(ts)
 
     return encReqTs
   }
 
-  public decodeRequestTs(rc : RunContextServer, publicKey : string, encReqTs : string) {
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeRequestTs encReqTs', encReqTs)
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeRequestTs publicKey', publicKey)
-
+  public decodeRequestTs(publicKey : string, encReqTs : string) {
     const requestTs = this.decryptRequestTs(publicKey, encReqTs)
 
     return requestTs
@@ -97,24 +81,17 @@ export class HttpsEncProvider {
     return this.decryptBody(streams, encoding, response)
   }
 
-  public encodeResponseKey(rc : RunContextServer) : string {
+  public encodeResponseKey() : string {
     if(!this.respAesKey) this.respAesKey = this.getNewAesKey()
 
     const encKeyBufTemp = this.encryptUsingReqAesKey(this.respAesKey),
           encKeyBufFin  = this.encryptUsingPrivateKey(encKeyBufTemp),
           encKey        = encKeyBufFin.toString(BASE64)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeResponseKey encKey', encKey)
-    rc.isDebug() && rc.debug(rc.getName(this), 'encodeResponseKey privateKey', this.privateKey)
-
     return encKey
   }
 
-  public decodeResponseKey(rc : RunContextServer, publicKey : string, encKey : string) : Buffer {
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeResponseKey encKey', encKey)
-    rc.isDebug() && rc.debug(rc.getName(this), 'decodeResponseKey publicKey', publicKey)
-
+  public decodeResponseKey(publicKey : string, encKey : string) : Buffer {
     const encKeyBuf = Buffer.from(encKey, BASE64),
           decKey    = this.decryptUsingPublicKey(publicKey, encKeyBuf)
     
@@ -272,5 +249,4 @@ export class HttpsEncProvider {
 
     return data
   }
-
 }

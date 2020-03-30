@@ -92,16 +92,18 @@ export namespace ObopayHttpsClient {
     headers[HTTP.HeaderKey.clientId]      = selfId
     headers[HTTP.HeaderKey.versionNumber] = HTTP.CurrentProtocolVersion
     headers[HTTP.HeaderKey.contentType]   = HTTP.HeaderValue.stream
-    headers[HTTP.HeaderKey.symmKey]       = encProvider.encodeRequestKey(rc, syncHash)
-    headers[HTTP.HeaderKey.requestTs]     = encProvider.encodeRequestTs(rc, requestTs)
+    headers[HTTP.HeaderKey.symmKey]       = encProvider.encodeRequestKey(syncHash)
+    headers[HTTP.HeaderKey.requestTs]     = encProvider.encodeRequestTs(requestTs)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Encoding body.', params)
 
     const encBodyObj = encProvider.encodeBody(params, false)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
-    encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
-                             : headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
+
+    if(!encBodyObj.contentLength) {
+      headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
+    }
 
     let unsecuredConn = false
     if (unsecured !== undefined) unsecuredConn = unsecured
@@ -111,16 +113,24 @@ export namespace ObopayHttpsClient {
                              `http${unsecuredConn ? '' : 's'} request headers.`,
                              headers)
 
+    const urlObj : urlModule.UrlObject = {
+      protocol : unsecuredConn ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
+      hostname : requestServer.host,
+      port     : requestServer.port,
+      pathname : `/${apiName}`
+    }
+
     const options : https.RequestOptions = {
       method   : POST,
       protocol : unsecuredConn ? HTTP.Const.protocolHttp : HTTP.Const.protocolHttps,
-      host     : requestServer.host,
+      hostname : requestServer.host,
       port     : requestServer.port,
       path     : `/${apiName}`,
       headers  : headers
     }
 
     return await request(rc,
+                         urlModule.format(urlObj),
                          options,
                          syncHash,
                          encProvider,
@@ -130,6 +140,7 @@ export namespace ObopayHttpsClient {
   }
 
   export async function request(rc            : RunContextServer,
+                                url           : string,
                                 options       : https.RequestOptions,
                                 serverPubKey  : string,
                                 encProvider   : HttpsEncProvider,
@@ -137,7 +148,9 @@ export namespace ObopayHttpsClient {
                                 dataStr       : string,
                                 unsecured    ?: boolean) : Promise<ResultStruct> {
 
-    const req          = unsecured ? http.request(options) : https.request(options),
+    rc.isDebug() && rc.debug(CLASS_NAME, `${unsecured ? 'http' : 'https'} request to server.`, url, options)
+
+    const req          = unsecured ? http.request(url, options) : https.request(url, options),
           writePromise = new Mubble.uPromise(),
           readPromise  = new Mubble.uPromise()
 
@@ -153,13 +166,14 @@ export namespace ObopayHttpsClient {
         const err = new Error(`${HTTP.HeaderKey.symmKey} missing in response headers.`)
         writePromise.reject(err)
         readPromise.reject(err)
-        // throw err
+        
+        return
       }
 
       if(!resp.headers[HTTP.HeaderKey.bodyEncoding])
         resp.headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
     
-      encProvider.decodeResponseKey(rc, serverPubKey, resp.headers[HTTP.HeaderKey.symmKey] as string)
+      encProvider.decodeResponseKey(serverPubKey, resp.headers[HTTP.HeaderKey.symmKey] as string)
 
       const readStreams = encProvider.decodeBody([resp],
                                                  resp.headers[HTTP.HeaderKey.bodyEncoding] as string,
@@ -193,7 +207,8 @@ export namespace ObopayHttpsClient {
                                 `http${unsecured ? '' : 's'} response.`,
                                 output.toString())
 
-    const result = JSON.parse(output.toString())
+    const result = JSON.parse(output.toString()) as ResultStruct
+
     return result
   }
 
@@ -217,7 +232,7 @@ export namespace ObopayHttpsClient {
       throw new Error(`${HTTP.HeaderKey.symmKey} missing in request headers.`)
     }
 
-    encProvider.decodeRequestKey(rc, headers[HTTP.HeaderKey.symmKey])
+    encProvider.decodeRequestKey(headers[HTTP.HeaderKey.symmKey])
 
     const clientCredentials = credentialRegistry.getCredential(clientId)
 
@@ -241,8 +256,7 @@ export namespace ObopayHttpsClient {
       if(!headers[HTTP.HeaderKey.bodyEncoding])
         headers[HTTP.HeaderKey.bodyEncoding] = HTTP.HeaderValue.identity
 
-      const requestTs = encProvider.decodeRequestTs(rc, clientCredentials.syncHash,
-                                                    headers[HTTP.HeaderKey.requestTs])
+      const requestTs = encProvider.decodeRequestTs(clientCredentials.syncHash, headers[HTTP.HeaderKey.requestTs])
 
       rc.isDebug() && rc.debug(CLASS_NAME, 'requestTs', requestTs)
 
