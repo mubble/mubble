@@ -687,7 +687,8 @@ export class MudsTransaction extends MudsIo {
   }
 
   createQuery(entityName: string) {
-    return this.transaction.createQuery(entityName)
+    //Default Namespace, without this transaction wont work??
+    return this.transaction.createQuery('', entityName)
   }
 
   private async doCallback() {
