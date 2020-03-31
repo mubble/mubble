@@ -55,8 +55,6 @@ export class HttpsServer {
 
     const rc = this.refRc.copyConstruct('', 'https-' + lo.random(1000, 9999, false))
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Received a new request.', req.url)
-
     const urlObj      = urlModule.parse(req.url || ''),
           pathNameRaw = urlObj.pathname || '',
           pathName    = pathNameRaw.startsWith('/') ? pathNameRaw.substr(1) : pathNameRaw
@@ -64,7 +62,7 @@ export class HttpsServer {
     if(pathName === 'raghuEcho') {
       const data = await raghuEcho(req, urlObj)
 
-      rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', pathName, data)
+      // rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', pathName, data)
 
       res.writeHead(200, {
         [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.json,
@@ -74,6 +72,8 @@ export class HttpsServer {
       res.end(JSON.stringify(data))
       return
     }
+
+    rc.isStatus() && rc.status(rc.getName(this), 'Received a new request.', req.url)
 
     const [ apiStr, moduleName, apiName ] = pathName.split('/')
 
