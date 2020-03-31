@@ -150,7 +150,7 @@ export namespace ObopayHttpsClient {
 
     rc.isDebug() && rc.debug(CLASS_NAME, `${unsecured ? 'http' : 'https'} request to server.`, url, options)
 
-    const req          = unsecured ? http.request(url, options) : https.request(url, options),
+    const req          = unsecured ? http.request(options) : https.request(options),
           writePromise = new Mubble.uPromise(),
           readPromise  = new Mubble.uPromise()
 
