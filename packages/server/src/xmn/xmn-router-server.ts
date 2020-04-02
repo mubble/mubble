@@ -140,7 +140,8 @@ export abstract class XmnRouterServer {
     if(ci && ci.customData && ci.customData.clientId)
       await ConnectionMap.removeActiveConnection(ci.customData.clientId.toString())
 
-    await this.connectionClosed(rc, ci)
+      rc.isDebug() && rc.debug(rc.getName(this), 'providerFailed', ci)
+      await this.connectionClosed(rc, ci)
     rc.finish(ci , null as any , null as any)
   }
   
@@ -148,6 +149,7 @@ export abstract class XmnRouterServer {
     if(ci && ci.customData && ci.customData.clientId)
       await ConnectionMap.removeActiveConnection(ci.customData.clientId.toString())
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'providerClosed', ci)
     await this.connectionClosed(rc, ci)
 
     if(ci.protocol === Protocol.WEBSOCKET) {
@@ -259,6 +261,7 @@ export abstract class XmnRouterServer {
   }
 
   closeConnection(rc : RunContextServer, ci : ConnectionInfo) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'closeConnection')
     if(ci.provider) {
       ci.provider.requestClose(rc)
     } else {
