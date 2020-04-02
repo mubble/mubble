@@ -86,7 +86,7 @@ export class MuFormContainerComponent implements OnChanges {
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
 
-  inputContainers : ElementRef[]
+  inputContainers : HTMLElement[]
 
   private fileUploadParams  : UploadedDocParams
   private subscriber        : Subscription
@@ -110,9 +110,9 @@ export class MuFormContainerComponent implements OnChanges {
   ngAfterViewInit() {
 
     setTimeout(() => {
-      this.inputContainers  = this.inputCont.toArray().map(val => val.nativeElement)
+      this.inputContainers  = this.inputCont.toArray().map(val => val.nativeElement)        
     }, 10)
-
+    
   }
 
   /*=====================================================================
@@ -227,10 +227,16 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               HTML
   =====================================================================*/
-  selectedOption(event : MatSelectChange | MatRadioChange, i : number, elem : HTMLElement) {
+  selectedOption(event : MatSelectChange | MatRadioChange, i : number) {
     const inputParams = this.formParams.inputParams[i]
-    this.inputForm.get(inputParams.id).setValue(event.value)
-    if (elem) elem.focus()
+    this.inputForm.get(inputParams.id).setValue(event.value);
+
+    if (this.formParams.inputParams[i + 1]) {
+      this.inputContainers[i + 1].focus()
+    } else {
+      this.lastInpField.emit()
+    }
+
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -539,6 +545,10 @@ export class MuFormContainerComponent implements OnChanges {
   =====================================================================*/
 
   focusElement(index : number) {
-    (this.inputContainers[index] as unknown as HTMLElement).focus()
+    
+    setTimeout(() => {
+      this.inputContainers[index].focus()
+    }, 100)
+
   }
 }
