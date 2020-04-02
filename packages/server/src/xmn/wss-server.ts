@@ -252,6 +252,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   private onError(err : Error) {
+    
     this.wssServer.markClosed(this)
 
     const rc = this.refRc.copyConstruct('', 'wss-request')
@@ -260,6 +261,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   private closeInternal(rc : RunContextServer) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'closeInternal')
     this.wssServer.markClosed(this)
     this.router.providerClosed(rc, this.ci)
   }
