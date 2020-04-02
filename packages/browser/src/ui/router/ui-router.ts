@@ -296,6 +296,12 @@ export class UiRouter {
     return this.curQueryParam
   }
 
+  public clearHisory() {
+    const distanceFromRoot  = -1 * this.historyWrapper.getState().index - 1
+    this.historyWrapper.go(distanceFromRoot)
+    
+  }
+
   public updateQueryParam(name: string, value: any) {
 
     const stackItem = this.urlStack[this.urlStack.length - 1],
