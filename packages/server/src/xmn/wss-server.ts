@@ -206,6 +206,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   public requestClose(rc : RunContextServer) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'Got requestClose')
     this.socket.close()
     this.closeInternal(rc)
   }

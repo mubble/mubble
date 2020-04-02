@@ -261,6 +261,7 @@ export abstract class XmnRouterServer {
   }
 
   closeConnection(rc : RunContextServer, ci : ConnectionInfo) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'closeConnection')
     if(ci.provider) {
       ci.provider.requestClose(rc)
     } else {
