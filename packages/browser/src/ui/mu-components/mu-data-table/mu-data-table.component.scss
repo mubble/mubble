@@ -118,11 +118,13 @@ img {
   font-size: 1.5rem;
 }
 
-::ng-deep.mat-menu-panel {
+ 
+::ng-deep.mu-table-cont.mat-menu-panel {
   position: absolute;
   top: -25px;
   right: 0px;
 }
+
 
 .paginator {
   display: flex;
