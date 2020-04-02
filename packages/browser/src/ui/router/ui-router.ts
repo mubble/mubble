@@ -87,6 +87,7 @@ export class UiRouter {
   private codePop           : boolean = false
   private runningInBrowser  : boolean = false
   private isSdkApp          : boolean = false 
+  private iframeHistLength  : number  = 0
 
   constructor(private rcBrowser         : RunContextBrowser,
               private router            : Router) {
@@ -300,6 +301,10 @@ export class UiRouter {
     const distanceFromRoot  = -1 * this.historyWrapper.getState().index - 1
     this.historyWrapper.go(distanceFromRoot)
     
+  }
+
+  public setIframeHistLength(length  : number) {
+    this.iframeHistLength = length
   }
 
   public updateQueryParam(name: string, value: any) {
@@ -654,7 +659,9 @@ export class UiRouter {
 
     this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), this.historyWrapper.getState().index >= 0)
 
-    const distanceFromRoot = -1 * this.historyWrapper.getState().index - 1
+    const totalDistance = this.iframeHistLength + this.historyWrapper.getState().index
+
+    const distanceFromRoot = -1 * totalDistance - 1
     this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'browserGotoRoot', { 
       distanceFromRoot, 
       stackLen        : this.urlStack.length, 
@@ -663,6 +670,7 @@ export class UiRouter {
 
     this.codePop = true
     this.historyWrapper.go(distanceFromRoot)
+    if (this.iframeHistLength) this.iframeHistLength = 0
   }
 
   /*--------------------------------------------------------------------------------------------------------------
