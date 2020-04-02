@@ -138,7 +138,7 @@ export abstract class XmnRouterServer {
 
   async providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
     if(ci && ci.customData && ci.customData.clientId)
-      await ConnectionMap.removeActiveConnection(ci.customData.clientId.toString())
+      await ConnectionMap.removeActiveConnection(rc, ci.customData.clientId.toString())
 
     rc.isDebug() && rc.debug(rc.getName(this), 'providerFailed', ci)
     await this.connectionClosed(rc, ci)
@@ -147,7 +147,7 @@ export abstract class XmnRouterServer {
   
   async providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
     if(ci && ci.customData && ci.customData.clientId)
-      await ConnectionMap.removeActiveConnection(ci.customData.clientId.toString())
+      await ConnectionMap.removeActiveConnection(rc, ci.customData.clientId.toString())
 
     rc.isDebug() && rc.debug(rc.getName(this), 'providerClosed', ci)
     await this.connectionClosed(rc, ci)
@@ -395,10 +395,16 @@ export abstract class XmnRouterServer {
   private async processEventObject(refRc : RunContextServer, eventObj : ClientEventObject) {
     const rc = refRc.copyConstruct('', 'app-event')
 
-    const co = await ConnectionMap.getActiveConnection(eventObj.connectionId)
-    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, !!co)
+    const co   = await ConnectionMap.getActiveConnection(rc, eventObj.connectionId),
+          cond = !!(co && co.ci)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'processEventObject', co)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, cond)
     
-    if(co) await rc.router.sendEvent(rc, co.ci, eventObj.eventName, eventObj.eventParams)
+    if(co && co.ci) {
+      await rc.router.sendEvent(rc, co.ci, eventObj.eventName, eventObj.eventParams)
+    }
   }
 
   public getCookies(ci : ConnectionInfo) : Mubble.uObject<string> {
