@@ -28,6 +28,7 @@ import * as ws                from 'ws'
 import * as https             from 'https'
 import * as http 							from 'http'
 import * as urlModule         from 'url'
+import * as lo                from 'lodash'
 
 const SLASH_SEP         = '/',
       PING_FREQUENCY_MS = 29 * 1000 // 29 seconds
@@ -206,18 +207,18 @@ export class WssServerProvider implements XmnProvider {
   }
 
   public requestClose(rc : RunContextServer) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'Got requestClose')
+    rc.isDebug() && rc.debug(rc.getName(this), 'requestClose')
     this.socket.close()
     this.closeInternal(rc)
   }
 
   private onOpen() {
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc.copyConstruct('', 'wss' + + lo.random(1000, 9999, false))
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onopen()')
   }
 
   private onMessage(msgEvent : MessageEvent) {
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onmessage()')
 
     const data = msgEvent.data
@@ -246,7 +247,7 @@ export class WssServerProvider implements XmnProvider {
   }
 
   private onClose() {
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onclose()')
 
     this.closeInternal(rc)
@@ -256,7 +257,7 @@ export class WssServerProvider implements XmnProvider {
     
     this.wssServer.markClosed(this)
 
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc
     rc.isError() && rc.error(rc.getName(this), 'WebSocket onerror()', err)
     this.router.providerFailed(rc, this.ci)
   }
