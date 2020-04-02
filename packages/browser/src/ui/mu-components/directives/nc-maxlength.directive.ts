@@ -19,7 +19,7 @@ import {
        }                        from '@angular/core'
 
 
-const KEY_DOWN  = 'keyup',
+const KEY_UP    = 'keyup',
       PASTE     = 'paste',
       CUT       = 'cut',
       NUMERIC   = 'numeric',
@@ -44,7 +44,7 @@ export class NcMaxLengthDirective {
   ngAfterViewInit() {
     this.maxLength  = Number(this.maxLength) 
     if (typeof this.maxLength !== 'number') return
-    this.eventHandlers.push(this.renderer.listen(this.element.nativeElement, KEY_DOWN, this.eventHandler.bind(this)),
+    this.eventHandlers.push(this.renderer.listen(this.element.nativeElement, KEY_UP, this.eventHandler.bind(this)),
     this.renderer.listen(this.element.nativeElement, PASTE, this.clipBoardEventHandler.bind(this)),
     this.renderer.listen(this.element.nativeElement, CUT, this.clipBoardEventHandler.bind(this)))
     

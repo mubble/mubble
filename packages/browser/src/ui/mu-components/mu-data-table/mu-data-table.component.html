@@ -88,7 +88,7 @@
           <div *ngSwitchCase="COL_TYPE.TEXT">
             
             <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)" class="text-cls"> 
-              {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParmas?.pipeName : [header.pipeParmas?.value] }}
+              {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
             </span> 
             <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
               formControlName="{{ header.dataKey }}"
