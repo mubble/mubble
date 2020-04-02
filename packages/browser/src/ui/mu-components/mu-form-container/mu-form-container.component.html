@@ -74,7 +74,7 @@
             placeholder="{{ inputParam.placeHolder }}" 
             class="txt-lg-med-norm input-cont"
             (selectionChange)="selectedOption($event, i)"
-            (openedChange)="dropDownToggle($event)">
+            (openedChange)="dropDownToggle($event, i)">
             <mat-option *ngFor="let option of inputParam.options" [value]="option"
               class="txt-lg-med-norm">
               {{ option.value }}

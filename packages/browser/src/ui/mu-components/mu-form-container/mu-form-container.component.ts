@@ -228,14 +228,9 @@ export class MuFormContainerComponent implements OnChanges {
                               HTML
   =====================================================================*/
   selectedOption(event : MatSelectChange | MatRadioChange, i : number) {
-    const inputParams = this.formParams.inputParams[i]
-    this.inputForm.get(inputParams.id).setValue(event.value);
 
-    if (this.formParams.inputParams[i + 1]) {
-      this.inputContainers[i + 1].focus()
-    } else {
-      this.lastInpField.emit()
-    }
+    const inputParams = this.formParams.inputParams[i]
+    this.inputForm.get(inputParams.id).setValue(event.value)
 
     if (this.eventPropagate)  this.onSubmit()
   }
@@ -391,7 +386,20 @@ export class MuFormContainerComponent implements OnChanges {
     return hasError
   }
 
-  dropDownToggle(event : boolean) {
+  dropDownToggle(event : boolean, index : number) {
+
+    const inputParams = this.formParams.inputParams[index]
+    
+
+    if (!event && this.inputForm.get(inputParams.id).value) {
+      
+      if (this.formParams.inputParams[index + 1]) {
+        this.inputContainers[index + 1].focus()
+      } else {
+        this.lastInpField.emit()
+      }
+    }
+    
     this.dropdownOpen.emit(event)
   }
 
@@ -546,9 +554,7 @@ export class MuFormContainerComponent implements OnChanges {
 
   focusElement(index : number) {
     
-    setTimeout(() => {
-      this.inputContainers[index].focus()
-    }, 100)
+    this.inputContainers[index].focus()
 
   }
 }
