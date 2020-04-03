@@ -47,7 +47,8 @@
   }
 
   .btn {
-    width : 100px;
+    width : auto;
+    min-width: 100px;
   }
 
 }
