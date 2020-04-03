@@ -38,7 +38,6 @@ const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
       GET                = 'GET',
       POST               = 'POST',
       SUCCESS            = 'success',
-      API_STR            = 'api',
       OBOPAY_STR         = 'obopay-java'
 
 export class HttpsServer {
@@ -96,7 +95,7 @@ export class HttpsServer {
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
 
     try {
-      if(apiStr !== API_STR && (apiStr !== OBOPAY_STR)) // TODO : Change this
+      if(apiStr !== ObopayHttpsClient.API_STR && (apiStr !== OBOPAY_STR)) // TODO : Change this
         throw new Error('Invalid path in request url ' + apiStr)
 
       if(!ObopayHttpsClient.verifyModule(moduleName, apiName))
