@@ -70,7 +70,6 @@ export namespace ObopayHttpsClient {
                                   apiName       : string,
                                   params        : Mubble.uObject<any>,
                                   serverId      : string,
-                                  unsecured    ?: boolean,
                                   syncHashPath ?: string) : Promise<ResultStruct> {
 
     if(!selfId || !credentialRegistry)
@@ -106,9 +105,7 @@ export namespace ObopayHttpsClient {
       headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
     }
 
-    let unsecuredConn = false
-    if (unsecured !== undefined) unsecuredConn = unsecured
-    if (requestServer.unsecured !== undefined) unsecuredConn = requestServer.unsecured
+    let unsecuredConn = requestServer.unsecured
 
     rc.isDebug() && rc.debug(CLASS_NAME,
                              `http${unsecuredConn ? '' : 's'} request headers.`,
