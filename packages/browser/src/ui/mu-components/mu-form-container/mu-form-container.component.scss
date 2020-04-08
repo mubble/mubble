@@ -1,3 +1,7 @@
+:host {
+  width: 100%;
+}
+
 .onb-input-box-cont {
   position: relative;
   display: flex;
@@ -7,9 +11,23 @@
   margin: 2% 0 0;
 }
 
+.mat-errors-list {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+}
 
-.form-container-comp {
+.mat-input-box-cont {
+  border: none !important;
+}
+
+
+
+.mu-form-container-comp {
   position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
 }
 
 .button-toggle {
@@ -37,7 +55,7 @@
     width: 14vw;
   }
 
-  .input-cont {
+  .input-cont, .mat-input-cont {
     text-align: center;
   }
 
@@ -73,6 +91,7 @@
 }
 
 .range-onb-input-box-cont {
+
   .input-cont {
     position: relative;
     width: 100%;
@@ -88,6 +107,10 @@
   padding: 4vw;
   border: 0;
   background: none;
+}
+
+.mat-input-cont {
+  padding: 0 !important;
 }
 
 .toggle-cont {
@@ -113,9 +136,6 @@
 
 .web-form-container-comp {
 
-  // width: calc(100% - 20px);
-  // padding: 0 10px;
-
   .main-input-cont {
     margin: 10px 0;
   }
@@ -138,6 +158,11 @@
     background: none;
   }
 
+  .main-input-cont {
+    padding: 0;
+
+  }
+
   .errors-list {
     padding-top: 5px;
   }
@@ -150,7 +175,6 @@
     padding: 5px 0 !important;
   }
 
-  
 }
 
 .web-view-input-comp {
@@ -172,6 +196,11 @@
     border-style: solid;
     margin: 0.5% 0;
     width: 48%;
+  }
+
+  .mat-input-box {
+    border: 0 !important;
+  
   }
 
   .input-cont {

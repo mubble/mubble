@@ -65,6 +65,7 @@ export interface InputParams {
   image           ?: FilterImage
   requiredIf      ?: string
   disabledIf      ?: string
+  withoutBorder   ?: boolean
 }
 
 export interface MuFomrValidation {

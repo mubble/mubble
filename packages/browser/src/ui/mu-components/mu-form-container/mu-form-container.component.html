@@ -1,10 +1,12 @@
-<div class="form-container-comp" [formGroup]="inputForm"
-  [ngClass.xl]="['web-form-container-comp']"
-  [ngClass.lg]="['web-form-container-comp']"
-  [ngClass.md]="['web-form-container-comp']"
-  [ngClass.sm]="['web-form-container-comp']">
+<div class="mu-form-container-comp" [formGroup]="inputForm"
+[class.vertical-mode]="displayMode === DISPLAY_MODE.VERTICAL"
+[ngClass.xl]="webMode ? ['web-form-container-comp'] : ['web-view-input-comp']"
+[ngClass.lg]="webMode ? ['web-form-container-comp'] : ['web-view-input-comp']"
+[ngClass.md]="webMode ? ['web-form-container-comp'] : ['web-view-input-comp']"
+[ngClass.sm]="webMode ? ['web-form-container-comp'] : ['web-view-input-comp']">
 
-  <div class="main-input-cont" *ngFor="let inputParam of formParams.inputParams; let i = index" >
+  <div class="main-input-cont" *ngFor="let inputParam of formParams.inputParams; let i = index" 
+  adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
 
     <div class="label-txt txt-lg-reg-norm"
       *ngIf="displayLabel && inputParam.label && inputParam.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
@@ -14,7 +16,8 @@
     <ng-container [ngSwitch]="inputParam.displayType">
 
       <ng-container *ngSwitchCase="DISPLAY_TYPE.INPUT_BOX">
-        <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+
+        <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
 
           <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
             <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
@@ -22,6 +25,7 @@
           </div>
 
           <input matInput #inputCont
+          
             placeholder="{{inputParam.placeHolder}}"
             type="{{inputParam.inputType}}"
             [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
@@ -42,6 +46,38 @@
           </div>
 
         </div>
+
+        <mat-form-field *ngIf="inputParam.withoutBorder" class="onb-input-box-cont mat-input-box-cont" 
+          [class.border-disabled]="inputParam.isDisabled">
+
+          <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
+            <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
+            <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
+          </div>
+
+
+          <input matInput #inputCont
+            placeholder="{{inputParam.placeHolder}}"
+            type="{{inputParam.inputType}}"
+            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+            (onSubmit)="enterOnLastInput($event)"
+            (updatedValue)="setChangedValues($event, i)"
+            class="txt-lg-med-norm input-cont mat-input-cont" 
+            formControlName="{{ inputParam.id }}"
+            name="input-text"
+            [ncMaxLength]="inputParam.maxLength || 1000"
+            textSecurity="inputParam.isPassword"
+            [class.num-password-input]="inputParam.isPassword"
+            autocomplete="off"
+            [keyboard]="parentCont">
+
+          <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
+            <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
+            <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
+          </div>
+
+        </mat-form-field>
+        
       </ng-container> 
       
       <ng-container *ngSwitchCase="DISPLAY_TYPE.TEXT_AREA">
@@ -65,7 +101,9 @@
       </ng-container>  
     
       <ng-container *ngSwitchCase="DISPLAY_TYPE.SELECTION_BOX">
-        <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+
+        <ng-template #selectBox>
+
           <mat-select #inputCont
             formControlName="{{ inputParam.id }}"
             customTrigger="inputCont"
@@ -80,7 +118,44 @@
               {{ option.value }}
             </mat-option>
           </mat-select>
-        </div>
+        </ng-template>
+
+        <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+
+          <ng-container>
+
+            <ng-container 
+              *ngTemplateOutlet="selectBox">
+            </ng-container>
+
+          </ng-container>
+
+        </div>  
+
+        <ng-container *ngIf="inputParam.withoutBorder">
+
+          <mat-form-field class="onb-input-box-cont mat-input-box-cont">
+
+            <mat-select #inputCont
+              formControlName="{{ inputParam.id }}"
+              customTrigger="inputCont"
+              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+              (onSubmit)="enterOnLastInput($event)"
+              placeholder="{{ inputParam.placeHolder }}" 
+              class="txt-lg-med-norm input-cont mat-input-cont"
+              (selectionChange)="selectedOption($event, i)"
+              (openedChange)="dropDownToggle($event, i)">
+              <mat-option *ngFor="let option of inputParam.options" [value]="option"
+                class="txt-lg-med-norm">
+                {{ option.value }}
+              </mat-option>
+              
+            </mat-select>
+
+          </mat-form-field>
+
+        </ng-container>
+
       </ng-container>
 
       <ng-container *ngSwitchCase="DISPLAY_TYPE.MULTI_CHECK_BOX">
@@ -285,7 +360,7 @@
     </ng-container>
 
     <div *ngIf="inputParam.displayType !== DISPLAY_TYPE.DATE_RANGE &&
-      inputParam.displayType !== DISPLAY_TYPE.NUMBER_RANGE" class="errors-list">
+      inputParam.displayType !== DISPLAY_TYPE.NUMBER_RANGE" class="errors-list" [class.mat-errors-list]="inputParam.withoutBorder">
 
       <mat-error class="txt-sm-reg-norm error-text"
         *ngIf="inputForm.get(inputParam.id).touched && inputParam.isRequired && 
