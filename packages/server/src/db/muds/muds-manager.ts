@@ -24,7 +24,7 @@ import {  RunContextServer }            from '../..'
 import {  MudsUtil }                    from './muds-util'
 import {  RedisWrapper }                from '../../cache/redis-wrapper'
 
-import Datastore = require('@google-cloud/datastore')
+const  { Datastore } = require('@google-cloud/datastore')
 
 export class MeField {
   accessor: FieldAccessor
@@ -59,7 +59,7 @@ export class MudsEntityInfo {
 export class MudsManager {
 
   private entityInfoMap       : Mubble.uObject<MudsEntityInfo> = {}
-  private datastore           : Datastore
+  private datastore           : any
   private entityNames         : string[]
   private trRedis             : RedisWrapper
   private namespacePrefix     : string
