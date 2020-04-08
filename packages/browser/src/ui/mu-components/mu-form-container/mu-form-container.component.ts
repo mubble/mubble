@@ -116,7 +116,7 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               UTILS
   =====================================================================*/
-  onSubmit(manual : boolean = true) {
+  onSubmit(manual : boolean = true, id ?: string) {
 
     for (const inputParams of this.formParams.inputParams) {
     
@@ -129,6 +129,8 @@ export class MuFormContainerComponent implements OnChanges {
     const formOutputParams  : MuFormOutputParams  = { } as MuFormOutputParams
 
     for (const inputParams of this.formParams.inputParams) {
+
+      if (id && id !== inputParams.id) continue
 
       let params    : FormOutputValue
       
@@ -239,24 +241,24 @@ export class MuFormContainerComponent implements OnChanges {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.value)
 
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
   onToggleChane(event : MatSlideToggleChange, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.checked)
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
   onBtnToggleChange(event : MatButtonToggleChange, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.value)
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
-  fileUploadValue(event : UploadedDocParams) {
+  fileUploadValue(event : UploadedDocParams, id : string) {
     this.fileUploadParams = event
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, id)
   }
 
   checkedOption(event : MatCheckboxChange, option : SelectionBoxParams, i : number) {
@@ -281,14 +283,14 @@ export class MuFormContainerComponent implements OnChanges {
       this.inputForm.get(inputParams.id).setValue([option])
     }
 
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
   setChangedValues(event : string, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event)
 
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
   setDate(event : MatDatepickerInputEvent<Date>, i : number) {
@@ -298,7 +300,7 @@ export class MuFormContainerComponent implements OnChanges {
     value && !this.isDateObj(value) ? this.inputForm.get(inputParams.id).setValue(value.toDate())
                                     : this.inputForm.get(inputParams.id).setValue(value)
     
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
   setDateRange(event : MatDatepickerInputEvent<Date>, i : number) {
@@ -314,7 +316,7 @@ export class MuFormContainerComponent implements OnChanges {
     eDate && !this.isDateObj(eDate) ? dateGroup.controls.endDate.setValue(eDate.toDate())
                                     : dateGroup.controls.endDate.setValue(eDate)
 
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, formName)
   }
 
   setNumberRange(event : string, i : number) {
@@ -324,13 +326,13 @@ export class MuFormContainerComponent implements OnChanges {
     numGroup.controls.minAmount.setValue(numGroup.controls.minAmount.value)
     numGroup.controls.maxAmount.setValue(numGroup.controls.maxAmount.value)
 
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, formName)
   }
 
   setAutocompleteValue(event : MatAutocompleteSelectedEvent, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.option.value)
-    if (this.eventPropagate)  this.onSubmit(false)
+    if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
   }
 
   displayFn(value: any) : string {
@@ -400,7 +402,7 @@ export class MuFormContainerComponent implements OnChanges {
 
     if (!event && this.inputForm.get(inputParams.id).value) {
       
-      if (this.formParams.inputParams[index + 1]) {
+      if (this.inputContainers[index + 1]) {
         this.inputContainers[index + 1].focus()
       } else {
         this.lastInpField.emit()
@@ -419,7 +421,7 @@ export class MuFormContainerComponent implements OnChanges {
       option  ? this.inputForm.get(inputParams.id).setValue(option)
               : this.inputForm.get(inputParams.id).setValue({ id : value, value : value })   
 
-      if (this.eventPropagate)  this.onSubmit(false)
+      if (this.eventPropagate)  this.onSubmit(false, inputParams.id)
     }
   }
 
@@ -461,7 +463,7 @@ export class MuFormContainerComponent implements OnChanges {
             })
             if (selectedValues.length) this.inputForm.setValue(selectedValues)
           }
-          this.setDisabled(params.isDisabled)
+          this.setInputDisabled(params.id,params.isDisabled)
           break
     
 
@@ -473,7 +475,7 @@ export class MuFormContainerComponent implements OnChanges {
                                       map(value => value  ? this.filterOptions(value, params)
                                                         : params.options.slice()))
 
-          this.setDisabled(params.isDisabled)
+          this.setInputDisabled(params.id,params.isDisabled)
           break
 
         case DISPLAY_TYPE.CALENDAR_BOX  :
@@ -482,7 +484,7 @@ export class MuFormContainerComponent implements OnChanges {
           formValidations.push(InputValidator.futureDateValidator)
 
           this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
-          this.setDisabled(params.isDisabled)
+          this.setInputDisabled(params.id,params.isDisabled)
           break
 
         case DISPLAY_TYPE.DATE_RANGE  : 
@@ -502,7 +504,7 @@ export class MuFormContainerComponent implements OnChanges {
             validators : valiArr
           }))
 
-          this.setDisabled(params.isDisabled)
+          this.setInputDisabled(params.id,params.isDisabled)
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  : 
@@ -516,7 +518,7 @@ export class MuFormContainerComponent implements OnChanges {
             validators : [InputValidator.amountValidator]
           }))
 
-          this.setDisabled(params.isDisabled)
+          this.setInputDisabled(params.id,params.isDisabled)
           break
       }
     }
@@ -532,8 +534,8 @@ export class MuFormContainerComponent implements OnChanges {
       option.value.toLowerCase().includes(filterValue))
   }
 
-  private setDisabled(value : boolean) {
-    value ? this.inputForm.disable() : this.inputForm.enable()
+  private setInputDisabled(id : string, value : boolean) {
+    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
   }
 
 
@@ -565,23 +567,23 @@ export class MuFormContainerComponent implements OnChanges {
 
   }
 
-  updateForm(form : MuFormParams) {
+  updateValidators(formIds : string[]) {
 
-    for (let i = 0 ; i < form.inputParams.length; i++) {
+    for (let i = 0 ; i < formIds.length; i++) {
 
-      const params    = form.inputParams[i],
-            currValue = this.formParams.inputParams[i].isRequired,
-            newValue  = params.isRequired
+      const form = this.inputForm.get(formIds[i])
 
-      // console.log('coming here', newValue, currValue, params, this.formParams.inputParams[i])
-
-      if (currValue !== newValue) {
-        if (newValue) {
-          this.inputForm.get(params.id).setValidators([Validators.required])
-        } else {
-          this.inputForm.get(params.id).setValidators([Validators.required])
+      if (form) {
+        const params = this.formParams.inputParams.find(val => val.id === formIds[i])
+        if (params) {
+          if (params.isDisabled) {
+            form.disable()
+          } else {
+            form.enable()
+          }
         }
       }
+
     }
   }
 
