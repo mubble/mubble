@@ -37,9 +37,7 @@ import { MatSelectChange,
          MatButtonToggleChange
        }                                  from '@angular/material'
 import { InputValidator }                 from '../input-container/input-validator'
-import { Observable,
-         Subscription
-       }                                  from 'rxjs'
+import { Observable }                     from 'rxjs'
 import { map,
          startWith
        }                                  from 'rxjs/operators'
@@ -64,7 +62,7 @@ import { MuFormOutputParams,
 
 export class MuFormContainerComponent implements OnChanges {
 
-  @ViewChild(MatDatepicker, { static: false }) picker             : MatDatepicker<any>
+  @ViewChildren(MatDatepicker) picker                             : QueryList<MatDatepicker<Date>>
   @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
   @ViewChildren('inputCont') inputCont                            : QueryList<ElementRef>
 
@@ -75,6 +73,7 @@ export class MuFormContainerComponent implements OnChanges {
   @Input()  eventPropagate  : boolean               = false
   @Input()  displayMode     : DISPLAY_MODE         
   @Input()  displayLabel    : boolean               = true
+  @Input()  displayCount    : number   
 
   @Output() value           : EventEmitter<MuFormOutputParams>  = new EventEmitter<MuFormOutputParams>()
   @Output() dropdownOpen    : EventEmitter<boolean>             = new EventEmitter<boolean>()
@@ -89,7 +88,6 @@ export class MuFormContainerComponent implements OnChanges {
   inputContainers : HTMLElement[]
 
   private fileUploadParams  : UploadedDocParams
-  private subscriber        : Subscription
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
               private formBuilder                 : FormBuilder,
@@ -104,7 +102,7 @@ export class MuFormContainerComponent implements OnChanges {
   }
 
   ngOnInit() {
-    this.initialize()      
+    this.initialize() 
   }
 
   ngAfterViewInit() {
@@ -118,15 +116,15 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               UTILS
   =====================================================================*/
-  onSubmit() {
+  onSubmit(manual : boolean = true) {
 
     for (const inputParams of this.formParams.inputParams) {
     
-      if (this.inputForm && (inputParams.validators || inputParams.isRequired))
+      if (this.inputForm && (inputParams.validators || inputParams.isRequired) && manual)
         this.inputForm.get(inputParams.id).markAsTouched()
     }
 
-    if (this.hasError()) return
+    if (manual && this.hasError()) return
 
     const formOutputParams  : MuFormOutputParams  = { } as MuFormOutputParams
 
@@ -138,7 +136,7 @@ export class MuFormContainerComponent implements OnChanges {
 
         case DISPLAY_TYPE.CALENDAR_BOX        :
           params  = { 
-                      value       : this.inputForm.get(inputParams.id).value.getTime(),
+                      value       : this.inputForm.get(inputParams.id).value ? this.inputForm.get(inputParams.id).value.getTime() : null,
                       displayType : inputParams.displayType
                     }
           break
@@ -217,11 +215,20 @@ export class MuFormContainerComponent implements OnChanges {
   }
 
   isCalanderOpen() : boolean {
-    return this.picker.opened
+    const pickers = this.picker.toArray()
+    return pickers.some(val => val.opened)
   }
 
   closeCalander() {
-    this.picker.close()
+    const pickers = this.picker.toArray(),
+          length  = pickers.length
+
+    for (let i = 0 ; i < length; i++) {
+      if (pickers[i].opened) {
+        pickers[i].close()
+        break
+      }
+    }
   }
 
   /*=====================================================================
@@ -232,24 +239,24 @@ export class MuFormContainerComponent implements OnChanges {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.value)
 
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   onToggleChane(event : MatSlideToggleChange, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.checked)
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   onBtnToggleChange(event : MatButtonToggleChange, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.value)
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   fileUploadValue(event : UploadedDocParams) {
     this.fileUploadParams = event
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   checkedOption(event : MatCheckboxChange, option : SelectionBoxParams, i : number) {
@@ -274,14 +281,14 @@ export class MuFormContainerComponent implements OnChanges {
       this.inputForm.get(inputParams.id).setValue([option])
     }
 
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   setChangedValues(event : string, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event)
 
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   setDate(event : MatDatepickerInputEvent<Date>, i : number) {
@@ -291,7 +298,7 @@ export class MuFormContainerComponent implements OnChanges {
     value && !this.isDateObj(value) ? this.inputForm.get(inputParams.id).setValue(value.toDate())
                                     : this.inputForm.get(inputParams.id).setValue(value)
     
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   setDateRange(event : MatDatepickerInputEvent<Date>, i : number) {
@@ -307,7 +314,7 @@ export class MuFormContainerComponent implements OnChanges {
     eDate && !this.isDateObj(eDate) ? dateGroup.controls.endDate.setValue(eDate.toDate())
                                     : dateGroup.controls.endDate.setValue(eDate)
 
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   setNumberRange(event : string, i : number) {
@@ -317,13 +324,13 @@ export class MuFormContainerComponent implements OnChanges {
     numGroup.controls.minAmount.setValue(numGroup.controls.minAmount.value)
     numGroup.controls.maxAmount.setValue(numGroup.controls.maxAmount.value)
 
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   setAutocompleteValue(event : MatAutocompleteSelectedEvent, i : number) {
     const inputParams = this.formParams.inputParams[i]
     this.inputForm.get(inputParams.id).setValue(event.option.value)
-    if (this.eventPropagate)  this.onSubmit()
+    if (this.eventPropagate)  this.onSubmit(false)
   }
 
   displayFn(value: any) : string {
@@ -412,7 +419,7 @@ export class MuFormContainerComponent implements OnChanges {
       option  ? this.inputForm.get(inputParams.id).setValue(option)
               : this.inputForm.get(inputParams.id).setValue({ id : value, value : value })   
 
-      if (this.eventPropagate)  this.onSubmit()
+      if (this.eventPropagate)  this.onSubmit(false)
     }
   }
 
@@ -557,4 +564,25 @@ export class MuFormContainerComponent implements OnChanges {
     this.inputContainers[index].focus()
 
   }
+
+  updateForm(form : MuFormParams) {
+
+    for (let i = 0 ; i < form.inputParams.length; i++) {
+
+      const params    = form.inputParams[i],
+            currValue = this.formParams.inputParams[i].isRequired,
+            newValue  = params.isRequired
+
+      // console.log('coming here', newValue, currValue, params, this.formParams.inputParams[i])
+
+      if (currValue !== newValue) {
+        if (newValue) {
+          this.inputForm.get(params.id).setValidators([Validators.required])
+        } else {
+          this.inputForm.get(params.id).setValidators([Validators.required])
+        }
+      }
+    }
+  }
+
 }
