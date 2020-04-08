@@ -8,7 +8,8 @@
 ------------------------------------------------------------------------------*/
 
 import { Query as DsQuery, 
-          QueryResult }                           from '@google-cloud/datastore/query'
+         QueryResult
+       }                                          from '@google-cloud/datastore/query'
 import { DatastoreTransaction as DSTransaction }  from '@google-cloud/datastore/transaction'
 import { Muds,
          DatastoreInt,
@@ -24,8 +25,8 @@ import { MudsUtil }                               from './muds-util'
 import { Mubble }                                 from '@mubble/core'
 import { MudsQuery }                              from './muds-query'
 import { RunContextServer }                       from '../..'
-import * as lo                                    from 'lodash'
 import { CommitResponse }                         from '@google-cloud/datastore/request'
+import * as lo                                    from 'lodash'
 
 import Datastore = require('@google-cloud/datastore')
 
@@ -57,13 +58,13 @@ import Datastore = require('@google-cloud/datastore')
 
 export abstract class MudsIo {
 
-  protected datastore: Datastore
-  readonly now: number
-  protected upsertQueue: MudsBaseEntity[] = []
-  readonly uniques: UniqCacheObj[] = []
+  protected datastore   : Datastore
+  readonly  now         : number
+  protected upsertQueue : MudsBaseEntity[] = []
+  readonly  uniques     : UniqCacheObj[] = []
 
-  constructor(protected rc: RunContextServer,
-    protected manager: MudsManager) {
+  constructor(protected rc      : RunContextServer,
+              protected manager : MudsManager) {
 
     this.datastore = manager.getDatastore()
     this.now = Date.now()
@@ -329,7 +330,7 @@ export abstract class MudsIo {
     await this.lockEntityInCache(rc, uniques)
     
     //check entity based on key and value, If device have the value throw error.
-    await this.checkEntityExistsInDS(rc,uniques)
+    await this.checkEntityExistsInDS(rc, uniques)
 
     this.uniques.concat(uniques)
   }
@@ -688,7 +689,7 @@ export class MudsTransaction extends MudsIo {
 
   createQuery(entityName: string) {
     //Default Namespace, without this transaction wont work??
-    return this.transaction.createQuery('', entityName)
+    return this.transaction.createQuery(this.manager.getNamespacePrefix() , entityName)
   }
 
   private async doCallback() {
