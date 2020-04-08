@@ -352,7 +352,7 @@
       <ng-container *ngSwitchCase="DISPLAY_TYPE.IMAGE_UPLOAD">
         <file-upload
           [screen]="screen"
-          (value)="fileUploadValue($event)"
+          (value)="fileUploadValue($event, inputParam.id)"
           [isRequired]="inputParam.isRequired">
         </file-upload>  
       </ng-container> 

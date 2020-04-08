@@ -66,6 +66,7 @@ export interface InputParams {
   requiredIf      ?: string
   disabledIf      ?: string
   withoutBorder   ?: boolean
+  sectionIds      ?: string[]
 }
 
 export interface MuFomrValidation {
