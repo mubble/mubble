@@ -17,36 +17,44 @@ export type ConnectionObject = {
   ci  : ConnectionInfo
   obj : Mubble.uObject<any>
 }
+
+const CLASS_NAME = 'ConnectionMap'
+
 export namespace ConnectionMap {
 
-  const ActiveConnectionMap : Map<number | string, ConnectionObject> = new Map()
+  const activeConnectionMap : Map<number | string, ConnectionObject> = new Map()
 
   export function addActiveConnection(rc : RunContextServer, id : number | string, co : ConnectionObject) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'addActiveConnection', id, co)
+    rc.isDebug() && rc.debug(CLASS_NAME, 'addActiveConnection', id, co)
 
-    ActiveConnectionMap.set(id, co)
+    if(isActiveConnection(id)) {
+      rc.isWarn() && rc.warn(CLASS_NAME, 'Active connection already present.', id)
+      return
+    }
+
+    activeConnectionMap.set(id, co)
   }
 
   export function getActiveConnection(rc : RunContextServer, id : number | string) : ConnectionObject | undefined {
-    const co = ActiveConnectionMap.get(id)
-    rc.isDebug() && rc.debug(rc.getName(this), 'getActiveConnection', id, co)
+    const co = activeConnectionMap.get(id)
+    rc.isDebug() && rc.debug(CLASS_NAME, 'getActiveConnection', id, co)
 
     return co
   }
 
   export function removeActiveConnection(rc : RunContextServer, id : number | string) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'removeActiveConnection', id)
+    rc.isDebug() && rc.debug(CLASS_NAME, 'removeActiveConnection', id)
 
     if(!isActiveConnection(id)) {
-      rc.isDebug() && rc.debug(rc.getName(this), 'No active connection present.', id)
+      rc.isWarn() && rc.warn(CLASS_NAME, 'No active connection present.', id)
       return
     }
 
-    ActiveConnectionMap.delete(id)
+    activeConnectionMap.delete(id)
   }
 
   // private method
   function isActiveConnection(id : number | string) {
-    return ActiveConnectionMap.has(id)
+    return activeConnectionMap.has(id)
   }
 }
