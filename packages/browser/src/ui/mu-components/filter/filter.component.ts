@@ -23,14 +23,22 @@ import { RunContextBrowser }          from '../../../rc-browser'
 import { DISPLAY_TYPE, 
          DISPLAY_MODE, 
          FilterItem,
-         SelectionBoxParams,
+         MuSelectedFilter,
          FILTER_MODE
        }                              from '@mubble/core'
 import { OutputParams }               from '../cmn-inp-cont'
 
 enum CONTEXT {
   INIT,
-  CLEAR
+  CLEAR,
+  UPDATE
+}
+
+export interface SelectedFilter {
+  id           : string
+  mode         : FILTER_MODE
+  value        : any
+  displayType ?: DISPLAY_TYPE
 }
 
 export interface DateRangeInterface { 
@@ -41,12 +49,6 @@ export interface DateRangeInterface {
 export interface NumberRangeInterface {
   minAmount  : number
   maxAmount ?: number
-}
-
-export interface SelectedFilter {
-  id    : string
-  mode  : FILTER_MODE
-  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams
 }
 
 @Component({
@@ -65,16 +67,25 @@ export class FilterComponent {
   @Input()  displayCount    : number            = 1
   @Input()  displayMode     : DISPLAY_MODE      = DISPLAY_MODE.HORIZONTAL
 
-  @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
+  @Output() selectedFilter  : EventEmitter<MuSelectedFilter[]> = new EventEmitter<MuSelectedFilter[]>()
 
-  filters      : SelectedFilter[] = []
-  DISPLAY_MODE : typeof DISPLAY_MODE = DISPLAY_MODE
-  filterChips  : string[] = []
+  filters      : MuSelectedFilter[]   = []
+  DISPLAY_MODE : typeof DISPLAY_MODE  = DISPLAY_MODE
+  filterChips  : string[]             = []
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
   ngOnInit() {
     this.initialize(CONTEXT.INIT)
+  }
+
+  /*=====================================================================
+                              UTILS
+  =====================================================================*/
+
+  public updateLastAppliedFilters(lastFilters : FilterItem[]) {
+    this.filterItems = lastFilters
+    this.initialize(CONTEXT.UPDATE)
   }
 
   /*=====================================================================
@@ -180,9 +191,9 @@ export class FilterComponent {
 
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
-        this.filters.push({ id : fItem.params.id, value : fItem.params.value, mode : fItem.mode })
+        this.filters.push({ id : fItem.params.id, value : fItem.params.value, mode : fItem.mode, displayType : fItem.params.displayType })
       }
-    } else {
+    } else if (context === CONTEXT.CLEAR) {
       this.filters      = []
       const fItems : FilterItem[] = []
 
@@ -200,12 +211,33 @@ export class FilterComponent {
           mode    : fItem.mode
         })
 
-        this.filters.push({ id : fItem.params.id, value : setNull, mode : fItem.mode })
+        this.filters.push({ id : fItem.params.id, value : setNull, mode : fItem.mode, displayType : fItem.params.displayType })
         
       }
 
       this.filterItems  = []
       this.filterItems  = fItems
+    } else {
+      const fItems  : FilterItem[]        = [],
+            filters : MuSelectedFilter[]  = []
+
+      for (const fItem of this.filterItems) {
+
+        const currentValue  = this.filters.find(val => val.id === fItem.params.id && fItem.params.value)
+        fItem.params.value  = currentValue ? currentValue.value : null
+
+        fItems.push({
+          params  : fItem.params,
+          mode    : fItem.mode,
+        })
+
+        filters.push({ id : fItem.params.id, value : fItem.params.value, mode : fItem.mode, displayType : fItem.params.displayType })
+      }
+
+      this.filterItems  = []
+      this.filterItems  = fItems
+      this.filters      = filters
+      
     }
   }
 
