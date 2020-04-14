@@ -60,7 +60,8 @@ import { FileUploadComponent }              from './file-upload/file-upload.comp
 import { MatCardModule }                    from '@angular/material'
 import { KeypadComponent }                  from './keypad/keypad.component' 
 import { PageNotFoundComponent }            from './page-not-found/page-not-found.component'
-
+import { HAMMER_GESTURE_CONFIG }            from '@angular/platform-browser'
+import { GestureConfig }                    from '@angular/material'
 
 @NgModule({
   imports: [
@@ -82,7 +83,7 @@ import { PageNotFoundComponent }            from './page-not-found/page-not-foun
     MatButtonToggleModule,
     MatMenuModule,
     MatCardModule,
-    MatRippleModule
+    MatRippleModule,
   ],
 
   declarations: [
@@ -167,7 +168,8 @@ import { PageNotFoundComponent }            from './page-not-found/page-not-foun
   ],
 
   providers: [
-    CustomBreakPointsProvider
+    CustomBreakPointsProvider,
+    {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
   ]
 })
 
@@ -177,7 +179,8 @@ export class MuComponentsModule {
       ngModule: MuComponentsModule,
       providers: [
         TRANSLATION_PROVIDERS,
-        TranslateService
+        TranslateService,
+        {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
       ]
     }
   }
