@@ -63,6 +63,10 @@ export interface InputParams {
   isRequired      ?: boolean
   isDisabled      ?: boolean
   image           ?: FilterImage
+  requiredIf      ?: string
+  disabledIf      ?: string
+  withoutBorder   ?: boolean
+  sectionIds      ?: string[]
 }
 
 export interface MuFomrValidation {
@@ -140,7 +144,9 @@ export interface FilterParams {
 
 //TODO - to be verified
 export interface MuSelectedFilter {
-  id    : string,
-  mode  : FILTER_MODE,
-  value : any
+  id           : string,
+  mode         : FILTER_MODE,
+  value        : any
+  displayType ?: DISPLAY_TYPE
+  displayMode ?: DISPLAY_MODE
 }

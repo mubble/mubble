@@ -44,7 +44,7 @@ export class Sms {
 		this.gwScorer	 = new GatewayScoring(rc, trRedis, config.PROVIDERS)
 	}
 
-	public async init(rc : RunContextServer, service : string) {
+	public init(rc : RunContextServer) {
 
 		if(this.inited) {
 			throw Error('Calling init twice!')
@@ -54,7 +54,7 @@ export class Sms {
 		this.inited = true
 	}
 
-	public async close(rc : RunContextServer) {
+	public close(rc : RunContextServer) {
 
 		if(!this.inited) {
 			rc.isWarn() && rc.warn(rc.getName(this), 'Sms not initialized. Not closing.')
