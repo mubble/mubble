@@ -143,7 +143,9 @@ export interface FilterParams {
 
 //TODO - to be verified
 export interface MuSelectedFilter {
-  id    : string,
-  mode  : FILTER_MODE,
-  value : any
+  id           : string,
+  mode         : FILTER_MODE,
+  value        : any
+  displayType ?: DISPLAY_TYPE
+  displayMode ?: DISPLAY_MODE
 }

@@ -391,6 +391,7 @@ export class InputContainerComponent implements OnChanges {
           })
           if (selectedValues.length) this.inputForm.setValue(selectedValues)
         }
+        if (params.value) this.inputForm.setValue(params.value)
         this.setDisabled(params.isDisabled)
         break
 

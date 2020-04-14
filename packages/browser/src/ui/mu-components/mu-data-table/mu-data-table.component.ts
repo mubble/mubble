@@ -7,7 +7,9 @@ import { Component,
          Inject,
          ElementRef,
          ChangeDetectorRef,
-         SimpleChanges
+         SimpleChanges,
+         ViewChildren,
+         QueryList
        }                            from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
@@ -24,9 +26,10 @@ import { TableHeader,
        }                            from '@mubble/core/interfaces/app-server-interfaces'
 import { RunContextBrowser }        from '@mubble/browser/rc-browser'
 import { LOG_LEVEL,              
-         COL_TYPE 
+         COL_TYPE,
+         MuSelectedFilter
        }                            from '@mubble/core'
-import { SelectedFilter }           from '../filter'
+import { FilterComponent }          from '../filter'
 
 export interface TableConfig {
   headers            : TableHeader[]
@@ -84,9 +87,10 @@ export interface MuTableEditEvent {
 
 export class MuDataTableComponent implements OnInit {
 
-  @ViewChild('slctAllBox',  {static : false}) slctAllBox : MatCheckbox
-  @ViewChild('filterCont',  {static : false}) filterCont : ElementRef
+  @ViewChild('slctAllBox',  {static : false}) slctAllBox  : MatCheckbox
+  @ViewChild('filterCont',  {static : false}) filterCont  : ElementRef
   @ViewChild('muTableCont', {static : false}) muTableCont : ElementRef
+  @ViewChildren(FilterComponent)  filterCompChildren      : QueryList<FilterComponent>
 
   @Input()  tableConfig        : TableConfig
   @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
@@ -96,7 +100,7 @@ export class MuDataTableComponent implements OnInit {
   @Output() onCellClick        : EventEmitter<MuTableClickEvent>   = new EventEmitter()
   @Output() onRowEdit          : EventEmitter<MuTableEditEvent>    = new EventEmitter()
 
-  @Output() selectedFilter     : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
+  @Output() selectedFilter     : EventEmitter<MuSelectedFilter[]> = new EventEmitter<MuSelectedFilter[]>()
 
   pageIndex         : number   
   currPageIndex     : number  
@@ -197,8 +201,11 @@ export class MuDataTableComponent implements OnInit {
   private updatePageNumbers(pageIndex : number) {
     
     this.pageIndex     = pageIndex - 2
-    if (this.pageIndex <= 0) this.pageIndex = 0
-    if (this.pageIndex >= (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
+    if (this.pageIndex <= 0) {
+      this.pageIndex = 0
+    } else {
+      if (this.pageIndex >= (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
+    }
   }
 
 
@@ -387,10 +394,18 @@ export class MuDataTableComponent implements OnInit {
    * Method invoked by the parent in case of api loading failure which brings back
    * the table to previous state
    */
-  loadingFailed() {
-
+  loadingFailed(lastAppliedFilters  ?: FilterItem[], isHzFilters ?: boolean) {
+    
     this.currPageIndex = this.prevPageIndex
     this.updatePageNumbers(this.currPageIndex)
+
+    if (lastAppliedFilters) {
+      const index       = isHzFilters ? 0 : 1,
+            filterInsts = this.filterCompChildren.toArray()
+
+      filterInsts[index].updateLastAppliedFilters(lastAppliedFilters)   
+    }
+    
   }
 
 
@@ -556,7 +571,7 @@ export class MuDataTableComponent implements OnInit {
    * back to the parent
    * @param event 
    */
-  applyFilter(event : SelectedFilter[]) {
+  applyFilter(event : MuSelectedFilter[]) {
     /*
     If data table has all the data, filters are applied by the table itself 
     instead of making an api call
