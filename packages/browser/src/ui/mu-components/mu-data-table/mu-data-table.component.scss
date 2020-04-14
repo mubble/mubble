@@ -18,6 +18,7 @@
 
   display: flex;
   height: auto;
+  overflow-y: auto;
 
   ::-webkit-scrollbar {
     display: none;
@@ -29,6 +30,10 @@
     overflow-y: auto;
   }
 
+}
+
+.filter-cont::-webkit-scrollbar {
+  display: none;
 }
 
 .headers-cont {
