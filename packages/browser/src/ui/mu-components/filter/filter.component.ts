@@ -148,6 +148,7 @@ export class FilterComponent {
         case DISPLAY_TYPE.MULTI_CHECK_BOX     :
         case DISPLAY_TYPE.RADIO               :
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+        case DISPLAY_TYPE.SLIDER              : 
           (!fItem.params.value && !this.filters[index].value)
           ? changed = false
           : changed = fItem.params.value !== this.filters[index].value
@@ -239,6 +240,7 @@ export class FilterComponent {
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.RADIO               :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+      case DISPLAY_TYPE.SLIDER              : 
         if (event.value) this.filterChips.push(event.value.value)
         break
 

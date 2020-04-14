@@ -16,7 +16,8 @@ import { Component,
          EventEmitter,
          ViewChild,
          OnChanges,
-         ElementRef
+         ElementRef,
+         ChangeDetectorRef
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -32,7 +33,8 @@ import { MatSelectChange,
          MatRadioChange,
          MatCheckboxChange,
          MatSlideToggleChange,
-         MatButtonToggleChange
+         MatButtonToggleChange,
+         MatSliderChange
        }                                  from '@angular/material'
 import { InputValidator }                 from './input-validator'
 import { Observable }                     from 'rxjs'
@@ -48,7 +50,6 @@ import { DISPLAY_TYPE,
          SelectionBoxParams
        }                                  from '@mubble/core'
 import { OutputParams }                   from '../cmn-inp-cont/cmn-inp-cont-interfaces'
-
 
 @Component({
   selector    : 'input-container',
@@ -75,6 +76,7 @@ export class InputContainerComponent implements OnChanges {
   dateRange       : FormGroup
   numberRange     : FormGroup
   filteredOptions : Observable<SelectionBoxParams[]>
+  sliderLabel     : string 
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
@@ -134,6 +136,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.TOGGLE              :
       case DISPLAY_TYPE.BUTTON_TOGGLE       :
       case DISPLAY_TYPE.ROW_INPUT_BOX       :
+      case DISPLAY_TYPE.SLIDER              : 
         params  = { 
                     id          : this.inputParams.id,
                     value       : this.inputForm.value,
@@ -294,6 +297,10 @@ export class InputContainerComponent implements OnChanges {
     return value && typeof value === 'object' ? value.value : value
   }
 
+  onSliderValueChange(event : MatSliderChange) {
+    this.inputForm.setValue({minValue : event.source.min, maxValue : event.value})
+  }
+
   hasError() : boolean {
     let hasError : boolean = false
 
@@ -357,6 +364,10 @@ export class InputContainerComponent implements OnChanges {
     }
   }
 
+  formatLabel = (value: number) => {
+    return value + this.sliderLabel
+  }
+
   /*=====================================================================
                               PRIVATE
   =====================================================================*/
@@ -391,9 +402,6 @@ export class InputContainerComponent implements OnChanges {
         }
         this.setDisabled(params.isDisabled)
         break
-
-        break
-  
 
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
         this.inputForm        = new FormControl(params.value || null, formValidations)
@@ -446,14 +454,36 @@ export class InputContainerComponent implements OnChanges {
         })
         if (params.isDisabled) this.numberRange.disable()
         break
-    }
 
+      case DISPLAY_TYPE.SLIDER :
+        // this.numberRange = this.formBuilder.group({
+        //   minAmount : [params.value['minAmount'] || null, formValidations],
+        //   maxAmount : [params.value['maxAmount'] || null, formValidations]
+        // },
+        // {
+        //   validator : [InputValidator.amountValidator]
+        // })
+        // if (params.isDisabled) this.numberRange.disable()
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+
+        if (params.options && params.options.length) {
+          const selectedValues  = []
+          params.options.forEach(opt => {
+            if (opt.selected) selectedValues.push(opt)
+            this.sliderLabel = opt.id === 'formatLabel' ? opt.value as string : ''
+          })
+
+          if (selectedValues.length) this.inputForm.setValue(selectedValues)
+        }
+        this.setDisabled(params.isDisabled)
+        break
+    }
   }
 
   private filterOptions(inputText : string): SelectionBoxParams[] {
     const filterValue = inputText.toLowerCase()
     return this.inputParams.options.filter(option =>
-      option.value.toLowerCase().includes(filterValue))
+      (option.value as string).toLowerCase().includes(filterValue))
   }
 
   private setDisabled(value : boolean) {
