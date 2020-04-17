@@ -290,6 +290,46 @@ export abstract class MudsIo {
     await this.removeUniquesFromCache(rc, modifiedEntities)
   }
 
+
+  protected async processTransactionUpsertQueue(rc               : RunContextServer, 
+                                                executedResults ?: void|[CommitResponse]) {
+
+    const exec              = this.getExec(),
+          modifiedEntities  = [],
+          dsRecs            = []
+
+    if (!this.upsertQueue.length) return
+
+    for (const entity of this.upsertQueue) {
+
+      if (!entity.isModified()) continue
+
+      dsRecs.push(entity.convertForUpsert(this.rc))
+      modifiedEntities.push(entity)
+    }
+
+    if (!modifiedEntities.length) return
+    
+    if(!executedResults) {
+      await this.checkUnique(rc, ...modifiedEntities)
+      await exec.save(dsRecs)
+    }
+    
+    if(executedResults) {
+      const results = executedResults[0].mutationResults
+      for(const [index,result] of results.entries()) {
+        rc.isAssert() && rc.assert(rc.getName(this), result)
+        if(result.key) {
+          modifiedEntities[index].commitUpsert(result.key.path)
+        }
+      }
+      this.upsertQueue = []
+    }
+
+    //Remove key from cache after successful execution
+    await this.removeUniquesFromCache(rc, modifiedEntities)
+  }
+
   /* 
     This method will be called once the execution of the upsert called. 
     so that unique key will be removed once after success.
@@ -701,12 +741,15 @@ export class MudsTransaction extends MudsIo {
 
     this.transaction = this.datastore.transaction()
     await this.transaction.run()
-
     try {
 
       const response = await this.callback(this, this.now)
-      if (this.upsertQueue.length) await this.processUpsertQueue(rc)
-      await this.transaction.commit()
+      if (this.upsertQueue.length) await this.processTransactionUpsertQueue(rc)
+      const commitResponse = await this.transaction.commit()
+      if(commitResponse) {
+        await this.processTransactionUpsertQueue(rc, commitResponse)
+      }
+
       rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
       return response
     } catch (err) {
