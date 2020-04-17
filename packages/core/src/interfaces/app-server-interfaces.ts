@@ -67,6 +67,9 @@ export interface InputParams {
   disabledIf      ?: string
   withoutBorder   ?: boolean
   sectionIds      ?: string[]
+  autoComplete    ?: string
+  name            ?: string
+  format          ?: string
 }
 
 export interface MuFomrValidation {

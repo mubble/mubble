@@ -33,11 +33,12 @@
             (updatedValue)="setChangedValues($event, i)"
             class="txt-lg-med-norm input-cont" 
             formControlName="{{ inputParam.id }}"
-            name="input-text"
+            name="{{ inputParam.name || 'input-text' }}"
             [ncMaxLength]="inputParam.maxLength || 1000"
             textSecurity="inputParam.isPassword"
+            format="{{ inputParam.format }}"
             [class.num-password-input]="inputParam.isPassword"
-            autocomplete="off"
+            autocomplete="{{ inputParam.autoComplete || 'off'}}"
             [keyboard]="parentCont">
 
           <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
@@ -64,11 +65,11 @@
             (updatedValue)="setChangedValues($event, i)"
             class="txt-lg-med-norm input-cont mat-input-cont" 
             formControlName="{{ inputParam.id }}"
-            name="input-text"
+            name="{{ inputParam.name || 'input-text' }}"
             [ncMaxLength]="inputParam.maxLength || 1000"
             textSecurity="inputParam.isPassword"
             [class.num-password-input]="inputParam.isPassword"
-            autocomplete="off"
+            autocomplete="{{ inputParam.autoComplete || 'off'}}"
             [keyboard]="parentCont">
 
           <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
@@ -88,7 +89,7 @@
             (updatedValue)="setChangedValues($event, i)"
             class="txt-lg-med-norm input-cont" 
             formControlName="{{ inputParam.id }}"
-            name="input-text"
+            name="{{ inputParam.name || 'input-text' }}"
             [ncMaxLength]="inputParam.maxLength || 1000"
             textSecurity="inputParam.isPassword"
             [class.num-password-input]="inputParam.isPassword"
@@ -209,8 +210,10 @@
             (dateChange)="setDate($event, i)"
             placeholder="{{ inputParam.placeHolder }}"
             class="txt-lg-med-norm input-cont"
+            name="{{ inputParam.name || 'input-text' }}"
             [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
             (onSubmit)="enterOnLastInput($event)"
+            autocomplete="{{ inputParam.autoComplete || 'off'}}"
             [keyboard]="parentCont">
           <mat-datepicker-toggle matSuffix [for]="picker" disableRipple="false"></mat-datepicker-toggle>
           <mat-datepicker touchUi #picker></mat-datepicker>
@@ -227,6 +230,8 @@
               (dateChange)="setDateRange($event, i)"
               placeholder="{{ inputParam.placeHolder[0] }}"
               class="txt-lg-med-norm input-cont"
+              name="{{ inputParam.name || 'input-text' }}"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
               [keyboard]="parentCont">
             <mat-datepicker-toggle matSuffix [for]="startPicker" disableRipple="false"></mat-datepicker-toggle>
             <mat-datepicker touchUi #startPicker></mat-datepicker>
@@ -256,10 +261,10 @@
               (input)="setNumberRange($event, i)"
               class="txt-lg-med-norm input-cont" 
               formControlName="minAmount"
-              name="input-text"
+              name="{{ inputParam.name || 'input-text' }}"
               textSecurity="inputParam.isPassword"
               [class.num-password-input]="inputParam.isPassword"
-              autocomplete="off"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
               [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
               [keyboard]="parentCont">
           </div>
@@ -271,10 +276,10 @@
               (input)="setNumberRange($event, i)"
               class="txt-lg-med-norm input-cont" 
               formControlName="maxAmount"
-              name="input-text"
+              name="{{ inputParam.name || 'input-text' }}"
               textSecurity="inputParam.isPassword"
               [class.num-password-input]="inputParam.isPassword"
-              autocomplete="off"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
               [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
               [keyboard]="parentCont">
           </div>
@@ -290,6 +295,8 @@
             formControlName="{{ inputParam.id }}"
             [matAutocomplete]="auto"
             [keyboard]="parentCont"
+            name="{{ inputParam.name || 'input-text' }}"
+            autocomplete="{{ inputParam.autoComplete || 'off'}}"
             [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
             (onSubmit)="enterOnLastInput($event)"
             (blur)="valueEntered(autoCompInput.value, i)">
@@ -336,11 +343,11 @@
               (updatedValue)="setChangedValues($event, i)"
               class="txt-lg-med-norm input-cont" 
               formControlName="{{ inputParam.id }}"
-              name="input-text"
+              name="{{ inputParam.name || 'input-text' }}"
               [ncMaxLength]="inputParam.maxLength || 1000"
               textSecurity="inputParam.isPassword"
               [class.num-password-input]="inputParam.isPassword"
-              autocomplete="off"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
               [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
               (onSubmit)="enterOnLastInput($event)"
               [keyboard]="parentCont">
