@@ -207,7 +207,7 @@
     display         : flex;
     padding         : 2vw 5vw;
     width           : 100%;
-    height          : 20%;
+    height          : auto;
 
     .button-primary {
       margin: 1px 6px !important;
@@ -220,7 +220,7 @@
 
 .vertical-mode {
 
-  max-height: 500px !important;
+  max-height: 520px !important;
   box-shadow: 0 2px 5px 0 rgba(0,0,0,0.2);
 
  .filter-content-body {

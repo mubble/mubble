@@ -531,7 +531,7 @@ export class MuFormContainerComponent implements OnChanges {
 
     const filterValue = inputText.toLowerCase()
     return params.options.filter(option =>
-      option.value.toLowerCase().includes(filterValue))
+      (option.value as string).toLowerCase().includes(filterValue))
   }
 
   private setInputDisabled(id : string, value : boolean) {

@@ -81,16 +81,16 @@
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.MULTI_CHECK_BOX">
 
-        <div class="checkbox-cont">
-          <mat-checkbox *ngFor="let option of inputParams.options" [value]="option"
-            class="txt-lg-med-norm checkbox"
-            [checked]="option.selected"
-            (change)="checkedOption($event, option)">
-            {{ option.value }}
-          </mat-checkbox>
-        </div>
+      <div class="checkbox-cont">
+        <mat-checkbox *ngFor="let option of inputParams.options" [value]="option"
+          class="txt-lg-med-norm checkbox"
+          [checked]="option.selected"
+          (change)="checkedOption($event, option)">
+          {{ option.value }}
+        </mat-checkbox>
+      </div>
   
-      </ng-container>
+    </ng-container>
     
     <ng-container *ngSwitchCase="DISPLAY_TYPE.RADIO">
 
@@ -120,10 +120,11 @@
 
     </ng-container>
 
-
     <ng-container *ngSwitchCase="DISPLAY_TYPE.TOGGLE">
-      <mat-slide-toggle class="toggle-cont"
+      <mat-slide-toggle class="toggle-cont txt-lg-med-norm"
+        [labelPosition]="'after'"
         (change)="onToggleChane($event)">
+        {{ inputParams.label }}
       </mat-slide-toggle>
 
     </ng-container>
@@ -275,6 +276,20 @@
         [isRequired]="inputParams.isRequired">
       </file-upload>  
     </ng-container> 
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.SLIDER">
+      <mat-slider
+        thumbLabel="true"
+        [displayWith]="formatLabel"
+        [disabled]="inputParams.isDisabled"
+        tickInterval="1"
+        min="inputParams.options[0].value"
+        max="inputParams.options[1].value"
+        class="txt-lg-med-norm"
+        (change)="onSliderValueChange($event)">
+        {{ inputParams.label }}
+      </mat-slider>
+    </ng-container>
 
   </ng-container>  
 

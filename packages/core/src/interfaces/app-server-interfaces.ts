@@ -96,12 +96,13 @@ export enum DISPLAY_TYPE {
   IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
   TOGGLE                = 'TOGGLE',
   MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
-  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
+  BUTTON_TOGGLE         = 'BUTTON_TOGGLE',
+  SLIDER                = 'SLIDER'
 }
 
 export interface SelectionBoxParams {
   id        : string
-  value     : string
+  value     : string | number
   selected ?: boolean
 }
 
