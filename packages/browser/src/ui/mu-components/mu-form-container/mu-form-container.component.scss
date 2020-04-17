@@ -179,13 +179,8 @@
 
 .web-view-input-comp {
 
-  .onb-input-box-cont {
-    position: relative;
-    display: flex;
-    align-items: center;
-    border-width: 2px;
-    border-style: solid;
-    margin: 2% 0;
+  .main-input-cont {
+    margin: 10px 0;
   }
   
   .range-onb-input-box-cont {
@@ -206,7 +201,7 @@
   .input-cont {
     position: relative;
     width: 100%;
-    padding: 8px;
+    padding: 15px;
     border: 0;
     background: none;
   }

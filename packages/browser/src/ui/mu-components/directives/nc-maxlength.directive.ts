@@ -8,8 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 
-import { 
-         Directive,
+import { Directive,
          ElementRef,  
          Input, 
          Renderer2,
@@ -25,6 +24,8 @@ const KEY_UP    = 'keyup',
       NUMERIC   = 'numeric',
       BACKSPACE = 'Backspace'
 
+const pattern = /[\/\-]/
+
 @Directive({
   selector: '[ncMaxLength]'
 })
@@ -32,6 +33,9 @@ const KEY_UP    = 'keyup',
 export class NcMaxLengthDirective {
   
   @Input('ncMaxLength') maxLength : number = 0
+  @Input('format') format : string
+
+
   @Output() updatedValue : EventEmitter<string> = new EventEmitter<string>()
    
   private eventHandlers : (()=>void)[] = []
@@ -63,7 +67,7 @@ export class NcMaxLengthDirective {
    
     this.ngZone.runOutsideAngular(() => {
 
-      const element = event.srcElement
+      const element   = event.srcElement
 
       if (element.inputMode) {
 
@@ -79,6 +83,7 @@ export class NcMaxLengthDirective {
         }
       }
 
+      
       if (event.key === BACKSPACE) {
         this.emitUpdatedValue(element.value)
         return
@@ -87,6 +92,22 @@ export class NcMaxLengthDirective {
       if (element.value.length > this.maxLength) { 
         element.value = element.value.substring(0, this.maxLength)
       } 
+
+      if (this.format) {
+
+        const formatStr = this.format
+        let val = element.value
+
+        for (let i = 0 ; i < element.value.length; i++) {
+      
+            if (pattern.test(formatStr[i + 1]) && val[i + 1] !== formatStr[i + 1]) {
+              val = val.substr(0,i + 1) + formatStr[i + 1] + val.substr(i + 1)
+            }    
+        }
+        element.value = val
+      }
+
+
 
       const scrollHeight  = element.scrollHeight,
             clientHeight  = element.clientHeight
