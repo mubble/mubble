@@ -78,10 +78,10 @@ export class OracleDbClient implements ObmopBaseClient {
 
 		const fieldString = fields.join(', '),
 					binds       = query ? query.binds : [] as Array<any>,
-					addQuery    = query ? range ? ` WHERE ${query.queryStr} AND`
-																			: ` WHERE ${query.queryStr}`
-															: range ? ' WHERE'
-																		  : '',
+					addQuery    = query && query.queryStr ? range ? ` WHERE ${query.queryStr} AND`
+																												: ` WHERE ${query.queryStr}`
+															                  : range ? ' WHERE'
+																											  : '',																		
 					addRange    = range ? ` ${range.key} BETWEEN ${range.low} AND ${range.high}`
 														  : '',
 					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
