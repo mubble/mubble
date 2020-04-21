@@ -214,6 +214,22 @@ export abstract class MudsIo {
     return [results, { moreResults : "NO_MORE_RESULTS" }]
   }
 
+  public async allocateSelfKey(entity : MudsBaseEntity) : Promise<void> {
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      entity.getInfo().keyType === Muds.Pk.Auto, 'this method should be used only for PK Auto')
+
+    const exec            = this.getExec(),
+          inCompletelyKey = this.datastore.key([entity.getInfo().entityName])
+    const tempKey = await exec.allocateIds(inCompletelyKey, 1)
+    if(tempKey && tempKey[0]) {
+      for(const key of tempKey[0]) {
+        if(key && key.path)
+          entity.commitUpsert(key.path)
+          break
+      }
+    }
+  }
+
   private async deleteInternal<T extends MudsBaseEntity>(
     ...reqs: IEntityKey<T>[]): Promise<void> {
 
