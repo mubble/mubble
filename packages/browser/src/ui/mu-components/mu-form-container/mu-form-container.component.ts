@@ -5,6 +5,8 @@
    Author     : Aditya Baddur
    
    Copyright (c) 2020 Obopay. All rights reserved.
+
+   https://developers.google.com/web/fundamentals/design-and-ux/input/forms/#recommended_input_name_and_autocomplete_attribute_values
 ------------------------------------------------------------------------------*/
 
 
@@ -124,7 +126,7 @@ export class MuFormContainerComponent implements OnChanges {
         this.inputForm.get(inputParams.id).markAsTouched()
     }
 
-    if (manual && this.hasError()) return
+    if (manual && this.hasError()) return false
 
     const formOutputParams  : MuFormOutputParams  = { } as MuFormOutputParams
 
@@ -213,6 +215,7 @@ export class MuFormContainerComponent implements OnChanges {
     }
 
     this.value.emit(formOutputParams)
+    return true
 
   }
 
