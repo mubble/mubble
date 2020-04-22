@@ -75,6 +75,10 @@ export namespace ObmopQueryBuilder {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'joinConditons', conditions, separator)
 
+    if(!conditions.length) { 
+      return { queryStr : '', binds : [] }
+    } 
+    
     let count = 0
 
     const queryStrings = lo.concat([], conditions.map(cond => cond.queryStr)),
