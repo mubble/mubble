@@ -428,7 +428,7 @@ export class UiRouter {
           this.notifyAppClose()
           
           if (!this.runningInBrowser) this.notifyAppClose() 
-          else this.historyWrapper.go(-1)
+          else location.reload()
 
           return
         } else {

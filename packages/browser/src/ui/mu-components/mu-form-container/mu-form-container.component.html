@@ -11,6 +11,9 @@
     <div class="label-txt txt-lg-reg-norm"
       *ngIf="displayLabel && inputParam.label && inputParam.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
       {{ inputParam.label }}
+      <span class="red-asterix error-text" *ngIf="inputParam.isRequired">
+        *
+      </span>
     </div>
 
     <ng-container [ngSwitch]="inputParam.displayType">
@@ -337,7 +340,10 @@
         <div class="input-container">
 
           <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParam.label">
-            {{ inputParam.label }}
+            {{ inputParam.label }} 
+            <span class="red-asterix error-text" *ngIf="inputParam.isRequired">
+              *
+            </span>  
           </div>
 
           <div class="onb-input-box-cont border-primary small-box" [class.border-disabled]="inputParam.isDisabled">
