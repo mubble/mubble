@@ -27,7 +27,7 @@
           <input matInput #inputCont
           
             placeholder="{{inputParam.placeHolder}}"
-            type="{{inputParam.inputType}}"
+            type="{{inputParam.inputType || 'text'}}"
             [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
             (onSubmit)="enterOnLastInput($event)"
             (updatedValue)="setChangedValues($event, i)"
@@ -59,7 +59,7 @@
 
           <input matInput #inputCont
             placeholder="{{inputParam.placeHolder}}"
-            type="{{inputParam.inputType}}"
+            type="{{inputParam.inputType || 'text'}}"
             [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
             (onSubmit)="enterOnLastInput($event)"
             (updatedValue)="setChangedValues($event, i)"
@@ -67,6 +67,7 @@
             formControlName="{{ inputParam.id }}"
             name="{{ inputParam.name || 'input-text' }}"
             [ncMaxLength]="inputParam.maxLength || 1000"
+            format="{{ inputParam.format }}"
             textSecurity="inputParam.isPassword"
             [class.num-password-input]="inputParam.isPassword"
             autocomplete="{{ inputParam.autoComplete || 'off'}}"
@@ -85,12 +86,13 @@
         <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
           <textarea matInput #inputCont
             placeholder="{{ inputParam.placeHolder }}"
-            type="{{ inputParam.inputType }}"
+            type="{{ inputParam.inputType || 'text' }}"
             (updatedValue)="setChangedValues($event, i)"
             class="txt-lg-med-norm input-cont" 
             formControlName="{{ inputParam.id }}"
             name="{{ inputParam.name || 'input-text' }}"
             [ncMaxLength]="inputParam.maxLength || 1000"
+            format="{{ inputParam.format }}"
             textSecurity="inputParam.isPassword"
             [class.num-password-input]="inputParam.isPassword"
             autocomplete="off"
@@ -211,6 +213,8 @@
             placeholder="{{ inputParam.placeHolder }}"
             class="txt-lg-med-norm input-cont"
             name="{{ inputParam.name || 'input-text' }}"
+            [ncMaxLength]="inputParam.maxLength || 10"
+            format="{{ inputParam.format }}"
             [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
             (onSubmit)="enterOnLastInput($event)"
             autocomplete="{{ inputParam.autoComplete || 'off'}}"
@@ -339,12 +343,13 @@
           <div class="onb-input-box-cont border-primary small-box" [class.border-disabled]="inputParam.isDisabled">
             <input matInput inputCont
               placeholder="{{ inputParam.placeHolder }}"
-              type="{{inputParam.inputType}}"
+              type="{{inputParam.inputType || 'text'}}"
               (updatedValue)="setChangedValues($event, i)"
               class="txt-lg-med-norm input-cont" 
               formControlName="{{ inputParam.id }}"
               name="{{ inputParam.name || 'input-text' }}"
               [ncMaxLength]="inputParam.maxLength || 1000"
+              format="{{ inputParam.format }}"
               textSecurity="inputParam.isPassword"
               [class.num-password-input]="inputParam.isPassword"
               autocomplete="{{ inputParam.autoComplete || 'off'}}"
@@ -385,6 +390,12 @@
       <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched
         && inputForm.get(inputParam.id).value && inputForm.get(inputParam.id).hasError('pattern')">
         {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+      </mat-error>
+
+      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched
+        && inputForm.get(inputParam.id).value && inputForm.get(inputParam.id).hasError('invalid') 
+        && !inputForm.get(inputParam.id).hasError('pattern')">
+        {{ formParams.formValidators.errorMsg }}
       </mat-error>
 
       <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched &&
