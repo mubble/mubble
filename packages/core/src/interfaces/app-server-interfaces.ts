@@ -72,6 +72,14 @@ export interface InputParams {
   format          ?: string
 }
 
+
+
+export interface MuFomrValidation {
+  validation  : any[]
+  errorMsg    : string
+}
+
+
 export interface MuFormValidation {
   validation  : any[]
   errorMsg    : string
@@ -79,7 +87,7 @@ export interface MuFormValidation {
 
 export interface MuFormParams {
   inputParams     : InputParams[]
-  formValidators ?: MuFormValidation
+  formValidators ?: MuFormValidation | MuFomrValidation
 }
 
 export enum DISPLAY_TYPE {
