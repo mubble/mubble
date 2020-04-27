@@ -71,6 +71,7 @@ export interface InputParams {
   name            ?: string
   format          ?: string
   maskLength      ?: number
+  isVisible       ?: boolean
 }
 
 
