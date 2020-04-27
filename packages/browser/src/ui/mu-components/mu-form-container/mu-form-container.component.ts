@@ -240,6 +240,11 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               HTML
   =====================================================================*/
+  updatedValue(updatedValue : string, i : number) {
+    const inputParams = this.formParams.inputParams[i]
+    this.inputForm.get(inputParams.id).setValue(updatedValue)
+  }
+
   selectedOption(event : MatSelectChange | MatRadioChange, i : number) {
 
     const inputParams = this.formParams.inputParams[i]

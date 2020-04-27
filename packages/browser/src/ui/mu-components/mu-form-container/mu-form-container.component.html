@@ -42,7 +42,10 @@
             format="{{ inputParam.format }}"
             [class.num-password-input]="inputParam.isPassword"
             autocomplete="{{ inputParam.autoComplete || 'off'}}"
-            [keyboard]="parentCont">
+            [keyboard]="parentCont"
+            maskingValue
+            [maskedLength]="inputParam.maskLength"
+            (value)="updatedValue($event)">
 
           <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
             <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
@@ -74,7 +77,10 @@
             textSecurity="inputParam.isPassword"
             [class.num-password-input]="inputParam.isPassword"
             autocomplete="{{ inputParam.autoComplete || 'off'}}"
-            [keyboard]="parentCont">
+            [keyboard]="parentCont
+            maskingValue
+            [maskedLength]="inputParam.maskLength"
+            (value)="updatedValue($event)">
 
           <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
             <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
