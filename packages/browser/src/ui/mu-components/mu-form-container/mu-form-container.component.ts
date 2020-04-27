@@ -86,6 +86,7 @@ export class MuFormContainerComponent implements OnChanges {
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
+  maxDate           : Date                      = new Date()
 
   inputContainers : HTMLElement[]
 

@@ -213,6 +213,7 @@
             formControlName="{{ inputParam.id }}"
             [matDatepicker]="picker" 
             (dateChange)="setDate($event, i)"
+            [max]="inputParam.validators && inputParam.validators.allowFutureDate ? null : maxDate"
             placeholder="{{ inputParam.placeHolder }}"
             class="txt-lg-med-norm input-cont"
             name="{{ inputParam.name || 'input-text' }}"
@@ -222,7 +223,8 @@
             (onSubmit)="enterOnLastInput($event)"
             autocomplete="{{ inputParam.autoComplete || 'off'}}"
             [keyboard]="parentCont">
-          <mat-datepicker-toggle matSuffix [for]="picker" disableRipple="false"></mat-datepicker-toggle>
+          <mat-datepicker-toggle matSuffix [for]="picker" 
+          disableRipple="false"></mat-datepicker-toggle>
           <mat-datepicker touchUi #picker></mat-datepicker>
         </div>
       </ng-container>
