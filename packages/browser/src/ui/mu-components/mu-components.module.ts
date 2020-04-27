@@ -62,6 +62,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
 import { PageNotFoundComponent }            from './page-not-found/page-not-found.component'
 import { HAMMER_GESTURE_CONFIG }            from '@angular/platform-browser'
 import { GestureConfig }                    from '@angular/material'
+import { MaskingValueDirective }            from './directives/masking-value.directive'
 
 @NgModule({
   imports: [
@@ -111,6 +112,7 @@ import { GestureConfig }                    from '@angular/material'
     AdjustElementsDirective,
     NcFallbackCharDirective,
     KeyboardDirective,
+    MaskingValueDirective,
   
     TranslatePipe,
     GenericPipe,
@@ -151,6 +153,7 @@ import { GestureConfig }                    from '@angular/material'
     AdjustElementsDirective,
     NcFallbackCharDirective,
     KeyboardDirective,
+    MaskingValueDirective,
 
     TranslatePipe,
     GenericPipe,

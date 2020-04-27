@@ -70,6 +70,7 @@ export interface InputParams {
   autoComplete    ?: string
   name            ?: string
   format          ?: string
+  maskLength      ?: number
 }
 
 
