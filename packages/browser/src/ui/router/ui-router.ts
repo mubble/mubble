@@ -10,7 +10,7 @@ import { Router,
          NavigationExtras,
          NavigationEnd,
          UrlSegment,
-         UrlTree,
+         UrlTree
         }                       from '@angular/router'
 import { INJECTION_PARAM, 
          InjectionCaller 
@@ -127,7 +127,7 @@ export class UiRouter {
       }
     }
 
-    return await this.navigateByUrl([routeTo], extras)
+    return await this.navigateByUrl([{ outlets: { primary : routeTo, modal: null } }], extras, PRIMARY_OUTLET)
   }
 
   public async rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
@@ -137,7 +137,7 @@ export class UiRouter {
     if (!extras) extras = {}
     extras.replaceIndex = 0
     
-    return await this.navigateByUrl([routeTo], extras, PRIMARY_OUTLET)
+    return await this.navigateByUrl([{ outlets: { primary : routeTo,modal: null } }], extras, PRIMARY_OUTLET)
   }
 
   public areWeGoingBack() {
@@ -188,6 +188,7 @@ export class UiRouter {
     const nc_paramsId = extras.paramsId || 'qp' + Date.now()
 
     let modalRoute: string 
+
     if (extras.queryParams) {
       modalRoute = extras.queryParams.modalRoute
     }
@@ -201,6 +202,7 @@ export class UiRouter {
 
     const url = Array.isArray(urlOrCommand) ? this.router.createUrlTree(urlOrCommand, extras) : urlOrCommand
     this.lastNavUrl = typeof url === 'string' ? url : this.router.serializeUrl(url)
+
 
     if (await this.router.navigateByUrl(url, extras)) {
       return true
@@ -510,6 +512,7 @@ export class UiRouter {
   }
 
   private onNavEnd(event ?: any) {
+
 
 
     if (!(event instanceof NavigationEnd)) {
