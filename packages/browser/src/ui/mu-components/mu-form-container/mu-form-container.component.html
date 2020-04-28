@@ -45,7 +45,7 @@
             [keyboard]="parentCont"
             maskingValue
             [maskedLength]="inputParam.maskLength"
-            (value)="updatedValue($event)">
+            (value)="updatedValue($event, i)">
 
           <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
             <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
@@ -80,7 +80,7 @@
             [keyboard]="parentCont
             maskingValue
             [maskedLength]="inputParam.maskLength"
-            (value)="updatedValue($event)">
+            (value)="updatedValue($event, i)">
 
           <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
             <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
