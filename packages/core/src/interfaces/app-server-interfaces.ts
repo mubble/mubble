@@ -107,7 +107,8 @@ export enum DISPLAY_TYPE {
   TOGGLE                = 'TOGGLE',
   MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
   BUTTON_TOGGLE         = 'BUTTON_TOGGLE',
-  SLIDER                = 'SLIDER'
+  SLIDER                = 'SLIDER',
+  TIME                  = 'TIME'
 }
 
 export interface SelectionBoxParams {

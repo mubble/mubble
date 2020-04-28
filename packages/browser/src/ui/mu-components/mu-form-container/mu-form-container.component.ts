@@ -153,6 +153,7 @@ export class MuFormContainerComponent implements OnChanges {
         case DISPLAY_TYPE.TOGGLE              :
         case DISPLAY_TYPE.BUTTON_TOGGLE       :
         case DISPLAY_TYPE.ROW_INPUT_BOX       :
+        case DISPLAY_TYPE.TIME                :
           params  = { 
                       value       : this.inputForm.get(inputParams.id).value,
                       displayType : inputParams.displayType
@@ -367,6 +368,7 @@ export class MuFormContainerComponent implements OnChanges {
         case DISPLAY_TYPE.TOGGLE              :
         case DISPLAY_TYPE.BUTTON_TOGGLE       :
         case DISPLAY_TYPE.ROW_INPUT_BOX       :
+        case DISPLAY_TYPE.TIME                :
 
           hasError = inputParams.isRequired 
                     ? this.inputForm.invalid
@@ -452,16 +454,17 @@ export class MuFormContainerComponent implements OnChanges {
       if (params.validators) formValidations.push(Validators.pattern(params.validators.validation))
 
       switch (params.displayType) {
-        case DISPLAY_TYPE.INPUT_BOX     :
-        case DISPLAY_TYPE.TEXT_AREA     :
-        case DISPLAY_TYPE.RADIO         : 
-        case DISPLAY_TYPE.ROW_RADIO     :
+        case DISPLAY_TYPE.INPUT_BOX       :
+        case DISPLAY_TYPE.TEXT_AREA       :
+        case DISPLAY_TYPE.RADIO           : 
+        case DISPLAY_TYPE.ROW_RADIO       :
 
-        case DISPLAY_TYPE.SELECTION_BOX :
-        case DISPLAY_TYPE.TOGGLE        : 
+        case DISPLAY_TYPE.SELECTION_BOX   :
+        case DISPLAY_TYPE.TOGGLE          : 
         case DISPLAY_TYPE.MULTI_CHECK_BOX :
         case DISPLAY_TYPE.BUTTON_TOGGLE   :
-        case DISPLAY_TYPE.ROW_INPUT_BOX :
+        case DISPLAY_TYPE.ROW_INPUT_BOX   :
+        case DISPLAY_TYPE.TIME            :
 
           this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
 
