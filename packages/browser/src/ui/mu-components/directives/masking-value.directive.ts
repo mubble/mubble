@@ -17,6 +17,7 @@ export class MaskingValueDirective {
   updatedString : string = ''
 
   @Input('maskedLength') maskedLength : number
+  @Input('maxStringLength') maxLength : number
   @Output() value : EventEmitter<string> = new EventEmitter<string>()
 
   constructor(private element : ElementRef,
@@ -30,7 +31,7 @@ export class MaskingValueDirective {
 
   private eventHandler(event : any) {
     if (event.srcElement.value.length > this.updatedString.length) {
-      this.updatedString  += event.srcElement.value.substr(event.srcElement.value.length - 1)
+      this.updatedString  += JSON.parse(JSON.stringify(event.srcElement.value.substr(event.srcElement.value.length - 1)))
     } else {
       if (event.srcElement.value.length) {
         this.updatedString  = this.updatedString.substr(0, event.srcElement.value.length)
@@ -39,13 +40,16 @@ export class MaskingValueDirective {
       }
     }
 
-    this.value.emit(this.updatedString)
+    if (this.maxLength === this.updatedString.length) {
+      this.value.emit(this.updatedString)
+    }
 
     if (!this.maskedLength) return
       
     if (event.srcElement.value.length <= this.maskedLength) {
       event.srcElement.value = event.srcElement.value.replace(/\w/g, 'X')
     }
+
   }
 
 }
