@@ -331,12 +331,19 @@ export abstract class MudsIo {
       await exec.save(dsRecs)
     }
     
-    if(executedResults) {
-      const results = executedResults[0].mutationResults
-      for(const [index,result] of results.entries()) {
+    if(executedResults && executedResults[0]) {
+      const selfKeyNotModified = modifiedEntities.filter(e => { 
+        return e.getSelfKey() ? false : true 
+      })
+      const commitResponseWithKey = executedResults[0].mutationResults.filter(e => { 
+        return e.key ? true : false 
+      })
+
+      for(const [index, result] of commitResponseWithKey.entries()) {
         rc.isAssert() && rc.assert(rc.getName(this), result)
         if(result.key) {
-          modifiedEntities[index].commitUpsert(result.key.path)
+          const entity = selfKeyNotModified[index]
+          entity.commitUpsert(result.key.path)
         }
       }
       this.upsertQueue = []
