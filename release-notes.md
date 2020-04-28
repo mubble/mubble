@@ -3,6 +3,7 @@
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
 
+| 1.13.0 | Deepak Kumar    | 2020-02-28 |  |
 | 1.12.0 | Deepak Kumar    | 2020-02-18 | Approved |
 | 1.11.1 | Deepak Kumar    | 2020-02-07 | Approved |
 | 1.10.0 | Deepak Kumar    | 2020-01-24 | Approved |
@@ -12,6 +13,33 @@
 | 1.4.0 | Deepak Kumar     | 2019-07-07 | Approved |
 | 1.3.0 | Raghvendra Varma | 2019-05-24 | Approved |
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
+
+
+# Version 1.12.0
+
+## Features
+- Data table
+- Mu form 
+- Support for Full page modal for web apps
+
+## Bug Fixes
+- Checkbox scrolling, margins
+- Date range
+
+## Improvements
+- Obmop query improvements
+- Util additions
+- Removed moment
+- Unsecured connection moved to master config Service credential
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
 
 
 # Version 1.12.0
