@@ -24,7 +24,7 @@ const KEY_UP    = 'keyup',
       NUMERIC   = 'numeric',
       BACKSPACE = 'Backspace'
 
-const pattern = /[\/\-]/
+const pattern = /[\/\- ]/
 
 @Directive({
   selector: '[ncMaxLength]'
