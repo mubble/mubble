@@ -85,6 +85,27 @@
         
       </ng-container> 
       
+      <ng-container *ngSwitchCase="DISPLAY_TYPE.TIME">
+
+        <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+
+          <input matInput #inputCont
+          
+            placeholder="{{inputParam.placeHolder}}"
+            type="time"
+            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+            (onSubmit)="enterOnLastInput($event)"
+            (updatedValue)="setChangedValues($event, i)"
+            class="txt-lg-med-norm input-cont" 
+            formControlName="{{ inputParam.id }}"
+            name="{{ inputParam.name || 'input-time' }}"
+            [keyboard]="parentCont"
+            (value)="updatedValue($event)"
+            step="1">
+
+        </div>
+      </ng-container> 
+      
       <ng-container *ngSwitchCase="DISPLAY_TYPE.TEXT_AREA">
         <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
           <textarea matInput #inputCont
