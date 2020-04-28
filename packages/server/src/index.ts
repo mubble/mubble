@@ -25,6 +25,7 @@ export *                      from './vision'
 export *                      from './storage'
 export *                      from './gcp'
 export *                      from './sms'
+export *                      from './mail'
 
 /* TODO:
 
