@@ -251,7 +251,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
     return this.result
   }
 
-  public async run(limit: number) {
+  public async run(limit : number, offset ?: number) {
     const rc = this.rc
     this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query cannot run again')
     const dsQuery = this.io.createQuery(this.entityInfo.entityName)
@@ -266,6 +266,12 @@ export class MudsQuery<T extends MudsBaseEntity> {
       order.ascending ? undefined : {descending: true})
 
     dsQuery.limit(limit)
+
+    if(offset !== undefined) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'Query with offset', offset)
+      dsQuery.offset(offset)
+    }
+      
     this.result = new MudsQueryResult(rc, this.io, this.entityClass, 
                     dsQuery, limit, await dsQuery.run(), 
                     !!(this.filters.length || this.groupBys.length))
