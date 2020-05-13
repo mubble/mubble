@@ -43,8 +43,6 @@ export interface TableHeader {
 }
 
 export interface FilterItem {
-  id     ?: string // will be removed in future releases
-  title  ?: string // will be removed in future releases
   params  : InputParams
   mode   ?: FILTER_MODE
 }
