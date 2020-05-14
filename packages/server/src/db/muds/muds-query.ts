@@ -203,9 +203,10 @@ export class MudsQuery<T extends MudsBaseEntity> {
     this.verifyStatusAndFieldName(fieldName as string)
 
     for (const filter of this.filters) {
-      rc.isAssert() && rc.assert(rc.getName(this), 
+     /*  Order issue fixes
+     rc.isAssert() && rc.assert(rc.getName(this), 
         filter.fieldName === fieldName && filter.comparator === '=', 
-        `${entityName}/${fieldName} cannot order on field with equality filter`)
+        `${entityName}/${fieldName} cannot order on field with equality filter`) */
     }
 
     this.orders.push({fieldName : fieldName as string, ascending})
