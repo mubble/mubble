@@ -64,16 +64,22 @@ export class NcFallbackCharDirective {
   getFirstCharacter(str : string) : string {
     const strArr : string[] = str.split(' ')
 
+    const regExp = new RegExp('[a-zA-Z][a-zA-Z ]*')
+
+    const charStr = strArr.filter((str) => {
+      return regExp.test(str)
+    })
+
     let initials : string
 
     if (this.needOneChar) {
-      return initials = strArr[0].charAt(0).toUpperCase()
+      return initials = charStr[0].charAt(0).toUpperCase()
     }
     
-    if (strArr.length > 1) {
-      initials = (strArr[0].charAt(0) + strArr[1].charAt(0)).toUpperCase()
+    if (charStr.length > 1) {
+      initials = (charStr[0].charAt(0) + strArr[1].charAt(0)).toUpperCase()
     } else {
-      initials = strArr[0].charAt(0).toUpperCase()
+      initials = charStr[0].charAt(0).toUpperCase()
     }
 
     return initials
