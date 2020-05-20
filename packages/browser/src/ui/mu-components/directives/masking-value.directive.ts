@@ -1,12 +1,29 @@
+/*------------------------------------------------------------------------------
+   About      : <Write about the file here>
+   
+   Created on : Wed May 20 2020
+   Author     : Aditya Baddur
+   
+   Copyright (c) 2020 Obopay. All rights reserved.
+
+   Fails under following condition : 
+   1. Quick inputs.
+   2. If user holds on to the key.
+------------------------------------------------------------------------------*/
+
 import { Directive,
          Output,
          EventEmitter,
          ElementRef,
          Renderer2,
-         Input
+         Input,
+         NgZone
        }                            from '@angular/core'
+import { NcMaxLengthDirective }     from './nc-maxlength.directive'
 
-const KEY_UP  = 'keyup'
+const KEY_UP    = 'keyup',
+      BACKSPACE = 'Backspace'
+
 
 export interface MaskingParams {
   maxLength        : number
@@ -20,64 +37,97 @@ export interface MaskingParams {
   selector: '[maskingValue]'
 })
 
-export class MaskingValueDirective {
+export class MaskingValueDirective extends NcMaxLengthDirective {
 
   @Input('maskingValue') maskingParams : MaskingParams
 
   @Output() maskedValue : EventEmitter<string> = new EventEmitter<string>()
 
-  masked : any
-  updatedString : string = ''
+  private updatedString : string = ''
 
-  constructor(private element : ElementRef,
-              private renderer: Renderer2) {
+  constructor(protected element   : ElementRef,
+              protected renderer  : Renderer2,
+              protected ngZone    : NgZone) {
 
+    super(element, renderer, ngZone)
   }
 
   ngOnInit() {
-    this.masked = this.renderer.createElement('input')
-    this.renderer.appendChild(this.element.nativeElement.parentElement, this.masked)   
-    this.masked.className = this.element.nativeElement.className
-    this.element.nativeElement.hidden = true
-    this.masked.value = this.element.nativeElement.value
+    this.maxLength = this.maskingParams.maxLength
+
   }
   
   ngAfterViewInit() {
-    this.renderer.listen(this.masked, KEY_UP, this.eventHandler.bind(this))
+
+    super.ngAfterViewInit()
+
+    if (this.element.nativeElement.value) {
+      const value         = this.element.nativeElement.value,
+            maskingParams = this.maskingParams,
+            startSkipCount  = maskingParams.startSkipCount || 0,
+            totalSkipCount  = startSkipCount + (maskingParams.endSkipCount   || 0)
+
+      this.value(value, startSkipCount, totalSkipCount)
+      this.updatedString  = value
+    }
+
+
+    this.renderer.listen(this.element.nativeElement, KEY_UP, this.handelEvent.bind(this))
   }
 
-  private eventHandler(event : any) {
+  /*=====================================================================
+                              PRIVATE
+  =====================================================================*/
+  private value(value : string, startSkipCount : number, totalSkipCount : number) {
 
-    let startSkipCount = this.maskingParams.startSkipCount || 0,
-        endSkipCount   = this.maskingParams.endSkipCount   || 0        
+    value = value.substring(0, startSkipCount) 
+            + value.substring(startSkipCount, totalSkipCount+ 1).replace(/\w+/g, this.maskingParams.maskWith || '*') 
+            + value.substring(totalSkipCount + 1)
+  
+    return value
 
-    if (event.srcElement.value.length > this.updatedString.length) {
-      this.updatedString  += JSON.parse(JSON.stringify(event.srcElement.value.substr(event.srcElement.value.length - 1)))
-    } else {
-      if (event.srcElement.value.length) {
-        this.updatedString  = this.updatedString.substr(0, event.srcElement.value.length)
-      } else {
-        this.updatedString  = ''
-      }
+  }
+
+  private handelEvent(event : any) {
+
+    super.handleEvent(event)
+    
+    let startSkipCount  = this.maskingParams.startSkipCount || 0,
+        endSkipCount    = this.maskingParams.endSkipCount   || 0,
+        value           = event.srcElement.value,
+        totalSkipCount  = startSkipCount  + endSkipCount
+        length          = value.length
+
+    const isBackPressed = event.key === BACKSPACE
+
+    if (!isBackPressed && this.updatedString.length === this.maskingParams.maxLength) {
+      return
     }
 
-    if (this.maskingParams.maxLength === this.updatedString.length) {
-      this.element.nativeElement.value = this.updatedString
-      this.maskedValue.emit(this.updatedString)
+
+    if (isBackPressed) {
+      this.updatedString  = this.updatedString.substr(0, length)
+      return
     }
 
-    if (!this.maskingParams.maskedLength) return
-       
-    const length = event.srcElement.value.length
-    if (length >= startSkipCount && length <= this.maskingParams.maxLength - endSkipCount) {
-      event.srcElement.value = event.srcElement.value.substr(0, length - 1) + this.maskingParams.maskWith   
+    if (length <= startSkipCount) {
+      this.updatedString  = value.substr(0, startSkipCount)
     }
 
+    if (length > startSkipCount && length <= totalSkipCount) {
+      this.updatedString  = this.updatedString.substr(0) + 
+                            value.substr(this.updatedString.length, length)
+    }
 
-    // Previous code when startSkipCount and endSkipCount was not included in the params
-    // if (event.srcElement.value.length <= this.maskingParams.maskedLength) {
-    //  event.srcElement.value = event.srcElement.value.replace(/\w/g, 'X')      
-    // }
+    if (length > totalSkipCount && length <= this.maskingParams.maxLength) {
+      this.updatedString  = this.updatedString.substr(0) + value.substr(length - 1)
+    }
+
+    
+    event.srcElement.value  = this.value(value, startSkipCount, totalSkipCount)
+    
+    this.maskedValue.emit(this.updatedString)
+
   }
 
 }
