@@ -50,14 +50,21 @@ export class MaskingValueDirective extends NcMaxLengthDirective {
               protected ngZone    : NgZone) {
 
     super(element, renderer, ngZone)
+    window['mask']  = this
   }
 
-  ngOnInit() {
+  ngOnInit() {   
     this.maxLength = this.maskingParams.maxLength
-
   }
   
   ngAfterViewInit() {
+
+
+    const clonedInputNode = this.element.nativeElement.cloneNode(true),
+          parentElem      = this.element.nativeElement.parentElement
+          
+    this.renderer.appendChild(parentElem, clonedInputNode) 
+    this.element.nativeElement.hidden = true
 
     super.ngAfterViewInit()
 
@@ -72,7 +79,7 @@ export class MaskingValueDirective extends NcMaxLengthDirective {
     }
 
 
-    this.renderer.listen(this.element.nativeElement, KEY_UP, this.handelEvent.bind(this))
+    this.renderer.listen(this.element.nativeElement.nextSibling, KEY_UP, this.handelEvent.bind(this))
   }
 
   /*=====================================================================
@@ -126,6 +133,7 @@ export class MaskingValueDirective extends NcMaxLengthDirective {
     
     event.srcElement.value  = this.value(value, startSkipCount, totalSkipCount)
     
+    this.element.nativeElement.value = this.updatedString
     this.maskedValue.emit(this.updatedString)
 
   }
