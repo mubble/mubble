@@ -7,13 +7,13 @@
 	 Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { BigQueryBaseModel, 
-				 BigqueryBase 
+import { BqBaseModel, 
+				 BqBase 
 			 }										 from '../../gcp'
 import { RunContextServer }	 from '../../rc-server'
 
 // @BigqueryBase.model('')
-export class BQSmsVerificationLog extends BigQueryBaseModel {
+export class BQSmsVerificationLog extends BqBaseModel {
 
 	
 	// @BigqueryBase.field()

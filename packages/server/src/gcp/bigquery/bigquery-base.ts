@@ -13,7 +13,7 @@ type UnionKeyToValue<U extends string> = {
   [K in U]: K
 }
 
-export namespace BigqueryBase {
+export namespace BqBase {
   
   export type FIELD_TYPE = 'INTEGER' | 'FLOAT' | 'STRING' | 'TIMESTAMP' | 'RECORD'
   export const FIELD_TYPE :UnionKeyToValue<FIELD_TYPE> = {

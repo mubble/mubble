@@ -7,9 +7,10 @@
    Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { RunContextServer }   from '../../rc-server'
-import { BigQueryBaseModel }  from './bigquery-base-model'
-import { BqRegistryManager, BqFieldInfo }  from './bigquery-registry'
+import { RunContextServer }                 from '../../rc-server'
+import { BqRegistryManager, 
+         BqFieldInfo 
+       }                                    from './bigquery-registry'
 
 type UnionKeyToValue<U extends string> = {
   [K in U]: K

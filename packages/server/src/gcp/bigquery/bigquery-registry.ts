@@ -7,7 +7,7 @@
    Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { BigqueryBase }          from './bigquery-base'
+import { BqBase }                 from './bigquery-base'
 import { RunContextServer }       from '../../rc-server'
 import { Mubble }                 from '@mubble/core'
 
@@ -17,8 +17,8 @@ import { Mubble }                 from '@mubble/core'
 
 export type BqFieldInfo = {
   name    : string
-  type    : BigqueryBase.FIELD_TYPE
-  mode    : BigqueryBase.FIELD_MODE
+  type    : BqBase.FIELD_TYPE
+  mode    : BqBase.FIELD_MODE
   parent ?: string
   fields ?: BqFieldInfo[]
 }
@@ -69,7 +69,7 @@ export class BigqueryRegistry {
   }
 
   getNotNullFields() : Array<BqFieldInfo> {
-    return this.fields.filter((field : BqFieldInfo) => field.mode != BigqueryBase.FIELD_MODE.NULLABLE)
+    return this.fields.filter((field : BqFieldInfo) => field.mode != BqBase.FIELD_MODE.NULLABLE)
   }
 
   getFieldNames() : Array<string> {
@@ -125,8 +125,8 @@ export class BqRegistryManager {
 
   public static addField(tableName  : string,
                          fieldName  : string,
-                         fieldType  : BigqueryBase.FIELD_TYPE,
-                         fieldMode  : BigqueryBase.FIELD_MODE) {
+                         fieldType  : BqBase.FIELD_TYPE,
+                         fieldMode  : BqBase.FIELD_MODE) {
 
     const registry  : BigqueryRegistry  = this.getRegistry(tableName),
           fieldInfo : BqFieldInfo = {
@@ -140,12 +140,12 @@ export class BqRegistryManager {
 
   public static addRecord(tableName  : string,
                           fieldName  : string,
-                          fieldMode  : BigqueryBase.FIELD_MODE) {
+                          fieldMode  : BqBase.FIELD_MODE) {
 
     const registry  : BigqueryRegistry  = this.getRegistry(tableName),
           fieldInfo : BqFieldInfo = {
                                       name    : fieldName,
-                                      type    : BigqueryBase.FIELD_TYPE.RECORD,
+                                      type    : BqBase.FIELD_TYPE.RECORD,
                                       mode    : fieldMode
                                     }
     registry.addField(fieldInfo)
@@ -154,8 +154,8 @@ export class BqRegistryManager {
   public static addRecordField(tableName  : string,
                                parent     : string,
                                fieldName  : string,
-                               fieldType  : BigqueryBase.FIELD_TYPE,
-                               fieldMode  : BigqueryBase.FIELD_MODE) {
+                               fieldType  : BqBase.FIELD_TYPE,
+                               fieldMode  : BqBase.FIELD_MODE) {
 
     const registry  : BigqueryRegistry  = this.getRegistry(tableName),
           fieldInfo : BqFieldInfo = {

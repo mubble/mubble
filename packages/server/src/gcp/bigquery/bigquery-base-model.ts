@@ -27,7 +27,7 @@ export function CheckUndefined(obj : any , nestingLevel : number = 2) {
   })
 }
 
-export abstract class BigQueryBaseModel {
+export abstract class BqBaseModel {
 
   public abstract fieldsError(rc : RunContextServer) : string | null
 
@@ -59,7 +59,7 @@ export abstract class BigQueryBaseModel {
 
     const verStr    = registry.getVersion() ? ('v'+ registry.getVersion()).replace(/\./gi,'') : '',  //v01
           tableName = registry.isDayPartition() ?
-           `${registry.getTableName()}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BigQueryBaseModel.DATE_FORMAT)}`:
+           `${registry.getTableName()}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BqBaseModel.DATE_FORMAT)}`:
            `${registry.getTableName()}${verStr ? '_' + verStr : ''}`
   
     return tableName.replace(/\./gi, '_')       
@@ -223,7 +223,7 @@ export abstract class BigQueryBaseModel {
     return result
   } 
 
-  async bulkInsert<T extends BigQueryBaseModel>(rc : RunContextServer, items : T[], day_timestamp ?: string) {
+  async bulkInsert<T extends BqBaseModel>(rc : RunContextServer, items : T[], day_timestamp ?: string) {
   
     const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
