@@ -25,8 +25,8 @@ export type MailParts = {
   email             : string
   cc               ?: Array<string>
   subject           : string
-  firstName         : string
-  lastName          : string
+  firstName        ?: string
+  lastName         ?: string
   senderName        : string
   message           : string
   indyDisclaimer    : boolean
@@ -79,8 +79,8 @@ export class Mailer {
   private encodeEmail(emailParts : MailParts) : Mail.Options {
 
     const imageId     = emailParts.headerImage ? this.getRandomId() : undefined,
-          html        = this.composeHtml(emailParts.firstName, emailParts.lastName, emailParts.message,
-                                         emailParts.senderName, emailParts.indyDisclaimer, imageId),
+          html        = this.composeHtml(emailParts.message, emailParts.senderName, emailParts.indyDisclaimer,
+                                         emailParts.firstName, emailParts.lastName, imageId),
           attachments = emailParts.attachments || []
 
     if(emailParts.headerImage) {
@@ -110,11 +110,11 @@ export class Mailer {
     return hex
   }
 
-  private composeHtml(firstName       : string,
-                      lastName        : string,
-                      message         : string,
+  private composeHtml(message         : string,
                       sender          : string,
                       indyDisclaimer  : boolean,
+                      firstName      ?: string,
+                      lastName       ?: string,
                       headerImageId  ?: string) : string {
       
   const html =
@@ -144,7 +144,7 @@ export class Mailer {
                     <td align="left" valign="top" bgcolor="#FFFFFF">
                       <p></p>
                       <font size="2" face="Verdana, Arial, Helvetica, sans-serif">
-                        <p>Dear ${firstName} ${lastName},</p>
+${firstName && lastName ? `<p>Dear${firstName ? ` ${firstName}` : ''} ${lastName ? ` ${lastName}` : ''},</p>` : ''}
                         <p>${message}</p>
                         <p>Regards,</p>
                         <p>${sender}</p>
