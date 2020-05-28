@@ -53,14 +53,6 @@ export namespace BqBase {
     }
   }
 
-  export function record(mode : FIELD_MODE = FIELD_MODE.NULLABLE) {
-
-    return function(target : any , propertyKey : string) {
-      BqRegistryManager.addRecord(target.constructor.name.toLowerCase(), 
-                                  propertyKey, mode)
-    }                           
-  }
-
   export function recordField(parent  : string,
                               type    : FIELD_TYPE = FIELD_TYPE.STRING,
                               mode    : FIELD_MODE = FIELD_MODE.NULLABLE) {
