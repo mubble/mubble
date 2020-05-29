@@ -70,6 +70,7 @@ export interface InputParams {
   format          ?: string
   maskLength      ?: number
   isVisible       ?: boolean
+  rangeKeys       ?: string[]
 }
 
 
@@ -111,7 +112,7 @@ export enum DISPLAY_TYPE {
 
 export interface SelectionBoxParams {
   id        : string
-  value     : string | number
+  value     : string | number 
   selected ?: boolean
 }
 

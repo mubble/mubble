@@ -28,6 +28,7 @@ import { DISPLAY_TYPE,
        }                              from '@mubble/core'
 import { OutputParams }               from '../cmn-inp-cont'
 
+
 enum CONTEXT {
   INIT,
   CLEAR,
@@ -145,6 +146,24 @@ export class FilterComponent {
 
   private valueChanged() : boolean {
 
+    // const existingFilterItems = []
+
+    // for (const filterItem of this.filterItems) {
+
+    //   const muSelectedFilter : MuSelectedFilter  = {
+    //     id          : filterItem.params.id,
+    //     mode        : filterItem.mode,
+    //     value       : filterItem.params.value || null,
+    //     displayType : filterItem.params.displayType
+
+    //   }
+    //   existingFilterItems.push(muSelectedFilter)
+
+    // }
+
+    // console.log('isEqual',isEqual(existingFilterItems, this.filters))
+
+
     for (const fItem of this.filterItems) {
       const index = this.filters.findIndex(element => element.id === fItem.params.id)
       let changed : boolean = false
@@ -166,21 +185,25 @@ export class FilterComponent {
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
-          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) &&
-          (!fItem.params.value['endDate'] && !this.filters[index].value['endDate']))
+          const dateRangeKeys  = fItem.params.rangeKeys || ['startDate', 'endDate'];
+          ((!fItem.params.value[dateRangeKeys[0]] && !this.filters[index].value[dateRangeKeys[0]]) &&
+          (!fItem.params.value[dateRangeKeys[1]] && !this.filters[index].value[dateRangeKeys[1]]))
           ? changed = false
-          : changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
-                      (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
+          : changed = (fItem.params.value[dateRangeKeys[0]] !== this.filters[index].value[dateRangeKeys[0]]) ||
+                      (fItem.params.value[dateRangeKeys[1]] !== this.filters[index].value[dateRangeKeys[1]])
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) &&
-          (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
+          const numRangeKeys  = fItem.params.rangeKeys || ['minAmount', 'maxAmount'];
+
+          ((!fItem.params.value[numRangeKeys[0]] && !this.filters[index].value[numRangeKeys[0]]) &&
+          (!fItem.params.value[numRangeKeys[1]] && !this.filters[index].value[numRangeKeys[1]]))
           ? changed = false
-          : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
-                      (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
+          : changed = (fItem.params.value[numRangeKeys[0]] !== this.filters[index].value[numRangeKeys[0]]) ||
+                      (fItem.params.value[numRangeKeys[1]] !== this.filters[index].value[numRangeKeys[1]])
           break
       }
+    // isEqual(existingFilterItems, this.filters), changed)
 
       if (changed)  return changed
     }
