@@ -112,7 +112,7 @@ export enum DISPLAY_TYPE {
 
 export interface SelectionBoxParams {
   id        : string
-  value     : string | number
+  value     : string | number 
   selected ?: boolean
 }
 

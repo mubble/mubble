@@ -103,12 +103,12 @@ export class InputContainerComponent implements OnChanges {
     if (this.inputForm && (this.inputParams.validators || this.inputParams.isRequired))
       this.inputForm.markAsTouched()
 
-    if (this.dateRange && this.inputParams.validators) {
+    if (this.dateRange && ( this.inputParams.isRequired || this.inputParams.validators)) {
       this.dateRange.controls.startDate.markAsTouched()
       this.dateRange.controls.endDate.markAsTouched()
     }
 
-    if (this.numberRange && this.inputParams.validators) {
+    if (this.numberRange && ( this.inputParams.isRequired || this.inputParams.validators)) {
       this.numberRange.controls.minAmount.markAsTouched()
       this.numberRange.controls.maxAmount.markAsTouched()
     }
