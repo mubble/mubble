@@ -123,7 +123,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.CALENDAR_BOX        :
         params  = { 
                     id          : this.inputParams.id,
-                    value       : this.inputForm.value.getTime(),
+                    value       : this.inputForm.value ? this.inputForm.value.getTime() : null,
                     displayType : this.inputParams.displayType
                   }
         break
