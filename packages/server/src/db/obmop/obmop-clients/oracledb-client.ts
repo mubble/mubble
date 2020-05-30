@@ -36,13 +36,13 @@ export class OracleDbClient implements ObmopBaseClient {
   private poolConfig  : oracledb.PoolAttributes
 
 	constructor(rc : RunContextServer, config : OracleDbConfig) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new OracleDbClient.', config)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new OracleDbClient.')
 
 		this.poolConfig = config
 	}
 
 	public async init(rc : RunContextServer) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing OracleDbClient.', this.poolConfig)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing OracleDbClient.')
 
 		this.clientPool = await new Promise<oracledb.Pool>((resolve, reject) => {
       oracledb.createPool(this.poolConfig, (err : oracledb.DBError, pool : oracledb.Pool) => {
