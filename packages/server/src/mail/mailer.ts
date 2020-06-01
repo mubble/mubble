@@ -7,6 +7,7 @@
    Copyright (c) 2020 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+<<<<<<< HEAD
 import { HttpsRequest }       from '../util'
 import { RunContextServer }   from '../rc-server'
 import { HTTP }               from '@mubble/core'
@@ -32,6 +33,31 @@ export type MailParts = {
   message           : string
   indyDisclaimer    : boolean
   obopayDisclaimer  : boolean
+=======
+import { RunContextServer }   from '../rc-server'
+import * as crypto            from 'crypto'
+import * as nodemailer        from 'nodemailer'
+
+import Mail         = require('nodemailer/lib/mailer')
+
+const GMAIL_SERVICE = 'gmail',
+      HEX           = 'hex'
+
+export type SmtpConfig = {
+  email    : string
+  password : string
+}
+
+export type MailParts = {
+  email             : string
+  cc               ?: Array<string>
+  subject           : string
+  firstName        ?: string
+  lastName         ?: string
+  senderName        : string
+  message           : string
+  indyDisclaimer    : boolean
+>>>>>>> master
   headerImage      ?: {
     name : string
     path : string
@@ -43,6 +69,7 @@ export type MailAttachment = Mail.Attachment
 
 export class Mailer {
 
+<<<<<<< HEAD
   private httpsRequest : HttpsRequest
   private accessToken  : string
   private senderEmail  : string
@@ -53,12 +80,31 @@ export class Mailer {
     this.httpsRequest = new HttpsRequest(rc, logsDir, HOSTNAME)
     this.accessToken  = token
     this.senderEmail  = email
+=======
+  private transport    : Mail
+  private senderEmail  : string
+
+  constructor(rc : RunContextServer, config : SmtpConfig) {
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Constructing Mailer object.', config.email)
+
+    this.transport = nodemailer.createTransport({
+      service : GMAIL_SERVICE,
+      auth    : {
+        user : config.email,
+        pass : config.password
+      }
+    })
+
+    this.senderEmail = config.email
+>>>>>>> master
   }
 
   public async sendEmail(rc : RunContextServer, emailParts : MailParts) {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Encoding email.', emailParts)
 
+<<<<<<< HEAD
     const email = await this.encodeEmail(emailParts)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Sending email.', email)
@@ -83,6 +129,13 @@ export class Mailer {
     rc.isDebug() && rc.debug(rc.getName(this), 'Making https request.', urlObj, options, data)
 
     const resp = await this.httpsRequest.executeRequest(rc, urlObj, options, data)
+=======
+    const mailOptions = await this.encodeEmail(emailParts)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Sending email.', mailOptions)
+
+    const resp = await this.transport.sendMail(mailOptions)
+>>>>>>> master
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Email sent?', resp)
   }
@@ -91,12 +144,20 @@ export class Mailer {
   PRIVATE METHODS
 ------------------------------------------------------------------------------*/
 
+<<<<<<< HEAD
   private async encodeEmail(emailParts : MailParts) : Promise<string> {
 
     const imageId     = emailParts.headerImage ? this.getRandomId() : undefined,
           html        = this.composeHtml(emailParts.firstName, emailParts.lastName, emailParts.message,
                                          emailParts.senderName, emailParts.indyDisclaimer,
                                          emailParts.obopayDisclaimer, imageId),
+=======
+  private encodeEmail(emailParts : MailParts) : Mail.Options {
+
+    const imageId     = emailParts.headerImage ? this.getRandomId() : undefined,
+          html        = this.composeHtml(emailParts.message, emailParts.senderName, emailParts.indyDisclaimer,
+                                         emailParts.firstName, emailParts.lastName, imageId),
+>>>>>>> master
           attachments = emailParts.attachments || []
 
     if(emailParts.headerImage) {
@@ -107,12 +168,19 @@ export class Mailer {
       })
     }
 
+<<<<<<< HEAD
     const mailComposer = new MailComposer({
       to      : emailParts.email,
+=======
+    const mailOptions : Mail.Options = {
+      to      : emailParts.email,
+      cc      : emailParts.cc,
+>>>>>>> master
       from    : this.senderEmail,
       subject : emailParts.subject,
       html,
       attachments
+<<<<<<< HEAD
     })
 
     const mimeNode = mailComposer.compile(),
@@ -123,6 +191,11 @@ export class Mailer {
                      .replace(/=+$/, '')
 
     return email
+=======
+    }
+
+    return mailOptions
+>>>>>>> master
   }
 
   private getRandomId() : string {
@@ -132,6 +205,7 @@ export class Mailer {
     return hex
   }
 
+<<<<<<< HEAD
   private composeHtml(firstName         : string,
                       lastName          : string,
                       message           : string,
@@ -139,6 +213,14 @@ export class Mailer {
                       indyDisclaimer    : boolean,
                       obopayDisclaimer  : boolean,
                       headerImageId    ?: string) : string {
+=======
+  private composeHtml(message         : string,
+                      sender          : string,
+                      indyDisclaimer  : boolean,
+                      firstName      ?: string,
+                      lastName       ?: string,
+                      headerImageId  ?: string) : string {
+>>>>>>> master
       
   const html =
 `<div dir="ltr">
@@ -167,7 +249,11 @@ export class Mailer {
                     <td align="left" valign="top" bgcolor="#FFFFFF">
                       <p></p>
                       <font size="2" face="Verdana, Arial, Helvetica, sans-serif">
+<<<<<<< HEAD
                         <p>Dear ${firstName} ${lastName},</p>
+=======
+${firstName && lastName ? `<p>Dear${firstName ? ` ${firstName}` : ''} ${lastName ? ` ${lastName}` : ''},</p>` : ''}
+>>>>>>> master
                         <p>${message}</p>
                         <p>Regards,</p>
                         <p>${sender}</p>
@@ -194,6 +280,7 @@ export class Mailer {
       </table>
     </div>
   </div>
+<<<<<<< HEAD
 </div>
 ${obopayDisclaimer ? `
 <br></br>
@@ -213,6 +300,9 @@ ${obopayDisclaimer ? `
     </p>
   </div>
 </div>` : ''}`
+=======
+</div>`
+>>>>>>> master
 
     return html
   }

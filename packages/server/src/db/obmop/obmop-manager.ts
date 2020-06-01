@@ -49,7 +49,7 @@ export type ObmopSort<T> = {
 export class ObmopManager {
 
   constructor(rc : RunContextServer, private client : ObmopBaseClient) {
-    rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new obmop manager.', client)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new obmop manager.')
 	}
 	
 	public async init(rc : RunContextServer) {

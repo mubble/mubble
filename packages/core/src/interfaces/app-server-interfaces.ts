@@ -43,8 +43,6 @@ export interface TableHeader {
 }
 
 export interface FilterItem {
-  id     ?: string // will be removed in future releases
-  title  ?: string // will be removed in future releases
   params  : InputParams
   mode   ?: FILTER_MODE
 }
@@ -72,6 +70,7 @@ export interface InputParams {
   format          ?: string
   maskLength      ?: number
   isVisible       ?: boolean
+  rangeKeys       ?: string[]
 }
 
 
@@ -113,7 +112,7 @@ export enum DISPLAY_TYPE {
 
 export interface SelectionBoxParams {
   id        : string
-  value     : string | number
+  value     : string | number 
   selected ?: boolean
 }
 

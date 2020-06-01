@@ -106,12 +106,12 @@ export class InputContainerComponent implements OnChanges {
     if (this.inputForm && (this.inputParams.validators || this.inputParams.isRequired))
       this.inputForm.markAsTouched()
 
-    if (this.dateRange && this.inputParams.validators) {
+    if (this.dateRange && ( this.inputParams.isRequired || this.inputParams.validators)) {
       this.dateRange.controls.startDate.markAsTouched()
       this.dateRange.controls.endDate.markAsTouched()
     }
 
-    if (this.numberRange && this.inputParams.validators) {
+    if (this.numberRange && ( this.inputParams.isRequired || this.inputParams.validators)) {
       this.numberRange.controls.minAmount.markAsTouched()
       this.numberRange.controls.maxAmount.markAsTouched()
     }
@@ -126,7 +126,7 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.CALENDAR_BOX        :
         params  = { 
                     id          : this.inputParams.id,
-                    value       : this.inputForm.value.getTime(),
+                    value       : this.inputForm.value ? this.inputForm.value.getTime() : null,
                     displayType : this.inputParams.displayType
                   }
         break
@@ -147,27 +147,35 @@ export class InputContainerComponent implements OnChanges {
         break
 
       case DISPLAY_TYPE.DATE_RANGE  :
+        const dateRangeKeys   = this.inputParams.rangeKeys  || ['startDate', 'endDate'],
+              dateRangeValue  = {}
+
+        dateRangeValue[dateRangeKeys[0]] = this.dateRange.controls.startDate.value
+                                      ? this.dateRange.controls.startDate.value.getTime()
+                                      : null
+
+        dateRangeValue[dateRangeKeys[1]] = this.dateRange.controls.endDate.value
+                                      ? this.dateRange.controls.endDate.value.getTime()
+                                      : null
+
         params  = { 
                     id          : this.inputParams.id,
-                    value       : {
-                                    startDate : this.dateRange.controls.startDate.value
-                                                ? this.dateRange.controls.startDate.value.getTime()
-                                                : null,
-                                    endDate   : this.dateRange.controls.endDate.value
-                                                ? this.dateRange.controls.endDate.value.getTime()
-                                                : null
-                                  },
+                    value       : dateRangeValue,
                     displayType : this.inputParams.displayType
                   }
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
+
+        const numRangeKeys  = this.inputParams.rangeKeys  || ['minAmount', 'maxAmount'],
+              numRangeValue = {}
+
+        numRangeValue[numRangeKeys[0]]  = this.numberRange.controls.minAmount.value
+        numRangeValue[numRangeKeys[1]]  = this.numberRange.controls.maxAmount.value
+
         params  = { 
                     id          : this.inputParams.id,
-                    value       : { 
-                                    minAmount : this.numberRange.controls.minAmount.value,
-                                    maxAmount : this.numberRange.controls.maxAmount.value
-                                  },
+                    value       : numRangeValue,
                     displayType : this.inputParams.displayType
                   }
         break
@@ -199,7 +207,6 @@ export class InputContainerComponent implements OnChanges {
         break  
 
     }
-
     if (emitValue) this.value.emit(params)
   }
 
@@ -426,18 +433,20 @@ export class InputContainerComponent implements OnChanges {
         this.setDisabled(params.isDisabled)
         break
 
-      case DISPLAY_TYPE.DATE_RANGE    : 
+      case DISPLAY_TYPE.DATE_RANGE  : 
+      const dateRangeKeys  = params.rangeKeys || ['startDate', 'endDate']
+
         if (params.value) {
 
-          if (params.value.startDate) params.value.startDate = new Date(params.value.startDate)
-          if (params.value.endDate) params.value.endDate = new Date(params.value.endDate)
+          if (params.value[dateRangeKeys[0]]) params.value[dateRangeKeys[0]] = new Date(params.value[dateRangeKeys[0]])
+          if (params.value[dateRangeKeys[1]]) params.value[dateRangeKeys[1]] = new Date(params.value[dateRangeKeys[1]])
         } else {
           params.value  = {}
         }
 
         this.dateRange = this.formBuilder.group({
-          startDate : [params.value['startDate'] || null, formValidations],
-          endDate   : [params.value['endDate']   || null, formValidations]
+          startDate : [params.value[dateRangeKeys[0]] || null, formValidations],
+          endDate   : [params.value[dateRangeKeys[0]]   || null, formValidations]
         })
 
         const valiArr = [InputValidator.dateValidator]
@@ -446,15 +455,21 @@ export class InputContainerComponent implements OnChanges {
         this.dateRange.setValidators(valiArr)
         if (params.isDisabled) this.dateRange.disable()
         break
-
+ 
       case DISPLAY_TYPE.NUMBER_RANGE  : 
-        this.numberRange = this.formBuilder.group({
-          minAmount : [params.value['minAmount'] || null, formValidations],
-          maxAmount : [params.value['maxAmount'] || null, formValidations]
-        },
-        {
-          validator : [InputValidator.amountValidator]
-        })
+
+        if (params.value) {
+          const numRangeKeys  = params.rangeKeys || ['minAmount', 'maxAmount']
+          this.numberRange = this.formBuilder.group({
+            minAmount : [params.value[numRangeKeys[0]] || null, formValidations],
+            maxAmount : [params.value[numRangeKeys[1]] || null, formValidations]
+          },
+          {
+            validator : [InputValidator.amountValidator]
+          })
+        } else {
+          params.value  = {}
+        }
         if (params.isDisabled) this.numberRange.disable()
         break
 

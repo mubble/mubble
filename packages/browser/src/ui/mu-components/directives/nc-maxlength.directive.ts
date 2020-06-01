@@ -14,7 +14,7 @@ import { Directive,
          Renderer2,
          Output, 
          NgZone,
-         EventEmitter 
+         EventEmitter
        }                        from '@angular/core'
 
 
@@ -32,17 +32,16 @@ const pattern = /[\/\- ]/
 
 export class NcMaxLengthDirective {
   
-  @Input('ncMaxLength') maxLength : number = 0
+  @Input('ncMaxLength') protected maxLength : number = 0
   @Input('format') format : string
-
 
   @Output() updatedValue : EventEmitter<string> = new EventEmitter<string>()
    
   private eventHandlers : (()=>void)[] = []
 
-  constructor(private element   : ElementRef,
-              private renderer  : Renderer2,
-              private ngZone    : NgZone) {
+  constructor(protected element   : ElementRef,
+              protected renderer  : Renderer2,
+              protected ngZone    : NgZone) {
   }
 
   ngAfterViewInit() {
@@ -52,6 +51,10 @@ export class NcMaxLengthDirective {
     this.renderer.listen(this.element.nativeElement, PASTE, this.clipBoardEventHandler.bind(this)),
     this.renderer.listen(this.element.nativeElement, CUT, this.clipBoardEventHandler.bind(this)))
     
+  }
+
+  protected handleEvent(event : any) {
+    this.eventHandler(event)
   }
 
   private clipBoardEventHandler(event : any) {
@@ -79,6 +82,7 @@ export class NcMaxLengthDirective {
                 invalidIndex  = currentValue.indexOf(event.key)
 
           element.value = (element.value as string).substring(0, invalidIndex)
+          event.srcElement.value  = element.value
           return
         }
       }
@@ -90,6 +94,7 @@ export class NcMaxLengthDirective {
       }
 
       if (element.value.length > this.maxLength) { 
+        event.preventDefault()
         element.value = element.value.substring(0, this.maxLength)
       } 
 
@@ -107,8 +112,6 @@ export class NcMaxLengthDirective {
         element.value = val
       }
 
-
-
       const scrollHeight  = element.scrollHeight,
             clientHeight  = element.clientHeight
       if ( scrollHeight > clientHeight && element.scrollTop !== scrollHeight - clientHeight ) {
@@ -116,6 +119,8 @@ export class NcMaxLengthDirective {
       }
 
       this.emitUpdatedValue(element.value)
+      event.srcElement.value  = element.value
+      return
     })
   }
 
