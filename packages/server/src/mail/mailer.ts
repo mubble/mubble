@@ -7,33 +7,6 @@
    Copyright (c) 2020 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-<<<<<<< HEAD
-import { HttpsRequest }       from '../util'
-import { RunContextServer }   from '../rc-server'
-import { HTTP }               from '@mubble/core'
-import * as crypto            from 'crypto'
-import * as urlModule         from 'url'
-import * as http              from 'http'
-
-import MailComposer = require('nodemailer/lib/mail-composer')
-import Mail         = require('nodemailer/lib/mailer')
-
-const HOSTNAME = 'www.googleapis.com',
-      PORT     = 443,
-      PATHNAME = '/gmail/v1/users/me/messages/send',
-      BASE64   = 'base64',
-      HEX      = 'hex'
-
-export type MailParts = {
-  email             : string
-  subject           : string
-  firstName         : string
-  lastName          : string
-  senderName        : string
-  message           : string
-  indyDisclaimer    : boolean
-  obopayDisclaimer  : boolean
-=======
 import { RunContextServer }   from '../rc-server'
 import * as crypto            from 'crypto'
 import * as nodemailer        from 'nodemailer'
@@ -57,7 +30,6 @@ export type MailParts = {
   senderName        : string
   message           : string
   indyDisclaimer    : boolean
->>>>>>> master
   headerImage      ?: {
     name : string
     path : string
@@ -69,18 +41,6 @@ export type MailAttachment = Mail.Attachment
 
 export class Mailer {
 
-<<<<<<< HEAD
-  private httpsRequest : HttpsRequest
-  private accessToken  : string
-  private senderEmail  : string
-
-  constructor(rc : RunContextServer, token : string, email : string, logsDir : string) {
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'Constructing Mailer object.', token, email, logsDir)
-    this.httpsRequest = new HttpsRequest(rc, logsDir, HOSTNAME)
-    this.accessToken  = token
-    this.senderEmail  = email
-=======
   private transport    : Mail
   private senderEmail  : string
 
@@ -97,45 +57,17 @@ export class Mailer {
     })
 
     this.senderEmail = config.email
->>>>>>> master
   }
 
   public async sendEmail(rc : RunContextServer, emailParts : MailParts) {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Encoding email.', emailParts)
 
-<<<<<<< HEAD
-    const email = await this.encodeEmail(emailParts)
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'Sending email.', email)
-
-    const urlObj : urlModule.UrlObject = {
-      protocol : HTTP.Const.protocolHttps,
-      hostname : HOSTNAME,
-      port     : PORT,
-      pathname : PATHNAME
-    }
-
-    const options : http.RequestOptions = {
-      method  : HTTP.Method.POST,
-      headers : {
-        [HTTP.HeaderKey.authorization] : `Bearer ${this.accessToken}`,
-        [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.json
-      }
-    }
-
-    const data = { raw : email }
-
-    rc.isDebug() && rc.debug(rc.getName(this), 'Making https request.', urlObj, options, data)
-
-    const resp = await this.httpsRequest.executeRequest(rc, urlObj, options, data)
-=======
     const mailOptions = await this.encodeEmail(emailParts)
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Sending email.', mailOptions)
 
     const resp = await this.transport.sendMail(mailOptions)
->>>>>>> master
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Email sent?', resp)
   }
@@ -144,20 +76,11 @@ export class Mailer {
   PRIVATE METHODS
 ------------------------------------------------------------------------------*/
 
-<<<<<<< HEAD
-  private async encodeEmail(emailParts : MailParts) : Promise<string> {
-
-    const imageId     = emailParts.headerImage ? this.getRandomId() : undefined,
-          html        = this.composeHtml(emailParts.firstName, emailParts.lastName, emailParts.message,
-                                         emailParts.senderName, emailParts.indyDisclaimer,
-                                         emailParts.obopayDisclaimer, imageId),
-=======
   private encodeEmail(emailParts : MailParts) : Mail.Options {
 
     const imageId     = emailParts.headerImage ? this.getRandomId() : undefined,
           html        = this.composeHtml(emailParts.message, emailParts.senderName, emailParts.indyDisclaimer,
                                          emailParts.firstName, emailParts.lastName, imageId),
->>>>>>> master
           attachments = emailParts.attachments || []
 
     if(emailParts.headerImage) {
@@ -168,34 +91,16 @@ export class Mailer {
       })
     }
 
-<<<<<<< HEAD
-    const mailComposer = new MailComposer({
-      to      : emailParts.email,
-=======
     const mailOptions : Mail.Options = {
       to      : emailParts.email,
       cc      : emailParts.cc,
->>>>>>> master
       from    : this.senderEmail,
       subject : emailParts.subject,
       html,
       attachments
-<<<<<<< HEAD
-    })
-
-    const mimeNode = mailComposer.compile(),
-          msgBuff  = await mimeNode.build(),
-          email    = msgBuff.toString(BASE64)
-                     .replace(/\+/g, '-')
-                     .replace(/\//g, '_')
-                     .replace(/=+$/, '')
-
-    return email
-=======
     }
 
     return mailOptions
->>>>>>> master
   }
 
   private getRandomId() : string {
@@ -205,22 +110,12 @@ export class Mailer {
     return hex
   }
 
-<<<<<<< HEAD
-  private composeHtml(firstName         : string,
-                      lastName          : string,
-                      message           : string,
-                      sender            : string,
-                      indyDisclaimer    : boolean,
-                      obopayDisclaimer  : boolean,
-                      headerImageId    ?: string) : string {
-=======
   private composeHtml(message         : string,
                       sender          : string,
                       indyDisclaimer  : boolean,
                       firstName      ?: string,
                       lastName       ?: string,
                       headerImageId  ?: string) : string {
->>>>>>> master
       
   const html =
 `<div dir="ltr">
@@ -249,11 +144,7 @@ export class Mailer {
                     <td align="left" valign="top" bgcolor="#FFFFFF">
                       <p></p>
                       <font size="2" face="Verdana, Arial, Helvetica, sans-serif">
-<<<<<<< HEAD
-                        <p>Dear ${firstName} ${lastName},</p>
-=======
 ${firstName && lastName ? `<p>Dear${firstName ? ` ${firstName}` : ''} ${lastName ? ` ${lastName}` : ''},</p>` : ''}
->>>>>>> master
                         <p>${message}</p>
                         <p>Regards,</p>
                         <p>${sender}</p>
@@ -280,29 +171,7 @@ ${firstName && lastName ? `<p>Dear${firstName ? ` ${firstName}` : ''} ${lastName
       </table>
     </div>
   </div>
-<<<<<<< HEAD
-</div>
-${obopayDisclaimer ? `
-<br></br>
-<div style="font-family:Arial,Helvetica,sans-serif;font-size:1.3em">
-  </div=>
-    <hr></hr>
-    <p>
-      <font color="#808080">
-        Disclaimer : The information and any attachments contained in this message may be privileged and confidential
-        and protected from disclosure or unauthorized use. If the reader of this message is not the intended
-        recipient, you are hereby notified that any dissemination, distribution or copying of this communication is
-        prohibited. If you have received this communication in error, please notify us immediately by replying to this
-        message and then delete it. All email sent to this address will be received by Obopay Mobile Technology India
-        Pvt Ltd and may be archived or reviewed.  Obopay Mobile Technology India Pvt Ltd accepts no liability for any
-        loss or damage arising from this email, any virus transmitted, or its attachments.
-      </font>
-    </p>
-  </div>
-</div>` : ''}`
-=======
 </div>`
->>>>>>> master
 
     return html
   }
