@@ -72,7 +72,7 @@ export class OracleDbClient implements ObmopBaseClient {
 										 range  ?: QueryRange,
 										 sort   ?: QuerySort) : Promise<QueryRetval> {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ', table)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table,', table)
 
 		let c = query ? query.binds.length : 0
 
@@ -111,6 +111,15 @@ export class OracleDbClient implements ObmopBaseClient {
 		if(limit !== -1 && entities.length) result.totalCount = entities[0].totcount
 
 		return result
+	}
+
+	public async sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Executing query.', query, binds)
+
+		const entities = this.convertResultArray(await this.bindsQuery(rc, query, binds))
+
+		return entities
 	}
 
 	public async insert(rc				 : RunContextServer,
@@ -288,14 +297,14 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 	}
 
-	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
+	private convertResultArray(result : oracledb.Result<any>) : Array<Mubble.uObject<any>> {
 
 		const metadata = result.metaData || [],
 					rows     = result.rows || [],
-					finArr   = []
+					finArr   = [] as Array<Mubble.uObject<any>>
 
 		for(const row of rows) {
-			const elem = {} as any
+			const elem = {} as Mubble.uObject<any>
 
 			for(const index in metadata) {
 				elem[metadata[index].name.toLowerCase()] = row[index]
