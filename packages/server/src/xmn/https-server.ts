@@ -72,7 +72,7 @@ export class HttpsServer {
       return
     }
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Received a new request.', req.url)
+    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
 
     const [ apiStr, moduleName, apiName ] = pathName.split('/')
 

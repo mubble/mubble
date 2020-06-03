@@ -1,3 +1,4 @@
+
 <div class="horz-filter" *ngIf="tableConfig.horizFilterParams">
   <filter
     [filterItems]="tableConfig.horizFilterParams"
@@ -25,10 +26,12 @@
         of {{ tableConfig.totalRecords }} records 
       </div>
       <div class="paginator text-color-primary" *ngIf="pageNumbers.length > 1">
-        <div class="fast-backward pagenumber" (click)="onPageClick(0)">
+        <div [ngClass]="{'text-color-disable' : currPageIndex === 0}" class="fast-backward pagenumber"
+            (click)="onPageClick(0)">
           <i class="fa fa-fast-backward" aria-hidden="true"></i>
         </div> 
-        <div class="firstPage" class="pagenumber" (click)="onPageClick(currPageIndex - 1)">
+        <div [ngClass]="{'text-color-disable' : currPageIndex === 0}" class="firstPage" class="pagenumber"
+            (click)="onPageClick(currPageIndex - 1)">
           <i class="fa fa-chevron-left" aria-hidden="true"></i>
         </div>
         <div class="pagenumber txt-lg-reg-dark" *ngFor="let pageNumber of pageNumbers.slice(pageIndex, pageIndex + 5)"
@@ -36,11 +39,12 @@
           [ngClass]="currPageIndex === pageNumber - 1 ? 'sel-ind' : ''">
           {{ pageNumber }}
         </div>
-        <div class="lastPage" class="pagenumber" (click)="onPageClick(currPageIndex + 1)">
+        <div [ngClass]="{ 'text-color-disable' : currPageIndex === pageNumbers.length - 1 }" 
+            class="lastPage" class="pagenumber" (click)="onPageClick(currPageIndex + 1)">
           <i class="fa fa-chevron-right" aria-hidden="true"></i>
         </div>
-
-        <div class="fast-forward pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
+        <div [ngClass]="{ 'text-color-disable' : currPageIndex === pageNumbers.length - 1 }" 
+            class="fast-forward pagenumber" (click)="onPageClick(pageNumbers.length - 1)">
           <i class="fa fa-fast-forward" aria-hidden="true"></i>
         </div>
 
@@ -97,7 +101,7 @@
 
           <!-- Column to display multi line text along with image and icon -->
           <div class="multi-line click-item" *ngSwitchCase="COL_TYPE.MULTI_LINE"
-               (click)="cellClick(rowData, header.dataKeyArr[0])">
+              (click)="cellClick(rowData, header.dataKeyArr[0])">
             <div class="multi-line-text-align" *ngFor="let colType of header.dataKeyType; let i = index">
               <div *ngIf="colType === COL_TYPE.IMAGE">
                 <img src="{{ header.multiLineKey[i] }}">

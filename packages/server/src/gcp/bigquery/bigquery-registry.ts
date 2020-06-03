@@ -138,19 +138,6 @@ export class BqRegistryManager {
     registry.addField(fieldInfo)
   }
 
-  public static addRecord(tableName  : string,
-                          fieldName  : string,
-                          fieldMode  : BqBase.FIELD_MODE) {
-
-    const registry  : BigqueryRegistry  = this.getRegistry(tableName),
-          fieldInfo : BqFieldInfo = {
-                                      name    : fieldName,
-                                      type    : BqBase.FIELD_TYPE.RECORD,
-                                      mode    : fieldMode
-                                    }
-    registry.addField(fieldInfo)
-  }
-
   public static addRecordField(tableName  : string,
                                parent     : string,
                                fieldName  : string,

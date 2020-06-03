@@ -87,8 +87,11 @@ export abstract class BqBaseModel {
       const fields       = registry.getFields().filter((field) => field.parent === undefined),
             recordFields = registry.getFields().filter((field) => field.parent !== undefined)
   
+      // Supproting 2 levels of record
       for (const recField of recordFields) {
-        const parentField = fields.find((fld) => fld.name === recField.parent)
+        let parentField = fields.find((fld) => fld.name === recField.parent)
+        if (!parentField) parentField = recordFields.find((fld) => fld.name === recField.parent)
+
         if (!parentField!!.fields) parentField!!.fields = []
         parentField!!.fields.push(recField)
       }

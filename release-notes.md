@@ -3,6 +3,7 @@
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
 
+| 1.14.0 | Deepak Kumar    | 2020-05-30 | Approved |
 | 1.13.0 | Deepak Kumar    | 2020-04-28 | Approved |
 | 1.12.0 | Deepak Kumar    | 2020-02-18 | Approved |
 | 1.11.1 | Deepak Kumar    | 2020-02-07 | Approved |
@@ -13,6 +14,27 @@
 | 1.4.0 | Deepak Kumar     | 2019-07-07 | Approved |
 | 1.3.0 | Raghvendra Varma | 2019-05-24 | Approved |
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
+
+
+# Version 1.14.0
+
+## Features
+- None
+
+## Bug Fixes
+- Calendar box bug fix
+
+## Improvements
+- removed filter params
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
 
 
 # Version 1.13.0
