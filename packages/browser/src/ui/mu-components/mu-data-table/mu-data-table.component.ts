@@ -11,11 +11,9 @@ import { Component,
          ViewChildren,
          QueryList
        }                            from '@angular/core'
-import { MatCheckboxChange, 
-         MatRadioChange,
-         MatSlideToggleChange,
-         MatCheckbox
-       }                            from '@angular/material'
+import { MatCheckboxChange, MatCheckbox } from '@angular/material/checkbox';
+import { MatRadioChange } from '@angular/material/radio';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { FormControl, 
          FormGroup
        }                            from '@angular/forms'
@@ -87,9 +85,9 @@ export interface MuTableEditEvent {
 
 export class MuDataTableComponent implements OnInit {
 
-  @ViewChild('slctAllBox',  {static : false}) slctAllBox  : MatCheckbox
-  @ViewChild('filterCont',  {static : false}) filterCont  : ElementRef
-  @ViewChild('muTableCont', {static : false}) muTableCont : ElementRef
+  @ViewChild('slctAllBox') slctAllBox  : MatCheckbox
+  @ViewChild('filterCont') filterCont  : ElementRef
+  @ViewChild('muTableCont') muTableCont : ElementRef
   @ViewChildren(FilterComponent)  filterCompChildren      : QueryList<FilterComponent>
 
   @Input()  tableConfig        : TableConfig

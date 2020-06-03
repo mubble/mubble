@@ -4,10 +4,11 @@ import { NgModule,
 import { FormsModule,
          ReactiveFormsModule 
        }                                    from '@angular/forms'
-import { CommonModule }                     from '@angular/common'
+import { CommonModule, 
+         DatePipe }                         from '@angular/common'
 import { FlexLayoutModule }                 from '@angular/flex-layout'
-import { MatRippleModule }                  from '@angular/material'
 
+import { MatRippleModule }                  from '@angular/material/core'
 import { MatCheckboxModule }                from '@angular/material/checkbox'
 import { MatDatepickerModule }              from '@angular/material/datepicker'
 import { MatFormFieldModule }               from '@angular/material/form-field'
@@ -20,7 +21,7 @@ import { MatSliderModule }                  from '@angular/material/slider'
 import { MatSlideToggleModule }             from '@angular/material/slide-toggle'
 import { MatButtonToggleModule }            from '@angular/material/button-toggle'
 import { MatMenuModule }                    from '@angular/material/menu'
-
+import { MatCardModule }                    from '@angular/material/card'
 
 import { MuComponentsRoutingModule }        from './mu-components-routing.module'
 
@@ -57,11 +58,8 @@ import { MuFormContainerComponent }         from './mu-form-container/mu-form-co
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
-import { MatCardModule }                    from '@angular/material'
 import { KeypadComponent }                  from './keypad/keypad.component' 
 import { PageNotFoundComponent }            from './page-not-found/page-not-found.component'
-import { HAMMER_GESTURE_CONFIG }            from '@angular/platform-browser'
-import { GestureConfig }                    from '@angular/material'
 import { MaskingValueDirective }            from './directives/masking-value.directive'
 
 @NgModule({
@@ -172,18 +170,17 @@ import { MaskingValueDirective }            from './directives/masking-value.dir
 
   providers: [
     CustomBreakPointsProvider,
-    {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
+    {provide  : 'date', useClass  : DatePipe },
   ]
 })
 
 export class MuComponentsModule {
-  static forRoot(): ModuleWithProviders {
+  static forRoot(): ModuleWithProviders<MuComponentsModule> {
     return {
       ngModule: MuComponentsModule,
       providers: [
         TRANSLATION_PROVIDERS,
         TranslateService,
-        {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
       ]
     }
   }

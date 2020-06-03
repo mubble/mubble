@@ -29,7 +29,7 @@ export interface UploadedDocParams {
 
 export class FileUploadComponent implements OnInit {
 
-  @ViewChild('uploadFileCont', { static: false }) uploadFileCont : ElementRef
+  @ViewChild('uploadFileCont') uploadFileCont : ElementRef
 
   @Input() screen         : TrackableScreen
   @Input() eventPropagate : boolean
