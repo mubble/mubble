@@ -44,21 +44,16 @@ export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   CAST_STRING     : 'CAST_STRING'
 }
 
-export interface BqFieldFunction {
-  function : QUERY_FIELD_FUNCTION
-  params  ?: Mubble.uObject<string>
-}
-
 export interface QueryField {
   name       : string
-  functions ?: (BqFieldFunction | QUERY_FIELD_FUNCTION | string)[]
+  functions ?: (QUERY_FIELD_FUNCTION | string)[]
   extract   ?: EXTRACT_PART
   as        ?: string
 }
 
 export interface NestedField {
   field      : BqFieldInfo
-  functions  : (BqFieldFunction | QUERY_FIELD_FUNCTION | string)[]
+  functions  : (QUERY_FIELD_FUNCTION | string)[]
   extract   ?: EXTRACT_PART
   as        ?: string
 }
@@ -181,7 +176,7 @@ export namespace BqQueryBuilder {
         for (const func of nestedField.functions) {
           selectField = BqQueryHelper.applyBqFunction(selectField, func)
         }
-        select += `${selectField} as ${nestedField.field.as || nestedField.field.name}, `
+        select += `${selectField} as ${nestedField.as || nestedField.field.name}, `
       }
     }
 
@@ -244,10 +239,9 @@ export namespace BqQueryBuilder {
   class BqQueryHelper {
 
     static applyBqFunction(field  : string, 
-                           func   : BqFieldFunction | QUERY_FIELD_FUNCTION | string): string {
+                           func   : QUERY_FIELD_FUNCTION | string): string {
 
-      const fun = BqQueryHelper.instanceOfBqFieldFunction(func) ? func.function : func
-      switch(fun) {
+      switch(func) {
   
         case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
           // return `EXTRACT(DATE FROM (${field}))`
@@ -259,10 +253,6 @@ export namespace BqQueryBuilder {
         default :
           return `${func}(${field})`
       }
-    }
-
-    private static instanceOfBqFieldFunction(object: any): object is BqFieldFunction {
-      return 'function' in object;
     }
   }
 
