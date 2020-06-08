@@ -53,7 +53,7 @@ export abstract class BqBaseModel {
     lo.assign(this , bqItemClone)
   }
 
-  getTableName(rc : RunContextServer, dayStamp ?: string) {
+  getTableName(rc : RunContextServer, dayStamp ?: string): string {
   
     const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
@@ -63,6 +63,11 @@ export abstract class BqBaseModel {
            `${registry.getTableName()}${verStr ? '_' + verStr : ''}`
   
     return tableName.replace(/\./gi, '_')       
+  }
+
+  getDatasetName(rc : RunContextServer): string {
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+    return registry.getDataset()
   }
 
   public async tableExists(rc : RunContextServer): Promise<boolean> {
