@@ -11,6 +11,7 @@ import { RunContextServer }                 from '../../rc-server'
 import { BqRegistryManager, 
          BqFieldInfo 
        }                                    from './bigquery-registry'
+import { Mubble }                           from '@mubble/core'
 
 type UnionKeyToValue<U extends string> = {
   [K in U]: K
@@ -32,26 +33,32 @@ export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
   ISOYEAR   : 'ISOYEAR'
 }
 
-export type QUERY_FIELD_FUNCTION = 'CONVERT_TO_DATE' | 'ROUND' | 'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT'
+export type QUERY_FIELD_FUNCTION = 'CONVERT_TO_DATE' | 'ROUND' | 'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 'CAST_STRING'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   CONVERT_TO_DATE : 'CONVERT_TO_DATE',
   ROUND           : 'ROUND',
   SUM             : 'SUM',
   DISTINCT        : 'DISTINCT',
   COUNT           : 'COUNT',
-  EXTRACT         : 'EXTRACT'
+  EXTRACT         : 'EXTRACT',
+  CAST_STRING     : 'CAST_STRING'
+}
+
+export interface BqFieldFunction {
+  function : QUERY_FIELD_FUNCTION
+  params  ?: Mubble.uObject<string>
 }
 
 export interface QueryField {
   name       : string
-  functions  : QUERY_FIELD_FUNCTION[]
+  functions ?: (BqFieldFunction | QUERY_FIELD_FUNCTION | string)[]
   extract   ?: EXTRACT_PART
   as        ?: string
 }
 
 export interface NestedField {
   field      : BqFieldInfo
-  functions  : QUERY_FIELD_FUNCTION[]
+  functions  : (BqFieldFunction | QUERY_FIELD_FUNCTION | string)[]
   extract   ?: EXTRACT_PART
   as        ?: string
 }
@@ -112,6 +119,7 @@ export namespace BqQueryBuilder {
   }
 
   export function query(rc          : RunContextServer, 
+                        projectId   : string,
                         table       : string, 
                         fields      : Array<string | QueryField>, 
                         condition  ?: string,
@@ -124,7 +132,7 @@ export namespace BqQueryBuilder {
           nestedFields = {} as any
     
     let select = 'SELECT '
-    const from = `FROM \`obopay-chakra-staging.${registry.getDataset()}.${registry.getTableName()}\``
+    const from = `FROM \`${projectId}.${registry.getDataset()}.${registry.getTableName()}\``
 
     for (const fld of fields) {
 
@@ -154,11 +162,12 @@ export namespace BqQueryBuilder {
 
       } else {
         let selectField = field.name
-        for (const func of field.functions) {
-          selectField = BqQueryHelper.applyBqFunction(selectField, func)
+        if (field.functions) {
+          for (const func of field.functions) {
+            selectField = BqQueryHelper.applyBqFunction(selectField, func)
+          }  
         }
-        select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
-                                             : `${selectField}, `
+        select += `${selectField} as ${field.as || field.name}, `
       }
     }
 
@@ -214,10 +223,11 @@ export namespace BqQueryBuilder {
       }
 
       let selectField = field.name
-      for (const func of field.functions) {
-        selectField = BqQueryHelper.applyBqFunction(selectField, func)
+      if (field.functions) {
+        for (const func of field.functions) {
+          selectField = BqQueryHelper.applyBqFunction(selectField, func)
+        }  
       }
-
       select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
                                            : `${selectField}, `
     }
@@ -233,18 +243,27 @@ export namespace BqQueryBuilder {
 
   class BqQueryHelper {
 
-    static applyBqFunction(field : string, func : QUERY_FIELD_FUNCTION): string {
+    static applyBqFunction(field  : string, 
+                           func   : BqFieldFunction | QUERY_FIELD_FUNCTION | string): string {
 
-      switch(func) {
+      const fun = BqQueryHelper.instanceOfBqFieldFunction(func) ? func.function : func
+      switch(fun) {
   
         case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
-          return `EXTRACT(DATE FROM (${field}))`
-  
+          // return `EXTRACT(DATE FROM (${field}))`
+          return `FORMAT_TIMESTAMP('%d/%m/%Y %H:%M:%S', (${field}))`
+
+        case QUERY_FIELD_FUNCTION.CAST_STRING :
+          return `CAST((${field}) AS STRING)`
+
         default :
           return `${func}(${field})`
       }
     }
 
+    private static instanceOfBqFieldFunction(object: any): object is BqFieldFunction {
+      return 'function' in object;
+    }
   }
 
 }

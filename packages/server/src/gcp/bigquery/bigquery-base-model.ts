@@ -216,7 +216,7 @@ export abstract class BqBaseModel {
     }
   }
 
-  static async getTableData (rc : RunContextServer, query: any, useLegacySql: boolean) {
+  static async getTableData (rc : RunContextServer, query: any, useLegacySql: boolean = false) {
   
     const options = {
       query : query,
