@@ -33,8 +33,12 @@ export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
   ISOYEAR   : 'ISOYEAR'
 }
 
-export type QUERY_FIELD_FUNCTION = 'CONVERT_TO_DATE' | 'ROUND' | 'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 'CAST_STRING'
+export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATE' | 'ROUND' | 
+                                   'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 
+                                   'CAST_STRING' | 'COUNTIF'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
+  COUNTIF         : 'COUNTIF', 
+  TEMPLATE        : 'TEMPLATE',
   CONVERT_TO_DATE : 'CONVERT_TO_DATE',
   ROUND           : 'ROUND',
   SUM             : 'SUM',
@@ -51,11 +55,22 @@ export interface QueryField {
   as        ?: string
 }
 
+export interface TemplateField {
+  template : string,
+  fields   : string[],
+  as       : string
+}
+
 export interface NestedField {
   field      : BqFieldInfo
   functions  : (QUERY_FIELD_FUNCTION | string)[]
   extract   ?: EXTRACT_PART
   as        ?: string
+}
+
+export interface OrderBy {
+  field : string
+  type  : 'DESC' | 'AESC'
 }
 
 export namespace BqQueryBuilder {
@@ -116,9 +131,9 @@ export namespace BqQueryBuilder {
   export function query(rc          : RunContextServer, 
                         projectId   : string,
                         table       : string, 
-                        fields      : Array<string | QueryField>, 
+                        fields      : Array<string | QueryField | TemplateField>, 
                         condition  ?: string,
-                        orderBy    ?: string[], 
+                        orderBy    ?: OrderBy[], 
                         groupBy    ?: string[], 
                         limit      ?: number): string {
 
@@ -131,39 +146,65 @@ export namespace BqQueryBuilder {
 
     for (const fld of fields) {
 
-      // Normalizing to QueryField
-      let field : QueryField
-      if (typeof fld !== 'string') {
-        field = fld
-      } else {
-        field = {
-                  name      : fld,
-                  functions : []
-                }
-      }
+      // Checking for TemplateField
+      if (isOfTypeTemplateField(fld)) {
 
-      const regField = regFields.find((regField) => regField.name === field.name)
+        for (let i=0; i<fld.fields.length; i++) {
 
-      rc.isAssert() && rc.assert(rc.getName(this), regField, `Field ${field.name} does not exist on schema`)
+          const tempField = fld.fields[i],
+                regField  = regFields.find((regField) => regField.name === tempField)
 
-      if (regField!!.parent) {
-        if (!nestedFields[regField!!.parent]) nestedFields[regField!!.parent] = []
-        const nestedField : NestedField = {
-                                            field     : regField!!,
-                                            functions : field.functions || [],
-                                            as        : field.as
-                                          }
-        nestedFields[regField!!.parent].push(nestedField)
+          rc.isAssert() && rc.assert(rc.getName(this), regField, `Field ${tempField} does not exist on schema`)
 
-      } else {
-        let selectField = field.name
-        if (field.functions) {
-          for (const func of field.functions) {
-            selectField = BqQueryHelper.applyBqFunction(selectField, func)
-          }  
+          let value
+          if (regField!!.parent) {
+            if (!nestedFields[regField!!.parent]) nestedFields[regField!!.parent] = []
+            value = `unnest_${regField!!.parent}.${tempField}`
+          } else {
+            value = tempField
+          }
+          fld.template = fld.template.replace(`%${i}%`, `${value}`)
         }
-        select += `${selectField} as ${field.as || field.name}, `
+
+        select += `${fld.template} as ${fld.as}, `
+
+      } else {
+
+        // Normalizing to QueryField
+        let field : QueryField
+        if (typeof fld === 'string') {
+          field = {
+            name      : fld,
+            functions : []
+          }
+        } else if (isOfTypeQueryField(fld)) {
+          field = fld
+        }
+
+        const regField = regFields.find((regField) => regField.name === field.name)
+
+        rc.isAssert() && rc.assert(rc.getName(this), regField, `Field ${field!.name} does not exist on schema`)
+
+        if (regField!!.parent) {
+          if (!nestedFields[regField!!.parent]) nestedFields[regField!!.parent] = []
+          const nestedField : NestedField = {
+                                              field     : regField!!,
+                                              functions : field!.functions || [],
+                                              as        : field!.as
+                                            }
+          nestedFields[regField!!.parent].push(nestedField)
+
+        } else {
+          let selectField = field!.name
+          if (field!.functions) {
+            for (const func of field!.functions) {
+              selectField = BqQueryHelper.applyBqFunction(selectField, func)
+            }  
+          }
+          select += `${selectField} as ${field!.as || field!.name}, `
+        }
       }
+
     }
 
     // For record
@@ -183,22 +224,36 @@ export namespace BqQueryBuilder {
     let retval = `${select} ${from} ${unnest}`
     if (condition) retval += `WHERE ${condition} `
     if (groupBy) retval += `GROUP BY ${groupBy} `
-    if (orderBy) retval += `ORDER BY ${orderBy} `
+
+    if (orderBy) {
+      let str = ''
+      for (const val of orderBy) str += `${val.field} ${val.type} `
+      retval += `ORDER BY ${str} `
+    }
+
     if (limit) retval += `LIMIT ${limit}`
 
     return retval
+  }
+
+  function isOfTypeQueryField(object: Object): object is QueryField {
+    return object.hasOwnProperty('name')
+  }
+
+  function isOfTypeTemplateField(object: Object): object is TemplateField {
+    return object.hasOwnProperty('template')
   }
 
   /**
    * Field names are not checked in schema.  
    * Does not support UNNEST
    */
-  export function nestedQuery(rc          : RunContextServer, 
-                              fields      : Array<string | QueryField>,
+  export function nestedQuery(rc          : RunContextServer,
+                              fields      : Array<string | QueryField | TemplateField>,
                               query       : string,
                               condition  ?: string,
-                              orderBy    ?: string[], 
-                              groupBy    ?: string[], 
+                              orderBy    ?: OrderBy[],
+                              groupBy    ?: string[],
                               limit      ?: number) {
 
     let select = 'SELECT '
@@ -206,31 +261,49 @@ export namespace BqQueryBuilder {
 
     for (const fld of fields) {
 
-      // Normalizing to QueryField
-      let field : QueryField
-      if (typeof fld !== 'string') {
-        field = fld
-      } else {
-        field = {
-                  name      : fld,
-                  functions : []
-                }
-      }
+      // Checking for TemplateField
+      if (isOfTypeTemplateField(fld)) {
 
-      let selectField = field.name
-      if (field.functions) {
-        for (const func of field.functions) {
-          selectField = BqQueryHelper.applyBqFunction(selectField, func)
-        }  
-      }
-      select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
-                                           : `${selectField}, `
+        for (let i=0; i<fld.fields.length; i++) {
+          fld.template = fld.template.replace(`%${i}%`, `${fld.fields[i]}`)
+        }
+
+        select += `${fld.template} as ${fld.as}, `
+
+      } else {
+
+        // Normalizing to QueryField
+        let field : QueryField
+        if (typeof fld !== 'string') {
+          field = fld
+        } else {
+          field = {
+                    name      : fld,
+                    functions : []
+                  }
+        }
+
+        let selectField = field.name
+        if (field.functions) {
+          for (const func of field.functions) {
+            selectField = BqQueryHelper.applyBqFunction(selectField, func)
+          }  
+        }
+        select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
+                                            : `${selectField}, ` 
+        }
     }
     
     let retval = `${select} ${from} `
     if (condition) retval += `WHERE ${condition} `
     if (groupBy) retval += `GROUP BY ${groupBy} `
-    if (orderBy) retval += `ORDER BY ${orderBy} `
+
+    if (orderBy) {
+      let str = ''
+      for (const val of orderBy) str += `${val.field} ${val.type} `
+      retval += `ORDER BY ${str} `
+    }
+
     if (limit) retval += `LIMIT ${limit}`
 
     return retval
@@ -249,6 +322,9 @@ export namespace BqQueryBuilder {
 
         case QUERY_FIELD_FUNCTION.CAST_STRING :
           return `CAST((${field}) AS STRING)`
+
+        case QUERY_FIELD_FUNCTION.ROUND :
+          return `ROUND (${field}, 2)`
 
         default :
           return `${func}(${field})`
