@@ -35,17 +35,21 @@ export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
 
 export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATE' | 'ROUND' | 
                                    'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 
-                                   'CAST_STRING' | 'COUNTIF'
+                                   'CAST_STRING' | 'CAST_NUMERIC' | 'COUNTIF' | 
+                                   'FORMAT_TIMESTAMP' | 'STRING_AGGREGATE'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
-  COUNTIF         : 'COUNTIF', 
-  TEMPLATE        : 'TEMPLATE',
-  CONVERT_TO_DATE : 'CONVERT_TO_DATE',
-  ROUND           : 'ROUND',
-  SUM             : 'SUM',
-  DISTINCT        : 'DISTINCT',
-  COUNT           : 'COUNT',
-  EXTRACT         : 'EXTRACT',
-  CAST_STRING     : 'CAST_STRING'
+  COUNTIF           : 'COUNTIF', 
+  TEMPLATE          : 'TEMPLATE',
+  CONVERT_TO_DATE   : 'CONVERT_TO_DATE',
+  ROUND             : 'ROUND',
+  SUM               : 'SUM',
+  DISTINCT          : 'DISTINCT',
+  COUNT             : 'COUNT',
+  EXTRACT           : 'EXTRACT',
+  CAST_STRING       : 'CAST_STRING',
+  FORMAT_TIMESTAMP  : 'FORMAT_TIMESTAMP',
+  CAST_NUMERIC      : 'CAST_NUMERIC',
+  STRING_AGGREGATE  : 'STRING_AGGREGATE'
 }
 
 export interface QueryField {
@@ -163,7 +167,9 @@ export namespace BqQueryBuilder {
           } else {
             value = tempField
           }
-          fld.template = fld.template.replace(`%${i}%`, `${value}`)
+
+          //fld.template = fld.template.replace(`%${i}%`, `${value}`)
+          fld.template = fld.template.split(`%${i}%`).join(`${value}`)
         }
 
         select += `${fld.template} as ${fld.as}, `
@@ -265,7 +271,7 @@ export namespace BqQueryBuilder {
       if (isOfTypeTemplateField(fld)) {
 
         for (let i=0; i<fld.fields.length; i++) {
-          fld.template = fld.template.replace(`%${i}%`, `${fld.fields[i]}`)
+          fld.template = fld.template.split(`%${i}%`).join(`${fld.fields[i]}`)
         }
 
         select += `${fld.template} as ${fld.as}, `
@@ -318,13 +324,19 @@ export namespace BqQueryBuilder {
   
         case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
           // return `EXTRACT(DATE FROM (${field}))`
-          return `FORMAT_TIMESTAMP('%d/%m/%Y %H:%M:%S', (${field}))`
+          return `${QUERY_FIELD_FUNCTION.FORMAT_TIMESTAMP}('%d/%m/%Y %H:%M:%S', (${field}))`
 
         case QUERY_FIELD_FUNCTION.CAST_STRING :
           return `CAST((${field}) AS STRING)`
 
+        case QUERY_FIELD_FUNCTION.CAST_NUMERIC :
+          return `CAST((${field}) AS NUMERIC)`
+
         case QUERY_FIELD_FUNCTION.ROUND :
           return `ROUND (${field}, 2)`
+
+        case QUERY_FIELD_FUNCTION.STRING_AGGREGATE :
+          return `STRING_AGG(CAST(${field} AS STRING), ',')`
 
         default :
           return `${func}(${field})`
