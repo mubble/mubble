@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import { 
-         Mubble, 
+         Mubble,
          HTTP,
          format
        }                        from '@mubble/core'
@@ -132,9 +132,9 @@ export class HttpsRequest {
                               urlObj        : url.UrlObject,
                               options      ?: http.RequestOptions,
                               data         ?: Mubble.uObject<any> | string,
-                              extraLogInfo ?: string) : Promise<Response> {                        
+                              extraLogInfo ?: string) : Promise<Response> {
 
-    const requestId = `req-${lo.random(100000, 999999, false)}`                     
+    const requestId = `req-${lo.random(100000, 999999, false)}`
 
     rc.isDebug() && rc.debug(rc.getName(this), requestId, 'executeHttpRequest', urlObj, options, data)
 
@@ -146,10 +146,10 @@ export class HttpsRequest {
                                                                            : JSON.stringify(data)
                                              : ''
 
-    const extraLogInfoStr : string = extraLogInfo ? extraLogInfo : NO_EXTRA_LOG_INFO                                                             
-                                           
-    request.options = reqOptions 
-    request.data    = dataStr                                    
+    const extraLogInfoStr : string = extraLogInfo ? extraLogInfo : NO_EXTRA_LOG_INFO
+
+    request.options = reqOptions
+    request.data    = dataStr
 
     if(!reqOptions.headers) reqOptions.headers = {}
     if(dataStr && !reqOptions.headers[HTTP.HeaderKey.contentLength]) {
@@ -163,7 +163,7 @@ export class HttpsRequest {
     const urlStr  = url.format(urlObj),
           resp    = {} as Response
 
-    request.url = urlStr      
+    request.url = urlStr
 
     rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request.', urlStr, reqOptions, dataStr)
 
@@ -177,12 +177,12 @@ export class HttpsRequest {
           writeStreams = [] as Array<stream.Writable>,
           readStreams  = [] as Array<stream.Readable>
 
-    writeStreams.push(req)      
+    writeStreams.push(req)
 
     req.on('response', (res : http.IncomingMessage) => {
 
       rc.isDebug() && rc.debug(rc.getName(this), requestId, 'http(s) response headers.',
-                               urlStr, res.statusCode, res.headers)                        
+                               urlStr, res.statusCode, res.headers)
 
       resp.statusCode = res.statusCode || 200
       resp.headers    = res.headers
@@ -205,7 +205,7 @@ export class HttpsRequest {
 
     req.on('error', (err : Error) => {
 
-      rc.isError() && rc.error(rc.getName(this), requestId, 'Error encountered in http(s) request.', err)                         
+      rc.isError() && rc.error(rc.getName(this), requestId, 'Error encountered in http(s) request.', err)
 
       const timeTakenMs = Date.now() - start
 
@@ -271,13 +271,13 @@ export class HttpsRequest {
 
     while(ts <= toTs) {
       const fileDate = format(ts, '%yyyy%-%mm%-%dd%'),
-            filePath = path.join(this.logPath, `${this.hostname}-${fileDate}.log`)   
+            filePath = path.join(this.logPath, `${this.hostname}-${fileDate}.log`)
 
       if(filePath === prevFilePath) {
         break
       } else {
         prevFilePath = filePath
-      }     
+      }
 
       if(fs.existsSync(filePath)) {
         const dataFromFile = fs.readFileSync(filePath).toString()
@@ -297,13 +297,13 @@ export class HttpsRequest {
               finalLinesArr.push(line)
             }
           })
-        }      
+        }
       }
 
-      if(ts === toTs) break 
+      if(ts === toTs) break
 
       ts += 24 * 3600 * 1000
-      if(ts > toTs) ts = toTs  
+      if(ts > toTs) ts = toTs
     }
 
     rc.isDebug() && rc.debug(rc.getName(this), 'extractResults', 'Converting lines to rows.', finalLinesArr.length)
@@ -330,7 +330,7 @@ export class HttpsRequest {
 
 /*------------------------------------------------------------------------------
                           PRIVATE FUNCTIONS
-------------------------------------------------------------------------------*/        
+------------------------------------------------------------------------------*/
   
   private createLogger() {
 
@@ -338,7 +338,7 @@ export class HttpsRequest {
                         winston.format.timestamp({ format : moment().utc().format('DD/MM/YYYY HH:mm:ss.SSS') }),
                         winston.format.splat(),                        
                         winston.format.printf(info => `${info.timestamp} ${info.message}`),
-                      ),        
+                      ),
           transport = new DailyRotateFile({
                         dirname     : this.logPath,
                         filename    : `${this.hostname}-%DATE%.log`,
@@ -346,12 +346,12 @@ export class HttpsRequest {
                         level       : 'info',
                         json        : true,
                         utc         : true
-                      })         
+                      })
     
     this.logger = winston.createLogger({
                     format     : logFormat,
                     transports : transport
-                  })                 
+                  })
   }
 
   private convertLinesToRows(linesArr : Array<string>) : Array<LogData> {
@@ -393,7 +393,7 @@ export class HttpsRequest {
           requestObj   : JSON.parse(objsStr.trim())
         }
 
-        rowsArr.push(logData)   
+        rowsArr.push(logData)
         continue
       }
 
