@@ -55,6 +55,7 @@ import { DISPLAY_TYPE,
 import { MuFormOutputParams, 
          FormOutputValue 
        }                                  from '../cmn-inp-cont/cmn-inp-cont-interfaces'
+import { Mubble }                         from '@mubble/core'
 
 @Component({
   selector    : 'mu-form-container',
@@ -161,29 +162,36 @@ export class MuFormContainerComponent implements OnChanges {
           break
 
         case DISPLAY_TYPE.DATE_RANGE  :
-          const dateFormGroup : FormGroup = this.inputForm.get(inputParams.id) as FormGroup
+          const dateFormGroup : FormGroup               = this.inputForm.get(inputParams.id) as FormGroup,
+                dateRangeKeys : string[]                = inputParams.rangeKeys || ['startDate', 'endDate'],
+                dateValue     : Mubble.uObject<string>  = {}
+
+          dateValue[dateRangeKeys[0]] = dateFormGroup.controls.startDate.value
+                                        ? dateFormGroup.controls.startDate.value.getTime()
+                                        : null
+      
+          dateValue[dateRangeKeys[1]] = dateFormGroup.controls.endDate.value
+                                        ? dateFormGroup.controls.endDate.value.getTime()
+                                        : null                          
+                                    
 
           params  = { 
-                      value       : {
-                                      startDate : dateFormGroup.controls.startDate.value
-                                                  ? dateFormGroup.controls.startDate.value.getTime()
-                                                  : null,
-                                      endDate   : dateFormGroup.controls.endDate.value
-                                                  ? dateFormGroup.controls.endDate.value.getTime()
-                                                  : null
-                                    },
+                      value       : dateValue,
                       displayType : inputParams.displayType
                     }
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          const numFormGroup : FormGroup = this.inputForm.get(inputParams.id) as FormGroup
+          const numFormGroup  : FormGroup               = this.inputForm.get(inputParams.id) as FormGroup,
+                numRangeKeys  : string[]                = inputParams.rangeKeys || ['minAmount', 'maxAmount'],
+                numRangeValue : Mubble.uObject<string>  = {}
+
+
+          numRangeValue[numRangeKeys[0]]  = numFormGroup.controls.minAmount.value,
+          numRangeValue[numRangeKeys[1]]  = numFormGroup.controls.maxAmount.value     
 
           params  = { 
-                      value       : { 
-                                      minAmount : numFormGroup.controls.minAmount.value,
-                                      maxAmount : numFormGroup.controls.maxAmount.value
-                                    },
+                      value       : numRangeValue,
                       displayType : inputParams.displayType
                     }
           break

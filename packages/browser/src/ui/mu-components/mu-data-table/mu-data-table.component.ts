@@ -38,6 +38,7 @@ export interface TableConfig {
   enableSelect      ?: boolean
   enableRadio       ?: boolean
   enableFilter      ?: boolean
+  enableDownload    ?: boolean
   selectedIndexes   ?: number[]
   lazyLoad          ?: boolean
   totalRecords      ?: number
@@ -596,4 +597,14 @@ export class MuDataTableComponent implements OnInit {
     if (this.slctAllBox) this.slctAllBox.checked = false
     this.selAllMap[this.currPageIndex] = false
   }
+
+  /**
+   * Method invoked by parent to unselect the rows
+   * @param rowIndexes
+   */
+  downloadTableData() {
+    
+
+  }
+
 }
