@@ -146,8 +146,9 @@ export interface ObmopBaseClient {
 
   /**
    * Returns all entries/row(s) of the given table as per given condition(s).
-   * @param rc  RunContext, used for logging.
+   * @param rc RunContext, used for logging.
    * @param table Table or entity name.
+   * @param fields Fields needed from the given table.
    * @param query queryString for sql query.
    * @param limit Defines the number of results to be fetched.
    * @param offset The offset to start fetching the values from. 
@@ -155,7 +156,15 @@ export interface ObmopBaseClient {
    * @param sort Optional sort for query retval.
    */
   query(rc : RunContextServer, table : string, fields : Array<string>, query ?: QueryCondition, 
-        limit ?: number, offset ?: number, range ?: QueryRange, sort ?: QuerySort) : Promise<QueryRetval>            
+        limit ?: number, offset ?: number, range ?: QueryRange, sort ?: QuerySort) : Promise<QueryRetval>
+
+  /**
+   * Returns all entries/row(s) for the given query.
+   * @param rc RunContext, used for logging.
+   * @param query Native SQL query.
+   * @param binds Bind values for the given query.
+   */
+  sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>>
                
   /**
    * Inserts a new entry (row) in the given table.

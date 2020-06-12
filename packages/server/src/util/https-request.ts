@@ -8,7 +8,7 @@
 ------------------------------------------------------------------------------*/
 
 import { 
-         Mubble, 
+         Mubble,
          HTTP,
          format
        }                        from '@mubble/core'
@@ -24,6 +24,7 @@ import * as DailyRotateFile     from 'winston-daily-rotate-file'
 import * as lo                  from 'lodash'
 import * as path                from 'path'
 import * as fs                  from 'fs'
+import * as moment              from 'moment'
 
 const STRING_TYPE        = 'string',
       OBJECT_TYPE        = 'object',
@@ -102,7 +103,13 @@ export class HttpsRequest {
 
   private logger   : winston.Logger  
   private logPath  : string  
-
+  
+  /**
+   * Creates HttpsRequest.
+   * @param rc RunContext, used for logging.
+   * @param logBaseDir Directory path for http(s) logger.
+   * @param hostname Hostname for http(s) logger.
+   */
   constructor(rc : RunContextServer, logBaseDir : string, private hostname : string) {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Constructing HttpsRequest.')
@@ -112,14 +119,22 @@ export class HttpsRequest {
     this.hostname = hostname.replace(/\./g, '-')
     this.createLogger()
   }
-                     
-  async executeRequest(rc            : RunContextServer,
-                       urlObj        : url.UrlObject,
-                       options      ?: http.RequestOptions,
-                       data         ?: Mubble.uObject<any> | string,
-                       extraLogInfo ?: string) : Promise<Response> {                        
+   
+  /**
+   * Function to execute http(s) request.
+   * @param rc RunContext, used for logging.
+   * @param urlObj URL object for http(s) request.
+   * @param options Options for http(s) request.
+   * @param data Request payload.
+   * @param extraLogInfo Any extra info for http(s) logger.
+   */
+  public async executeRequest(rc            : RunContextServer,
+                              urlObj        : url.UrlObject,
+                              options      ?: http.RequestOptions,
+                              data         ?: Mubble.uObject<any> | string,
+                              extraLogInfo ?: string) : Promise<Response> {
 
-    const requestId = `req-${lo.random(100000, 999999, false)}`                     
+    const requestId = `req-${lo.random(100000, 999999, false)}`
 
     rc.isDebug() && rc.debug(rc.getName(this), requestId, 'executeHttpRequest', urlObj, options, data)
 
@@ -131,10 +146,10 @@ export class HttpsRequest {
                                                                            : JSON.stringify(data)
                                              : ''
 
-    const extraLogInfoStr : string = extraLogInfo ? extraLogInfo : NO_EXTRA_LOG_INFO                                                             
-                                           
-    request.options = reqOptions 
-    request.data    = dataStr                                    
+    const extraLogInfoStr : string = extraLogInfo ? extraLogInfo : NO_EXTRA_LOG_INFO
+
+    request.options = reqOptions
+    request.data    = dataStr
 
     if(!reqOptions.headers) reqOptions.headers = {}
     if(dataStr && !reqOptions.headers[HTTP.HeaderKey.contentLength]) {
@@ -148,7 +163,7 @@ export class HttpsRequest {
     const urlStr  = url.format(urlObj),
           resp    = {} as Response
 
-    request.url = urlStr      
+    request.url = urlStr
 
     rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request.', urlStr, reqOptions, dataStr)
 
@@ -162,12 +177,12 @@ export class HttpsRequest {
           writeStreams = [] as Array<stream.Writable>,
           readStreams  = [] as Array<stream.Readable>
 
-    writeStreams.push(req)      
+    writeStreams.push(req)
 
     req.on('response', (res : http.IncomingMessage) => {
 
       rc.isDebug() && rc.debug(rc.getName(this), requestId, 'http(s) response headers.',
-                               urlStr, res.statusCode, res.headers)                        
+                               urlStr, res.statusCode, res.headers)
 
       resp.statusCode = res.statusCode || 200
       resp.headers    = res.headers
@@ -190,7 +205,7 @@ export class HttpsRequest {
 
     req.on('error', (err : Error) => {
 
-      rc.isError() && rc.error(rc.getName(this), requestId, 'Error encountered in http(s) request.', err)                         
+      rc.isError() && rc.error(rc.getName(this), requestId, 'Error encountered in http(s) request.', err)
 
       const timeTakenMs = Date.now() - start
 
@@ -241,19 +256,59 @@ export class HttpsRequest {
     return resp
   }
 
-  public extractResults(rc : RunContextServer, dateTs : number) : Array<LogResult> {
+  /**
+   * Function to extract results from log files. The request time and response time will be in UTC.
+   * @param rc RunContext, used for logging.
+   * @param fromTs Start timestamp to fetch results from.
+   * @param toTs End timestamp to fetch results upto.
+   */
+  public extractResults(rc : RunContextServer, fromTs : number, toTs : number) : Array<LogResult> {
 
-    const date     = format(dateTs, '%yyyy%-%mm%-%dd%'),
-          filePath = path.join(this.logPath, `${this.hostname}-${date}.log`)
+    const finalLinesArr = [] as Array<string>
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'extractResults', 'Reading file.', filePath)
+    let ts           = fromTs,
+        prevFilePath = ''
 
-    const data     = fs.readFileSync(filePath).toString(),
-          linesArr = data.split('\n')
+    while(ts <= toTs) {
+      const fileDate = format(ts, '%yyyy%-%mm%-%dd%'),
+            filePath = path.join(this.logPath, `${this.hostname}-${fileDate}.log`)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'extractResults', 'Converting lines to rows.', linesArr.length)
+      if(filePath === prevFilePath) {
+        break
+      } else {
+        prevFilePath = filePath
+      }
 
-    const rowsArr    : Array<LogData>                 = this.convertLinesToRows(linesArr),
+      if(fs.existsSync(filePath)) {
+        const dataFromFile = fs.readFileSync(filePath).toString()
+
+        if(dataFromFile) {
+
+          dataFromFile.trim().split('\n').map( line => {
+            const wordsArr  = line.split(' '),
+                  dateArr   = (wordsArr.shift() as string).split('/'),
+                  timeArr   = (wordsArr.shift() as string).split(':'),
+                  msecArr   = timeArr[2].split('.'),
+                  timestamp = new Date(Number(dateArr[2]), Number(dateArr[1]) - 1, Number(dateArr[0]),
+                                       Number(timeArr[0]), Number(timeArr[1]), 
+                                       Number(msecArr[0]), Number(msecArr[1])).getTime()
+
+            if(timestamp >= fromTs && timestamp <= toTs) {
+              finalLinesArr.push(line)
+            }
+          })
+        }
+      }
+
+      if(ts === toTs) break
+
+      ts += 24 * 3600 * 1000
+      if(ts > toTs) ts = toTs
+    }
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'extractResults', 'Converting lines to rows.', finalLinesArr.length)
+
+    const rowsArr    : Array<LogData>                 = this.convertLinesToRows(finalLinesArr),
           rows       : Mubble.uObject<Array<LogData>> = lo.groupBy(rowsArr, 'requestId'),
           requestIds : Array<string>                  = Object.keys(rows),
           logResults : Array<LogResult>               = []
@@ -275,12 +330,12 @@ export class HttpsRequest {
 
 /*------------------------------------------------------------------------------
                           PRIVATE FUNCTIONS
-------------------------------------------------------------------------------*/        
+------------------------------------------------------------------------------*/
   
   private createLogger() {
 
     const logFormat = winston.format.combine(
-                        winston.format.timestamp({ format : 'DD/MM/YYYY HH:mm:ss.SSS' }),
+                        winston.format.timestamp({ format : moment().utc().format('DD/MM/YYYY HH:mm:ss.SSS') }),
                         winston.format.splat(),                        
                         winston.format.printf(info => `${info.timestamp} ${info.message}`),
                       ),
@@ -289,14 +344,14 @@ export class HttpsRequest {
                         filename    : `${this.hostname}-%DATE%.log`,
                         datePattern : 'YYYY-MM-DD',
                         level       : 'info',
-                        json        : true
-                      })         
+                        json        : true,
+                        utc         : true
+                      })
     
     this.logger = winston.createLogger({
                     format     : logFormat,
                     transports : transport
-                  })           
-                    
+                  })
   }
 
   private convertLinesToRows(linesArr : Array<string>) : Array<LogData> {
@@ -338,7 +393,7 @@ export class HttpsRequest {
           requestObj   : JSON.parse(objsStr.trim())
         }
 
-        rowsArr.push(logData)   
+        rowsArr.push(logData)
         continue
       }
 

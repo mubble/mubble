@@ -87,7 +87,7 @@ export class PostgresClient implements ObmopBaseClient {
                      range  ?: QueryRange,
                      sort   ?: QuerySort) : Promise<QueryRetval> {  
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table', table) 
+    rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table,', table) 
 
 		let c = query ? query.binds.length : 0
 
@@ -118,11 +118,24 @@ export class PostgresClient implements ObmopBaseClient {
     
     const result = await this.bindsQuery(rc, queryString, binds)
 
-    return {
+    const retval = {
       entities   : result.rows,
       totalCount : result.rows.length
-    }      
-  }
+		}
+		
+		if(limit !== -1 && retval.entities.length) retval.totalCount = retval.entities[0].totcount
+
+		return retval
+	}
+
+	public async sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Executing query.', query, binds)
+
+		const result = await this.bindsQuery(rc, query, binds)
+
+		return result.rows
+	}
 
 	public async insert(rc 				 : RunContextServer, 
 											table 		 : string, 
