@@ -74,7 +74,7 @@ export interface NestedField {
 
 export interface OrderBy {
   field : string
-  type  : 'DESC' | 'AESC'
+  type  : 'DESC' | 'ASC'
 }
 
 export namespace BqQueryBuilder {
@@ -233,7 +233,11 @@ export namespace BqQueryBuilder {
 
     if (orderBy) {
       let str = ''
-      for (const val of orderBy) str += `${val.field} ${val.type} `
+      for (let i=0; i<orderBy.length; i++) {
+        if (i > 0) str += ', '
+        const val = orderBy[i]
+        str += `${val.field} ${val.type} `
+      }
       retval += `ORDER BY ${str} `
     }
 
@@ -306,7 +310,11 @@ export namespace BqQueryBuilder {
 
     if (orderBy) {
       let str = ''
-      for (const val of orderBy) str += `${val.field} ${val.type} `
+      for (let i=0; i<orderBy.length; i++) {
+        if (i > 0) str += ', '
+        const val = orderBy[i]
+        str += `${val.field} ${val.type} `
+      }
       retval += `ORDER BY ${str} `
     }
 
