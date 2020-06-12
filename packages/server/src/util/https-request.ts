@@ -24,13 +24,13 @@ import * as DailyRotateFile     from 'winston-daily-rotate-file'
 import * as lo                  from 'lodash'
 import * as path                from 'path'
 import * as fs                  from 'fs'
-import * as moment              from 'moment'
 
 const STRING_TYPE        = 'string',
       OBJECT_TYPE        = 'object',
       DEFAULT_TIMEOUT_MS = 60000,
       ECONNRESET         = 'ECONNRESET',
-      NO_EXTRA_LOG_INFO  = 'NO_EXTRA_LOG_INFO'
+      NO_EXTRA_LOG_INFO  = 'NO_EXTRA_LOG_INFO',
+      DATE_TIME_FORMAT   = '%dd%/%mm%/%yyyy% %hh%:%nn%:%ss%.%ms%'
 
 export type Response = {
   timeTakenMs : number
@@ -167,7 +167,7 @@ export class HttpsRequest {
 
     rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request.', urlStr, reqOptions, dataStr)
 
-    this.logger.info('%s %s %s %s', requestId, LOG_ID.REQUEST, extraLogInfoStr, JSON.stringify(request))
+    this.log(requestId, LOG_ID.REQUEST, extraLogInfoStr, request)
     
     const req          = reqOptions.protocol === HTTP.Const.protocolHttp
                          ? http.request(urlStr, reqOptions)
@@ -217,8 +217,7 @@ export class HttpsRequest {
       const timeoutCond = (err as any).code === ECONNRESET && reqOptions.timeout && timeTakenMs > reqOptions.timeout
 
       if(!timeoutCond) {
-        this.logger.info('%s %s %s %s %s', requestId, LOG_ID.ERROR, extraLogInfoStr,
-                         JSON.stringify(request), JSON.stringify(errorResp))
+        this.log(requestId, LOG_ID.ERROR, extraLogInfoStr, request, errorResp)                 
       }
       writePromise.reject(err)
       readPromise.reject(err)
@@ -236,8 +235,7 @@ export class HttpsRequest {
         timeoutMs : reqOptions.timeout || DEFAULT_TIMEOUT_MS
       }
 
-      this.logger.info('%s %s %s %s %s', requestId, LOG_ID.TIMEOUT, extraLogInfoStr,
-                       JSON.stringify(request), JSON.stringify(timeout))
+      this.log(requestId, LOG_ID.TIMEOUT, extraLogInfoStr, request, timeout)                 
       req.abort()
     })
 
@@ -250,8 +248,7 @@ export class HttpsRequest {
 
     rc.isStatus() && rc.status(rc.getName(this), requestId, 'http(s) request response.', urlStr, resp.response)
 
-    this.logger.info('%s %s %s %s %s', requestId, LOG_ID.RESPONSE, extraLogInfoStr,
-                     JSON.stringify(request), JSON.stringify(resp))
+    this.log(requestId, LOG_ID.RESPONSE, extraLogInfoStr, request, resp)                 
 
     return resp
   }
@@ -335,9 +332,8 @@ export class HttpsRequest {
   private createLogger() {
 
     const logFormat = winston.format.combine(
-                        winston.format.timestamp({ format : moment().utc().format('DD/MM/YYYY HH:mm:ss.SSS') }),
                         winston.format.splat(),                        
-                        winston.format.printf(info => `${info.timestamp} ${info.message}`),
+                        winston.format.printf(info => `${info.message}`),
                       ),
           transport = new DailyRotateFile({
                         dirname     : this.logPath,
@@ -352,6 +348,21 @@ export class HttpsRequest {
                     format     : logFormat,
                     transports : transport
                   })
+  }
+
+  private log(requestId    : string, 
+              logId        : LOG_ID, 
+              extraLogInfo : string, 
+              request      : Request, 
+              otherObj    ?: Response | ErrorResp | Timeout) {
+    
+    if(otherObj) {
+      this.logger.info('%s %s %s %s %s %s', format(Date.now(), DATE_TIME_FORMAT, 0), requestId, logId, 
+                       extraLogInfo, JSON.stringify(request), JSON.stringify(otherObj))
+    } else {
+      this.logger.info('%s %s %s %s %s', format(Date.now(), DATE_TIME_FORMAT, 0), requestId, logId, 
+                       extraLogInfo, JSON.stringify(request))
+    }
   }
 
   private convertLinesToRows(linesArr : Array<string>) : Array<LogData> {
