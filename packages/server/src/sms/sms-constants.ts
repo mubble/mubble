@@ -42,8 +42,5 @@ export namespace SmsConstants {
 							 VERIFICATION_FAILED 			 = 'FAILED',
 							 VERIFICATION_UNKNOWN			 = 'UNKNOWN',
 							 // Other constants
-							 PIPE_SEPARATOR						 = ' | ',
-							 
-							 SMS_LOG_DIR 							 = '../sms-logs'
-
+							 PIPE_SEPARATOR						 = ' | '
 }
