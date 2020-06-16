@@ -559,7 +559,7 @@ export class MuDataTableComponent implements OnInit {
    * @param data 
    */
   updateRow(rowIndex : number, data : Object) {
-
+    data['rowIndex'] = rowIndex
     this.dataMap[this.currPageIndex][rowIndex % this.tableConfig.dispRows] = data
   }
 
