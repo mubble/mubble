@@ -86,6 +86,6 @@ export class TranslateService {
   }
 
   public addMoreTranslations(langObj : object, lang : string) {
-    this._translations[lang] = {...this._translations[lang], ...langObj}
+    this._translations[lang] = {...langObj, ...this._translations[lang]}
   }
 }
