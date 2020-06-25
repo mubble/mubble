@@ -24,11 +24,11 @@ import * as qs 															from 'querystring'
 
 export class Karix extends SmsProviderClient {
 
-	https : HttpsRequest
+	httpsRequest : HttpsRequest
 
-	constructor(rc : RunContextServer, hostname : string) {
+	constructor(rc : RunContextServer, hostname : string, logDirectory : string) {
 		super()
-		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+		this.httpsRequest = new HttpsRequest(rc, logDirectory, hostname)
 	}
 
 	public async request<T extends ClientInfo>(rc			: RunContextServer,
@@ -57,7 +57,7 @@ export class Karix extends SmsProviderClient {
 		options.method  = HTTP.Method.POST
 		options.headers = { [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.form }
 
-		const resp = await this.https.executeRequest(rc, urlObj, options, qs.stringify(query))
+		const resp = await this.httpsRequest.executeRequest(rc, urlObj, options, qs.stringify(query))
 
 		return { success : true, gwTranId : resp.response }
   }

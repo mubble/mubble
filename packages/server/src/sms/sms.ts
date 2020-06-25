@@ -28,18 +28,19 @@ import * as lo							 from 'lodash'
 
 export class Sms {
 
-	private smsLogger	: SmsLogger			 // Service for logging the sms information
-	private smsSender	: SmsSender			 // Service used in sending the sms
-	private gwScorer	: GatewayScoring // Service used in scoring and choosing the sms providers
+	private smsLogger		 : SmsLogger			 	// Service for logging the sms information
+	private smsSender		 : SmsSender			 	// Service used in sending the sms
+	private gwScorer		 : GatewayScoring 	// Service used in scoring and choosing the sms providers
+	private logDirectory : string						// SMS Logs Directory
 
 	private inited    : boolean
 
-	public constructor(rc : RunContextServer, config : SmsProviderConfig, trRedis : RedisWrapper) {
+	public constructor(rc : RunContextServer, config : SmsProviderConfig, trRedis : RedisWrapper, logDirectory : string) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new Sms instance.')
 		this.verifySmsProviderConfig(rc, config)
 
-		this.smsSender = new SmsSender(rc, config.PROVIDER_KEYS)
+		this.smsSender = new SmsSender(rc, config.PROVIDER_KEYS, logDirectory)
 		this.smsLogger = new SmsLogger(rc, trRedis)
 		this.gwScorer	 = new GatewayScoring(rc, trRedis, config.PROVIDERS)
 	}
@@ -81,7 +82,7 @@ export class Sms {
 
 		this.verifySmsProviderConfig(rc, config)
 
-		this.smsSender = new SmsSender(rc, config.PROVIDER_KEYS)
+		this.smsSender = new SmsSender(rc, config.PROVIDER_KEYS, this.logDirectory)
 		this.gwScorer.populateProviders(rc, config.PROVIDERS)
 	}
 
