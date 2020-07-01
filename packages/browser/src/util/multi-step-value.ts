@@ -27,7 +27,11 @@ export class MultiStepValue {
   }
 
   updateViewSize(viewSize : number) {
-    this.viewSize = viewSize
+    this.viewSize     = viewSize
+    const maxVal      = this.minVal + this.viewSize * ( this.count - 1 )
+    this.currentValue = (this.currentValue * maxVal) / this.maxVal
+    this.maxVal       = maxVal
+
   }
 
   updateCount(count : number) {
