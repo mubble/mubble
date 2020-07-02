@@ -10,8 +10,10 @@
    Copyright (c) 2018 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { RunContextBrowser } from '@mubble/browser/rc-browser'
+import { RunContextBrowser }  from '@mubble/browser/rc-browser'
+import { Component, Directive }          from '@angular/core'
  
+@Directive()
 export abstract class TrackableScreen  {
   
   abstract getRouteName(): string
