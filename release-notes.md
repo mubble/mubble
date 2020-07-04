@@ -21,7 +21,7 @@
 # Version 1.15.1
 
 ## Features
-- Multistel val for web
+- Multistel support for web
 
 ## Bug Fixes
 - None
