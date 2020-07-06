@@ -11,7 +11,8 @@ import {
 				 ObmopBaseClient,
 				 QueryRetval,
 				 QueryRange,
-				 QuerySort
+				 QuerySort,
+				 QueryCondition
 			 }      									from '../obmop-base'
 import { RunContextServer }  	 	from '../../../rc-server'
 import { DB_ERROR_CODE }        from '../obmop-util'
@@ -35,13 +36,13 @@ export class OracleDbClient implements ObmopBaseClient {
   private poolConfig  : oracledb.PoolAttributes
 
 	constructor(rc : RunContextServer, config : OracleDbConfig) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new OracleDbClient.', config)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Constructing new OracleDbClient.')
 
 		this.poolConfig = config
 	}
 
 	public async init(rc : RunContextServer) {
-		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing OracleDbClient.', this.poolConfig)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing OracleDbClient.')
 
 		this.clientPool = await new Promise<oracledb.Pool>((resolve, reject) => {
       oracledb.createPool(this.poolConfig, (err : oracledb.DBError, pool : oracledb.Pool) => {
@@ -62,221 +63,42 @@ export class OracleDbClient implements ObmopBaseClient {
 		this.initialized = false
 	}
 
-	public async queryAll(rc		  : RunContextServer, 
-												table   : string, 
-												fields  : Array<string>, 
-												limit   : number = -1, 
-												offset  : number = 0,
-												range  ?: QueryRange,
-												sort   ?: QuerySort) : Promise<QueryRetval> {
+	public async query(rc      : RunContextServer,
+										 table   : string,
+										 fields  : Array<string>,
+										 query  ?: QueryCondition,
+										 limit   : number = -1,
+										 offset  : number = 0,
+										 range  ?: QueryRange,
+										 sort   ?: QuerySort) : Promise<QueryRetval> {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching everything from table, ' + table + '.',
-														 limit, offset, range, sort)
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table,', table)
+
+		let c = query ? query.binds.length : 0
 
 		const fieldString = fields.join(', '),
-					binds				= [] as Array<any>,
-					addRange    = range ? ` WHERE ${range.key} BETWEEN ${range.low} AND ${range.high}`
-															: '',
+					binds       = query ? query.binds : [] as Array<any>,
+					addQuery    = query && query.queryStr ? range ? ` WHERE ${query.queryStr} AND`
+																												: ` WHERE ${query.queryStr}`
+															                  : range ? ' WHERE'
+																											  : '',																		
+					addRange    = range ? ` ${range.key} BETWEEN ${range.low} AND ${range.high}`
+														  : '',
 					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
 														 : ''
 
-		let queryString = `SELECT ${fieldString} FROM ${table}`
-											+ addRange  
-											+ addSort
-
-		if (limit !== -1) {
-			queryString = `SELECT * FROM (`
-										+`SELECT COUNT(*) OVER() AS TOTCOUNT, T1.*` 
-										+`FROM ${table} T1`
-										+ addRange
-										+ addSort
-										+`) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
-			
-			binds.push(`${offset}`)
-			binds.push(`${limit}`)
-		}
-
-		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
-		
-		const result : QueryRetval = {
-			entities,
-			totalCount : entities.length
-		}
-
-		if (limit !== -1) result.totalCount = result.entities[0].totcount
-
-		return (result)
-	}
-
-	public async query(rc        : RunContextServer,
-										 table     : string,
-										 fields    : Array<string>,
-										 key       : string,
-										 value     : any,
-										 operator  : string = '=',
-										 limit		 : number = -1,
-										 offset		 : number = 0,
-										 range    ?: QueryRange,
-										 sort     ?: QuerySort) : Promise<QueryRetval> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with condition :',
-														 key, operator, value, limit, offset, range, sort)
-
-		const fieldString = fields.join(', '),
-					binds       = [] as Array<any>,
-					addRange    = range ? ` AND ${range.key} BETWEEN ${range.low} AND ${range.high}`
-															: '',
-					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
-														 : ''
-
-		if(value !== undefined) binds.push(value)
-
-		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator} :1`
-											+ addRange
-											+ addSort
-
-		if(value === undefined) {
-			queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} ${operator}`
-										+ addRange
-										+ addSort
-		}
-
-		if (limit !== -1) {
-			queryString = `SELECT * FROM (`
-										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
-										+ `FROM ${table} T1 WHERE ${key} ${operator} :1`
-										+  addRange
-										+  addSort
-										+ `) OFFSET :2 ROWS FETCH NEXT :3 ROWS ONLY`
-									
-			if(value === undefined) {
-				queryString = `SELECT * FROM (`
-											+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* `
-											+ `FROM ${table} T1 WHERE ${key} ${operator}`
-											+  addRange
-											+  addSort
-											+ `) OFFSET :1 ROWS FETCH NEXT :2 ROWS ONLY`
-			}
-
-			binds.push(`${offset}`)
-			binds.push(`${limit}`)
-		}
-
-		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
-
-		const result : QueryRetval = {
-			entities,
-			totalCount : entities.length
-		}
-
-		if (limit !== -1 && entities.length) result.totalCount = result.entities[0].totcount
-
-		return result
-	}
-
-	public async queryAnd(rc 				  : RunContextServer,
-												table 		  : string,
-												fields      : Array<string>,
-												conditions  : Array<{key : string, value : any, operator ?: string}>,
-												limit       : number = -1,
-												offset      : number = 0,
-												range			 ?: QueryRange,
-												sort       ?: QuerySort) : Promise<QueryRetval> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + ' with conditions :',
-														 conditions, limit, offset)
-
-		const fieldString	 		 = fields.join(', '),
-				  conditionStrings = [] as Array<string>,
-					binds            = [] as Array<any>,
-					addRange         = range ? ` AND ${range.key} BETWEEN ${range.low} AND ${range.high}`
-																	 : '',
-					addSort					 = sort ? ` ORDER BY ${sort.key} ${sort.order}`
-																	: ''
-
-		let c = 1
-
-		for(const condition of conditions) {
-			if(condition.value === undefined) {
-				conditionStrings.push(`${condition.key} ${condition.operator || '='}`)
-			} else {
-				conditionStrings.push(`${condition.key} ${condition.operator || '='} :${c++}`)
-				binds.push(condition.value)
-			}
-		}
-
-		let queryString = `SELECT ${fieldString} FROM ${table} WHERE ${conditionStrings.join(' AND ')}`
-											+ addRange
-											+ addSort
-
-		if (limit !== -1) {
-			queryString = 	`SELECT ${fieldString}, totcount FROM (`
-										+ `SELECT COUNT(*) OVER() AS totcount, T1.* `
-										+ `FROM ${table} T1 WHERE ${conditionStrings.join(' AND ')}`
-										+  addRange
-										+  addSort
-										+ ` ) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`
-			binds.push(`${offset}`)
-			binds.push(`${limit}`)
-		}
-		
-		const retval	 = await this.bindsQuery(rc, queryString, binds),
-					entities = this.convertResultArray(retval)
-		
-		const result : QueryRetval = {
-			entities,
-			totalCount : entities.length
-		}
-
-		if (limit !== -1 && entities.length) result.totalCount = entities[0].totcount
-		
-		return result
-	}
-
-	public async queryIn(rc      : RunContextServer,
-											 table   : string,
-											 fields  : Array<string>,
-											 key     : string,
-											 values  : Array<any>,
-											 limit   : number = -1,
-											 offset  : number = 0,
-											 range  ?: QueryRange,
-											 sort   ?: QuerySort) : Promise<QueryRetval> {
-
-		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table, ' + table + 'with condition :',
-						 key, values, limit, offset, range, sort)
-
-		const fieldString = fields.join(', '),
-					binds       = [] as Array<any>,
-					vals        = [] as Array<string>
-
-		let c = 1
-
-		for(const value of values) {
-			vals.push(`:${c++}`)
-			binds.push(value)
-		}
-
-		const valueString = `(${vals.join(', ')})`,
-          addRange 		= range ? ` AND ${range.key} BETWEEN ${range.low} AND ${range.high}`
-															: '',
-					addSort     = sort ? ` ORDER BY ${sort.key} ${sort.order}`
-														 : ''
-
-		let	queryString = `SELECT ${fieldString} FROM ${table} WHERE ${key} IN ${valueString}`
-											+ addRange
-											+ addSort
+		let queryString = `SELECT ${fieldString} FROM ${table}` + addQuery + addRange + addSort		
 
 		if(limit !== -1) {
-			queryString = `SELECT ${fieldString},totcount FROM (`
-		 						    + `SELECT COUNT(*) OVER() AS totcount,T1.*`
-									  + `FROM ${table} T1 WHERE ${key} IN ${valueString}`
+			queryString = `SELECT ${fieldString}, totcount FROM (`
+										+ `SELECT COUNT(*) OVER() AS TOTCOUNT, T1.* FROM ${table} T1`
+										+ addQuery
 										+ addRange
 										+ addSort
-									  + `) OFFSET :${c++} ROWS FETCH NEXT :${c++} ROWS ONLY`			 
+										+ `) OFFSET :${++c} ROWS FETCH NEXT :${++c} ROWS ONLY`
 
 			binds.push(`${offset}`)
-			binds.push(`${limit}`)						 
+			binds.push(`${limit}`)						 				
 		}
 
 		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
@@ -286,9 +108,18 @@ export class OracleDbClient implements ObmopBaseClient {
 			totalCount : entities.length
 		}
 
-		if(limit !== -1 && entities.length) result.totalCount = result.entities[0].totcount
+		if(limit !== -1 && entities.length) result.totalCount = entities[0].totcount
 
 		return result
+	}
+
+	public async sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>> {
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Executing query.', query, binds)
+
+		const entities = this.convertResultArray(await this.bindsQuery(rc, query, binds))
+
+		return entities
 	}
 
 	public async insert(rc				 : RunContextServer,
@@ -413,7 +244,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		let c 			 = 0,
 				bindKeys = [] as Array<string>
 
-		for(const qValue of queryValues)	{
+		for(const qValue of queryValues) {
 			bindKeys.push(`:${++c}`)
 			binds.push(qValue)
 		}
@@ -466,14 +297,14 @@ export class OracleDbClient implements ObmopBaseClient {
 		}
 	}
 
-	private convertResultArray(result : oracledb.Result<any>) : Array<any> {
+	private convertResultArray(result : oracledb.Result<any>) : Array<Mubble.uObject<any>> {
 
 		const metadata = result.metaData || [],
 					rows     = result.rows || [],
-					finArr   = []
+					finArr   = [] as Array<Mubble.uObject<any>>
 
 		for(const row of rows) {
-			const elem = {} as any
+			const elem = {} as Mubble.uObject<any>
 
 			for(const index in metadata) {
 				elem[metadata[index].name.toLowerCase()] = row[index]

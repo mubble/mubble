@@ -22,7 +22,6 @@ const SYM_ALGO                = 'aes-256-cbc',
       MIN_SIZE_TO_COMPRESS    = 1000,
       AES_KEY_SIZE            = 32,
       BASE64                  = 'base64',
-      HEX                     = 'hex',
       SIXTEEN                 = 16
 
 export class HttpsEncProvider {
@@ -250,5 +249,4 @@ export class HttpsEncProvider {
 
     return data
   }
-
 }

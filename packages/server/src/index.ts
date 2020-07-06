@@ -22,6 +22,9 @@ export *                      from './logger/server-ext-logger'
 export *                      from './master'
 export *                      from './vision'
 export *                      from './storage'
+export *                      from './gcp'
+export *                      from './sms'
+export *                      from './mail'
 
 /* TODO:
 

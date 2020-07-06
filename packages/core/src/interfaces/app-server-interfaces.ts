@@ -13,11 +13,11 @@ export enum COL_TYPE  {
   IMAGE        = 'IMAGE',
   BUTTON       = 'BUTTON',
   TEXT         = 'TEXT',
-  DATE         = 'DATE',
   EDIT         = 'EDIT',
   TOGGLE       = 'TOGGLE',
   HYPER_LINK   = 'HYPER_LINK',
-  MORE_DETAILS = 'MORE_DETAILS'
+  MORE_DETAILS = 'MORE_DETAILS',
+  MULTI_LINE   = 'MULTI_LINE'
 }
 
 export interface PipeParams {
@@ -27,22 +27,24 @@ export interface PipeParams {
 
 export interface TableHeader {
   header        : string
-  dataKey       : string
-  colType       : COL_TYPE
+  dataKey      ?: string
+  colType       : COL_TYPE 
+  pipeParams   ?: PipeParams
   pipeParmas   ?: PipeParams
   customStyle  ?: string
   constValue   ?: any
   enableSort   ?: boolean
   widthPerc    ?: number
   isEditable   ?: boolean
+  multiLineKey ?: string[] // It takes input as image text and icon
+  dataKeyType  ?: string[] // it consists of the COL_TYPE of keys in multiLineKey
+  dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
+  headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
 }
 
 export interface FilterItem {
-  id      : string
-  title   : string
   params  : InputParams
   mode   ?: FILTER_MODE
-
 }
 
 export interface InputParams {
@@ -59,6 +61,34 @@ export interface InputParams {
   isRequired      ?: boolean
   isDisabled      ?: boolean
   image           ?: FilterImage
+  requiredIf      ?: string
+  disabledIf      ?: string
+  withoutBorder   ?: boolean
+  sectionIds      ?: string[]
+  autoComplete    ?: string
+  name            ?: string
+  format          ?: string
+  maskLength      ?: number
+  isVisible       ?: boolean
+  rangeKeys       ?: string[]
+}
+
+
+
+export interface MuFomrValidation {
+  validation  : any[]
+  errorMsg    : string
+}
+
+
+export interface MuFormValidation {
+  validation  : any[]
+  errorMsg    : string
+}
+
+export interface MuFormParams {
+  inputParams     : InputParams[]
+  formValidators ?: MuFormValidation | MuFomrValidation
 }
 
 export enum DISPLAY_TYPE {
@@ -70,23 +100,27 @@ export enum DISPLAY_TYPE {
   NUMBER_RANGE          = 'NUMBER_RANGE',
   AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
   RADIO                 = 'RADIO',
+  ROW_RADIO             = 'ROW_RADIO',
   TEXT_AREA             = 'TEXT_AREA',
   IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
   TOGGLE                = 'TOGGLE',
   MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
-  BUTTON_TOGGLE         = 'BUTTON_TOGGLE'
+  BUTTON_TOGGLE         = 'BUTTON_TOGGLE',
+  SLIDER                = 'SLIDER',
+  TIME                  = 'TIME'
 }
 
 export interface SelectionBoxParams {
   id        : string
-  value     : string
+  value     : string | number 
   selected ?: boolean
 }
 
 export interface ValidatorsParams {
-  allowFutureDate ?: boolean
-  validation      ?: string | RegExp
-  validationError  : string
+  allowFutureDate    ?: boolean
+  rangeInputsReqd    ?: boolean // will be removed in future releases
+  validation         ?: string | RegExp
+  validationError     : string
 }
 
 export enum DISPLAY_MODE {
@@ -123,7 +157,9 @@ export interface FilterParams {
 
 //TODO - to be verified
 export interface MuSelectedFilter {
-  id    : string,
-  mode  : FILTER_MODE,
-  value : any
+  id           : string,
+  mode         : FILTER_MODE,
+  value        : any
+  displayType ?: DISPLAY_TYPE
+  displayMode ?: DISPLAY_MODE
 }

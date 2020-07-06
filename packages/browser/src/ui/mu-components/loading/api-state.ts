@@ -4,7 +4,6 @@ import { TranslateService }                                 from "../translate"
 export enum API_STATE {
   PROGRESS = 1,
   ERROR,
-  ERROR_NO_DATA,
   SUCCESS
 }
 

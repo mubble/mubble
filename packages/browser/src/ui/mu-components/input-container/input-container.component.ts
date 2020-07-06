@@ -16,8 +16,6 @@ import { Component,
          EventEmitter,
          ViewChild,
          OnChanges,
-         ViewChildren,
-         QueryList,
          ElementRef
        }                                  from '@angular/core'
 import { FormControl,
@@ -34,11 +32,9 @@ import { MatSelectChange,
          MatRadioChange,
          MatCheckboxChange,
          MatSlideToggleChange,
-         MatCheckbox,
          MatButtonToggleChange,
-         MatButtonToggle
+         MatSliderChange
        }                                  from '@angular/material'
-import { Moment }                         from 'moment'
 import { InputValidator }                 from './input-validator'
 import { Observable }                     from 'rxjs'
 import { map,
@@ -51,13 +47,8 @@ import { DISPLAY_TYPE,
          DISPLAY_MODE,
          InputParams,
          SelectionBoxParams
-       }                                  from '@mubble/core/interfaces/app-server-interfaces'
-
-export interface OutputParams {
-  id          : string
-  value       : any
-  displayType : DISPLAY_TYPE
-}
+       }                                  from '@mubble/core'
+import { OutputParams }                   from '../cmn-inp-cont/cmn-inp-cont-interfaces'
 
 @Component({
   selector    : 'input-container',
@@ -67,11 +58,8 @@ export interface OutputParams {
 
 export class InputContainerComponent implements OnChanges {
 
-  @ViewChild(MatDatepicker, { static: false }) picker  : MatDatepicker<any>
+  @ViewChild(MatDatepicker, { static: false }) picker             : MatDatepicker<any>
   @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
-  @ViewChildren(MatCheckbox) matCheckbox  : QueryList<MatCheckbox>
-  @ViewChildren(MatButtonToggle) matBtnToggle  : QueryList<MatButtonToggle>
-
 
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
@@ -79,6 +67,7 @@ export class InputContainerComponent implements OnChanges {
   @Input()  parentCont      : ElementRef
   @Input()  eventPropagate  : boolean               = false
   @Input()  displayMode     : DISPLAY_MODE         
+  @Input()  displayLabel    : boolean               = true
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
   @Output() dropdownOpen    : EventEmitter<boolean> = new EventEmitter<boolean>()
 
@@ -86,6 +75,7 @@ export class InputContainerComponent implements OnChanges {
   dateRange       : FormGroup
   numberRange     : FormGroup
   filteredOptions : Observable<SelectionBoxParams[]>
+  sliderLabel     : string 
 
   DISPLAY_TYPE      : typeof DISPLAY_TYPE       = DISPLAY_TYPE
   DISPLAY_MODE      : typeof DISPLAY_MODE       = DISPLAY_MODE
@@ -110,14 +100,15 @@ export class InputContainerComponent implements OnChanges {
   =====================================================================*/
   onSubmit() {
 
-    if (this.inputForm && (this.inputParams.validators || this.inputParams.isRequired))  this.inputForm.markAsTouched()
+    if (this.inputForm && (this.inputParams.validators || this.inputParams.isRequired))
+      this.inputForm.markAsTouched()
 
-    if (this.dateRange && this.inputParams.validators) {
+    if (this.dateRange && ( this.inputParams.isRequired || this.inputParams.validators)) {
       this.dateRange.controls.startDate.markAsTouched()
       this.dateRange.controls.endDate.markAsTouched()
     }
 
-    if (this.numberRange && this.inputParams.validators) {
+    if (this.numberRange && ( this.inputParams.isRequired || this.inputParams.validators)) {
       this.numberRange.controls.minAmount.markAsTouched()
       this.numberRange.controls.maxAmount.markAsTouched()
     }
@@ -130,6 +121,13 @@ export class InputContainerComponent implements OnChanges {
     switch (this.inputParams.displayType) {
 
       case DISPLAY_TYPE.CALENDAR_BOX        :
+        params  = { 
+                    id          : this.inputParams.id,
+                    value       : this.inputForm.value ? this.inputForm.value.getTime() : null,
+                    displayType : this.inputParams.displayType
+                  }
+        break
+
       case DISPLAY_TYPE.INPUT_BOX           :
       case DISPLAY_TYPE.SELECTION_BOX       :
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
@@ -137,34 +135,46 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.TOGGLE              :
       case DISPLAY_TYPE.BUTTON_TOGGLE       :
       case DISPLAY_TYPE.ROW_INPUT_BOX       :
-        params = { 
+      case DISPLAY_TYPE.SLIDER              : 
+        params  = { 
                     id          : this.inputParams.id,
                     value       : this.inputForm.value,
                     displayType : this.inputParams.displayType
-                 }
+                  }
         break
 
       case DISPLAY_TYPE.DATE_RANGE  :
-        params = { 
-                    id          : this.inputParams.id,
-                    value       : {
-                                     startDate : this.dateRange.controls.startDate.value,
-                                     endDate   : this.dateRange.controls.endDate.value
-                                   },
-                    displayType : this.inputParams.displayType
+        const dateRangeKeys   = this.inputParams.rangeKeys  || ['startDate', 'endDate'],
+              dateRangeValue  = {}
 
-                 }
+        dateRangeValue[dateRangeKeys[0]] = this.dateRange.controls.startDate.value
+                                      ? this.dateRange.controls.startDate.value.getTime()
+                                      : null
+
+        dateRangeValue[dateRangeKeys[1]] = this.dateRange.controls.endDate.value
+                                      ? this.dateRange.controls.endDate.value.getTime()
+                                      : null
+
+        params  = { 
+                    id          : this.inputParams.id,
+                    value       : dateRangeValue,
+                    displayType : this.inputParams.displayType
+                  }
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        params = { 
-                    id     : this.inputParams.id,
-                    value  : { 
-                              minAmount : this.numberRange.controls.minAmount.value,
-                              maxAmount : this.numberRange.controls.maxAmount.value
-                            },
+
+        const numRangeKeys  = this.inputParams.rangeKeys  || ['minAmount', 'maxAmount'],
+              numRangeValue = {}
+
+        numRangeValue[numRangeKeys[0]]  = this.numberRange.controls.minAmount.value
+        numRangeValue[numRangeKeys[1]]  = this.numberRange.controls.maxAmount.value
+
+        params  = { 
+                    id          : this.inputParams.id,
+                    value       : numRangeValue,
                     displayType : this.inputParams.displayType
-                 }
+                  }
         break
 
       case DISPLAY_TYPE.IMAGE_UPLOAD  : 
@@ -175,32 +185,25 @@ export class InputContainerComponent implements OnChanges {
                   }
         break
 
-      case DISPLAY_TYPE.RADIO :
-        params = {
+      case DISPLAY_TYPE.RADIO     : 
+      case DISPLAY_TYPE.ROW_RADIO :
+
+        params  = {
                     id          : this.inputParams.id,
-                    value       : this.inputForm.value ? this.inputForm.value['id'] : null,
+                    value       : this.inputForm.value ? this.inputForm.value : null,
                     displayType : this.inputParams.displayType
-                 }
+                  }
         break
 
       case DISPLAY_TYPE.MULTI_CHECK_BOX :  
-
-        // const matCheckboxInst = this.matCheckbox.toArray(),
-        //       values = []
-
-        // matCheckboxInst.forEach((val,index) => {
-        //   if (val.checked) values.push(val.value)
-        // })
-
-        params = { 
-          id          : this.inputParams.id,
-          value       : this.inputForm.value,
-          displayType : this.inputParams.displayType
-        }
+        params  = { 
+                    id          : this.inputParams.id,
+                    value       : this.inputForm.value,
+                    displayType : this.inputParams.displayType
+                  }
         break  
 
-    } 
-        
+    }
     if (emitValue) this.value.emit(params)
   }
 
@@ -221,7 +224,6 @@ export class InputContainerComponent implements OnChanges {
   }
 
   onToggleChane(event : MatSlideToggleChange) {
-    
     this.inputForm.setValue(event.checked)
     if (this.eventPropagate)  this.onSubmit()
   }
@@ -237,7 +239,25 @@ export class InputContainerComponent implements OnChanges {
   }
 
   checkedOption(event : MatCheckboxChange, option : SelectionBoxParams) {
-    this.inputForm.setValue({checked : event.checked, option})
+
+    const value = this.inputForm.value as any[]
+
+    if (value) {
+
+      const idIndex = value.findIndex(val => val.id === option.id)
+
+      if (idIndex !== -1) {
+        value.splice(idIndex, 1)
+        this.inputForm.setValue(value)
+      } else {
+        value.push(option)
+        this.inputForm.setValue(value)
+      }
+
+    } else {
+      this.inputForm.setValue([option])
+    }
+
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -246,20 +266,31 @@ export class InputContainerComponent implements OnChanges {
     if (this.eventPropagate)  this.onSubmit()
   }
 
-  setDate(event : MatDatepickerInputEvent<Moment>) {
-    this.inputForm.setValue(event.value)
+  setDate(event : MatDatepickerInputEvent<Date>) {
+    const value : any = event.value
+    value && !this.isDateObj(value) ? this.inputForm.setValue(value.toDate())
+                                    : this.inputForm.setValue(value)
+    
     if (this.eventPropagate)  this.onSubmit()
   }
 
-  setDateRange(event : MatDatepickerInputEvent<Moment>) {
-    this.dateRange.controls.startDate.setValue(this.dateRange.controls.startDate.value)
-    this.dateRange.controls.endDate.setValue(this.dateRange.controls.endDate.value)
+  setDateRange(event : MatDatepickerInputEvent<Date>) {
+    const sDate = this.dateRange.controls.startDate.value,
+          eDate = this.dateRange.controls.endDate.value
+
+    sDate && !this.isDateObj(sDate) ? this.dateRange.controls.startDate.setValue(sDate.toDate())
+                                    : this.dateRange.controls.startDate.setValue(sDate)
+
+    eDate && !this.isDateObj(eDate) ? this.dateRange.controls.endDate.setValue(eDate.toDate())
+                                    : this.dateRange.controls.endDate.setValue(eDate)
+
     if (this.eventPropagate)  this.onSubmit()
   }
 
   setNumberRange(event : string) {
     this.numberRange.controls.minAmount.setValue(this.numberRange.controls.minAmount.value)
     this.numberRange.controls.maxAmount.setValue(this.numberRange.controls.maxAmount.value)
+
     if (this.eventPropagate)  this.onSubmit()
   }
 
@@ -270,6 +301,10 @@ export class InputContainerComponent implements OnChanges {
 
   displayFn(value: any) : string {
     return value && typeof value === 'object' ? value.value : value
+  }
+
+  onSliderValueChange(event : MatSliderChange) {
+    this.inputForm.setValue({minValue : event.source.min, maxValue : event.value})
   }
 
   hasError() : boolean {
@@ -284,9 +319,10 @@ export class InputContainerComponent implements OnChanges {
       case DISPLAY_TYPE.TEXT_AREA           :
       case DISPLAY_TYPE.MULTI_CHECK_BOX     :
       case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.ROW_RADIO           :
       case DISPLAY_TYPE.TOGGLE              :
       case DISPLAY_TYPE.BUTTON_TOGGLE       :
-      case DISPLAY_TYPE.ROW_INPUT_BOX   :
+      case DISPLAY_TYPE.ROW_INPUT_BOX       :
 
         hasError = this.inputParams.isRequired 
                    ? this.inputForm.invalid
@@ -294,24 +330,26 @@ export class InputContainerComponent implements OnChanges {
         break
 
       case DISPLAY_TYPE.DATE_RANGE    :
-        if (this.inputParams.isRequired) {
-          hasError  = this.dateRange.controls.startDate.invalid || this.dateRange.controls.endDate.invalid
-        } else {
-          hasError = this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid
-          hasError = this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid
-        }
+        hasError  = this.inputParams.isRequired 
+                    ? this.dateRange.invalid
+                    : ((this.dateRange.controls.startDate.value && this.dateRange.controls.startDate.invalid )
+                      || (this.dateRange.controls.startDate.value && !this.dateRange.controls.endDate.value)
+                      || ( this.dateRange.controls.endDate.value && this.dateRange.controls.endDate.invalid) )
         break
 
       case DISPLAY_TYPE.NUMBER_RANGE  :
-        hasError = this.inputParams.isRequired 
-                   ? this.numberRange.controls.minAmount.invalid 
-                   : this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid
-
+        hasError  = this.inputParams.isRequired 
+                    ? this.numberRange.invalid
+                    : ((this.numberRange.controls.minAmount.value && this.numberRange.controls.minAmount.invalid )
+                      || ( this.numberRange.controls.minAmount.value && !this.numberRange.controls.maxAmount.value ) 
+                      || (this.numberRange.controls.maxAmount.value && this.numberRange.controls.maxAmount.invalid) )
         break
 
       case DISPLAY_TYPE.IMAGE_UPLOAD  :
         this.fileUplInst.onSubmit()
-        hasError  = this.inputParams.isRequired ? (!this.fileUploadParams || Object.keys(this.fileUploadParams).length === 0) : false
+        hasError  = this.inputParams.isRequired
+                    ? (!this.fileUploadParams || Object.keys(this.fileUploadParams).length === 0)
+                    : false
     }
   
     return hasError
@@ -321,82 +359,168 @@ export class InputContainerComponent implements OnChanges {
     this.dropdownOpen.emit(event)
   }
 
+  valueEntered(value) {
+    if (this.inputParams.displayType === DISPLAY_TYPE.AUTOCOMPLETE_SELECT) {
+      const option = this.inputParams.options.find(option => option.value === value)
+    
+      option  ? this.inputForm.setValue(option)
+              : this.inputForm.setValue({ id : value, value : value })   
+
+      if (this.eventPropagate)  this.onSubmit()
+    }
+  }
+
+  formatLabel = (value: number) => {
+    return value + this.sliderLabel
+  }
+
   /*=====================================================================
                               PRIVATE
   =====================================================================*/
+
   private initialize() {
     const params          = this.inputParams,
           formValidations = []
 
-    if (params.isRequired) {
-      formValidations.push(Validators.required)
-    }
+    if (params.isRequired) formValidations.push(Validators.required)
 
-    if (params.validators) {
-      formValidations.push(Validators.pattern(params.validators.validation))
-    }
+    if (params.validators) formValidations.push(Validators.pattern(params.validators.validation))
 
     switch (params.displayType) {
       case DISPLAY_TYPE.INPUT_BOX     :
       case DISPLAY_TYPE.TEXT_AREA     :
       case DISPLAY_TYPE.RADIO         : 
+      case DISPLAY_TYPE.ROW_RADIO     :
+
       case DISPLAY_TYPE.SELECTION_BOX :
       case DISPLAY_TYPE.TOGGLE        : 
       case DISPLAY_TYPE.MULTI_CHECK_BOX :
       case DISPLAY_TYPE.BUTTON_TOGGLE   :
       case DISPLAY_TYPE.ROW_INPUT_BOX :
         this.inputForm  = new FormControl(params.value || null, formValidations)
+
+        if (params.options && params.options.length) {
+          const selectedValues  = []
+          params.options.forEach(opt => {
+            if (opt.selected) selectedValues.push(opt)
+          })
+          if (selectedValues.length) this.inputForm.setValue(selectedValues)
+        }
+        if (params.value) this.inputForm.setValue(params.value)
         this.setDisabled(params.isDisabled)
         break
 
       case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
-        this.inputForm  = new FormControl(params.value || null, formValidations)
-        this.filteredOptions = this.inputForm.valueChanges.pipe(
-                                 startWith(''),
-                                 map(value => typeof value === 'string' ? value : value.value),
-                                 map(value => value ? this.filterOptions(value) : this.inputParams.options.slice()))
+        this.inputForm        = new FormControl(params.value || null, formValidations)
+        this.filteredOptions  = this.inputForm.valueChanges.pipe(
+                                  startWith(''),
+                                  map(value => typeof value === 'string' ? value : value.value),
+                                  map(value => value  ? this.filterOptions(value)
+                                                      : this.inputParams.options.slice()))
+
         this.setDisabled(params.isDisabled)
         break
 
       case DISPLAY_TYPE.CALENDAR_BOX  :
+        if (params.value) params.value = new Date(params.value)
+
         formValidations.push(InputValidator.futureDateValidator)
+
         this.inputForm  = new FormControl(params.value || null, formValidations)
         this.setDisabled(params.isDisabled)
         break
 
-      case DISPLAY_TYPE.DATE_RANGE    : 
-        this.dateRange = this.formBuilder.group({
-          startDate : [params.value['startDate'] || null, formValidations],
-          endDate   : [params.value['endDate']   || null, formValidations]
+      case DISPLAY_TYPE.DATE_RANGE  : 
+      const dateRangeKeys  = params.rangeKeys || ['startDate', 'endDate']
+
+        if (params.value) {
+
+          if (params.value[dateRangeKeys[0]]) params.value[dateRangeKeys[0]] = new Date(params.value[dateRangeKeys[0]])
+          if (params.value[dateRangeKeys[1]]) params.value[dateRangeKeys[1]] = new Date(params.value[dateRangeKeys[1]])
+        } else {
+          params.value  = {}
         }
-       )
+
+        this.dateRange = this.formBuilder.group({
+          startDate : [params.value[dateRangeKeys[0]] || null, formValidations],
+          endDate   : [params.value[dateRangeKeys[0]]   || null, formValidations]
+        })
+
         const valiArr = [InputValidator.dateValidator]
         if(!params.validators || !params.validators.allowFutureDate) 
           valiArr.push(InputValidator.futureDateValidatorIfAllowed)
         this.dateRange.setValidators(valiArr)
         if (params.isDisabled) this.dateRange.disable()
         break
-
+ 
       case DISPLAY_TYPE.NUMBER_RANGE  : 
-        this.numberRange = this.formBuilder.group({
-          minAmount : [params.value['minAmount'] || null, formValidations],
-          maxAmount : [params.value['maxAmount'] || null, formValidations]
-        },
-        {
-          validator : [InputValidator.amountValidator]
-        })
+
+        if (params.value) {
+          const numRangeKeys  = params.rangeKeys || ['minAmount', 'maxAmount']
+          this.numberRange = this.formBuilder.group({
+            minAmount : [params.value[numRangeKeys[0]] || null, formValidations],
+            maxAmount : [params.value[numRangeKeys[1]] || null, formValidations]
+          },
+          {
+            validator : [InputValidator.amountValidator]
+          })
+        } else {
+          params.value  = {}
+        }
         if (params.isDisabled) this.numberRange.disable()
         break
-    }
 
+      case DISPLAY_TYPE.SLIDER :
+        // this.numberRange = this.formBuilder.group({
+        //   minAmount : [params.value['minAmount'] || null, formValidations],
+        //   maxAmount : [params.value['maxAmount'] || null, formValidations]
+        // },
+        // {
+        //   validator : [InputValidator.amountValidator]
+        // })
+        // if (params.isDisabled) this.numberRange.disable()
+        this.inputForm  = new FormControl(params.value || null, formValidations)
+
+        if (params.options && params.options.length) {
+          const selectedValues  = []
+          params.options.forEach(opt => {
+            if (opt.selected) selectedValues.push(opt)
+            this.sliderLabel = opt.id === 'formatLabel' ? opt.value as string : ''
+          })
+
+          if (selectedValues.length) this.inputForm.setValue(selectedValues)
+        }
+        this.setDisabled(params.isDisabled)
+        break
+    }
   }
 
   private filterOptions(inputText : string): SelectionBoxParams[] {
     const filterValue = inputText.toLowerCase()
-    return this.inputParams.options.filter(option => option.value.toLowerCase().includes(filterValue))
+    return this.inputParams.options.filter(option =>
+      (option.value as string).toLowerCase().includes(filterValue))
   }
 
   private setDisabled(value : boolean) {
     value ? this.inputForm.disable() : this.inputForm.enable()
+  }
+
+
+  private isDateObj(value : any) : boolean {
+    let isDate : boolean
+
+    switch (typeof value) {
+      case "string" : isDate = !isNaN(Date.parse(value))
+                      break
+
+      case "object" : isDate  = value instanceof Date
+                                ? !isNaN(value.getTime())
+                                : false
+                      break
+
+      default       : isDate = false
+    }
+
+    return isDate
   }
 }

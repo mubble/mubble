@@ -26,6 +26,19 @@ export class MultiStepValue {
     return newValue
   }
 
+  updateViewSize(viewSize : number) {
+    this.viewSize     = viewSize
+    const maxVal      = this.minVal + this.viewSize * ( this.count - 1 )
+    this.currentValue = (this.currentValue * maxVal) / this.maxVal
+    this.maxVal       = maxVal
+
+  }
+
+  updateCount(count : number) {
+    this.count  = count
+    this.maxVal = this.minVal + this.viewSize * ( count - 1 )
+  }
+
   final(delta: number, speed: number, quickRatio ?: number): void {
    
     const newValue    = this.transition(delta),

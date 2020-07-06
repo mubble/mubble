@@ -9,9 +9,9 @@ import { RunContextBrowser }  from '../../../rc-browser'
 
  
 export interface AlertDialogParams {
-  title            : string
   message          : string
   positiveActText  : string
+  title           ?: string
   negativeActText ?: string
   contextId       ?: string //If same component is invoking this dialog with different contexts
   canGoBack       ?: boolean
@@ -74,7 +74,7 @@ export class AlertDialogComponent extends TrackableScreen implements ModalInterf
                                   CALLBACKS
   =====================================================================*/
   setParam(queryParams : any) {
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), queryParams['title'] && queryParams['message'] &&
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), queryParams['message'] &&
     queryParams['positiveActText'], `missing queryparams ${queryParams}`)
     this.title            = queryParams['title']
     this.message          = queryParams['message']

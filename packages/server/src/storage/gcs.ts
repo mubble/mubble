@@ -44,7 +44,7 @@ export class GoogleCloudStorage {
     
     rc.isDebug() && rc.debug(rc.getName(this), 'Saving file in GCS.', bucket, filePath, options)
 
-    const file = await this.storage.bucket(bucket).file(filePath)
+    const file = this.storage.bucket(bucket).file(filePath)
 
     await file.save(fileData, options)
 
@@ -53,7 +53,7 @@ export class GoogleCloudStorage {
 
   public static async deleteFile(rc : RunContextServer, bucket : string, filePath : string) {
 
-    const file = await this.storage.bucket(bucket).file(filePath)
+    const file = this.storage.bucket(bucket).file(filePath)
 
     await file.delete()
   }
@@ -69,7 +69,7 @@ export class GoogleCloudStorage {
     rc.isDebug() && rc.debug(rc.getName(this), 'Checking if file exists in GCS.', 
                              bucket, filePath)
     
-    const file   = await this.storage.bucket(bucket).file(filePath),
+    const file   = this.storage.bucket(bucket).file(filePath),
           exists = await file.exists()
 
     return exists[0]

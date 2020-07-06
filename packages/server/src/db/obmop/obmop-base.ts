@@ -7,9 +7,11 @@
    Copyright (c) 2019 Obopay Mobile Technologies Pvt Ltd. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import { Mubble, 
+         SORT_MODE 
+       }                            from '@mubble/core'
 import { RunContextServer }         from '../../rc-server'
 import { ObmopRegistryManager }     from './obmop-registry'
-import { Mubble }                   from '@mubble/core'
 
 /*------------------------------------------------------------------------------
    Obmop Decorator Functions
@@ -101,6 +103,14 @@ export type QueryRetval = {
 }
 
 /**
+ *  Query condition to be used with query or update.
+ */
+export type QueryCondition = {
+  queryStr : string
+  binds    : Array<any>
+}
+
+/**
  *  Optional query range.
  */
 export type QueryRange = {
@@ -114,7 +124,7 @@ export type QueryRange = {
  */
 export type QuerySort = {
   key   : string
-  order : string
+  order : SORT_MODE
 }
 
 /**
@@ -135,63 +145,26 @@ export interface ObmopBaseClient {
   close(rc : RunContextServer) : Promise<void>
 
   /**
-   * Returns all the entries (rows) of the given table.
+   * Returns all entries/row(s) of the given table as per given condition(s).
    * @param rc RunContext, used for logging.
    * @param table Table or entity name.
+   * @param fields Fields needed from the given table.
+   * @param query queryString for sql query.
    * @param limit Defines the number of results to be fetched.
    * @param offset The offset to start fetching the values from. 
    * @param range Optional range for query retval.
    * @param sort Optional sort for query retval.
    */
-  queryAll(rc : RunContextServer, table : string, fields : Array<string>, 
-           limit ?: number, offset ?: number, range ?: QueryRange, 
-           sort ?: QuerySort) : Promise<QueryRetval>
+  query(rc : RunContextServer, table : string, fields : Array<string>, query ?: QueryCondition, 
+        limit ?: number, offset ?: number, range ?: QueryRange, sort ?: QuerySort) : Promise<QueryRetval>
 
   /**
-   * Returns all entries (rows) of the given table for <key> <operator> <value>.
+   * Returns all entries/row(s) for the given query.
    * @param rc RunContext, used for logging.
-   * @param table Table or entity name.
-   * @param key Key or field name.
-   * @param value Value of that field.
-   * @param operator Conditional operator compatible with SQL databases. By default it is '='.
-   * @param limit Defines the number of results to be fetched.
-   * @param offset The offset to start fetching the values from.
-   * @param range Optional range for query retval.
-   * @param sort Optional sort for query retval.
+   * @param query Native SQL query.
+   * @param binds Bind values for the given query.
    */
-  query(rc : RunContextServer, table : string, fields : Array<string>, key : string,
-        value : any, operator ?: string, limit ?: number, offset ?: number,
-        range ?: QueryRange, sort ?: QuerySort) : Promise<QueryRetval>
-
-  /**
-   * Returns all entries (rows) of the given table for multiple <key> <operator> <value> seperated by AND.
-   * @param rc RunContext, used for logging.
-   * @param table Table or entity name.
-   * @param conditions Given multiple conditions.
-   * @param limit Defines the number of results to be fetched.
-   * @param offset The offset to start fetching the values from.
-   * @param range Optional range for query retval.
-   * @param sort Optional sort for query retval.
-   */
-  queryAnd(rc : RunContextServer, table : string, fields : Array<string>,
-           conditions : Array<{key : string, value : any, operator ?: string}>,
-           limit ?: number, offset ?: number, range ?: QueryRange,
-           sort ?: QuerySort) : Promise<QueryRetval>
-
-  /**
-   * Returns all entries (rows) of the given table for multiple <value> using IN.
-   * @param rc RunContext, used for logging.
-   * @param table Table or entity name.
-   * @param key Key or field name.
-   * @param values Array of values of that field.
-   * @param limit Defines the number of results to be fetched.
-   * @param offset The offset to start fetching the values from.
-   * @param range Optional range for query retval.
-   * @param sort Optional sort for query retval
-   */      
-  queryIn(rc : RunContextServer, table : string, fields : Array<string>, key : string, 
-          values :  Array<any>, limit ?: number, offset ?: number,
-          range ?: QueryRange, sort ?: QuerySort): Promise<QueryRetval>          
+  sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>>
                
   /**
    * Inserts a new entry (row) in the given table.
@@ -210,8 +183,8 @@ export interface ObmopBaseClient {
    * @param entities Entities (rows) to be inserted in object form.
    * @param sequences Object containing the information of sequenced fields.
    */
-  mInsert?(rc : RunContextServer, table : string, entities : Array<Mubble.uObject<any>>,
-           sequences ?: Mubble.uObject<string>) : Promise<void>
+  mInsert(rc : RunContextServer, table : string, entities : Array<Mubble.uObject<any>>,
+          sequences ?: Mubble.uObject<string>) : Promise<void>
 
   /**
    * Updates all entries (rows) of the given table for <queryKey> = <queryValue>.

@@ -5,7 +5,7 @@
   [ngClass.md]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']"
   [ngClass.sm]="webMode ? ['web-view-input-comp'] : ['web-input-cont-comp']">
 
-  <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
+  <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParams.label && inputParams.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
     {{ inputParams.label }}
   </div>
 
@@ -31,7 +31,7 @@
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
           [keyboard]="parentCont"
-          required>
+          >
           <div class="suffix-image" *ngIf="inputParams?.image?.suffixParams">
             <i class="{{ inputParams.image.suffixParams?.iconClass }}"></i>
             <img src="{{ inputParams.image.suffixParams?.imgUrl }}">
@@ -56,7 +56,7 @@
           [class.num-password-input]="inputParams.isPassword"
           autocomplete="off"
           [keyboard]="parentCont"
-          required>
+          >
         </textarea> 
       </div>
 
@@ -81,16 +81,16 @@
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.MULTI_CHECK_BOX">
 
-        <div class="checkbox-cont">
-          <mat-checkbox *ngFor="let option of inputParams.options" [value]="option"
-            class="txt-lg-med-norm checkbox"
-            [checked]="option.selected"
-            (change)="checkedOption($event, option)">
-            {{ option.value }}
-          </mat-checkbox>
-        </div>
+      <div class="checkbox-cont">
+        <mat-checkbox *ngFor="let option of inputParams.options" [value]="option"
+          class="txt-lg-med-norm checkbox"
+          [checked]="option.selected"
+          (change)="checkedOption($event, option)">
+          {{ option.value }}
+        </mat-checkbox>
+      </div>
   
-      </ng-container>
+    </ng-container>
     
     <ng-container *ngSwitchCase="DISPLAY_TYPE.RADIO">
 
@@ -98,7 +98,22 @@
         class="txt-lg-med-norm input-cont radio-group"
         (change)="selectedOption($event)">
         <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
-          class="txt-lg-med-norm radio-button">
+          class="txt-lg-med-norm radio-button"
+          [checked]="option.selected">
+          {{ option.value }}
+        </mat-radio-button>
+      </mat-radio-group>
+
+    </ng-container>
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_RADIO">
+
+      <mat-radio-group [formControl]="inputForm"
+        class="txt-lg-med-norm vert-input-cont vert-radio-group"
+        (change)="selectedOption($event)">
+        <mat-radio-button  *ngFor="let option of inputParams.options" [value]="option" 
+          class="txt-lg-med-norm radio-button"
+          [checked]="option.selected">
           {{ option.value }}
         </mat-radio-button>
       </mat-radio-group>
@@ -106,8 +121,10 @@
     </ng-container>
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.TOGGLE">
-      <mat-slide-toggle class="toggle-cont"
+      <mat-slide-toggle class="toggle-cont txt-lg-med-norm"
+        [labelPosition]="'after'"
         (change)="onToggleChane($event)">
+        {{ inputParams.label }}
       </mat-slide-toggle>
 
     </ng-container>
@@ -168,7 +185,7 @@
             [class.num-password-input]="inputParams.isPassword"
             autocomplete="off"
             [keyboard]="parentCont"
-            required>
+            >
         </div>
     
         <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParams.isDisabled">
@@ -183,20 +200,21 @@
             [class.num-password-input]="inputParams.isPassword"
             autocomplete="off"
             [keyboard]="parentCont"
-            required>
+            >
         </div>
       </div>
     </ng-container>
 
     <ng-container *ngSwitchCase="DISPLAY_TYPE.AUTOCOMPLETE_SELECT">
       <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParams.isDisabled">
-        <input matInput
+        <input matInput #autoCompInput
           type="text"
           class="txt-lg-med-norm input-cont" 
           placeholder="{{inputParams.placeHolder}}"
           [formControl]="inputForm"
           [matAutocomplete]="auto"
-          [keyboard]="parentCont">
+          [keyboard]="parentCont"
+          (blur)="valueEntered(autoCompInput.value)">
 
         <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
           (optionSelected)="setAutocompleteValue($event)"
@@ -228,7 +246,7 @@
     <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
       <div class="input-container">
 
-        <div class="label-txt txt-lg-reg-norm" *ngIf="inputParams.label">
+        <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParams.label">
           {{ inputParams.label }}
         </div>
 
@@ -257,6 +275,20 @@
         (value)="fileUploadValue($event)"
         [isRequired]="inputParams.isRequired">
       </file-upload>  
+    </ng-container> 
+
+    <ng-container *ngSwitchCase="DISPLAY_TYPE.SLIDER">
+      <mat-slider
+        thumbLabel="true"
+        [displayWith]="formatLabel"
+        [disabled]="inputParams.isDisabled"
+        tickInterval="1"
+        min="inputParams.options[0].value"
+        max="inputParams.options[1].value"
+        class="txt-lg-med-norm"
+        (change)="onSliderValueChange($event)">
+        {{ inputParams.label }}
+      </mat-slider>
     </ng-container>
 
   </ng-container>  
@@ -303,6 +335,11 @@
       (dateRange.get('startDate').touched && dateRange.get('endDate').touched) &&
       (dateRange.get('startDate').hasError('required') || dateRange.get('endDate').hasError('required'))">
       {{ inputParams.validators ? inputParams.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+    </mat-error>
+
+    <mat-error class="txt-sm-reg-norm error-text" *ngIf=" (dateRange.get('startDate').touched && 
+      dateRange.get('endDate').touched) && dateRange.get('startDate').value && !dateRange.get('endDate').value">
+      {{ 'mu_inpt_cont_end_date_err' | translate }}
     </mat-error>
   </div>
   

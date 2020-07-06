@@ -53,8 +53,6 @@ export class HttpsServer {
 
     const rc = this.refRc.copyConstruct('', 'https-' + lo.random(1000, 9999, false))
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
-
     const urlObj      = urlModule.parse(req.url || ''),
           pathNameRaw = urlObj.pathname || '',
           pathName    = pathNameRaw.startsWith('/') ? pathNameRaw.substr(1) : pathNameRaw
@@ -62,7 +60,7 @@ export class HttpsServer {
     if(pathName === 'raghuEcho') {
       const data = await raghuEcho(req, urlObj)
 
-      rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', pathName, data)
+      // rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', pathName, data)
 
       res.writeHead(200, {
         [HTTP.HeaderKey.contentType] : HTTP.HeaderValue.json,
@@ -73,7 +71,9 @@ export class HttpsServer {
       return
     }
 
-    const [ apiStr, moduleName, apiName] = pathName.split('/')
+    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new request.', req.url)
+
+    const [ apiStr, moduleName, apiName ] = pathName.split('/')
 
     const ci           = {} as ConnectionInfo,
           [host, port] = (req.headers.host || '').split(':')
@@ -86,6 +86,8 @@ export class HttpsServer {
     ci.ip             = this.router.getIp(req)
     ci.msOffset       = 0
     ci.lastEventTs    = 0
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'ci', ci)
 
     const clientId = ci.headers[HTTP.HeaderKey.clientId],
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
@@ -115,11 +117,8 @@ export class HttpsServer {
 
     const reqId     : number              = Date.now(),
           apiParams : Mubble.uObject<any> = {}
-
-    this.providerMap.set(httpsProvider, reqId)
     
     try {
-
       if(req.method != POST)
         throw new Mubble.uError(SecurityErrorCodes.INVALID_REQUEST_METHOD,
                                 `${req.method} not supported.`)
@@ -128,14 +127,17 @@ export class HttpsServer {
 
       const streams     = encProvider.decodeBody([req], ci.headers[HTTP.HeaderKey.bodyEncoding], false),
             stream      = new UStream.ReadStreams(rc, streams),
-            bodyStr     = (await stream.read()).toString()
+            bodyStr     = (await stream.read()).toString(),
+            body        = JSON.parse(bodyStr)
+
+      rc.isDebug() && rc.debug(rc.getName(this), 'Incoming request body.', body)
 
       await ObopayHttpsClient.addRequestToMemory(ci.headers[HTTP.HeaderKey.requestTs],
                                                  ci.headers[HTTP.HeaderKey.clientId],
                                                  apiName,
                                                  bodyStr)
 
-      Object.assign(apiParams, JSON.parse(bodyStr))
+      Object.assign(apiParams, body)
 
     } catch(err) {
       this.refRc.isError() && this.refRc.error(this.refRc.getName(this),
@@ -155,6 +157,7 @@ export class HttpsServer {
       return
     }
 
+    this.providerMap.set(httpsProvider, reqId)
     httpsProvider.processRequest(rc, apiName, apiParams, reqId)
   }
 
@@ -206,6 +209,8 @@ export class HttpsServerProvider implements XmnProvider {
       return
     }
 
+    rc.isStatus() && rc.status(rc.getName(this), 'Sending response.', wo)
+
     const headers = {
             [HTTP.HeaderKey.clientId]      : this.ci.headers[HTTP.HeaderKey.clientId],
             [HTTP.HeaderKey.versionNumber] : this.ci.headers[HTTP.HeaderKey.versionNumber],
@@ -219,9 +224,11 @@ export class HttpsServerProvider implements XmnProvider {
           encBodyObj = this.encProvider.encodeBody(body, true)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
-    encBodyObj.contentLength ? headers[HTTP.HeaderKey.contentLength]    = encBodyObj.contentLength
-                             : headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
 
+    if(!encBodyObj.contentLength) {
+      headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
+    }
+    
     this.res.writeHead(200, headers)
          
     encBodyObj.streams.push(this.res)
@@ -248,6 +255,8 @@ export class HttpsServerProvider implements XmnProvider {
   }
 
   sendErrorResponse(rc : RunContextServer, errorCode : string, apiName ?: string, reqId ?: number) {
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Sending error response.', this.wireRequest, errorCode)
 
     const wo = new WireReqResp(apiName || this.wireRequest.name,
                                reqId || this.wireRequest.ts,

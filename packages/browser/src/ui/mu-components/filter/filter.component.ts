@@ -9,10 +9,7 @@
    Copyright (c) 2019 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { InputContainerComponent,
-         OutputParams
-       }                              from '..'
-import { Moment }                     from 'moment'
+import { InputContainerComponent }    from '..'
 import { Component,
          ViewChildren,
          QueryList,
@@ -26,29 +23,33 @@ import { RunContextBrowser }          from '../../../rc-browser'
 import { DISPLAY_TYPE, 
          DISPLAY_MODE, 
          FilterItem,
-         SelectionBoxParams,
+         MuSelectedFilter,
          FILTER_MODE
        }                              from '@mubble/core'
+import { OutputParams }               from '../cmn-inp-cont'
+
 
 enum CONTEXT {
   INIT,
-  CLEAR
+  CLEAR,
+  UPDATE
+}
+
+export interface SelectedFilter {
+  id           : string
+  mode         : FILTER_MODE
+  value        : any
+  displayType ?: DISPLAY_TYPE
 }
 
 export interface DateRangeInterface { 
-  startDate  : Moment
-  endDate   ?: Moment
+  startDate  : number
+  endDate   ?: number
 }
 
 export interface NumberRangeInterface {
   minAmount  : number
   maxAmount ?: number
-}
-
-export interface SelectedFilter {
-  id    : string,
-  mode  : FILTER_MODE,
-  value : DateRangeInterface | NumberRangeInterface | string | number | SelectionBoxParams | Moment
 }
 
 @Component({
@@ -67,16 +68,25 @@ export class FilterComponent {
   @Input()  displayCount    : number            = 1
   @Input()  displayMode     : DISPLAY_MODE      = DISPLAY_MODE.HORIZONTAL
 
-  @Output() selectedFilter  : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
+  @Output() selectedFilter  : EventEmitter<MuSelectedFilter[]> = new EventEmitter<MuSelectedFilter[]>()
 
-  filters      : SelectedFilter[] = []
-  DISPLAY_MODE : typeof DISPLAY_MODE = DISPLAY_MODE
-  filterChips  : string[] = []
+  filters      : MuSelectedFilter[]   = []
+  DISPLAY_MODE : typeof DISPLAY_MODE  = DISPLAY_MODE
+  filterChips  : string[]             = []
 
   constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
   ngOnInit() {
     this.initialize(CONTEXT.INIT)
+  }
+
+  /*=====================================================================
+                              UTILS
+  =====================================================================*/
+
+  public updateLastAppliedFilters(lastFilters : FilterItem[]) {
+    this.filterItems = lastFilters
+    this.initialize(CONTEXT.UPDATE)
   }
 
   /*=====================================================================
@@ -93,7 +103,7 @@ export class FilterComponent {
     })
 
     if (this.hasError()) return
-    
+
     if (!this.valueChanged()) {      
       this.selectedFilter.emit([])  //empty array indicates that the previous filters and current filters are same
       return
@@ -115,9 +125,9 @@ export class FilterComponent {
   }
 
   setFilterItems(event : OutputParams) {
-    
-    if (event.value) this.filterChips = this.filterChips.concat(event.value)
-    
+
+    this.setFilterChips(event)
+
     const index = this.filters.findIndex(element => element.id === event.id)
     this.filters[index].value = event.value
   }
@@ -136,12 +146,31 @@ export class FilterComponent {
 
   private valueChanged() : boolean {
 
+    // const existingFilterItems = []
+
+    // for (const filterItem of this.filterItems) {
+
+    //   const muSelectedFilter : MuSelectedFilter  = {
+    //     id          : filterItem.params.id,
+    //     mode        : filterItem.mode,
+    //     value       : filterItem.params.value || null,
+    //     displayType : filterItem.params.displayType
+
+    //   }
+    //   existingFilterItems.push(muSelectedFilter)
+
+    // }
+
+    // console.log('isEqual',isEqual(existingFilterItems, this.filters))
+
+
     for (const fItem of this.filterItems) {
-      const index = this.filters.findIndex(element => element.id === fItem.id)
+      const index = this.filters.findIndex(element => element.id === fItem.params.id)
       let changed : boolean = false
       
-      //checking changed value according to the display type
+      //checking if the previous filter value has changed or not according to the display type
       switch(fItem.params.displayType) {
+
         case DISPLAY_TYPE.CALENDAR_BOX        :
         case DISPLAY_TYPE.INPUT_BOX           :
         case DISPLAY_TYPE.SELECTION_BOX       :
@@ -149,27 +178,32 @@ export class FilterComponent {
         case DISPLAY_TYPE.MULTI_CHECK_BOX     :
         case DISPLAY_TYPE.RADIO               :
         case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+        case DISPLAY_TYPE.SLIDER              : 
           (!fItem.params.value && !this.filters[index].value)
           ? changed = false
           : changed = fItem.params.value !== this.filters[index].value
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :
-          ((!fItem.params.value['startDate'] && !this.filters[index].value['startDate']) ||
-          (!fItem.params.value['endDate'] && !this.filters[index].value['endDate']))
+          const dateRangeKeys  = fItem.params.rangeKeys || ['startDate', 'endDate'];
+          ((!fItem.params.value[dateRangeKeys[0]] && !this.filters[index].value[dateRangeKeys[0]]) &&
+          (!fItem.params.value[dateRangeKeys[1]] && !this.filters[index].value[dateRangeKeys[1]]))
           ? changed = false
-          : changed = (fItem.params.value['startDate'] !== this.filters[index].value['startDate']) ||
-                      (fItem.params.value['endDate'] !== this.filters[index].value['endDate'])
+          : changed = (fItem.params.value[dateRangeKeys[0]] !== this.filters[index].value[dateRangeKeys[0]]) ||
+                      (fItem.params.value[dateRangeKeys[1]] !== this.filters[index].value[dateRangeKeys[1]])
           break
 
         case DISPLAY_TYPE.NUMBER_RANGE  :
-          ((!fItem.params.value['minAmount'] && !this.filters[index].value['minAmount']) ||
-          (!fItem.params.value['maxAmount'] && !this.filters[index].value['maxAmount']))
+          const numRangeKeys  = fItem.params.rangeKeys || ['minAmount', 'maxAmount'];
+
+          ((!fItem.params.value[numRangeKeys[0]] && !this.filters[index].value[numRangeKeys[0]]) &&
+          (!fItem.params.value[numRangeKeys[1]] && !this.filters[index].value[numRangeKeys[1]]))
           ? changed = false
-          : changed = (fItem.params.value['minAmount'] !== this.filters[index].value['minAmount']) ||
-                      (fItem.params.value['maxAmount'] !== this.filters[index].value['maxAmount'])
+          : changed = (fItem.params.value[numRangeKeys[0]] !== this.filters[index].value[numRangeKeys[0]]) ||
+                      (fItem.params.value[numRangeKeys[1]] !== this.filters[index].value[numRangeKeys[1]])
           break
       }
+    // isEqual(existingFilterItems, this.filters), changed)
 
       if (changed)  return changed
     }
@@ -181,9 +215,9 @@ export class FilterComponent {
 
     if (context === CONTEXT.INIT) {
       for (const fItem of this.filterItems) {
-        this.filters.push({ id : fItem.id, value : fItem.params.value, mode : fItem.mode })
+        this.filters.push({ id : fItem.params.id, value : fItem.params.value, mode : fItem.mode, displayType : fItem.params.displayType })
       }
-    } else {
+    } else if (context === CONTEXT.CLEAR) {
       this.filters      = []
       const fItems : FilterItem[] = []
 
@@ -197,19 +231,85 @@ export class FilterComponent {
         fItem.params.value  = setNull
 
         fItems.push({
-          id      : fItem.id,
-          title   : fItem.title,
           params  : fItem.params,
           mode    : fItem.mode
         })
 
-        this.filters.push({ id : fItem.id, value : setNull, mode : fItem.mode })
+        this.filters.push({ id : fItem.params.id, value : setNull, mode : fItem.mode, displayType : fItem.params.displayType })
         
       }
 
       this.filterItems  = []
       this.filterItems  = fItems
+    } else {
+      const fItems  : FilterItem[]        = [],
+            filters : MuSelectedFilter[]  = []
+
+      for (const fItem of this.filterItems) {
+
+        const currentValue  = this.filters.find(val => val.id === fItem.params.id && fItem.params.value)
+        fItem.params.value  = currentValue ? currentValue.value : null
+
+        fItems.push({
+          params  : fItem.params,
+          mode    : fItem.mode,
+        })
+
+        filters.push({ id : fItem.params.id, value : fItem.params.value, mode : fItem.mode, displayType : fItem.params.displayType })
+      }
+
+      this.filterItems  = []
+      this.filterItems  = fItems
+      this.filters      = filters
+      
     }
+  }
+
+  private setFilterChips(event : OutputParams) {
+
+    switch(event.displayType) {
+
+      case DISPLAY_TYPE.CALENDAR_BOX  :
+        //Do we need it?
+        break
+
+      case DISPLAY_TYPE.INPUT_BOX     :
+      case DISPLAY_TYPE.ROW_INPUT_BOX :
+        if (event.value) this.filterChips.push(event.value)
+        break
+
+      case DISPLAY_TYPE.MULTI_CHECK_BOX :
+
+        if (event.value) {
+
+          const checkboxValues  = event.value
+
+          checkboxValues.forEach(val => {
+            this.filterChips.push(val.value)
+          })
+
+        }
+
+        break
+
+      case DISPLAY_TYPE.SELECTION_BOX       :
+      case DISPLAY_TYPE.RADIO               :
+      case DISPLAY_TYPE.AUTOCOMPLETE_SELECT :
+      case DISPLAY_TYPE.SLIDER              : 
+        if (event.value) this.filterChips.push(event.value.value)
+        break
+
+      case DISPLAY_TYPE.DATE_RANGE  :
+        //Do we need it?
+        break
+
+      case DISPLAY_TYPE.NUMBER_RANGE  :
+        //Do we need it?
+        break
+
+
+    }
+
   }
 
 }

@@ -6,7 +6,10 @@ import { Component,
          ViewChild,
          Inject,
          ElementRef,
-         ChangeDetectorRef
+         ChangeDetectorRef,
+         SimpleChanges,
+         ViewChildren,
+         QueryList
        }                            from '@angular/core'
 import { MatCheckboxChange, 
          MatRadioChange,
@@ -23,9 +26,10 @@ import { TableHeader,
        }                            from '@mubble/core/interfaces/app-server-interfaces'
 import { RunContextBrowser }        from '@mubble/browser/rc-browser'
 import { LOG_LEVEL,              
-         COL_TYPE 
+         COL_TYPE,
+         MuSelectedFilter
        }                            from '@mubble/core'
-import { SelectedFilter }           from '../filter'
+import { FilterComponent }          from '../filter'
 
 export interface TableConfig {
   headers            : TableHeader[]
@@ -34,11 +38,12 @@ export interface TableConfig {
   enableSelect      ?: boolean
   enableRadio       ?: boolean
   enableFilter      ?: boolean
+  enableDownload    ?: boolean
   selectedIndexes   ?: number[]
   lazyLoad          ?: boolean
   totalRecords      ?: number
   horizFilterParams ?: FilterItem[],
-  vertFilterParams  ?: FilterItem[]
+  vertFilterParams  ?: FilterItem[],
 }
 
 export interface MuTableRowSelEvent {
@@ -83,11 +88,10 @@ export interface MuTableEditEvent {
 
 export class MuDataTableComponent implements OnInit {
 
-  @ViewChild('slctAllBox',  {static : false}) slctAllBox : MatCheckbox
-  @ViewChild('filterCont',  {static : false}) filterCont : ElementRef
+  @ViewChild('slctAllBox',  {static : false}) slctAllBox  : MatCheckbox
+  @ViewChild('filterCont',  {static : false}) filterCont  : ElementRef
   @ViewChild('muTableCont', {static : false}) muTableCont : ElementRef
-
-
+  @ViewChildren(FilterComponent)  filterCompChildren      : QueryList<FilterComponent>
 
   @Input()  tableConfig        : TableConfig
   @Output() loadMoreData       : EventEmitter<number> = new EventEmitter() 
@@ -97,7 +101,7 @@ export class MuDataTableComponent implements OnInit {
   @Output() onCellClick        : EventEmitter<MuTableClickEvent>   = new EventEmitter()
   @Output() onRowEdit          : EventEmitter<MuTableEditEvent>    = new EventEmitter()
 
-  @Output() selectedFilter     : EventEmitter<SelectedFilter[]> = new EventEmitter<SelectedFilter[]>()
+  @Output() selectedFilter     : EventEmitter<MuSelectedFilter[]> = new EventEmitter<MuSelectedFilter[]>()
 
   pageIndex         : number   
   currPageIndex     : number  
@@ -123,10 +127,29 @@ export class MuDataTableComponent implements OnInit {
     if (rc.getLogLevel() === LOG_LEVEL.DEBUG) window['datatable'] = this
   }
 
+  ngOnChanges(changes : SimpleChanges) {
+    this.tableConfig  = changes['tableConfig'].currentValue
+    this.setUpTable()
+  }
+
 
   ngOnInit() {
+    this.setUpTable()
+  }
 
-      
+
+  ngAfterViewInit() {
+
+    const top = this.filterCont.nativeElement.offsetTop
+    this.filterCont.nativeElement.style.maxHeight = `calc(100% - ${top}px)`
+  }
+
+  /*=====================================================================
+                              PRIVATE
+  =====================================================================*/
+
+  private setUpTable() {
+
     if (this.tableConfig) {
 
       for (let header of this.tableConfig.headers) {
@@ -153,17 +176,6 @@ export class MuDataTableComponent implements OnInit {
       this.createPageNumbers()
     }
   }
-
-
-  ngAfterViewInit() {
-
-    const top = this.filterCont.nativeElement.offsetTop
-    this.filterCont.nativeElement.style.height = `calc(100% - ${top}px)`
-  }
-
-  /*=====================================================================
-                              PRIVATE
-  =====================================================================*/
   
 
   /**
@@ -190,8 +202,11 @@ export class MuDataTableComponent implements OnInit {
   private updatePageNumbers(pageIndex : number) {
     
     this.pageIndex     = pageIndex - 2
-    if (this.pageIndex <= 0) this.pageIndex = 0
-    if (this.pageIndex >= (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
+    if (this.pageIndex <= 0) {
+      this.pageIndex = 0
+    } else {
+      if (this.pageIndex >= (this.pageNumbers.length - 4)) this.pageIndex = this.pageNumbers.length - 5
+    }
   }
 
 
@@ -288,8 +303,8 @@ export class MuDataTableComponent implements OnInit {
    * @param rowData 
    */
   toggleRow(event : MatSlideToggleChange, rowData : Object) {
-
-    this.selectedIndexes[rowData['rowIndex']] = event.checked
+  
+    this.selectedIndexes[rowData['rowIndex']] = event.checked    
   }
 
 
@@ -380,10 +395,18 @@ export class MuDataTableComponent implements OnInit {
    * Method invoked by the parent in case of api loading failure which brings back
    * the table to previous state
    */
-  loadingFailed() {
-
+  loadingFailed(lastAppliedFilters  ?: FilterItem[], isHzFilters ?: boolean) {
+    
     this.currPageIndex = this.prevPageIndex
     this.updatePageNumbers(this.currPageIndex)
+
+    if (lastAppliedFilters) {
+      const index       = isHzFilters ? 0 : 1,
+            filterInsts = this.filterCompChildren.toArray()
+
+      filterInsts[index].updateLastAppliedFilters(lastAppliedFilters)   
+    }
+    
   }
 
 
@@ -491,14 +514,22 @@ export class MuDataTableComponent implements OnInit {
 
       this.dataMap[this.currPageIndex].splice(rowIndex%this.tableConfig.dispRows, 1)
       this.dataMap[this.currPageIndex].push(this.dataMap[this.currPageIndex + 1][0])
+    } else if(this.tableConfig.totalRecords <= this.tableConfig.dispRows) {
+
+      this.tableConfig.totalRecords--
+      this.dataMap[this.currPageIndex].splice(rowIndex%this.tableConfig.dispRows, 1)
     } else {
 
       this.loadMoreData.emit(this.currPageIndex * this.tableConfig.dispRows)
-    }   
+    }
+    
 
-    this.selectedIndexes = {}
+    if (this.tableConfig.enableSelect) this.selectedIndexes = { }
     const keys = Object.keys(this.dataMap)
     for (const key of keys) if (Number(key) > this.currPageIndex) delete this.dataMap[key]
+
+    this.changeDet.detectChanges()
+
   }
 
 
@@ -541,17 +572,20 @@ export class MuDataTableComponent implements OnInit {
    * back to the parent
    * @param event 
    */
-  applyFilter(event : SelectedFilter[]) {
-    
+  applyFilter(event : MuSelectedFilter[]) {
+    /*
+    If data table has all the data, filters are applied by the table itself 
+    instead of making an api call
+    */
     if (!this.tableConfig.lazyLoad) {
-
       if (event && event[0]) this.search(event[0].value.toString())
       else this.search()
       return
     }
+    this.changeDet.detectChanges()
     this.selectedFilter.emit(event)
+    
   }
-
 
   /**
    * Method invoked by parent to unselect the rows
@@ -560,7 +594,17 @@ export class MuDataTableComponent implements OnInit {
   unselectIndexes(rowIndexes : number[]) {
 
     for (const index of rowIndexes) this.selectedIndexes[index]  = false
-    this.slctAllBox.checked = false
+    if (this.slctAllBox) this.slctAllBox.checked = false
     this.selAllMap[this.currPageIndex] = false
   }
+
+  /**
+   * Method invoked by parent to unselect the rows
+   * @param rowIndexes
+   */
+  downloadTableData() {
+    
+
+  }
+
 }

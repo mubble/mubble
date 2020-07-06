@@ -198,5 +198,22 @@ export class BaseUtility {
     return resizedImage
   
   }
+ 
+  //base64 without mime type
+  getBase64Size(base64 : string) {
+
+    const slicedBase64  = base64.includes('base64') ? base64.split(',')[1] : base64
+
+    let padding = 0
+    if (slicedBase64.endsWith('==')) {
+      padding = 2
+    } else if (slicedBase64.endsWith('=')) {
+      padding = 1
+    }
+
+    const size  = (slicedBase64.length * (0.75)) - padding
+    return (size/1024)
+
+  }
 
 }

@@ -4,7 +4,7 @@
   align-items: center;
   border-width: 2px;
   border-style: solid;
-  margin: 2% 0;
+  margin: 2% 0 0;
 }
 
 .button-toggle {
@@ -59,7 +59,6 @@
   align-items: center;
   border-width: 2px;
   border-style: solid;
-  margin: 2% 0;
   width: 46%
 }
 
@@ -67,7 +66,7 @@
   .input-cont {
     position: relative;
     width: 100%;
-    padding: 3vw;
+    padding: 4vw;
     border: 0;
     background: none;
   }
@@ -76,7 +75,7 @@
 .input-cont {
   position: relative;
   width: 100%;
-  padding: 3vw;
+  padding: 4vw;
   border: 0;
   background: none;
 }
@@ -99,9 +98,11 @@
 .errors-list {
   display: flex;
   flex-direction: column;
+  padding-top: 1vw;
 }
 
 .web-input-cont-comp {
+
   margin: 10px 20px;
 
   .range-onb-input-box-cont {
@@ -121,9 +122,24 @@
     border: 0;
     background: none;
   }
+
+  .errors-list {
+    padding-top: 5px;
+  }
+
+  .radio-button {
+    padding-bottom: 10px !important;
+  }
+
+  .radio-group {
+    padding: 5px 0 !important;
+  }
+
+  
 }
 
 .web-view-input-comp {
+
   .onb-input-box-cont {
     position: relative;
     display: flex;
@@ -146,13 +162,38 @@
   .input-cont {
     position: relative;
     width: 100%;
-    padding: 8px;
+    padding: 12px 8px;
     border: 0;
     background: none;
   }
+
+  .errors-list {
+    padding-top: 5px;
+  }
+
+  .radio-button {
+    padding-bottom: 10px !important;
+  }
+
+  .radio-group {
+    padding: 5px 0 !important;
+  }
+
+  .vert-radio-group {
+
+    padding: 8px 0 !important;
+    
+    .radio-button {
+      padding-right: 10px !important;
+    }
+  
+  }
+
+
 }
 
 .vertical-mode {
+
   .radio-group {
     padding: 5px 0 !important;
   }

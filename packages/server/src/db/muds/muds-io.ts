@@ -7,7 +7,8 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { Query as DsQuery }                       from '@google-cloud/datastore/query'
+import { Query as DsQuery, 
+          QueryResult }                           from '@google-cloud/datastore/query'
 import { DatastoreTransaction as DSTransaction }  from '@google-cloud/datastore/transaction'
 import { Muds,
          DatastoreInt,
@@ -201,6 +202,17 @@ export abstract class MudsIo {
       entityClass)
   }
 
+  public async getEntityBasedOnKeys(entityInfo : MudsEntityInfo, keys: any) : Promise<QueryResult> {
+    const exec = this.getExec(),
+          internalKeys = []
+
+    for(const key of keys) { 
+      internalKeys.push(this.buildKeyForDs(this.rc, entityInfo.cons, [], key))
+    }
+    const results = (await exec.get(internalKeys))[0] as Object[]
+    return [results, { moreResults : "NO_MORE_RESULTS" }]
+  }
+
   private async deleteInternal<T extends MudsBaseEntity>(
     ...reqs: IEntityKey<T>[]): Promise<void> {
 
@@ -270,8 +282,29 @@ export abstract class MudsIo {
         }
       }
     }
-    
+
     this.upsertQueue = []
+
+    //Remove key from cache after successful execution
+    await this.removeUniquesFromCache(rc, modifiedEntities)
+  }
+
+  /* 
+    This method will be called once the execution of the upsert called. 
+    so that unique key will be removed once after success.
+  */
+  private async removeUniquesFromCache(rc:RunContextServer, entities:MudsBaseEntity[]) {
+    const uniques = this.getAllUniques(rc, ...entities)
+    if (!uniques.length) { return }
+
+    const trRedis      = this.manager.getCacheReference(),
+          multi        = trRedis.redisMulti()
+
+    for (const uniqueVal of uniques) {
+      const key = this.getCacheKey(rc, uniqueVal.entity.getInfo().entityName, uniqueVal.key, uniqueVal.value)
+      multi.del(key)
+    }
+    await trRedis.execRedisMulti(multi)
   }
 
   /* ?????
@@ -335,7 +368,7 @@ export abstract class MudsIo {
     return uniqueValues
   }
 
-  private async  lockEntityInCache(rc: RunContextServer, uniqueVals: any[]) {
+  private async lockEntityInCache(rc: RunContextServer, uniqueVals: any[]) {
 
     const trRedis      = this.manager.getCacheReference(),
           multi        = trRedis.redisMulti(),
@@ -649,12 +682,13 @@ export class MudsTransaction extends MudsIo {
     return await this.doCallback()
   }
 
-  protected getExec(): Datastore | DSTransaction {
+  getExec(): Datastore | DSTransaction {
     return this.transaction
   }
 
   createQuery(entityName: string) {
-    return this.transaction.createQuery(entityName)
+    //Default Namespace, without this transaction wont work??
+    return this.transaction.createQuery('', entityName)
   }
 
   private async doCallback() {

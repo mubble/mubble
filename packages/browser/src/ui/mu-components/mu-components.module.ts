@@ -51,13 +51,18 @@ import { InfiniteScrollComponent }          from './infinite-scroll/infinite-scr
 import { FilterComponent }                  from './filter/filter.component'
 import { InputContainerComponent}           from './input-container/input-container.component'
 import { DialerComponent }                  from './dialer/dialer.component'
+import { MuFormContainerComponent }         from './mu-form-container/mu-form-container.component'
+
 
 import { AlertDialogComponent }             from './alert-dialog/alert-dialog.component'
 import { MuDataTableComponent }             from './mu-data-table/mu-data-table.component'
 import { FileUploadComponent }              from './file-upload/file-upload.component'
 import { MatCardModule }                    from '@angular/material'
-import { KeypadComponent }                  from './keypad/keypad.component'
-
+import { KeypadComponent }                  from './keypad/keypad.component' 
+import { PageNotFoundComponent }            from './page-not-found/page-not-found.component'
+import { HAMMER_GESTURE_CONFIG }            from '@angular/platform-browser'
+import { GestureConfig }                    from '@angular/material'
+import { MaskingValueDirective }            from './directives/masking-value.directive'
 
 @NgModule({
   imports: [
@@ -79,7 +84,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MatButtonToggleModule,
     MatMenuModule,
     MatCardModule,
-    MatRippleModule
+    MatRippleModule,
   ],
 
   declarations: [
@@ -96,6 +101,8 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MuDataTableComponent,
     DialerComponent,
     FileUploadComponent,
+    MuFormContainerComponent,
+    PageNotFoundComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -105,6 +112,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     AdjustElementsDirective,
     NcFallbackCharDirective,
     KeyboardDirective,
+    MaskingValueDirective,
   
     TranslatePipe,
     GenericPipe,
@@ -134,6 +142,8 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     MuDataTableComponent,
     DialerComponent,
     KeypadComponent,
+    MuFormContainerComponent,
+    PageNotFoundComponent,
 
     NcAutoFocusDirective,
     NcMaxLengthDirective,
@@ -143,6 +153,7 @@ import { KeypadComponent }                  from './keypad/keypad.component'
     AdjustElementsDirective,
     NcFallbackCharDirective,
     KeyboardDirective,
+    MaskingValueDirective,
 
     TranslatePipe,
     GenericPipe,
@@ -160,7 +171,8 @@ import { KeypadComponent }                  from './keypad/keypad.component'
   ],
 
   providers: [
-    CustomBreakPointsProvider
+    CustomBreakPointsProvider,
+    {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
   ]
 })
 
@@ -170,7 +182,8 @@ export class MuComponentsModule {
       ngModule: MuComponentsModule,
       providers: [
         TRANSLATION_PROVIDERS,
-        TranslateService
+        TranslateService,
+        {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
       ]
     }
   }

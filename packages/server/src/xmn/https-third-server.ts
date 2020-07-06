@@ -59,16 +59,16 @@ export class HttpsThirdServer {
       return
     }
 
-    const ci             = {} as ConnectionInfo,
-          [host, port]   = (req.headers.host || '').split(':')
+    const ci           = {} as ConnectionInfo,
+          [host, port] = (req.headers.host || '').split(':')
 
-    ci.protocol          = Protocol.HTTP_THIRD
-    ci.host              = host
-    ci.port              = Number(port) || urlObj.protocol === 'https:' ? 443 : 80
-    ci.url               = req.url || ''
-    ci.headers           = req.headers
-    ci.ip                = this.router.getIp(req)
-    ci.customData        = {} as CustomData
+    ci.protocol   = Protocol.HTTP_THIRD
+    ci.host       = host
+    ci.port       = Number(port) || urlObj.protocol === 'https:' ? 443 : 80
+    ci.url        = req.url || ''
+    ci.headers    = req.headers
+    ci.ip         = this.router.getIp(req)
+    ci.customData = {} as CustomData
 
     try {
       await this.router.verifyConnection(rc, ci, apiName)
@@ -82,16 +82,17 @@ export class HttpsThirdServer {
     if(encRequestPath) {
       const requestPath  = decodeURIComponent(encRequestPath),
             encProvider  = ObopayHttpsClient.getEncProvider()
-            apiParams    = encProvider.decodeThirdPartyRequestPath(requestPath)
+            
+      apiParams = encProvider.decodeThirdPartyRequestPath(requestPath)
     }
 
-    const httpsProvider  = new HttpsThirdServerProvider(rc, this.router, ci, req, res, this)
+    const httpsProvider = new HttpsThirdServerProvider(rc, this.router, ci, req, res, this)
 
-    ci.provider          = httpsProvider
+    ci.provider = httpsProvider
 
-    const now            = Date.now(),
-          reqId          = now * 1000,
-          query          = urlObj.query || ''
+    const now   = Date.now(),
+          reqId = now * 1000,
+          query = urlObj.query || ''
 
     this.providerMap.set(httpsProvider, now)
     await httpsProvider.processRequest(rc, apiName, apiParams, query, reqId)
@@ -211,7 +212,7 @@ export class HttpsThirdServerProvider implements XmnProvider {
       case HTTP.HeaderValue.form :
         return this.parseQuery(rc, data)
 
-      default                    :
+      default :
         try {
           return JSON.parse(data)
         } catch (err) {
