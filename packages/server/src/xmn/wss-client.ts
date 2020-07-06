@@ -124,7 +124,7 @@ export class WssClient {
     this.openPromise.resolve(true)
   }
 
-  private async onMessage(msgEvent : MessageEvent) {
+  private async onMessage(msgEvent : any) {
     const rc   = this.refRc,
           data = Buffer.from(msgEvent.data)
 

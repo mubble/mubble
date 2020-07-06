@@ -51,7 +51,7 @@ export class WssServer {
     setInterval(this.cbTimerPing.bind(this), PING_FREQUENCY_MS)
 	}
 	
-	private async establishHandshake(socket : WebSocket, req : http.IncomingMessage) {
+	private async establishHandshake(socket : any, req : http.IncomingMessage) {
 
     const rc = this.refRc.copyConstruct('', 'handshake')
 
@@ -178,7 +178,7 @@ export class WssServer {
 export class WssServerProvider implements XmnProvider {
 
   public constructor(private refRc       : RunContextServer,
-                     private socket      : WebSocket,
+                     private socket      : any,
                      private ci          : ConnectionInfo,
                      private router      : XmnRouterServer,
                      private encProvider : WssEncProvider,
@@ -215,7 +215,7 @@ export class WssServerProvider implements XmnProvider {
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onopen()')
   }
 
-  private onMessage(msgEvent : MessageEvent) {
+  private onMessage(msgEvent : any) {
     const rc = this.refRc.copyConstruct('', 'wss-request')
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onmessage()')
 
