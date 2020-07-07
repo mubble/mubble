@@ -10,7 +10,7 @@
    Copyright (c) 2018 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { RunContextBrowser } from '@mubble/browser/rc-browser'
+import { RunContextBrowser } from '../../rc-browser'
  
 export abstract class TrackableScreen  {
   

@@ -1,5 +1,5 @@
 import { RunContextBrowser }  from '../rc-browser'
-import { WireObject }         from '../../core/xmn/xmn-core'
+import { WireObject }         from '@mubble/core'
 
 export interface XmnRouterBase {
 

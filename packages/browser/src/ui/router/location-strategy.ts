@@ -15,7 +15,7 @@ import { Injectable,
 import { LocationStrategy,
          LocationChangeListener
        }                        from '@angular/common'
-import { RunContextBrowser }    from '@mubble/browser/rc-browser'
+import { RunContextBrowser }    from '../../rc-browser'
 
 @Injectable()
 export class AppLocationStrategy extends LocationStrategy {

@@ -2,11 +2,11 @@
   "name": "@mubble/browser",
   "version": "1.0.0",
   "description": "Browser package for Mubble projects",
-  "main": "lib/index.js",
+  "main": "src/index.ts",
   "types": "lib/index.d.ts",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublish": "tsc"
+    "test": "npm run postinstall && jest --coverage",
+    "postinstall": "install-peers -f"
   },
   "author": "Raghvendra Varma",
   "license": "ISC",
@@ -14,16 +14,45 @@
     "@mubble/core": "file:../core",
     "@types/dexie": "^1.3.1",
     "@types/hashids": "^1.0.30",
-    "@types/lodash": "^4.14.61"
+    "@types/lodash": "^4.14.61",
+    "install-peers-cli": "^2.2.0",
+    "tslib": "^2.0.0",
+    "typescript": "^3.8.3"
   },
   "peerDependencies": {
-    "lodash": "^4.17.4",
+    "@angular/animations": "~8.2.3",
+    "@angular/cdk": "^8.0.1",
+    "@angular/common": "~8.2.3",
+    "@angular/compiler": "~8.2.3",
+    "@angular/core": "~8.2.3",
+    "@angular/flex-layout": "^8.0.0-beta.26",
+    "@angular/forms": "~8.2.3",
+    "@angular/material": "^8.1.3",
+    "@angular/material-moment-adapter": "^8.0.1",
+    "@angular/platform-browser": "~8.2.3",
+    "@angular/platform-browser-dynamic": "~8.2.3",
+    "@angular/pwa": "^0.801.2",
+    "@angular/router": "^8.2.14",
+    "@angular/service-worker": "~8.2.3",
+    "ajv": "^6.6.2",
+    "core-js": "^2.5.4",
+    "dexie": "^2.0.1",
+    "dot": "^1.1.2",
+    "hammerjs": "^2.0.8",
     "hashids": "^1.1.4",
+    "lodash": "^4.17.15",
     "moment": "^2.23.0",
-    "reflect-metadata": "^0.1.10",
+    "primeicons": "^2.0.0",
+    "primeng": "^8.0.4",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "~6.5.2",
+    "tinycolor2": "^1.4.1",
+    "uglify-es": "^3.3.9",
+    "web-animations-js": "github:angular/web-animations-js#release_pr208",
+    "zone.js": "~0.9.1",
     "@mubble/core": "file:../core"
   },
   "dependencies": {
-    "hammerjs": "^2.0.8"
+
   }
 }

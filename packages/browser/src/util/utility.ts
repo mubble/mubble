@@ -2,7 +2,7 @@ import { Mubble,
          expandTemplate,
          expandTemplateObj,
          XmnError
-       }                        from '../../core'
+       }                        from '@mubble/core'
 import { UrlHelper }            from './url-helper'
 
 export class BaseUtility {

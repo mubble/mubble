@@ -16,10 +16,6 @@ import {  Component,
           ViewChild }                 from '@angular/core'
           
 import { Router, ActivatedRoute }     from '@angular/router'
-import { ModalInterface, 
-         InjectionParentBase, 
-         RunContextBrowser, 
-         LOG_LEVEL, UiRouter }        from '@mubble/browser'
 
 import { query, 
          style, 
@@ -29,8 +25,15 @@ import { query,
          group,
          animate }                    from "@angular/animations"
 
-import { Mubble }                     from '@mubble/core'
-import { DomHelper }                  from '@mubble/browser'
+import { Mubble, LOG_LEVEL }          from '@mubble/core'
+
+import { InjectionParentBase }        from '../injection-base'
+
+import { RunContextBrowser }          from 'rc-browser'
+
+import { ModalInterface }             from '../injection-interface'
+
+import { UiRouter }                   from 'ui/router'
 
 const ROUTE_ANIM_MS     = 400
 

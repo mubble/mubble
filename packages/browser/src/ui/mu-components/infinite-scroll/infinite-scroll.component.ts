@@ -17,7 +17,7 @@ import { Component,
          NgZone,
          Renderer2
        }                from '@angular/core'
-import { DomHelper }    from '@mubble/browser/util/dom-helper'
+import { DomHelper }    from '../../../util/dom-helper'
 import { Mubble }       from '@mubble/core'
  
 const SCROLL_EVENT  = 'scroll'

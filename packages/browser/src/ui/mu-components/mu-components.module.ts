@@ -26,7 +26,8 @@ import { MuComponentsRoutingModule }        from './mu-components-routing.module
 
 import { TRANSLATION_PROVIDERS,
          TranslateService,
-         TranslatePipe
+         TranslatePipe,
+         getTranslationProviders
        }                                    from './translate'
          
 import { CustomBreakPointsProvider }        from './custom-breakpoints'
@@ -177,11 +178,11 @@ import { MaskingValueDirective }            from './directives/masking-value.dir
 })
 
 export class MuComponentsModule {
-  static forRoot(): ModuleWithProviders {
+  static forRoot(dictionary): ModuleWithProviders {
     return {
       ngModule: MuComponentsModule,
       providers: [
-        TRANSLATION_PROVIDERS,
+        getTranslationProviders(dictionary),
         TranslateService,
         {provide: HAMMER_GESTURE_CONFIG, useClass: GestureConfig}
       ]

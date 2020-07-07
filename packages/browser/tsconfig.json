@@ -1,14 +1,14 @@
 {
   "compilerOptions": {
     "module"                  : "commonjs",
+    "baseUrl"                 : "./src/",
     "target"                  : "es5",
-    "noImplicitAny"           : true,
     "sourceMap"               : true,
     "outDir"                  : "lib",
     "declaration"             : true,
     "emitDecoratorMetadata"   : true,
     "experimentalDecorators"  : true,
-    "strictNullChecks"        : true,
+    "esModuleInterop": true,
     "typeRoots"               : ["node_modules/@types"],
     "lib"                     : [
                                   "es2016",

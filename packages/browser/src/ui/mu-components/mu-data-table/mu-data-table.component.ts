@@ -22,13 +22,12 @@ import { FormControl,
 
 import { TableHeader, 
          FilterItem, 
-         DISPLAY_MODE
-       }                            from '@mubble/core/interfaces/app-server-interfaces'
-import { RunContextBrowser }        from '@mubble/browser/rc-browser'
-import { LOG_LEVEL,              
+         DISPLAY_MODE,
+         LOG_LEVEL,              
          COL_TYPE,
          MuSelectedFilter
        }                            from '@mubble/core'
+import { RunContextBrowser }        from '../../../rc-browser'
 import { FilterComponent }          from '../filter'
 
 export interface TableConfig {

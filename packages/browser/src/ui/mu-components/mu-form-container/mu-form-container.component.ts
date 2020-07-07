@@ -46,16 +46,16 @@ import { map,
 import { FileUploadComponent, 
          UploadedDocParams 
        }                                  from '../file-upload/file-upload.component'
-import { DISPLAY_TYPE, 
+import { Mubble,
+         DISPLAY_TYPE, 
          DISPLAY_MODE,
          InputParams,
          SelectionBoxParams,
          MuFormParams
-       }                                  from '@mubble/core/interfaces/app-server-interfaces'
+       }                                  from '@mubble/core'
 import { MuFormOutputParams, 
          FormOutputValue 
        }                                  from '../cmn-inp-cont/cmn-inp-cont-interfaces'
-import { Mubble }                         from '@mubble/core'
 
 @Component({
   selector    : 'mu-form-container',

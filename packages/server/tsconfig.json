@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "module"                  : "commonjs",
+    "baseUrl"                 : "./src/",
     "target"                  : "esnext",
     "noImplicitAny"           : true,
     "sourceMap"               : true,
@@ -16,7 +17,8 @@
   ],
   "exclude": [
       "node_modules",
-      "**/*.spec.ts"
+      "**/*.spec.ts",
+      "__tests__"
   ],
   "typeAcquisition": {
     "enable": true,

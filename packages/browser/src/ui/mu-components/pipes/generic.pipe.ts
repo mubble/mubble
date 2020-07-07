@@ -3,7 +3,7 @@ import { Pipe,
          Inject, 
          Injector
        }                      from '@angular/core'
-import { RunContextBrowser }  from '@mubble/browser/rc-browser'
+import { RunContextBrowser }  from '../../../rc-browser'
 
 
 @Pipe({ name: 'genericPipe' })
