@@ -2,8 +2,11 @@
   "name": "@mubble/browser",
   "version": "1.0.0",
   "description": "Browser package for Mubble projects",
-  "main": "src/index.ts",
+  "main": "lib/index.js",
   "types": "lib/index.d.ts",
+  "directories": {
+    "lib": "src/"
+  },
   "scripts": {
     "test": "npm run postinstall && jest --coverage",
     "postinstall": "install-peers -f"

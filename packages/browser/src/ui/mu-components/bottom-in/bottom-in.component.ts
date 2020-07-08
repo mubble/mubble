@@ -37,7 +37,7 @@ import { Mubble, LOG_LEVEL }    from '@mubble/core'
 
 import { InjectionParentBase }  from '../injection-base'
 
-import { RunContextBrowser }    from 'rc-browser'
+import { RunContextBrowser }    from '../../../rc-browser'
 
 import { BottomInInterface }    from '../injection-interface'
 
