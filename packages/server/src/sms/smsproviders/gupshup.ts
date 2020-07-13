@@ -27,11 +27,11 @@ const VERSION 		= '1.1',
 
 export class Gupshup extends SmsProviderClient {
 
-	https : HttpsRequest
+	httpsRequest : HttpsRequest
 
-	constructor(rc : RunContextServer, hostname : string) {
+	constructor(rc : RunContextServer, hostname : string, logDirectory : string) {
 		super()
-		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+		this.httpsRequest = new HttpsRequest(rc, logDirectory, hostname)
 	}
 
 	async request<T extends ClientInfo>(rc      : RunContextServer,
@@ -71,7 +71,7 @@ export class Gupshup extends SmsProviderClient {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'UrlObj :', urlObj, 'Options :', options)
 
-		const resp = await this.https.executeRequest(rc, urlObj, options)
+		const resp = await this.httpsRequest.executeRequest(rc, urlObj, options)
 
 		return { success : true, gwTranId : resp.response }
 	}

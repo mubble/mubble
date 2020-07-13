@@ -33,21 +33,21 @@ export class SmsSender {
 	private providercredentials : ProviderConfigs
 	private smsClientMap        : ClientMap = {}
 
-	constructor(rc : RunContextServer, providercredentials : ProviderConfigs) {
+	constructor(rc : RunContextServer, providercredentials : ProviderConfigs, logDirectory : string) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Initializing SMS sender.', providercredentials)
 
 		if (providercredentials.ACL) {
-			this.smsClientMap.ACL = new Acl(rc, providercredentials.ACL.host)
+			this.smsClientMap.ACL = new Acl(rc, providercredentials.ACL.host, logDirectory)
 		}
 		if (providercredentials.KARIX) {
-			this.smsClientMap.KARIX = new Karix(rc, providercredentials.KARIX.host)
+			this.smsClientMap.KARIX = new Karix(rc, providercredentials.KARIX.host, logDirectory)
 		}
 		if (providercredentials.GUPSHUP) {
-			this.smsClientMap.GUPSHUP = new Gupshup(rc, providercredentials.GUPSHUP.host)
+			this.smsClientMap.GUPSHUP = new Gupshup(rc, providercredentials.GUPSHUP.host, logDirectory)
 		}
 		if (providercredentials.ROUTE_MOBILE) {
-			this.smsClientMap.ROUTE_MOBILE = new RouteMobile(rc, providercredentials.ROUTE_MOBILE.host)
+			this.smsClientMap.ROUTE_MOBILE = new RouteMobile(rc, providercredentials.ROUTE_MOBILE.host, logDirectory)
 		}
 
 		this.providercredentials  = providercredentials

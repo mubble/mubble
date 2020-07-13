@@ -20,13 +20,12 @@ import { FormControl,
 
 import { TableHeader, 
          FilterItem, 
-         DISPLAY_MODE
-       }                            from '@mubble/core/interfaces/app-server-interfaces'
-import { RunContextBrowser }        from '@mubble/browser/rc-browser'
-import { LOG_LEVEL,              
+         DISPLAY_MODE,
+         LOG_LEVEL,              
          COL_TYPE,
          MuSelectedFilter
        }                            from '@mubble/core'
+import { RunContextBrowser }        from '../../../rc-browser'
 import { FilterComponent }          from '../filter'
 
 export interface TableConfig {
@@ -36,6 +35,7 @@ export interface TableConfig {
   enableSelect      ?: boolean
   enableRadio       ?: boolean
   enableFilter      ?: boolean
+  enableDownload    ?: boolean
   selectedIndexes   ?: number[]
   lazyLoad          ?: boolean
   totalRecords      ?: number
@@ -594,4 +594,14 @@ export class MuDataTableComponent implements OnInit {
     if (this.slctAllBox) this.slctAllBox.checked = false
     this.selAllMap[this.currPageIndex] = false
   }
+
+  /**
+   * Method invoked by parent to unselect the rows
+   * @param rowIndexes
+   */
+  downloadTableData() {
+    
+
+  }
+
 }

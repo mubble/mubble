@@ -1,5 +1,5 @@
 import { RunContextBrowser }  from ".."
-import { Mubble }             from "../../core"
+import { Mubble }             from "@mubble/core"
 
 const GLOBAL_PREFIX = 'global',
       CONFIG_PREFIX = 'config'

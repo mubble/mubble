@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { Mubble }                     from '../../core'
+import { Mubble }                     from '@mubble/core'
 import { RunContextBrowser }          from '../rc-browser'
 
 class AudioFile {

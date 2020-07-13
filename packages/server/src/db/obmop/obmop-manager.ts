@@ -63,7 +63,7 @@ export class ObmopManager {
   }
 
 	/**
-	 * Function to fetch all entries/row(S) of given table as per condition
+	 * 	Function to fetch all row(s) of given table as per condition.
 	 */
   public async query<T extends ObmopBaseEntity>(rc         : RunContextServer,
 		                                            entityType : new(rc : RunContextServer) => T,
@@ -102,6 +102,40 @@ export class ObmopManager {
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			throw mErr
+		}
+	}
+
+	/**
+	 * 	Function to fetch all row(s) of a given native SQL query.
+	 */
+	public async sql<T extends ObmopBaseEntity>(rc				 : RunContextServer,
+																							entityType : new(rc : RunContextServer) => T,
+																							query 		 : string,
+																							binds 		 : Array<any>) : Promise<Array<T>> {
+
+		const name 	 = new entityType(rc).getTableName(),
+					fields = ObmopRegistryManager.getRegistry(name).getFieldNamesAndMappings()																	
+
+		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', query, binds)
+
+		try {
+
+			const rows = await this.client.sql(rc, query, binds)
+
+			const entities = rows.map((row) => {
+				const entity = new entityType(rc)
+
+				for (const field of fields) {
+					entity[field.name as keyof T] = row[field.mapping]
+				}
+				return entity
+			})
+	
+			return entities
+		}	catch(err) {
+			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in executing query.`)
+			rc.isError() && rc.error(rc.getName(this), mErr, query, err)
 			throw mErr
 		}
 	}

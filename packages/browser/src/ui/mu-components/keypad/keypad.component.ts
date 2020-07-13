@@ -4,7 +4,7 @@ import { Component,
          EventEmitter,
          Input
         }                         from '@angular/core'
-import { RunContextApp }          from 'framework'
+import { RunContextBrowser } from '../../../rc-browser'
 
 export enum KEYBOARD_MODE {
   NORMAL    = 'NORMAL',
@@ -35,7 +35,7 @@ export class KeypadComponent {
 
   KEYBOARD_MODE = KEYBOARD_MODE
   
-  constructor(@Inject('RunContext') public rc : RunContextApp) { }
+  constructor(@Inject('RunContext') public rc : RunContextBrowser) { }
 
   ngOnInit() {
     if(!this.mode) this.mode = KEYBOARD_MODE.NORMAL

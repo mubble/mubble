@@ -30,11 +30,11 @@ const PORT = 8080,
 
 export class RouteMobile extends SmsProviderClient {
 
-	https : HttpsRequest
+	httpsRequest : HttpsRequest
 
-	constructor(rc : RunContextServer, hostname : string) {
+	constructor(rc : RunContextServer, hostname : string, logDirectory : string) {
 		super()
-		this.https = new HttpsRequest(rc, SmsConstants.SMS_LOG_DIR, hostname)
+		this.httpsRequest = new HttpsRequest(rc, logDirectory, hostname)
 	}
 
 	public async request<T extends ClientInfo>(rc      : RunContextServer,
@@ -61,7 +61,7 @@ export class RouteMobile extends SmsProviderClient {
 		const options : http.RequestOptions = urlObj
 		options.method = HTTP.Method.GET
 
-		const resp = await this.https.executeRequest(rc, urlObj, options)
+		const resp = await this.httpsRequest.executeRequest(rc, urlObj, options)
 
 		return { success : true, gwTranId : resp.response }
 	}

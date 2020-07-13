@@ -2,10 +2,6 @@ import { MaskingDataParams } from "./rc-base";
 
 export class DataMasker {
 
-  constructor() {
-     
-  }
-
   static maskData(maskingData : MaskingDataParams, data : string ) {
 
     const dataLength  = data.length
@@ -22,10 +18,9 @@ export class DataMasker {
       endSkipCount    = 0
     }
 
-    if (!maskedData) {
-      maskedData  = data.substr(0, startSkipCount) + `${maskingData.maskWith || '*'}`.repeat(maskLength) + 
+    maskedData  = data.substr(0, startSkipCount) + `${maskingData.maskWith || '*'}`.repeat(maskLength) + 
                     data.substr(dataLength - endSkipCount);
-    }
+    
 
     return maskedData        
   }
