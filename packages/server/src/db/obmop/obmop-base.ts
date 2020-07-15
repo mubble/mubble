@@ -48,9 +48,11 @@ export namespace Obmop {
                         sequence ?: string) {
 
     return function(target : any , propertyKey : string) {
-      const table : string  = target.constructor.name.toLowerCase()
+      const table       = target.constructor.name.toLowerCase(),
+            reflectType = Reflect.getMetadata('design:type', target, propertyKey)
 
-      ObmopRegistryManager.addField(table, propertyKey, type, unique, indexed, serial, sequence)
+      ObmopRegistryManager.addField(table, propertyKey, type, reflectType.name,
+                                    unique, indexed, serial, sequence)
     }
   }
 
@@ -60,10 +62,11 @@ export namespace Obmop {
    */
   export function primaryKey(serial : boolean = false, sequence ?: string) {
     return function(target : any , propertyKey : string) {
-      const table = target.constructor.name.toLowerCase()
+      const table       = target.constructor.name.toLowerCase(),
+            reflectType = Reflect.getMetadata('design:type', target, propertyKey)
 
-      ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, true,
-                                    true, serial, sequence)
+      ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, reflectType.name,
+                                    true, true, serial, sequence)
     }
   }
 }

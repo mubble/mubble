@@ -25,6 +25,8 @@ import { ObmopQueryCondition }			from './obmop-query'
 import { RunContextServer }   			from '../../rc-server'
 import { Mubble } 									from '@mubble/core'
 
+const NUMBER_TYPE = 'Number'
+
 export type ObmopQueryRetval<T> = {
 	entities   : Array<T>
 	totalCount : number
@@ -74,7 +76,7 @@ export class ObmopManager {
 		                                            sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
-					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNamesAndMappings()
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFields()
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, query, limit,
 														 offset, range, sort)
@@ -88,7 +90,11 @@ export class ObmopManager {
 				const entity = new entityType(rc)
 
 				for (const field of fields) {
-					entity[field.name as keyof T] = record[field.mapping]
+					if(field.dataType === NUMBER_TYPE) {
+						entity[field.name as keyof T] = Number(record[field.mapping]) as any
+					} else {
+						entity[field.name as keyof T] = record[field.mapping]
+					}
 				}
 				return entity
 			})
@@ -115,7 +121,7 @@ export class ObmopManager {
 																							binds 		 : Array<any>) : Promise<Array<T>> {
 
 		const name 	 = new entityType(rc).getTableName(),
-					fields = ObmopRegistryManager.getRegistry(name).getFieldNamesAndMappings()																	
+					fields = ObmopRegistryManager.getRegistry(name).getFields()																	
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', query, binds)
 
@@ -127,7 +133,11 @@ export class ObmopManager {
 				const entity = new entityType(rc)
 
 				for (const field of fields) {
-					entity[field.name as keyof T] = row[field.mapping]
+					if(field.dataType === NUMBER_TYPE) {
+						entity[field.name as keyof T] = Number(row[field.mapping]) as any
+					} else {
+						entity[field.name as keyof T] = row[field.mapping]
+					}
 				}
 				return entity
 			})
@@ -148,7 +158,7 @@ export class ObmopManager {
 		const tableName = entity.getTableName(),
 					entityObj = {} as Mubble.uObject<any>,
 					registry  = ObmopRegistryManager.getRegistry(tableName),
-					fields    = registry.getFieldNamesAndMappings()
+					fields    = registry.getFields()
 					
 		for(const field of fields) {
 			if(entity.hasOwnProperty(field.name)) entityObj[field.mapping] = entity[field.name as keyof T]
@@ -189,7 +199,7 @@ export class ObmopManager {
 		const tableName 	= entities[0].getTableName(),
 					entitiesArr = [] as Array<Mubble.uObject<any>>,
 					registry    = ObmopRegistryManager.getRegistry(tableName),
-					fields    	= registry.getFieldNamesAndMappings()
+					fields    	= registry.getFields()
 
 		for (const entity of entities) {
 			const entityObj = {} as Mubble.uObject<any>
@@ -241,7 +251,7 @@ export class ObmopManager {
 
 		const tableName = entity.getTableName(),
 					failed    = this.verifyEntityBeforeUpdating(rc, tableName, updates),
-					fields    = ObmopRegistryManager.getRegistry(tableName).getFieldNamesAndMappings()
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFields()
 		
 		if(failed) {
 			throw new Mubble.uError(DB_ERROR_CODE, failed)

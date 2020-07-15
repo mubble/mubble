@@ -20,6 +20,7 @@ export type ObmopFieldInfo = {
   name      : string
   mapping   : string
   type      : Obmop.FieldType
+  dataType  : string
   unique    : boolean
   indexed   : boolean
   serial    : boolean
@@ -99,10 +100,6 @@ export class ObmopRegistry {
     return this.fields.filter((field : ObmopFieldInfo) => field.type != Obmop.FieldType.OPTIONAL)
   }
 
-  getFieldNamesAndMappings() : Array<ObmopFieldNameMapping> {
-    return this.fields.map((field : ObmopFieldInfo) => { return { name : field.name, mapping : field.mapping} })
-  }
-
   getFieldInfo(field : string) : ObmopFieldInfo {
     const info = this.fields.find((f : ObmopFieldInfo) => f.mapping === field)
 
@@ -134,6 +131,7 @@ export class ObmopRegistryManager {
   public static addField(entity     : string,
                          fieldName  : string,
                          fieldType  : Obmop.FieldType,
+                         dataType   : string,
                          unique     : boolean,
                          indexed    : boolean,
                          serial     : boolean,
@@ -144,6 +142,7 @@ export class ObmopRegistryManager {
                                          name    : fieldName,
                                          mapping : fieldName.toLowerCase(),
                                          type    : fieldType,
+                                         dataType,
                                          unique,
                                          indexed,
                                          serial,
