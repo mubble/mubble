@@ -7,9 +7,10 @@
    Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { BqBase }                 from './bigquery-base'
-import { RunContextServer }       from '../../rc-server'
-import { Mubble }                 from '@mubble/core'
+import { BqBase, 
+          TABLE_OPTIONS   }    from './bigquery-base'
+import { RunContextServer }    from '../../rc-server'
+import { Mubble }              from '@mubble/core'
 
 /*------------------------------------------------------------------------------
    Bigquery Field Info
@@ -31,18 +32,23 @@ export class BigqueryRegistry {
 
   private dataset       : string
   private tableName     : string
-  private dayPartition  : boolean = false
+  private partition     : boolean = false
   private version      ?: number
   private fields        : Array<BqFieldInfo> = []
+  private tableOptions ?: TABLE_OPTIONS
 
   constructor(table: string) {
     this.tableName = table
   }
 
-  init(dataset: string, dayPartition : boolean = false, version ?: number) {
-    this.dataset      = dataset
-    this.dayPartition = dayPartition
-    this.version      = version
+  init(dataset: string, options ?: TABLE_OPTIONS, version ?: number) {
+    this.dataset        = dataset
+    this.partition      = false
+    if (options) {
+      this.partition    = options.timePartitioning ? true : false
+      this.tableOptions = options
+    }
+    this.version        = version
   }
 
   addField(field : BqFieldInfo) {
@@ -94,12 +100,16 @@ export class BigqueryRegistry {
     return this.tableName
   }
 
-  isDayPartition(): boolean {
-    return this.dayPartition
+  isPartition(): boolean {
+    return this.partition
   }
 
   getVersion(): number | undefined {
     return this.version
+  }
+
+  getOptions() : TABLE_OPTIONS | undefined {
+    return this.tableOptions
   }
 }
 
@@ -117,10 +127,10 @@ export class BqRegistryManager {
   }
 
   public static addEntity(dataset: string, tableName : string, 
-                          dayPartition: boolean = false, version ?: number) {
+                          options ?: TABLE_OPTIONS, version ?: number) {
 
     const registry : BigqueryRegistry  = this.getRegistry(tableName)
-    registry.init(dataset, dayPartition, version)
+    registry.init(dataset, options, version)
   }
 
   public static addField(tableName  : string,

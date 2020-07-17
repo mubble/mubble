@@ -12,6 +12,12 @@ import { BqRegistryManager }          from "./bigquery-registry"
 type UnionKeyToValue<U extends string> = {
   [K in U]: K
 }
+export type TABLE_OPTIONS = {timePartitioning       ?: {
+                                                          type   : 'DAY' | 'HOUR',
+                                                          field  : string // if set, partition happens on this field.
+                                                          // if not set, '_PARTITIONTIME' column will be created.
+                                                         },
+                             requirePartitionFilter ?: boolean }
 
 export namespace BqBase {
   
@@ -34,10 +40,10 @@ export namespace BqBase {
    *  Annotation to mark a Bq model.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function model(dataset: string, dayPartition : boolean = false, version ?: number) {
+  export function model(dataset: string, options ?: TABLE_OPTIONS, version ?: number) {
     return function(target: any) {
       BqRegistryManager.addEntity(dataset, target.name.toLowerCase(), 
-                                  dayPartition, version)
+                                  options, version)
     }
   }
 

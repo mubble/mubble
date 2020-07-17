@@ -176,11 +176,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
       }
     }
 
-    const meField = this.io.getReferredField(rc, fieldName as string, this.entityInfo.entityName) as MeField
-    if (meField.fieldType !== Array) { 
-      meField.accessor.validateType(value)
+    if (fieldName !== KEY) {
+      const meField = this.io.getReferredField(rc, fieldName as string, this.entityInfo.entityName) as MeField
+      if (meField.fieldType !== Array) { 
+        meField.accessor.validateType(value)
+      }
+      this.filters.push({fieldName : fieldName as string, comparator, value})
+    } else {
+      this.filters.push({fieldName : fieldName as string, comparator, value : this.io.buildKeyForDs(rc, this.entityInfo.cons, [], value)})
     }
-    this.filters.push({fieldName : fieldName as string, comparator, value})
+    
     return this
   }
 

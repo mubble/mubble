@@ -12,12 +12,15 @@ import { format }                     from '@mubble/core'
 import { RunContextServer }           from '../../rc-server'
 import { BigQueryClient }             from './bigquery-client'
 import { Dataset, 
-         Table 
+         Table,
+         InsertRowsOptions
        }                              from '@google-cloud/bigquery'
 import { BqRegistryManager
        }                              from './bigquery-registry'
 
-export type TABLE_CREATE_OPTIONS = {schema : any }
+export type TABLE_CREATE_OPTIONS = {schema                  : any,
+                                    timePartitioning       ?: any,
+                                    requirePartitionFilter ?: boolean }
 
 export function CheckUndefined(obj : any , nestingLevel : number = 2) {
   if(nestingLevel === 0) return
@@ -33,8 +36,9 @@ export abstract class BqBaseModel {
 
   public static DATE_FORMAT = '%yyyy%%mm%%dd%'
   
-  protected today_table : string
   private options : TABLE_CREATE_OPTIONS
+
+  private insertOptions : InsertRowsOptions
 
   public constructor(rc : RunContextServer) {}
 
@@ -53,14 +57,12 @@ export abstract class BqBaseModel {
     lo.assign(this , bqItemClone)
   }
 
-  getTableName(rc : RunContextServer, dayStamp ?: string): string {
+  getTableName(rc : RunContextServer): string {
   
     const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
     const verStr    = registry.getVersion() ? ('v'+ registry.getVersion()).replace(/\./gi,'') : '',  //v01
-          tableName = registry.isDayPartition() ?
-           `${registry.getTableName()}${verStr ? '_' + verStr : ''}_${dayStamp || format(new Date(), BqBaseModel.DATE_FORMAT)}`:
-           `${registry.getTableName()}${verStr ? '_' + verStr : ''}`
+          tableName = `${registry.getTableName()}${verStr ? '_' + verStr : ''}`
   
     return tableName.replace(/\./gi, '_')       
   }
@@ -100,16 +102,37 @@ export abstract class BqBaseModel {
         if (!parentField!!.fields) parentField!!.fields = []
         parentField!!.fields.push(recField)
       }
-  
-      this.options = {
-        "schema" : {
-          "fields" : fields
+
+      if (registry.isPartition()) {
+        this.options = {
+          "schema"    : {
+            "fields"  : fields
+          },
+          "timePartitioning" : {
+            "type"    : registry.getOptions()!.timePartitioning!.type,
+            "field"   : registry.getOptions()!.timePartitioning!.field
+          },
+          "requirePartitionFilter": registry.getOptions()!.requirePartitionFilter!
+        }
+      } else {
+        this.options = {
+          "schema" : {
+            "fields" : fields
+          }
         }
       }
-  
     }
 
     return this.options
+  }
+
+  public getTableInsertOptions(rc : RunContextServer) : InsertRowsOptions {
+    if (!this.insertOptions) {
+      this.insertOptions = {
+        "raw" : true
+      }
+    }
+    return this.insertOptions
   }
 
   public async init(rc : RunContextServer) {
@@ -130,7 +153,6 @@ export abstract class BqBaseModel {
           table     : Table   = dataset.table(tableName),
           tableRes  : any     = await table.exists()
     
-    this.today_table  = tableName
     if(tableRes[0]) {
       
       // Table metadata
@@ -169,31 +191,19 @@ export abstract class BqBaseModel {
         JSON.stringify( res[1].schema) , res[1].timePartitioning)
   }
 
-  public async getDataStoreTable(rc : RunContextServer , day_timestamp ?: string) {
+  public async getDataStoreTable(rc : RunContextServer) {
 
     const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
     const dataset       : Dataset              = BigQueryClient._bigQuery.dataset(registry.getDataset()),
-          tableName     : string               = this.getTableName(rc, day_timestamp) ,
+          tableName     : string               = this.getTableName(rc) ,
           table         : any                  = dataset.table(tableName)
-        
-    if(registry.isDayPartition() && this.today_table !== tableName){
-      // check day partition table exists
-      const tableRes : any = await table.exists()
-      if(!tableRes[0]){
-      // table does not exists. Create it
-      const res = await dataset.createTable(tableName , this.getTableOptions(rc))
-      rc.isDebug() && rc.debug(rc.getName(this), 'created table ',tableName , '[ Version ' + registry.getVersion() + ']')
-      
-      }
-      this.today_table = tableName
-    }
-    
+   
     rc.isDebug() && rc.debug(rc.getName(this), (this as any).name , ' insert data to table',tableName, '[ Version ' + registry.getVersion() + ']')
     return table
   }
 
-  async insert(rc : RunContextServer , day_timestamp ?: string) {
+  async insert(rc : RunContextServer) {
     
     let err = this.fieldsError(rc)  
     if(err) {
@@ -206,11 +216,84 @@ export abstract class BqBaseModel {
           ack     = rc.startTraceSpan(traceId)
 
     try {
-      const table    = await clazz.getDataStoreTable(rc , day_timestamp),
+      const table    : Table = await clazz.getDataStoreTable(rc),
             bqNiData = this
 
       rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
-      const res = await table.insert(bqNiData)
+      const res = await table.insert(bqNiData, this.getTableInsertOptions(rc))
+      rc.isDebug() && rc.debug(rc.getName(this), 'data insertion success')
+      
+    } catch(err) {
+      rc.isError() && rc.error(rc.getName(this), err)
+      throw err
+    } finally {
+      rc.endTraceSpan(traceId,ack)
+    }
+  }
+
+  async streamBulkInsert<T extends BQInsertObject>(rc : RunContextServer, items : T[]) {
+  
+    const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
+
+    for(const item of items) {
+      // check the fields sanity of all items
+      const str=item.json.fieldsError(rc)
+      if(str){
+        rc.isError() && rc.error(rc.getName(this), 'data sanity check failed for item',item , registry.getTableName())
+        throw new Error('Data Sanity Failure' + item + registry.getTableName())
+      }
+    }
+  
+    const table: Table = await this.getDataStoreTable(rc)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'streamBulkInsert ', registry.getTableName(), items.length)
+    try {
+      const res = await table.insert(items, this.getTableInsertOptions(rc))
+    } catch (error) {
+      rc.isError() && rc.error(rc.getName(this), 'streamBulkInsert Failure ', registry.getTableName(), error)
+      let errorRowCount : number = 0
+      if (error && error.name === 'PartialFailureError') {
+        rc.isError() && rc.error(rc.getName(this), 'streamBulkInsert Failure: PartialFailureError for table ' + registry.getTableName() , error)
+        rc.isError() && rc.error(rc.getName(this), 'streamBulkInsert Failure: ------start-------')
+        error.errors.forEach((element: any) => {
+          errorRowCount++
+          let errorDesc : string = ''
+          element.errors.forEach((errorDescObject: any) => {
+            errorDesc = JSON.stringify(errorDescObject) + ','
+          })
+          const errorMessage = `row: ${JSON.stringify(element.row)} failed due to ${errorDesc}`
+          rc.isError() && rc.error(rc.getName(this), 'Errors ', errorMessage)
+
+        })
+        rc.isError() && rc.error(rc.getName(this), 'streamBulkInsert Failure: ------end-------')
+      } else {
+        //todo handle other error scenarios
+      }
+      rc.isError() && rc.error(rc.getName(this), `streamBulkInsert success records:${items.length - errorRowCount}, failed records ${errorRowCount}`)
+      // throw new Error('Data Insert Failure for ' + registry.getTableName())
+      throw error
+    }
+    rc.isDebug() && rc.debug(rc.getName(this), 'streamBulkInsert Successful')
+  }
+
+  async streamInsert(rc : RunContextServer) {
+    
+    let err = this.fieldsError(rc)  
+    if(err) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Data Sanity Failed. Not inserting the model.',err)
+      return
+    }  
+      
+    const clazz   = this.constructor as any,
+          traceId = clazz.name + ':' + 'streamInsert:' + Date.now(),
+          ack     = rc.startTraceSpan(traceId)
+
+    try {
+      const table    : Table = await clazz.getDataStoreTable(rc),
+            bqNiData = this
+
+      rc.isDebug() && rc.debug(rc.getName(this), 'data : ',bqNiData)
+      const res = await table.insert(bqNiData, this.getTableInsertOptions(rc))
       rc.isDebug() && rc.debug(rc.getName(this), 'data insertion success')
       
     } catch(err) {
@@ -231,7 +314,7 @@ export abstract class BqBaseModel {
     return result
   } 
 
-  async bulkInsert<T extends BqBaseModel>(rc : RunContextServer, items : T[], day_timestamp ?: string) {
+  async bulkInsert<T extends BqBaseModel>(rc : RunContextServer, items : T[]) {
   
     const registry = BqRegistryManager.getRegistry((this as any).constructor.name.toLowerCase())    
 
@@ -244,9 +327,9 @@ export abstract class BqBaseModel {
       }
     }
   
-    const  table  : any = await this.getDataStoreTable(rc , day_timestamp)
-    rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert ',registry.getTableName() , items.length)
-    const res  = await table.insert(items)
+    const table: any = await this.getDataStoreTable(rc)
+    rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert ', registry.getTableName(), items.length)
+    const res = await table.insert(items)
     rc.isDebug() && rc.debug(rc.getName(this), 'bulkInsert Successful')
   }
 
@@ -291,4 +374,9 @@ export abstract class BqBaseModel {
     }
   }
 
+}
+
+export interface BQInsertObject {
+  insertId : string,
+  json     : any
 }
