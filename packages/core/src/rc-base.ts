@@ -13,8 +13,9 @@ import { ConnectionInfo,
          WireObject
        }                        from './xmn'
 import { Timer }                from './util/timer'
-import omit                     from 'lodash/omit'
-import keysIn                   from 'lodash/keysIn'
+import { omit }                 from 'lodash'
+import { keysIn }               from 'lodash'
+import { cloneDeep }            from 'lodash'
 import { DataMasker }           from './data-masker'
 
 // first index is dummy

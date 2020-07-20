@@ -9,8 +9,7 @@
 
 import { format } from './date'
 import { Mubble } from '../mubble'  
-import sortBy     from 'lodash/sortBy'
-
+import { sortBy } from 'lodash'
 const CYCLE_STEP = '_cycle_'
 
 export class PerformanceMetrics {
