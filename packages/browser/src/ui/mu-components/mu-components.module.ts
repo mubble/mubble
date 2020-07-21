@@ -176,7 +176,7 @@ import { MaskingValueDirective }            from './directives/masking-value.dir
 })
 
 export class MuComponentsModule {
-  static forRoot(dictionary): ModuleWithProviders {
+  static forRoot(dictionary): ModuleWithProviders<MuComponentsModule> {
     return {
       ngModule: MuComponentsModule,
       providers: [
