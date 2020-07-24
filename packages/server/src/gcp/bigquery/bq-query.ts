@@ -18,9 +18,13 @@ type UnionKeyToValue<U extends string> = {
 }
 
 export type BqSeparator = 'AND' | 'OR'
-export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL' | 'BETWEEN'
+export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 
+                          'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL' | 
+                          'BETWEEN'
 
-export type EXTRACT_PART = 'DAYOFWEEK' | 'DAY' | 'DAYOFYEAR' | 'WEEK' | 'ISOWEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 'ISOYEAR'
+export type EXTRACT_PART = 'DAYOFWEEK' | 'DAY' | 'DAYOFYEAR' | 'WEEK' | 
+                           'ISOWEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 
+                           'ISOYEAR'
 export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
   DAYOFWEEK : 'DAYOFWEEK',
   DAY       : 'DAY',
@@ -36,27 +40,36 @@ export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
 export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATE' | 'ROUND' | 
                                    'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 
                                    'CAST_STRING' | 'CAST_NUMERIC' | 'COUNTIF' | 
-                                   'FORMAT_TIMESTAMP' | 'STRING_AGGREGATE'
+                                   'FORMAT_TIMESTAMP' | 'STRING_AGG' |
+                                   'ARRAY_AGG' | 'ARRAY_AGG_OFFSET_0'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
-  COUNTIF           : 'COUNTIF', 
-  TEMPLATE          : 'TEMPLATE',
-  CONVERT_TO_DATE   : 'CONVERT_TO_DATE',
-  ROUND             : 'ROUND',
-  SUM               : 'SUM',
-  DISTINCT          : 'DISTINCT',
-  COUNT             : 'COUNT',
-  EXTRACT           : 'EXTRACT',
-  CAST_STRING       : 'CAST_STRING',
-  FORMAT_TIMESTAMP  : 'FORMAT_TIMESTAMP',
-  CAST_NUMERIC      : 'CAST_NUMERIC',
-  STRING_AGGREGATE  : 'STRING_AGGREGATE'
+  COUNTIF             : 'COUNTIF', 
+  TEMPLATE            : 'TEMPLATE',
+  CONVERT_TO_DATE     : 'CONVERT_TO_DATE',
+  ROUND               : 'ROUND',
+  SUM                 : 'SUM',
+  DISTINCT            : 'DISTINCT',
+  COUNT               : 'COUNT',
+  EXTRACT             : 'EXTRACT',
+  CAST_STRING         : 'CAST_STRING',
+  FORMAT_TIMESTAMP    : 'FORMAT_TIMESTAMP',
+  CAST_NUMERIC        : 'CAST_NUMERIC',
+  STRING_AGG          : 'STRING_AGG',
+  ARRAY_AGG           : 'ARRAY_AGG',
+  ARRAY_AGG_OFFSET_0  : 'ARRAY_AGG_OFFSET_0'
 }
 
 export interface QueryField {
-  name       : string
-  functions ?: (QUERY_FIELD_FUNCTION | string)[]
-  extract   ?: EXTRACT_PART
-  as        ?: string
+  name        : string
+  functions  ?: (QUERY_FIELD_FUNCTION | string)[]
+  extract    ?: EXTRACT_PART
+  as         ?: string
+}
+
+export interface QueryVariable {
+  name  : string
+  type  : 'STRING' | 'NUMERIC'
+  value : any
 }
 
 export interface TemplateField {
@@ -86,10 +99,11 @@ export namespace BqQueryBuilder {
    * @param operator Conditional operator compatible with Bigquery. By default it is '='.
    * @param upper optional for case insensitive search. By default it is false.
    */
-  export function newCondition(rc        : RunContextServer, 
-                               key       : string, 
-                               value    ?: any, 
-                               operator  : BqOperator = '='): string {
+  export function newCondition(rc         : RunContextServer, 
+                               key        : string, 
+                               value     ?: any, 
+                               operator   : BqOperator = '=',
+                               stringVal  : boolean = true): string {
 
     rc.isDebug() && rc.debug(rc.getName(this), 'Creating new condition.', key, value, operator)
 
@@ -108,7 +122,7 @@ export namespace BqQueryBuilder {
     } else if(value === undefined || value === null) {
       queryStr = `(${key} ${operator})`  
     } else {
-      queryStr = `(${key} ${operator} ${typeof value === 'string' ? `\'${value}\'` : value})`                   
+      queryStr = `(${key} ${operator} ${typeof value === 'string' && stringVal ? `\'${value}\'` : value})`                   
     }
 
     rc.isDebug() && rc.debug(rc.getName(this), 'newCondition', queryStr)
@@ -128,7 +142,7 @@ export namespace BqQueryBuilder {
     rc.isDebug() && rc.debug(rc.getName(this), 'joinConditons', conditions, separator)
 
     if (conditions.length === 0) return ''
-    const queryString  = `(${conditions.join(` ${separator} `)})`
+    const queryString  = `(${conditions.join(` ${separator} \n `)})`
     return queryString
   }
 
@@ -145,8 +159,8 @@ export namespace BqQueryBuilder {
           regFields    = registry.getFields(),
           nestedFields = {} as any
     
-    let select = 'SELECT '
-    const from = `FROM \`${projectId}.${registry.getDataset()}.${registry.getTableName()}\``
+    let select = 'SELECT \n'
+    const from = `FROM \`${projectId}.${registry.getDataset()}.${registry.getTableName()}\` \n`
 
     for (const fld of fields) {
 
@@ -207,7 +221,9 @@ export namespace BqQueryBuilder {
               selectField = BqQueryHelper.applyBqFunction(selectField, func)
             }  
           }
-          select += `${selectField} as ${field!.as || field!.name}, `
+          const sel = field!.as || field!.name        
+          select += selectField !== sel ? `${selectField} as ${field!.as || field!.name}, `
+                                        : `${selectField}, `
         }
       }
 
@@ -216,20 +232,22 @@ export namespace BqQueryBuilder {
     // For record
     let unnest = ''
     for (const key in nestedFields) {
-      unnest += `,UNNEST (${key}) as unnest_${key} ` 
+      unnest += `,UNNEST (${key}) as unnest_${key} \n` 
       for (const nestedField of nestedFields[key]) {
 
         let selectField = `unnest_${key}.${nestedField.field.name}`
         for (const func of nestedField.functions) {
           selectField = BqQueryHelper.applyBqFunction(selectField, func)
         }
-        select += `${selectField} as ${nestedField.as || nestedField.field.name}, `
+        const sel = nestedField.as || nestedField.field.name
+        select += selectField !== sel ? `${selectField} as ${nestedField.as || nestedField.field.name}, `
+                                      : `${selectField}, `
       }
     }
 
     let retval = `${select} ${from} ${unnest}`
-    if (condition) retval += `WHERE ${condition} `
-    if (groupBy) retval += `GROUP BY ${groupBy} `
+    if (condition) retval += `WHERE ${condition} \n`
+    if (groupBy) retval += `GROUP BY ${groupBy} \n`
 
     if (orderBy) {
       let str = ''
@@ -238,10 +256,10 @@ export namespace BqQueryBuilder {
         const val = orderBy[i]
         str += `${val.field} ${val.type} `
       }
-      retval += `ORDER BY ${str} `
+      retval += `ORDER BY ${str} \n`
     }
 
-    if (limit) retval += `LIMIT ${limit}`
+    if (limit) retval += `LIMIT ${limit} \n`
 
     return retval
   }
@@ -266,8 +284,8 @@ export namespace BqQueryBuilder {
                               groupBy    ?: string[],
                               limit      ?: number) {
 
-    let select = 'SELECT '
-    const from = `FROM ( ${query} )`
+    let select = 'SELECT \n'
+    const from = `FROM ( ${query} ) \n`
 
     for (const fld of fields) {
 
@@ -299,14 +317,16 @@ export namespace BqQueryBuilder {
             selectField = BqQueryHelper.applyBqFunction(selectField, func)
           }  
         }
-        select += selectField !== field.name ? `${selectField} as ${field.as || field.name}, ` 
-                                            : `${selectField}, ` 
+
+        const sel = field.as || field.name
+        select += selectField !== sel ? `${selectField} as ${sel}, ` 
+                                      : `${selectField}, ` 
         }
     }
     
     let retval = `${select} ${from} `
-    if (condition) retval += `WHERE ${condition} `
-    if (groupBy) retval += `GROUP BY ${groupBy} `
+    if (condition) retval += `WHERE ${condition} \n`
+    if (groupBy) retval += `GROUP BY ${groupBy} \n`
 
     if (orderBy) {
       let str = ''
@@ -315,18 +335,26 @@ export namespace BqQueryBuilder {
         const val = orderBy[i]
         str += `${val.field} ${val.type} `
       }
-      retval += `ORDER BY ${str} `
+      retval += `ORDER BY ${str} \n`
     }
 
-    if (limit) retval += `LIMIT ${limit}`
+    if (limit) retval += `LIMIT ${limit} \n`
 
     return retval
   }
 
+  export function addVariable(query: string, variable: QueryVariable): string {
+
+    const str = `DECLARE ${variable.name} ${variable.type} DEFAULT ${
+      variable.type === 'STRING' ? `\'${variable.value}\'`: variable.value};`
+    return `${str} \n ${query}`
+  }
+
   class BqQueryHelper {
 
-    static applyBqFunction(field  : string, 
-                           func   : QUERY_FIELD_FUNCTION | string): string {
+    static applyBqFunction(field      : string, 
+                           func       : QUERY_FIELD_FUNCTION | string,
+                           ignoreNull : boolean = true): string {
 
       switch(func) {
   
@@ -343,8 +371,14 @@ export namespace BqQueryBuilder {
         case QUERY_FIELD_FUNCTION.ROUND :
           return `ROUND (${field}, 2)`
 
-        case QUERY_FIELD_FUNCTION.STRING_AGGREGATE :
+        case QUERY_FIELD_FUNCTION.STRING_AGG :
           return `STRING_AGG(CAST(${field} AS STRING), ',')`
+
+        case QUERY_FIELD_FUNCTION.ARRAY_AGG :
+          return `ARRAY_AGG(${field} ${ignoreNull ? 'IGNORE NULLS' : ''})`
+
+        case QUERY_FIELD_FUNCTION.ARRAY_AGG_OFFSET_0 :
+          return `ARRAY_AGG(${field} ${ignoreNull ? 'IGNORE NULLS' : ''})[OFFSET(0)]`
 
         default :
           return `${func}(${field})`
