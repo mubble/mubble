@@ -245,7 +245,7 @@ export class HttpsServerProvider implements XmnProvider {
     this.finished = true
     this.server.markFinished(this)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'Closing provider', this.ci.provider)
+    rc.isDebug() && rc.debug(rc.getName(this), 'Closing provider')
     this.router.providerClosed(rc, this.ci)
   }
 

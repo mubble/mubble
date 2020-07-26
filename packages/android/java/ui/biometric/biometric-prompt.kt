@@ -70,7 +70,14 @@ class MuBiometricPrompt(val activity : MubbleBaseActivity, val builder: Biometri
     val keyStore: KeyStore = KeyStore.getInstance(KEY_STORE)
     keyStore.load(null)
 
-    val privateKey = keyStore.getKey(KEY_NAME, null) as PrivateKey
+    val privateKey = keyStore.getKey(KEY_NAME, null) as PrivateKey?
+
+    if (privateKey == null) {
+      val obj = JSONObject()
+      obj.put("errorCode", "KEY_INVALIDATED")
+      cb(obj)
+      return
+    }
 
     val signature = Signature.getInstance(SIGN_ALGO)
     signature.initSign(privateKey)
