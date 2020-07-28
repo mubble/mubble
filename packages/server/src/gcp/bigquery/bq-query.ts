@@ -122,7 +122,7 @@ export namespace BqQueryBuilder {
     } else if(value === undefined || value === null) {
       queryStr = `(${key} ${operator})`  
     } else {
-      queryStr = `(${key} ${operator} ${typeof value === 'string' && stringVal ? `\'${value}\'` : value})`                   
+      queryStr = `(${key} ${operator} (${typeof value === 'string' && stringVal ? `\'${value}\'` : value}))`                   
     }
 
     rc.isDebug() && rc.debug(rc.getName(this), 'newCondition', queryStr)

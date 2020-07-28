@@ -53,6 +53,7 @@ export interface InputParams {
   placeHolder      : string | string[]
   label           ?: string
   options         ?: SelectionBoxParams[]
+  selectAll       ?: boolean
   inputType       ?: string
   maxLength       ?: number
   value           ?: any
