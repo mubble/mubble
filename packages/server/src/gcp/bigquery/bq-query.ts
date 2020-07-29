@@ -20,7 +20,7 @@ type UnionKeyToValue<U extends string> = {
 export type BqSeparator = 'AND' | 'OR'
 export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 
                           'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL' | 
-                          'BETWEEN'
+                          'BETWEEN' | 'NOT IN'
 
 export type EXTRACT_PART = 'DAYOFWEEK' | 'DAY' | 'DAYOFYEAR' | 'WEEK' | 
                            'ISOWEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 
@@ -115,10 +115,15 @@ export namespace BqQueryBuilder {
       for(const val of value) {
         conds.push(typeof val === 'string' ? `\'${val}\'` : `${val}`)
       }
+
+      if (operator === 'BETWEEN') {
+        queryStr = `(${key} ${operator} ${conds[0]} AND ${conds[1]})`
+      } else if (operator === 'NOT IN') {
+        queryStr = `NOT ${key} IN (${conds.join(', ')})`
+      } else {
+        queryStr = `(${key} ${operator} (${conds.join(', ')}))`
+      }
       
-      queryStr = operator === 'BETWEEN' ? `(${key} ${operator} ${conds[0]} AND ${conds[1]})` 
-                                        : `(${key} ${operator} (${conds.join(', ')}))`
- 
     } else if(value === undefined || value === null) {
       queryStr = `(${key} ${operator})`  
     } else {
