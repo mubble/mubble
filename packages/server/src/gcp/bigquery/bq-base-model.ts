@@ -8,14 +8,14 @@
 ------------------------------------------------------------------------------*/
 
 import * as lo                        from 'lodash'  
-import { format }                     from '@mubble/core'
 import { RunContextServer }           from '../../rc-server'
 import { BigQueryClient }             from './bigquery-client'
 import { Dataset, 
          Table,
          InsertRowsOptions
        }                              from '@google-cloud/bigquery'
-import { BqRegistryManager
+import { BqRegistryManager, 
+         BigqueryRegistry
        }                              from './bigquery-registry'
 
 export type TABLE_CREATE_OPTIONS = {schema                  : any,
@@ -146,15 +146,14 @@ export abstract class BqBaseModel {
         !lo.isEmpty(registry.getTableName()) && 
         !lo.isEmpty(this.getTableOptions(rc)) , 'Table properties not set' )
 
-    const dataset  : Dataset  = await BigQueryClient._bigQuery.dataset(registry.getDataset()),
-          dsRes    : any      = await dataset.get({autoCreate : true})
+    const dataset   : Dataset  = await this.getDataset(rc, registry)
     
     const tableName : string  = this.getTableName(rc) ,
           table     : Table   = dataset.table(tableName),
           tableRes  : any     = await table.exists()
     
     if(tableRes[0]) {
-      
+      /*
       // Table metadata
       const metadata  : any = await table.getMetadata(),
             oldSchema : any = lo.cloneDeep(metadata[0].schema) ,
@@ -171,7 +170,7 @@ export abstract class BqBaseModel {
       rc.isError() && rc.error(rc.getName(this), 'Table [ Version ' + registry.getVersion() + ' ] schema is changed. new schema ',JSON.stringify(this.getTableOptions(rc).schema))
       
       throw new Error(registry.getTableName() +' Table [ Version ' + registry.getVersion() + ' ] schema changed . Change Version'+this.getTableOptions(rc) + '' + oldSchema)
-      /*
+      
       // Table schema is changed. Delete the old table and create new
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. old schema ',JSON.stringify(metadata[0].schema) )
       rc.isWarn() && rc.warn(rc.getName(this), 'Table schema is changed. new schema ',JSON.stringify(this.options.table_options.schema))
@@ -182,13 +181,14 @@ export abstract class BqBaseModel {
       await table.delete()
       await new Promise((resolve , reject)=>{setTimeout(resolve() , 4000)}) // wait for some time
       */
-    } 
-    
-    rc.isDebug() && rc.debug(rc.getName(this), 'creating the new BQ table', tableName)
-    // create new table . First time or after dropping the old schema
-    const res = await dataset.createTable(tableName , this.getTableOptions(rc))
-    rc.isDebug && rc.debug(rc.getName(this), 'bigQuery table result', 
-        JSON.stringify( res[1].schema) , res[1].timePartitioning)
+    } else {
+      rc.isDebug() && rc.debug(rc.getName(this), 'creating the new BQ table', tableName)
+      // create new table . First time or after dropping the old schema
+      const res = await dataset.createTable(tableName , this.getTableOptions(rc))
+      rc.isDebug && rc.debug(rc.getName(this), 'bigQuery table result', 
+          JSON.stringify( res[1].schema) , res[1].timePartitioning)  
+    }
+  
   }
 
   public async getDataStoreTable(rc : RunContextServer) {
@@ -372,6 +372,26 @@ export abstract class BqBaseModel {
     } finally {
       rc.endTraceSpan(traceId, ack)
     }
+  }
+
+  async getDataset(rc: RunContextServer, registry: BigqueryRegistry): Promise<Dataset> {
+
+    let dataset : Dataset = await BigQueryClient._bigQuery.dataset(registry.getDataset())
+
+    if (!dataset.exists()) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'creating new Dataset', registry.getDataset)
+
+      const options = {
+        location: 'asia-south1',
+      }
+    
+      // Create a new dataset
+      const [createdDataset] = await BigQueryClient._bigQuery.createDataset(
+        registry.getDataset(), options)
+      dataset = createdDataset
+    }
+
+    return dataset
   }
 
 }
