@@ -97,7 +97,7 @@ export class MuFormContainerComponent implements OnChanges {
               private formBuilder                 : FormBuilder,
               private changeRef                   : ChangeDetectorRef) { 
 
-    this.inputForm  = this.formBuilder.group({}) 
+    this.inputForm  = this.formBuilder.group({})    
     
   }
 
@@ -477,7 +477,7 @@ export class MuFormContainerComponent implements OnChanges {
             params.options.forEach(opt => {
               if (opt.selected) selectedValues.push(opt)
             })
-            if (selectedValues.length) this.inputForm.setValue(selectedValues)
+            if (selectedValues.length) this.inputForm.get(params.id).setValue(selectedValues[0])
           }
           this.setInputDisabled(params.id,params.isDisabled)
           break
