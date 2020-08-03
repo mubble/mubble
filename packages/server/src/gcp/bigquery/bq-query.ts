@@ -40,7 +40,7 @@ export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
 export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATE' | 'ROUND' | 
                                    'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 
                                    'CAST_STRING' | 'CAST_NUMERIC' | 'COUNTIF' | 
-                                   'FORMAT_TIMESTAMP' | 'STRING_AGG' |
+                                   'FORMAT_TIMESTAMP' | 'STRING_AGG' | 'DATE' |
                                    'ARRAY_AGG' | 'ARRAY_AGG_OFFSET_0'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   COUNTIF             : 'COUNTIF', 
@@ -56,7 +56,8 @@ export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   CAST_NUMERIC        : 'CAST_NUMERIC',
   STRING_AGG          : 'STRING_AGG',
   ARRAY_AGG           : 'ARRAY_AGG',
-  ARRAY_AGG_OFFSET_0  : 'ARRAY_AGG_OFFSET_0'
+  ARRAY_AGG_OFFSET_0  : 'ARRAY_AGG_OFFSET_0',
+  DATE                : 'DATE'
 }
 
 export interface QueryField {
@@ -292,41 +293,47 @@ export namespace BqQueryBuilder {
     let select = 'SELECT \n'
     const from = `FROM ( ${query} ) \n`
 
-    for (const fld of fields) {
+    if (fields.length == 0) {
+      select += '* '
+      
+    } else {
 
-      // Checking for TemplateField
-      if (isOfTypeTemplateField(fld)) {
+      for (const fld of fields) {
 
-        for (let i=0; i<fld.fields.length; i++) {
-          fld.template = fld.template.split(`%${i}%`).join(`${fld.fields[i]}`)
-        }
+        // Checking for TemplateField
+        if (isOfTypeTemplateField(fld)) {
 
-        select += `${fld.template} as ${fld.as}, `
+          for (let i=0; i<fld.fields.length; i++) {
+            fld.template = fld.template.split(`%${i}%`).join(`${fld.fields[i]}`)
+          }
 
-      } else {
+          select += `${fld.template} as ${fld.as}, `
 
-        // Normalizing to QueryField
-        let field : QueryField
-        if (typeof fld !== 'string') {
-          field = fld
         } else {
-          field = {
-                    name      : fld,
-                    functions : []
-                  }
-        }
 
-        let selectField = field.name
-        if (field.functions) {
-          for (const func of field.functions) {
-            selectField = BqQueryHelper.applyBqFunction(selectField, func)
-          }  
-        }
+          // Normalizing to QueryField
+          let field : QueryField
+          if (typeof fld !== 'string') {
+            field = fld
+          } else {
+            field = {
+                      name      : fld,
+                      functions : []
+                    }
+          }
 
-        const sel = field.as || field.name
-        select += selectField !== sel ? `${selectField} as ${sel}, ` 
-                                      : `${selectField}, ` 
-        }
+          let selectField = field.name
+          if (field.functions) {
+            for (const func of field.functions) {
+              selectField = BqQueryHelper.applyBqFunction(selectField, func)
+            }  
+          }
+
+          const sel = field.as || field.name
+          select += selectField !== sel ? `${selectField} as ${sel}, ` 
+                                        : `${selectField}, ` 
+          }
+      }
     }
     
     let retval = `${select} ${from} `
