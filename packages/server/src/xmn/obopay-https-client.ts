@@ -248,7 +248,7 @@ export namespace ObopayHttpsClient {
 
       if(!verifyIp(lo.cloneDeep(clientCredentials.permittedIps), clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
-                                'Client IP not permitted.')
+                                `Client IP not permitted: ${clientIp}`)
       }
 
       if(!headers[HTTP.HeaderKey.bodyEncoding])
