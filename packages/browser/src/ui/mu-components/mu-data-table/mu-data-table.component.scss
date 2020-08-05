@@ -228,3 +228,13 @@ input {
   display: flex;
   align-items: center;
 }
+
+.show-menu {
+  position: relative;
+}
+
+.download {
+  float: left;
+  margin: 10px 0 0 10px;
+  cursor: pointer;
+}

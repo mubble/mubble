@@ -25,6 +25,28 @@
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
         of {{ tableConfig.totalRecords }} records 
       </div>
+
+      <div class="download text-color-primary"  
+        [matMenuTriggerFor]="menu"
+        #menuTrigger="matMenuTrigger"          
+        (click)="onDownloadClick()">
+        <i *ngIf="dataToDisplay.length && tableConfig.downloadFormats"
+        class="fa fa-download" aria-hidden="true"></i>
+      </div>
+
+      <div class="show-menu">
+        <mat-menu #menu="matMenu"
+          [xPosition]="'before'"
+          [yPosition]="'below'">
+    
+          <div class="txt-lg-bld-norm" *ngFor="let format of tableConfig.downloadFormats">
+            <button mat-menu-item (click)="onSelectingFormat(format)">
+              {{ format }}
+            </button>
+          </div>    
+        </mat-menu>
+      </div>
+    
       <div class="paginator text-color-primary" *ngIf="pageNumbers.length > 1">
         <div [ngClass]="{'text-color-disable' : currPageIndex === 0}" class="fast-backward pagenumber"
             (click)="onPageClick(0)">
