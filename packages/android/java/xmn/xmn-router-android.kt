@@ -1,5 +1,6 @@
 package xmn
 
+import com.obopay.dms.deliverypartner.BuildConfig
 import core.BaseApp
 import core.MubbleLogger
 import org.jetbrains.anko.error
@@ -106,8 +107,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
-    assert(customData != null && customData.clientId != 0L) {
-      "You cannot send Persistent events without clientId"
+    if (BuildConfig.DEBUG && !(customData != null && customData.clientId != 0L)) {
+      error("You cannot send Persistent events without clientId")
     }
 
     val event = WireEvent(eventName, data, System.currentTimeMillis())
@@ -122,8 +123,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
-    assert(customData != null && customData.clientId != 0L) {
-      "You cannot send Ephemeral events without clientId"
+    if (BuildConfig.DEBUG && !(customData != null && customData.clientId != 0L)) {
+      error("You cannot send Ephemeral events without clientId")
     }
 
     val event = WireEphEvent(eventName, data, System.currentTimeMillis())
@@ -138,6 +139,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     this.ci.customData?.location    = this.getLocation()
     this.ci.customData?.networkType = this.getNetworkType()
     this.ci.publicRequest           = this.ci.customData == null
+
+    info { "prepareConnection customData : ${this.ci.customData}" }
 
     if (this.ci.provider == null) this.ci.provider = WsAndroid(this.ci, this)
   }
