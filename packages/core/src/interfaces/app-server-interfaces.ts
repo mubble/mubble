@@ -17,7 +17,8 @@ export enum COL_TYPE  {
   TOGGLE       = 'TOGGLE',
   HYPER_LINK   = 'HYPER_LINK',
   MORE_DETAILS = 'MORE_DETAILS',
-  MULTI_LINE   = 'MULTI_LINE'
+  MULTI_LINE   = 'MULTI_LINE',
+  INPUT_EDIT   = 'INPUT_EDIT'
 }
 
 export interface PipeParams {
