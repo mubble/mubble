@@ -152,10 +152,15 @@ export namespace BqQueryBuilder {
     return queryString
   }
 
+  /**
+   * 
+   * @param allowEmpty : If set to true, it allows rows with null / empty array fields
+   */
   export function query(rc          : RunContextServer, 
                         projectId   : string,
                         table       : string, 
                         fields      : Array<string | QueryField | TemplateField>, 
+                        allowEmpty  : boolean,
                         condition  ?: string,
                         orderBy    ?: OrderBy[], 
                         groupBy    ?: string[], 
@@ -238,7 +243,8 @@ export namespace BqQueryBuilder {
     // For record
     let unnest = ''
     for (const key in nestedFields) {
-      unnest += `,UNNEST (${key}) as unnest_${key} \n` 
+      unnest += allowEmpty ? `LEFT JOIN UNNEST (${key}) as unnest_${key} \n`
+                           : `, UNNEST (${key}) as unnest_${key} \n`
       for (const nestedField of nestedFields[key]) {
 
         let selectField = `unnest_${key}.${nestedField.field.name}`
