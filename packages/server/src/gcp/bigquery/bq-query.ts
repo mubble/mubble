@@ -20,7 +20,7 @@ type UnionKeyToValue<U extends string> = {
 export type BqSeparator = 'AND' | 'OR'
 export type BqOperator  = '=' | '!=' | '<' | '>' | '<=' | '>=' | 
                           'IN' | 'LIKE' | 'IS NULL' | 'NOT NULL' | 
-                          'BETWEEN' | 'NOT IN'
+                          'BETWEEN' | 'NOT IN' | 'IS NOT NULL'
 
 export type EXTRACT_PART = 'DAYOFWEEK' | 'DAY' | 'DAYOFYEAR' | 'WEEK' | 
                            'ISOWEEK' | 'MONTH' | 'QUARTER' | 'YEAR' | 
@@ -377,9 +377,8 @@ export namespace BqQueryBuilder {
       switch(func) {
   
         case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
-          // return `EXTRACT(DATE FROM (${field}))`
-          return `${QUERY_FIELD_FUNCTION.FORMAT_TIMESTAMP}('%d/%m/%Y %H:%M:%S', (${field}))`
-
+          return `FORMAT_DATETIME("%d/%m/%Y %H:%M:%S", DATETIME(${field}, "Asia/Kolkata"))` 
+          
         case QUERY_FIELD_FUNCTION.CAST_STRING :
           return `CAST((${field}) AS STRING)`
 
