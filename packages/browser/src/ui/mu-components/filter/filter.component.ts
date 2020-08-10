@@ -110,6 +110,7 @@ export class FilterComponent {
     }
     
     this.selectedFilter.emit(this.filters)
+
   }
 
   clearFilters() {
@@ -122,6 +123,8 @@ export class FilterComponent {
     this.initialize(CONTEXT.CLEAR)
     this.filterChips = []
     this.selectedFilter.emit(undefined)   //on clearing, we just return undefined
+
+
   }
 
   setFilterItems(event : OutputParams) {

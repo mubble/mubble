@@ -108,6 +108,7 @@ export class MuDataTableComponent implements OnInit {
 
   @Output() selectedFilter     : EventEmitter<MuSelectedFilter[]> = new EventEmitter<MuSelectedFilter[]>()
 
+
   pageIndex         : number   
   currPageIndex     : number  
   prevPageIndex     : number   
@@ -588,10 +589,11 @@ export class MuDataTableComponent implements OnInit {
       return
     }
     this.changeDet.detectChanges()
+    
     this.selectedFilter.emit(event)
     
   }
-
+  
   /**
    * Method invoked by parent to unselect the rows
    * @param rowIndexes
