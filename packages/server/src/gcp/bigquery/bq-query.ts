@@ -37,14 +37,15 @@ export const EXTRACT_PART : UnionKeyToValue<EXTRACT_PART> = {
   ISOYEAR   : 'ISOYEAR'
 }
 
-export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATE' | 'ROUND' | 
+export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATETIME' | 'ROUND' | 
                                    'SUM' | 'DISTINCT' | 'COUNT' | 'EXTRACT' | 
                                    'CAST_STRING' | 'CAST_NUMERIC' | 'COUNTIF' | 
-                                   'FORMAT_TIMESTAMP' | 'STRING_AGG' | 'DATE' |
-                                   'ARRAY_AGG' | 'ARRAY_AGG_OFFSET_0'
+                                   'STRING_AGG' | 'DATE' | 'ARRAY_AGG' | 
+                                   'ARRAY_AGG_OFFSET_0' | 'CONVERT_TO_DATE'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   COUNTIF             : 'COUNTIF', 
   TEMPLATE            : 'TEMPLATE',
+  CONVERT_TO_DATETIME : 'CONVERT_TO_DATETIME',
   CONVERT_TO_DATE     : 'CONVERT_TO_DATE',
   ROUND               : 'ROUND',
   SUM                 : 'SUM',
@@ -52,7 +53,6 @@ export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   COUNT               : 'COUNT',
   EXTRACT             : 'EXTRACT',
   CAST_STRING         : 'CAST_STRING',
-  FORMAT_TIMESTAMP    : 'FORMAT_TIMESTAMP',
   CAST_NUMERIC        : 'CAST_NUMERIC',
   STRING_AGG          : 'STRING_AGG',
   ARRAY_AGG           : 'ARRAY_AGG',
@@ -376,9 +376,12 @@ export namespace BqQueryBuilder {
 
       switch(func) {
   
-        case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
+        case QUERY_FIELD_FUNCTION.CONVERT_TO_DATETIME : 
           return `FORMAT_DATETIME("%d/%m/%Y %H:%M:%S", DATETIME(${field}, "Asia/Kolkata"))` 
           
+        case QUERY_FIELD_FUNCTION.CONVERT_TO_DATE : 
+          return `FORMAT_DATETIME("%d/%m/%Y", DATETIME(${field}, "Asia/Kolkata"))`
+
         case QUERY_FIELD_FUNCTION.CAST_STRING :
           return `CAST((${field}) AS STRING)`
 
