@@ -41,6 +41,7 @@ export interface TableHeader {
   dataKeyType  ?: string[] // it consists of the COL_TYPE of keys in multiLineKey
   dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
   headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
+  elementStyle ?: string
 }
 
 export interface FilterItem {
