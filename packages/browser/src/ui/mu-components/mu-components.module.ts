@@ -154,6 +154,7 @@ import { MaskingValueDirective }            from './directives/masking-value.dir
     NcFallbackCharDirective,
     KeyboardDirective,
     MaskingValueDirective,
+    AlertDialogComponent,
 
     TranslatePipe,
     GenericPipe,
