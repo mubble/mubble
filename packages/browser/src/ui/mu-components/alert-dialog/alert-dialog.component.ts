@@ -31,7 +31,7 @@ export enum DIALOG_RESULT {
 }
 
 @Component({
-  selector    : 'app-alert-dialog',
+  selector    : 'alert-dialog',
   templateUrl : './alert-dialog.component.html',
   styleUrls   : ['./alert-dialog.component.scss']
 })

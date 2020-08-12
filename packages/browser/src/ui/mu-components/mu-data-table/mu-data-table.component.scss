@@ -101,8 +101,8 @@ img {
 }
 
 .click-item:hover {
-  background: #d2d2d2;
-  border-radius: 5px;
+  // background: #d2d2d2;
+  // border-radius: 5px;
 }
 
 .curs-pointer {
@@ -127,11 +127,13 @@ img {
   font-size: 1.5rem;
 }
 
-::ng-deep.mat-menu-panel {
-  position: absolute;
-  top: -25px;
-  right: 0px;
-}
+//do not override the classes like these as this will effect everywhere
+
+// ::ng-deep.mat-menu-panel {
+//   position: absolute;
+//   top: -25px;
+//   right: 0px;
+// }
 
 .paginator {
   display: flex;
@@ -204,12 +206,16 @@ input {
   flex-direction: row;
 }
 
-.header-width {
-  width : 65px;
-}
+// .header-width {
+//   width : 65px;
+// }
 
-.data-width {
-  width: 100px;
+// .data-width {
+//   width: 100px;
+// }
+
+.row-margin {
+  margin-top: 10px;
 }
 
 .colon-width {
@@ -220,7 +226,6 @@ input {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  margin-left: 20px;
   text-align: left;
 }
 

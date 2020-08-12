@@ -26,21 +26,25 @@ export interface PipeParams {
   value     ?: any
 }
 
-export interface TableHeader {
-  header        : string
-  dataKey      ?: string
-  colType       : COL_TYPE 
-  pipeParams   ?: PipeParams
-  pipeParmas   ?: PipeParams
-  customStyle  ?: string
-  constValue   ?: any
-  enableSort   ?: boolean
-  widthPerc    ?: number
-  isEditable   ?: boolean
-  multiLineKey ?: string[] // It takes input as image text and icon
-  dataKeyType  ?: string[] // it consists of the COL_TYPE of keys in multiLineKey
+export interface MuMultiLineParms {
+  multiLineKey ?: COL_TYPE[] // It takes input as image text and icon
+  dataKeyType  ?: string[] // required only if multiLineKey consists of Image or Icon.
   dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
   headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
+}
+
+export interface TableHeader {
+  header           : string
+  colType          : COL_TYPE 
+  dataKey         ?: string
+  pipeParams      ?: PipeParams
+  pipeParmas      ?: PipeParams
+  customStyle     ?: string
+  constValue      ?: any
+  enableSort      ?: boolean
+  widthPerc       ?: number
+  isEditable      ?: boolean
+  multiLineParas  ?: MuMultiLineParms
 }
 
 export interface FilterItem {
