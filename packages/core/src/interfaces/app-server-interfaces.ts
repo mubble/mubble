@@ -76,6 +76,7 @@ export interface InputParams {
   maskLength      ?: number
   isVisible       ?: boolean
   rangeKeys       ?: string[]
+  selectAll       ?: boolean
 }
 
 
