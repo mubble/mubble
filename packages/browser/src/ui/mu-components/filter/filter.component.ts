@@ -185,6 +185,7 @@ export class FilterComponent {
           (!fItem.params.value && !this.filters[index].value)
           ? changed = false
           : changed = fItem.params.value !== this.filters[index].value
+
           break
 
         case DISPLAY_TYPE.DATE_RANGE    :

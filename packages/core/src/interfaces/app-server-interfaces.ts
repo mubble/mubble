@@ -28,9 +28,9 @@ export interface PipeParams {
 
 export interface MuMultiLineParms {
   multiLineKey ?: COL_TYPE[] // It takes input as image text and icon
-  dataKeyType  ?: string[] // required only if multiLineKey consists of Image or Icon.
-  dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
-  headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
+  dataKeyType   : string[] // required only if multiLineKey consists of Image or Icon.
+  dataKeyArr    : string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
+  headerArr     : string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
 }
 
 export interface TableHeader {

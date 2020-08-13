@@ -19,6 +19,30 @@
 | 1.0.0 | Raghvendra Varma | 2019-03-07 | Approved |
 
 
+# Version 1.15.2
+
+## Features
+- Download feature in Mu data table.
+- Css changes in Mu data table.
+- Table Header interface changes. 
+
+## Bug Fixes
+- None
+
+## Improvements
+- None
+
+## Upgrade Steps
+- None
+
+## Breaking Changes
+- None
+
+## Other Changes
+- None
+
+
+
 # Version 1.15.1
 
 ## Features
