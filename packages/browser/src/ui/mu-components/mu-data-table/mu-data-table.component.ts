@@ -14,7 +14,8 @@ import { Component,
 import { MatCheckboxChange, 
          MatRadioChange,
          MatSlideToggleChange,
-         MatCheckbox
+         MatCheckbox,
+         MatMenuTrigger
        }                            from '@angular/material'
 import { FormControl, 
          FormGroup
@@ -44,6 +45,7 @@ export interface TableConfig {
   totalRecords      ?: number
   horizFilterParams ?: FilterItem[],
   vertFilterParams  ?: FilterItem[],
+  downloadFormats   ?: string[]
 }
 
 export interface MuTableRowSelEvent {
@@ -88,9 +90,11 @@ export interface MuTableEditEvent {
 
 export class MuDataTableComponent implements OnInit {
 
-  @ViewChild('slctAllBox',  {static : false}) slctAllBox  : MatCheckbox
-  @ViewChild('filterCont',  {static : false}) filterCont  : ElementRef
-  @ViewChild('muTableCont', {static : false}) muTableCont : ElementRef
+  @ViewChild('slctAllBox',  {static : false}) slctAllBox   : MatCheckbox
+  @ViewChild('filterCont',  {static : false}) filterCont   : ElementRef
+  @ViewChild('muTableCont', {static : false}) muTableCont  : ElementRef
+  @ViewChild('menuTrigger', { static : true }) menuTrigger : MatMenuTrigger
+
   @ViewChildren(FilterComponent)  filterCompChildren      : QueryList<FilterComponent>
 
   @Input()  tableConfig        : TableConfig
@@ -100,8 +104,10 @@ export class MuDataTableComponent implements OnInit {
   @Output() onDetailClick      : EventEmitter<MuTableDetailEvent>  = new EventEmitter()
   @Output() onCellClick        : EventEmitter<MuTableClickEvent>   = new EventEmitter()
   @Output() onRowEdit          : EventEmitter<MuTableEditEvent>    = new EventEmitter()
+  @Output() onDownload         : EventEmitter<string>              = new EventEmitter()
 
   @Output() selectedFilter     : EventEmitter<MuSelectedFilter[]> = new EventEmitter<MuSelectedFilter[]>()
+
 
   pageIndex         : number   
   currPageIndex     : number  
@@ -583,10 +589,11 @@ export class MuDataTableComponent implements OnInit {
       return
     }
     this.changeDet.detectChanges()
+    
     this.selectedFilter.emit(event)
     
   }
-
+  
   /**
    * Method invoked by parent to unselect the rows
    * @param rowIndexes
@@ -605,6 +612,25 @@ export class MuDataTableComponent implements OnInit {
   downloadTableData() {
     
 
+  }
+
+  /**
+   * Method invoked by parent to download the records in XLSX, CSV or XLS format
+   * @param rowIndexes
+   */
+
+  onDownloadClick() {
+    this.menuTrigger.closeMenu()
+
+    if (this.tableConfig.downloadFormats.length === 1) {
+      this.onSelectingFormat(this.tableConfig.downloadFormats[0])
+    } else {
+      this.menuTrigger.openMenu()
+    }
+  }
+
+  onSelectingFormat(fileFormat : string) {
+    this.onDownload.emit(fileFormat)
   }
 
 }

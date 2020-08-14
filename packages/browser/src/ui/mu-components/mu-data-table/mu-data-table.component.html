@@ -25,6 +25,28 @@
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 
         of {{ tableConfig.totalRecords }} records 
       </div>
+
+      <div class="download text-color-primary"  
+        [matMenuTriggerFor]="menu"
+        #menuTrigger="matMenuTrigger"          
+        (click)="onDownloadClick()">
+        <i *ngIf="dataToDisplay.length && tableConfig.downloadFormats"
+        class="fa fa-download" aria-hidden="true"></i>
+      </div>
+
+      <div class="show-menu">
+        <mat-menu #menu="matMenu"
+          [xPosition]="'before'"
+          [yPosition]="'below'">
+    
+          <div class="txt-lg-bld-norm" *ngFor="let format of tableConfig.downloadFormats">
+            <button mat-menu-item (click)="onSelectingFormat(format)">
+              {{ format }}
+            </button>
+          </div>    
+        </mat-menu>
+      </div>
+    
       <div class="paginator text-color-primary" *ngIf="pageNumbers.length > 1">
         <div [ngClass]="{'text-color-disable' : currPageIndex === 0}" class="fast-backward pagenumber"
             (click)="onPageClick(0)">
@@ -101,22 +123,22 @@
 
           <!-- Column to display multi line text along with image and icon -->
           <div class="multi-line click-item" *ngSwitchCase="COL_TYPE.MULTI_LINE"
-              (click)="cellClick(rowData, header.dataKeyArr[0])">
-            <div class="multi-line-text-align" *ngFor="let colType of header.dataKeyType; let i = index">
+              (click)="cellClick(rowData, header?.multiLineParas?.dataKeyArr[0])">
+            <div class="multi-line-text-align" *ngFor="let colType of header?.multiLineParas?.dataKeyType; let i = index">
               <div *ngIf="colType === COL_TYPE.IMAGE">
-                <img src="{{ header.multiLineKey[i] }}">
+                <img src="{{ header?.multiLineParas?.multiLineKey[i] }}">
               </div>
               <div *ngIf="colType === COL_TYPE.ICON">
-                <i class="{{ rowData[header.multiLineKey[i]] }}"></i>
+                <i class="{{ rowData[header?.multiLineParas?.multiLineKey[i]] }}"></i>
               </div>
               <div *ngIf="colType === COL_TYPE.TEXT">
-                <div *ngFor="let data of header.dataKeyArr; let j = index" class="profile-align">
-                  <div class="multi-line">
-                    <div *ngIf="header.headerArr"
+                <div *ngFor="let data of header?.multiLineParas?.dataKeyArr; let j = index" class="profile-align">
+                  <div class="multi-line" [class.row-margin]="j >= 1">
+                    <div *ngIf="header?.multiLineParas?.headerArr"
                       class="text-color-primary txt-md-med-norm header-width"> 
-                      {{ header.headerArr[j] }} 
+                      {{ header?.multiLineParas?.headerArr[j] }} 
                     </div>
-                    <div *ngIf="header.headerArr" class="colon-width">
+                    <div *ngIf="header?.multiLineParas?.headerArr" class="colon-width">
                       :
                     </div>
                     <div class="txt-md-med-norm data-width">

@@ -17,7 +17,8 @@ export enum COL_TYPE  {
   TOGGLE       = 'TOGGLE',
   HYPER_LINK   = 'HYPER_LINK',
   MORE_DETAILS = 'MORE_DETAILS',
-  MULTI_LINE   = 'MULTI_LINE'
+  MULTI_LINE   = 'MULTI_LINE',
+  INPUT_EDIT   = 'INPUT_EDIT'
 }
 
 export interface PipeParams {
@@ -25,21 +26,25 @@ export interface PipeParams {
   value     ?: any
 }
 
+export interface MuMultiLineParms {
+  multiLineKey ?: COL_TYPE[] // It takes input as image text and icon
+  dataKeyType   : string[] // required only if multiLineKey consists of Image or Icon.
+  dataKeyArr    : string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
+  headerArr     : string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
+}
+
 export interface TableHeader {
-  header        : string
-  dataKey      ?: string
-  colType       : COL_TYPE 
-  pipeParams   ?: PipeParams
-  pipeParmas   ?: PipeParams
-  customStyle  ?: string
-  constValue   ?: any
-  enableSort   ?: boolean
-  widthPerc    ?: number
-  isEditable   ?: boolean
-  multiLineKey ?: string[] // It takes input as image text and icon
-  dataKeyType  ?: string[] // it consists of the COL_TYPE of keys in multiLineKey
-  dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
-  headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
+  header           : string
+  colType          : COL_TYPE 
+  dataKey         ?: string
+  pipeParams      ?: PipeParams
+  pipeParmas      ?: PipeParams
+  customStyle     ?: string
+  constValue      ?: any
+  enableSort      ?: boolean
+  widthPerc       ?: number
+  isEditable      ?: boolean
+  multiLineParas  ?: MuMultiLineParms
 }
 
 export interface FilterItem {
@@ -71,6 +76,7 @@ export interface InputParams {
   maskLength      ?: number
   isVisible       ?: boolean
   rangeKeys       ?: string[]
+  selectAll       ?: boolean
 }
 
 
@@ -157,8 +163,8 @@ export interface FilterParams {
 
 //TODO - to be verified
 export interface MuSelectedFilter {
-  id           : string,
-  mode         : FILTER_MODE,
+  id           : string
+  mode         : FILTER_MODE
   value        : any
   displayType ?: DISPLAY_TYPE
   displayMode ?: DISPLAY_MODE
