@@ -144,7 +144,7 @@ export class Mailer {
                     <td align="left" valign="top" bgcolor="#FFFFFF">
                       <p></p>
                       <font size="2" face="Verdana, Arial, Helvetica, sans-serif">
-${firstName && lastName ? `<p>Dear${firstName ? ` ${firstName}` : ''} ${lastName ? ` ${lastName}` : ''},</p>` : ''}
+${firstName || lastName ? `<p>Dear${firstName ? ` ${firstName}` : ''}${lastName ? ` ${lastName}` : ''},</p>` : ''}
                         <p>${message}</p>
                         <p>Regards,</p>
                         <p>${sender}</p>
