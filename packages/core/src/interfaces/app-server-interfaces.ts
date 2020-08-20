@@ -169,3 +169,9 @@ export interface MuSelectedFilter {
   displayType ?: DISPLAY_TYPE
   displayMode ?: DISPLAY_MODE
 }
+
+export interface MuStickyTableConfig {
+  noOfCols        : number
+  stickyWidth     : number
+  nonStickyWidth ?: number
+}
