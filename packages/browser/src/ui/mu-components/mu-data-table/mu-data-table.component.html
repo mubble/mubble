@@ -73,143 +73,199 @@
       </div>
     </div>
 
-    <div class="primary-bg headers-cont border-light" [style.top]="tableExtras.getBoundingClientRect().height.toFixed(2)+ 'px'">
-      <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
-      <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
-        <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
-      </div>
-      <div class="header txt-xl-bld-dark text-color-white" *ngFor="let header of tableConfig.headers"
-        [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
-        {{ header.header }}
-      </div>
-    </div>
-    
-    <div class="table-row-cont border-light" *ngFor="let rowData of dataToDisplay"
-      [class.row-active]="selectedIndexes[rowData['rowIndex']] && !isTogglePresent">
-      
-      <div class="radio-btn" *ngIf="tableConfig.enableRadio">
-        <mat-radio-group name="rowRadio">
-          <mat-radio-button 
-            value="{{ rowData['rowIndex'] }}" 
-            (click)="rowClick($event, rowData)"
-            (change)="radioSelect($event, rowData)"
-            [checked]="selectedIndexes[rowData['rowIndex']]">
-          </mat-radio-button>
-        </mat-radio-group>
-      </div>
+    <ng-template *ngIf="(stickyInfo); then stickyConfig else defaultConfig"></ng-template>
 
-      <div class="checkbox" *ngIf="tableConfig.enableSelect">
-        <mat-checkbox
-          (click)="rowClick($event, rowData)"
-          [checked]="selectedIndexes[rowData['rowIndex']]"
-          (change)="rowSelect($event, rowData)">
-        </mat-checkbox>
+    <ng-template #stickyConfig>
+      <div style="overflow: auto;">
+        <ng-container *ngTemplateOutlet="innerContent"></ng-container>
       </div>
+    </ng-template>
 
-      <ng-container *ngIf="dataToDisplay">
-        <div class="row-data txt-md-med-norm" *ngFor="let header of tableConfig.headers"
-        [style.width]="(header.widthPerc || 100/tableConfig.headers.length)+'%'">
-        <ng-container [ngSwitch]="header.colType" [formGroup]="editForm">
+    <ng-template #defaultConfig>
+      <ng-container *ngTemplateOutlet="innerContent"></ng-container>
+    </ng-template>
 
-          <div *ngSwitchCase="COL_TYPE.TEXT">
-            
-            <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)" class="text-cls"> 
-              {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
-            </span> 
-            <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
-              formControlName="{{ header.dataKey }}"
-              value="{{ rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}" type="text">
+
+    <ng-template #innerContent>
+        <div class="primary-bg border-light"
+        [ngClass]=" stickyInfo ? 'headers-cont-sticky' : 'headers-cont'"
+        [style.width]="stickyInfo ? (stickyInfo.stickyWidth + stickyInfo.nonStickyWidth) + '%' : ''"
+        [style.top]="!stickyInfo ? tableExtras.getBoundingClientRect().height.toFixed(2)+ 'px' : ''">
+          <div class="radio-btn" *ngIf="tableConfig?.enableRadio"></div>
+          <div class="checkbox" *ngIf="tableConfig?.enableSelect && dataToDisplay.length" >
+            <mat-checkbox (change)="selectAll($event)" #slctAllBox></mat-checkbox>
           </div>
 
-          <!-- Column to display multi line text along with image and icon -->
-          <div class="multi-line click-item" *ngSwitchCase="COL_TYPE.MULTI_LINE"
-              (click)="cellClick(rowData, header?.multiLineParas?.dataKeyArr[0])">
-            <div class="multi-line-text-align" *ngFor="let colType of header?.multiLineParas?.dataKeyType; let i = index">
-              <div *ngIf="colType === COL_TYPE.IMAGE">
-                <img src="{{ header?.multiLineParas?.multiLineKey[i] }}">
-              </div>
-              <div *ngIf="colType === COL_TYPE.ICON">
-                <i class="{{ rowData[header?.multiLineParas?.multiLineKey[i]] }}"></i>
-              </div>
-              <div *ngIf="colType === COL_TYPE.TEXT">
-                <div *ngFor="let data of header?.multiLineParas?.dataKeyArr; let j = index" class="profile-align">
-                  <div class="multi-line" [class.row-margin]="j >= 1">
-                    <div *ngIf="header?.multiLineParas?.headerArr"
-                      class="text-color-primary txt-md-med-norm header-width"> 
-                      {{ header?.multiLineParas?.headerArr[j] }} 
-                    </div>
-                    <div *ngIf="header?.multiLineParas?.headerArr" class="colon-width">
-                      :
-                    </div>
-                    <div class="txt-md-med-norm data-width">
-                      {{ rowData[data] }}
-                    </div>
-                  </div>  
-                </div>
-              </div>
+          <ng-container *ngFor="let header of tableConfig.headers; index as i">
+            <div 
+            class="txt-xl-bld-dark text-color-white"
+            [style.position]="stickyInfo && (i <= (stickyInfo.noOfCols - 1)) ? 'sticky' : ''"
+            [style.left]="stickyInfo && (i <= (stickyInfo.noOfCols - 1)) ? 
+              (i*(stickyInfo.stickyWidth/stickyInfo.noOfCols))+'%' : ''"
+            [style.width]="stickyInfo ? 
+              (
+                i <= (stickyInfo.noOfCols - 1) ? 
+                (stickyInfo.stickyWidth/stickyInfo.noOfCols) + '%' :
+                (header.widthPerc || stickyInfo.nonStickyWidth/(tableConfig.headers.length - stickyInfo.noOfCols)) + '%')
+              : ''
+              "
+            [ngClass]="stickyInfo ? 
+            (i == (stickyInfo.noOfCols - 1) ? 'header-sticky last-sticky' : 'header-sticky')
+            :
+            'header'
+            ">
+              {{ header.header }}
             </div>
-          </div>
+          </ng-container>
+        </div>
+        
+        <div class="border-light" *ngFor="let rowData of dataToDisplay"
+          [ngClass]="stickyInfo ? 'table-row-cont-sticky' : 'table-row-cont'"
+          [style.width]="stickyInfo ? (stickyInfo.stickyWidth + stickyInfo.nonStickyWidth) + '%' : ''"
+          [class.row-active]="selectedIndexes[rowData['rowIndex']] && !isTogglePresent">
           
-          <div *ngSwitchCase="COL_TYPE.IMAGE">
-            <img src="{{ header.constValue || rowData[header.dataKey] }}">
+          <div class="radio-btn" *ngIf="tableConfig.enableRadio">
+            <mat-radio-group name="rowRadio">
+              <mat-radio-button 
+                value="{{ rowData['rowIndex'] }}" 
+                (click)="rowClick($event, rowData)"
+                (change)="radioSelect($event, rowData)"
+                [checked]="selectedIndexes[rowData['rowIndex']]">
+              </mat-radio-button>
+            </mat-radio-group>
           </div>
-
-          <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
-            class="click-item text-color-primary">
-            {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
-          </div>
-
-          <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
-            <i class="{{ header.constValue || rowData[header.dataKey] }}"></i>
-          </div>
-
-          <div *ngSwitchCase="COL_TYPE.BUTTON" (click)="cellClick(rowData, header.dataKey)">
-            <button class="table-button curs-pointer txt-lg-med-norm primary-bg">
-              {{ header.constValue || rowData[header.dataKey] }}
-            </button>
-          </div>
-
-          <div *ngSwitchCase="COL_TYPE.TOGGLE">
-            <mat-slide-toggle 
+    
+          <div class="checkbox" *ngIf="tableConfig.enableSelect">
+            <mat-checkbox
               (click)="rowClick($event, rowData)"
-              (change)="toggleRow($event, rowData)"
-              [checked]="selectedIndexes[rowData['rowIndex']]">
-            </mat-slide-toggle>
+              [checked]="selectedIndexes[rowData['rowIndex']]"
+              (change)="rowSelect($event, rowData)">
+            </mat-checkbox>
           </div>
+    
+          <ng-container *ngIf="dataToDisplay">
 
-          <div *ngSwitchCase="COL_TYPE.MORE_DETAILS">
-            <i class="click-item fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
-            <mat-menu #menu="matMenu" yPosition="below" xPosition="before">
-              <button mat-menu-item *ngFor="let option of header.constValue" class="txt-lg-med-norm" 
-              (click)="moreDetailsClick(option.id, rowData)"> 
-                <span> {{ option.value }}</span>
-              </button>
-            </mat-menu>
-          </div>
-
-          <div *ngSwitchCase="COL_TYPE.EDIT">
-            <span class="click-item" (click)="editRow(rowData, true)" 
-
-            *ngIf="!selectedIndexes[rowData['rowIndex']]">
-              {{ 'mu_dt_tbl_edit' | translate }}
-            </span>
-
-            <span class="click-item" (click)="editRow(rowData, false)" 
-            *ngIf="selectedIndexes[rowData['rowIndex']]">
-              {{ 'mu_dt_tbl_save' | translate }}
-
-            </span>
+            <ng-container *ngFor="let header of tableConfig.headers; index as ind">
+              <div 
+              class="txt-md-med-norm" 
+              [style.position]="stickyInfo && (ind <= (stickyInfo.noOfCols - 1)) ? 'sticky' : ''"
+              [style.left]="stickyInfo && (ind <= (stickyInfo.noOfCols - 1)) ? 
+                (ind*(stickyInfo.stickyWidth/stickyInfo.noOfCols))+'%' : ''"
+              [style.width]="stickyInfo ? 
+              (
+                ind <= (stickyInfo.noOfCols - 1) ? 
+                (stickyInfo.stickyWidth/stickyInfo.noOfCols) + '%' :
+                (header.widthPerc || stickyInfo.nonStickyWidth/(tableConfig.headers.length - stickyInfo.noOfCols)) + '%'
+                )
+              : 
+              (header.widthPerc || 100/tableConfig.headers.length)+'%'
+              "
+              [ngClass]="stickyInfo ? 
+              ind == (stickyInfo.noOfCols - 1) ? 'last-sticky row-data-sticky' : 'row-data-sticky' :
+              'row-data'
+              ">
+                <ng-container [ngSwitch]="header.colType" [formGroup]="editForm">
+        
+                  <div *ngSwitchCase="COL_TYPE.TEXT">
+                    
+                    <span *ngIf="!(selectedIndexes[rowData['rowIndex']] && header.isEditable)" class="text-cls"> 
+                      {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
+                    </span> 
+                    <input *ngIf="selectedIndexes[rowData['rowIndex']] && header.isEditable" 
+                      formControlName="{{ header.dataKey }}"
+                      value="{{ rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}" type="text">
+                  </div>
+        
+                  <div class="multi-line click-item" *ngSwitchCase="COL_TYPE.MULTI_LINE"
+                      (click)="cellClick(rowData, header?.multiLineParas?.dataKeyArr[0])">
+                    <div class="multi-line-text-align" *ngFor="let colType of header?.multiLineParas?.dataKeyType; let i = index">
+                      <div *ngIf="colType === COL_TYPE.IMAGE">
+                        <img src="{{ header?.multiLineParas?.multiLineKey[i] }}">
+                      </div>
+                      <div *ngIf="colType === COL_TYPE.ICON">
+                        <i class="{{ rowData[header?.multiLineParas?.multiLineKey[i]] }}"></i>
+                      </div>
+                      <div *ngIf="colType === COL_TYPE.TEXT">
+                        <div *ngFor="let data of header?.multiLineParas?.dataKeyArr; let j = index" class="profile-align">
+                          <div class="multi-line" [class.row-margin]="j >= 1">
+                            <div *ngIf="header?.multiLineParas?.headerArr"
+                              class="text-color-primary txt-md-med-norm header-width"> 
+                              {{ header?.multiLineParas?.headerArr[j] }} 
+                            </div>
+                            <div *ngIf="header?.multiLineParas?.headerArr" class="colon-width">
+                              :
+                            </div>
+                            <div class="txt-md-med-norm data-width">
+                              {{ rowData[data] }}
+                            </div>
+                          </div>  
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div *ngSwitchCase="COL_TYPE.IMAGE">
+                    <img src="{{ header.constValue || rowData[header.dataKey] }}">
+                  </div>
+        
+                  <div *ngSwitchCase="COL_TYPE.HYPER_LINK" (click)="cellClick(rowData, header.dataKey)"
+                    class="click-item text-color-primary">
+                    {{ header.constValue || rowData[header.dataKey] | genericPipe : header.pipeParams?.pipeName : [header.pipeParams?.value] }}
+                  </div>
+        
+                  <div *ngSwitchCase="COL_TYPE.ICON" (click)="cellClick(rowData, header.dataKey)" class="click-item">
+                    <i class="{{ header.constValue || rowData[header.dataKey] }}"></i>
+                  </div>
+        
+                  <div *ngSwitchCase="COL_TYPE.BUTTON" (click)="cellClick(rowData, header.dataKey)">
+                    <button class="table-button curs-pointer txt-lg-med-norm primary-bg">
+                      {{ header.constValue || rowData[header.dataKey] }}
+                    </button>
+                  </div>
+        
+                  <div *ngSwitchCase="COL_TYPE.TOGGLE">
+                    <mat-slide-toggle 
+                      (click)="rowClick($event, rowData)"
+                      (change)="toggleRow($event, rowData)"
+                      [checked]="selectedIndexes[rowData['rowIndex']]">
+                    </mat-slide-toggle>
+                  </div>
+        
+                  <div *ngSwitchCase="COL_TYPE.MORE_DETAILS">
+                    <i class="click-item fa fa-ellipsis-v more-icon" [matMenuTriggerFor]="menu" aria-hidden="true"></i>
+                    <mat-menu #menu="matMenu" yPosition="below" xPosition="before">
+                      <button mat-menu-item *ngFor="let option of header.constValue" class="txt-lg-med-norm" 
+                      (click)="moreDetailsClick(option.id, rowData)"> 
+                        <span> {{ option.value }}</span>
+                      </button>
+                    </mat-menu>
+                  </div>
+        
+                  <div *ngSwitchCase="COL_TYPE.EDIT">
+                    <span class="click-item" (click)="editRow(rowData, true)" 
+        
+                    *ngIf="!selectedIndexes[rowData['rowIndex']]">
+                      {{ 'mu_dt_tbl_edit' | translate }}
+                    </span>
+        
+                    <span class="click-item" (click)="editRow(rowData, false)" 
+                    *ngIf="selectedIndexes[rowData['rowIndex']]">
+                      {{ 'mu_dt_tbl_save' | translate }}
+        
+                    </span>
+                  </div>
+                </ng-container>
+              </div>
+            </ng-container>
+          </ng-container>
+        </div>
+    
+        <ng-container *ngIf="!dataToDisplay.length">
+          <div class="no-data txt-lg-med-norm">
+            {{ 'mu_dt_tbl_empty_state' | translate }}
           </div>
         </ng-container>
-      </div>
-      </ng-container>
-    </div>
-
-    <ng-container *ngIf="!dataToDisplay.length">
-      <div class="no-data txt-lg-med-norm">
-        {{ 'mu_dt_tbl_empty_state' | translate }}
-      </div>
-    </ng-container>
+    </ng-template>
 
   </div>
 

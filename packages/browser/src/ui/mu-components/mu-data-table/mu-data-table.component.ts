@@ -23,7 +23,8 @@ import { FormControl,
 
 import { TableHeader, 
          FilterItem, 
-         DISPLAY_MODE
+         DISPLAY_MODE,
+         MuStickyTableConfig
        }                            from '@mubble/core/interfaces/app-server-interfaces'
 import { RunContextBrowser }        from '@mubble/browser/rc-browser'
 import { LOG_LEVEL,              
@@ -46,6 +47,7 @@ export interface TableConfig {
   horizFilterParams ?: FilterItem[],
   vertFilterParams  ?: FilterItem[],
   downloadFormats   ?: string[]
+  stickyConfig      ?: MuStickyTableConfig
 }
 
 export interface MuTableRowSelEvent {
@@ -64,6 +66,12 @@ export interface MuTableSelAllEvent {
   selectedRows : Object[]
   isSelected   : boolean
 }
+
+// export interface MuTableStickyConfig {
+//   noOfCols        : number
+//   stickyWidth     : number
+//   nonStickyWidth ?: number
+// }
 
 export interface MuTableClickEvent {
   rowIndex  : number
@@ -119,9 +127,11 @@ export class MuDataTableComponent implements OnInit {
   headerFields      : string[] = []
   dataToDisplay     : Object[] = []
   pageNumbers       : number[] = []
+  stickyInfo        : MuStickyTableConfig
 
   private filterFields : string[] = []
   private dataMap      : Object   = {}
+
 
   editForm          : FormGroup = new FormGroup({})
   COL_TYPE          : typeof COL_TYPE     = COL_TYPE  
@@ -180,6 +190,14 @@ export class MuDataTableComponent implements OnInit {
       
       this.createDataMap(this.tableConfig.data, 0)
       this.createPageNumbers()
+    }
+
+    if (this.tableConfig.stickyConfig && this.tableConfig.stickyConfig.noOfCols > 0) {
+      this.stickyInfo = this.tableConfig.stickyConfig
+      if (this.stickyInfo && !this.stickyInfo.nonStickyWidth) {
+        // Use 200% width for default, so table can scroll max double of its width
+        this.stickyInfo.nonStickyWidth = 200 - this.stickyInfo.stickyWidth
+      }
     }
   }
   
