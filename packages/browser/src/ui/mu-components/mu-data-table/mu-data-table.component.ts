@@ -67,12 +67,6 @@ export interface MuTableSelAllEvent {
   isSelected   : boolean
 }
 
-// export interface MuTableStickyConfig {
-//   noOfCols        : number
-//   stickyWidth     : number
-//   nonStickyWidth ?: number
-// }
-
 export interface MuTableClickEvent {
   rowIndex  : number
   rowData   : Object
@@ -198,6 +192,13 @@ export class MuDataTableComponent implements OnInit {
         // Use 200% width for default, so table can scroll max double of its width
         this.stickyInfo.nonStickyWidth = 200 - this.stickyInfo.stickyWidth
       }
+      const nSColWidth = this.stickyInfo.nonStickyWidth / (this.tableConfig.headers.length - this.stickyInfo.noOfCols)
+      for (const header of this.tableConfig.headers) {
+        if (header.widthPerc) {
+          this.stickyInfo.nonStickyWidth += header.widthPerc - nSColWidth
+        }
+      }
+      this.stickyInfo.nonStickyWidth = Math.max((100 - this.stickyInfo.stickyWidth), this.stickyInfo.nonStickyWidth)
     }
   }
   

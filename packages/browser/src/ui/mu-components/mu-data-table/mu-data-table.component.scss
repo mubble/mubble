@@ -115,6 +115,14 @@
   background: #203882 !important;
 }
 
+.sticky-container::-webkit-scrollbar {
+  height: 8px;
+}
+.sticky-container {
+  overflow: auto;
+  scrollbar-width: 8px;
+}
+
 .last-sticky {
   border-right: 1px solid #9a9a9a;
   box-shadow: 1px 1px 3px -1px #888

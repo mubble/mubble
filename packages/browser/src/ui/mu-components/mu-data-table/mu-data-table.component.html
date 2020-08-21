@@ -76,7 +76,7 @@
     <ng-template *ngIf="(stickyInfo); then stickyConfig else defaultConfig"></ng-template>
 
     <ng-template #stickyConfig>
-      <div style="overflow: auto;">
+      <div class="sticky-container">
         <ng-container *ngTemplateOutlet="innerContent"></ng-container>
       </div>
     </ng-template>
@@ -106,8 +106,10 @@
               (
                 i <= (stickyInfo.noOfCols - 1) ? 
                 (stickyInfo.stickyWidth/stickyInfo.noOfCols) + '%' :
-                (header.widthPerc || stickyInfo.nonStickyWidth/(tableConfig.headers.length - stickyInfo.noOfCols)) + '%')
-              : ''
+                (header.widthPerc || stickyInfo.nonStickyWidth/(tableConfig.headers.length - stickyInfo.noOfCols)) + '%'
+                )
+              : 
+              (header.widthPerc || 100/tableConfig.headers.length)+'%'
               "
             [ngClass]="stickyInfo ? 
             (i == (stickyInfo.noOfCols - 1) ? 'header-sticky last-sticky' : 'header-sticky')
