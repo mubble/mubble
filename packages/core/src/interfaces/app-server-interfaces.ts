@@ -26,6 +26,13 @@ export interface PipeParams {
   value     ?: any
 }
 
+export interface NavInfo {
+  logName   : string 
+  navUrl    : string
+  btnName  ?: string
+  rootNav  ?: boolean
+}
+
 export interface TableHeader {
   header        : string
   dataKey      ?: string
@@ -42,6 +49,7 @@ export interface TableHeader {
   dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
   headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
   elementStyle ?: string
+  navInfo      ?: NavInfo
 }
 
 export interface FilterItem {
@@ -75,8 +83,6 @@ export interface InputParams {
   isVisible       ?: boolean
   rangeKeys       ?: string[]
 }
-
-
 
 export interface MuFomrValidation {
   validation  : any[]
