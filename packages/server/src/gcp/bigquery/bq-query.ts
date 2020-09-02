@@ -42,7 +42,7 @@ export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATETIME' | 'ROUND' 
                                    'CAST_STRING' | 'CAST_NUMERIC' | 'COUNTIF' | 
                                    'STRING_AGG' | 'DATE' | 'ARRAY_AGG' | 
                                    'ARRAY_AGG_OFFSET_0' | 'CONVERT_TO_DATE' |
-                                   'CONVERT_TO_DATE_MINUTE'
+                                   'CONVERT_TO_DATE_MINUTE' | 'IFNULL'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   COUNTIF                 : 'COUNTIF', 
   TEMPLATE                : 'TEMPLATE',
@@ -59,7 +59,8 @@ export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   STRING_AGG              : 'STRING_AGG',
   ARRAY_AGG               : 'ARRAY_AGG',
   ARRAY_AGG_OFFSET_0      : 'ARRAY_AGG_OFFSET_0',
-  DATE                    : 'DATE'
+  DATE                    : 'DATE',
+  IFNULL                  : 'IFNULL'
 }
 
 export interface QueryField {
@@ -363,6 +364,21 @@ export namespace BqQueryBuilder {
     return retval
   }
 
+  export function unionQuery(rc          : RunContextServer,
+                             queries : string[],
+                             unionAll : boolean = true) {
+
+    if(!queries.length) {
+      return ''
+    }
+
+    let retval = ''
+    queries.forEach((query : string, index : number) => {
+      retval = retval + (query + ((index != queries.length -1) ? (unionAll ? ` UNION ALL `  : ` UNION `) : ''))
+    })
+    return retval
+  }
+
   export function addVariable(query: string, variable: QueryVariable): string {
 
     const str = `DECLARE ${variable.name} ${variable.type} DEFAULT ${
@@ -404,6 +420,9 @@ export namespace BqQueryBuilder {
 
         case QUERY_FIELD_FUNCTION.ARRAY_AGG_OFFSET_0 :
           return `ARRAY_AGG(${field} ${ignoreNull ? 'IGNORE NULLS' : ''})[OFFSET(0)]`
+          
+        case QUERY_FIELD_FUNCTION.IFNULL:
+          return `IFNULL (${field}, 0)`
 
         default :
           return `${func}(${field})`
