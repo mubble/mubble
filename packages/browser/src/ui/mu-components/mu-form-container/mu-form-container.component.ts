@@ -77,7 +77,7 @@ export class MuFormContainerComponent implements OnChanges {
   @Input()  displayMode     : DISPLAY_MODE         
   @Input()  displayLabel    : boolean               = true
   @Input()  displayCount    : number   
-
+ 
   @Output() value           : EventEmitter<MuFormOutputParams>  = new EventEmitter<MuFormOutputParams>()
   @Output() dropdownOpen    : EventEmitter<boolean>             = new EventEmitter<boolean>()
   @Output() lastInpField    : EventEmitter<any>                 = new EventEmitter<any>()
@@ -246,6 +246,9 @@ export class MuFormContainerComponent implements OnChanges {
     }
   }
 
+  clearForm() {
+    this.inputForm.reset()
+  }
   /*=====================================================================
                               HTML
   =====================================================================*/
