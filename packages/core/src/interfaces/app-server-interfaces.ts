@@ -27,6 +27,7 @@ export interface PipeParams {
 }
 
 export interface NavInfo {
+  pageTitle?: string
   logName   : string 
   navUrl    : string
   btnName  ?: string
