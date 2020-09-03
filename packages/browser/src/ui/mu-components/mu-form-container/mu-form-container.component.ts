@@ -553,11 +553,6 @@ export class MuFormContainerComponent implements OnChanges {
       (option.value as string).toLowerCase().includes(filterValue))
   }
 
-  private setInputDisabled(id : string, value : boolean) {
-    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
-  }
-
-
   private isDateObj(value : any) : boolean {
     let isDate : boolean
 
@@ -579,6 +574,10 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               UTILS
   =====================================================================*/
+
+  setInputDisabled(id : string, value : boolean) {
+    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
+  }
 
   focusElement(index : number) {
     
