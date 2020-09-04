@@ -42,7 +42,8 @@ export type QUERY_FIELD_FUNCTION = 'TEMPLATE' | 'CONVERT_TO_DATETIME' | 'ROUND' 
                                    'CAST_STRING' | 'CAST_NUMERIC' | 'COUNTIF' | 
                                    'STRING_AGG' | 'DATE' | 'ARRAY_AGG' | 
                                    'ARRAY_AGG_OFFSET_0' | 'CONVERT_TO_DATE' |
-                                   'CONVERT_TO_DATE_MINUTE' | 'IFNULL'
+                                   'CONVERT_TO_DATE_MINUTE' | 'IFNULL' |
+                                   'ARR_AGG_OFF_0_ID_DESC'
 export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   COUNTIF                 : 'COUNTIF', 
   TEMPLATE                : 'TEMPLATE',
@@ -60,7 +61,8 @@ export const QUERY_FIELD_FUNCTION : UnionKeyToValue<QUERY_FIELD_FUNCTION> = {
   ARRAY_AGG               : 'ARRAY_AGG',
   ARRAY_AGG_OFFSET_0      : 'ARRAY_AGG_OFFSET_0',
   DATE                    : 'DATE',
-  IFNULL                  : 'IFNULL'
+  IFNULL                  : 'IFNULL',
+  ARR_AGG_OFF_0_ID_DESC   : 'ARR_AGG_OFF_0_ID_DESC'
 }
 
 export interface QueryField {
@@ -80,6 +82,11 @@ export interface TemplateField {
   template : string,
   fields   : string[],
   as       : string
+}
+
+export interface DummyField {
+  dummyValue  : any,
+  dummyName   : string
 }
 
 export interface NestedField {
@@ -162,7 +169,7 @@ export namespace BqQueryBuilder {
   export function query(rc          : RunContextServer, 
                         projectId   : string,
                         table       : string, 
-                        fields      : Array<string | QueryField | TemplateField>, 
+                        fields      : Array<string | QueryField | TemplateField | DummyField>, 
                         allowEmpty  : boolean,
                         condition  ?: string,
                         orderBy    ?: OrderBy[], 
@@ -202,8 +209,9 @@ export namespace BqQueryBuilder {
 
         select += `${fld.template} as ${fld.as}, `
 
+      } else if (isOfTypeDummyField(fld)) {
+        select += `${fld.dummyValue} as ${fld.dummyName}, `
       } else {
-
         // Normalizing to QueryField
         let field : QueryField
         if (typeof fld === 'string') {
@@ -226,8 +234,14 @@ export namespace BqQueryBuilder {
                                               functions : field!.functions || [],
                                               as        : field!.as
                                             }
+          let selectField = `unnest_${regField!!.parent}.${nestedField.field.name}`
+          for (const func of nestedField.functions) {
+            selectField = BqQueryHelper.applyBqFunction(selectField, func)
+          }
+          const sel = nestedField.as || nestedField.field.name
+          select += selectField !== sel ? `${selectField} as ${nestedField.as || nestedField.field.name}, `
+                                        : `${selectField}, `                                  
           nestedFields[regField!!.parent].push(nestedField)
-
         } else {
           let selectField = field!.name
           if (field!.functions) {
@@ -248,7 +262,7 @@ export namespace BqQueryBuilder {
     for (const key in nestedFields) {
       unnest += allowEmpty ? `LEFT JOIN UNNEST (${key}) as unnest_${key} \n`
                            : `, UNNEST (${key}) as unnest_${key} \n`
-      for (const nestedField of nestedFields[key]) {
+      /* for (const nestedField of nestedFields[key]) {
 
         let selectField = `unnest_${key}.${nestedField.field.name}`
         for (const func of nestedField.functions) {
@@ -257,7 +271,7 @@ export namespace BqQueryBuilder {
         const sel = nestedField.as || nestedField.field.name
         select += selectField !== sel ? `${selectField} as ${nestedField.as || nestedField.field.name}, `
                                       : `${selectField}, `
-      }
+      } */
     }
 
     let retval = `${select} ${from} ${unnest}`
@@ -287,12 +301,16 @@ export namespace BqQueryBuilder {
     return object.hasOwnProperty('template')
   }
 
+  function isOfTypeDummyField(object: Object): object is DummyField {
+    return object.hasOwnProperty('dummyName')
+  }
+
   /**
    * Field names are not checked in schema.  
    * Does not support UNNEST
    */
   export function nestedQuery(rc          : RunContextServer,
-                              fields      : Array<string | QueryField | TemplateField>,
+                              fields      : Array<string | QueryField | TemplateField | DummyField>,
                               query       : string,
                               condition  ?: string,
                               orderBy    ?: OrderBy[],
@@ -318,6 +336,8 @@ export namespace BqQueryBuilder {
 
           select += `${fld.template} as ${fld.as}, `
 
+        } else if (isOfTypeDummyField(fld)) {
+          select += `${fld.dummyValue} as ${fld.dummyName}, `
         } else {
 
           // Normalizing to QueryField
@@ -420,6 +440,9 @@ export namespace BqQueryBuilder {
 
         case QUERY_FIELD_FUNCTION.ARRAY_AGG_OFFSET_0 :
           return `ARRAY_AGG(${field} ${ignoreNull ? 'IGNORE NULLS' : ''})[OFFSET(0)]`
+
+        case QUERY_FIELD_FUNCTION.ARR_AGG_OFF_0_ID_DESC :
+            return `ARRAY_AGG(${field} ${ignoreNull ? 'IGNORE NULLS ORDER by insert_id desc ' : ''})[OFFSET(0)]`
           
         case QUERY_FIELD_FUNCTION.IFNULL:
           return `IFNULL (${field}, 0)`
