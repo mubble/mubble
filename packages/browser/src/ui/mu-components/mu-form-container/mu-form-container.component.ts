@@ -77,7 +77,7 @@ export class MuFormContainerComponent implements OnChanges {
   @Input()  displayMode     : DISPLAY_MODE         
   @Input()  displayLabel    : boolean               = true
   @Input()  displayCount    : number   
-
+ 
   @Output() value           : EventEmitter<MuFormOutputParams>  = new EventEmitter<MuFormOutputParams>()
   @Output() dropdownOpen    : EventEmitter<boolean>             = new EventEmitter<boolean>()
   @Output() lastInpField    : EventEmitter<any>                 = new EventEmitter<any>()
@@ -246,6 +246,9 @@ export class MuFormContainerComponent implements OnChanges {
     }
   }
 
+  clearForm() {
+    this.inputForm.reset()
+  }
   /*=====================================================================
                               HTML
   =====================================================================*/
@@ -550,11 +553,6 @@ export class MuFormContainerComponent implements OnChanges {
       (option.value as string).toLowerCase().includes(filterValue))
   }
 
-  private setInputDisabled(id : string, value : boolean) {
-    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
-  }
-
-
   private isDateObj(value : any) : boolean {
     let isDate : boolean
 
@@ -576,6 +574,10 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               UTILS
   =====================================================================*/
+
+  setInputDisabled(id : string, value : boolean) {
+    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
+  }
 
   focusElement(index : number) {
     
