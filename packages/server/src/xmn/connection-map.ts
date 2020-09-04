@@ -53,7 +53,7 @@ export namespace ConnectionMap {
       ActiveConnectionMap.delete(foundKey)
       return
     }
-    return ActiveConnectionMap.get(foundKey)
+    return { foundKey, connectionInfo : ActiveConnectionMap.get(foundKey)}
   }
 
 }
