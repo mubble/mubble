@@ -83,6 +83,8 @@ export interface InputParams {
   maskLength      ?: number
   isVisible       ?: boolean
   rangeKeys       ?: string[]
+  selectAllText   ?: string
+  unselectAllText ?: string
 }
 
 export interface MuFomrValidation {
@@ -102,22 +104,23 @@ export interface MuFormParams {
 }
 
 export enum DISPLAY_TYPE {
-  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
-  INPUT_BOX             = 'INPUT_BOX',
-  SELECTION_BOX         = 'SELECTION_BOX',
-  CALENDAR_BOX          = 'CALENDAR_BOX',
-  DATE_RANGE            = 'DATE_RANGE',
-  NUMBER_RANGE          = 'NUMBER_RANGE',
-  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
-  RADIO                 = 'RADIO',
-  ROW_RADIO             = 'ROW_RADIO',
-  TEXT_AREA             = 'TEXT_AREA',
-  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
-  TOGGLE                = 'TOGGLE',
-  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
-  BUTTON_TOGGLE         = 'BUTTON_TOGGLE',
-  SLIDER                = 'SLIDER',
-  TIME                  = 'TIME'
+  ROW_INPUT_BOX             = 'ROW_INPUT_BOX',
+  INPUT_BOX                 = 'INPUT_BOX',
+  SELECTION_BOX             = 'SELECTION_BOX',
+  CALENDAR_BOX              = 'CALENDAR_BOX',
+  DATE_RANGE                = 'DATE_RANGE',
+  NUMBER_RANGE              = 'NUMBER_RANGE',
+  AUTOCOMPLETE_SELECT       = 'AUTO_COMPLETE_SELECT',
+  RADIO                     = 'RADIO',
+  ROW_RADIO                 = 'ROW_RADIO',
+  TEXT_AREA                 = 'TEXT_AREA',
+  IMAGE_UPLOAD              = 'IMAGE_UPLOAD',
+  TOGGLE                    = 'TOGGLE',
+  MULTI_CHECK_BOX           = 'MULTI_CHECK_BOX',
+  BUTTON_TOGGLE             = 'BUTTON_TOGGLE',
+  SLIDER                    = 'SLIDER',
+  TIME                      = 'TIME',
+  DROPDOWN_MULTI_CHECK_BOX  = 'DROPDOWN_MULTI_CHECK_BOX'
 }
 
 export interface SelectionBoxParams {
