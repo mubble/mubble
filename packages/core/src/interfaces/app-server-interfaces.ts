@@ -85,6 +85,12 @@ export interface InputParams {
   rangeKeys       ?: string[]
   selectAllText   ?: string
   unselectAllText ?: string
+  emitStepSelection ?: boolean
+}
+
+export interface StepSelectedFilter {
+  id    : string | number
+  value : any
 }
 
 export interface MuFomrValidation {
