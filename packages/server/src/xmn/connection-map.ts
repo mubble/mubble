@@ -32,28 +32,4 @@ export namespace ConnectionMap {
     
     ActiveConnectionMap.delete(clientId)
   }
-
-  export function connContains(id : number | string, remove : boolean  = false) {
-
-    const keysArr = [...ActiveConnectionMap.keys()]
-
-    let foundKey : string  | number = ''
-
-    for (const key of keysArr) {
-
-      if (typeof id === 'string') {
-        if (typeof key === 'string' && key.includes(id) ) {
-          foundKey  = key
-          break
-        }
-      } 
-      
-    }
-    if (remove) {
-      ActiveConnectionMap.delete(foundKey)
-      return
-    }
-    return { foundKey, connectionInfo : ActiveConnectionMap.get(foundKey)}
-  }
-
 }
