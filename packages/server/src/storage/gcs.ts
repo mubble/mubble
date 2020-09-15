@@ -31,6 +31,16 @@ export class GoogleCloudStorage {
     this.initialized = true
   }
 
+  public static close(rc : RunContextServer) {
+    if(!this.initialized) {
+      rc.isError() && rc.error(rc.getName(this), 'GCS not initialized.')
+      throw new Error('GCS not initialized.')
+    }
+
+    this.storage     = undefined as any
+    this.initialized = false
+  }
+
   public static async saveFile(rc        : RunContextServer,
                                bucket    : string,
                                filePath  : string,
