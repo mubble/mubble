@@ -51,12 +51,12 @@ export class MultiStepValue {
     if (delta > 0) { // trying to reduce index
 
       if (this.quickMove) {
-        newIndex = (quickRatio && quickRatio > 0) ? Math.round(quickRatio * this.count) : Math.round((lowerBound- newValue)/this.viewSize)
+        newIndex = (quickRatio && quickRatio > 0) ? Math.round(quickRatio * this.count) : Math.ceil((lowerBound- newValue)/this.viewSize)
       }
       
       if ((lowerBound  - newValue) >= chgNeeded) {
 
-        this.currentIndex -= this.quickMove ? newIndex : Math.abs(Math.round((lowerBound  - newValue)/this.viewSize))
+        this.currentIndex -= this.quickMove ? newIndex : Math.abs(Math.ceil((lowerBound  - newValue)/this.viewSize))
 
         if (this.currentIndex < 0) {
           this.currentIndex = 0
@@ -66,11 +66,11 @@ export class MultiStepValue {
 
     } else {
       if (this.quickMove) {
-        newIndex = (quickRatio && quickRatio > 0) ? Math.round(quickRatio * this.count) : Math.round((newValue - lowerBound)/this.viewSize)
+        newIndex = (quickRatio && quickRatio > 0) ? Math.round(quickRatio * this.count) : Math.ceil((newValue - lowerBound)/this.viewSize)
       }
       if ((newValue - lowerBound) >= chgNeeded) {
         
-        this.currentIndex += this.quickMove ? newIndex : Math.round((newValue - lowerBound)/this.viewSize)
+        this.currentIndex += this.quickMove ? newIndex : Math.ceil((newValue - lowerBound)/this.viewSize)
         if (this.currentIndex >= this.count) {
           this.currentIndex = this.count - 1
         }
