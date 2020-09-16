@@ -23,7 +23,8 @@
 # Version 1.16.1
 
 ## Features
-- None
+- Handled isvisible
+- Mu form changes
 
 ## Bug Fixes
 - None
