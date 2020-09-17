@@ -236,6 +236,8 @@ export class ObmopManager {
 		} catch(e) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in inserting ${entities} into ${tableName}.`)
 			rc.isError() && rc.error(rc.getName(this), mErr, e)
+			console.log('\n\n-----obmopmanager error----mrr', mErr)
+			console.log('\n\n-----obmopmanager error----e', e)
 			throw mErr
 		}
 	}
