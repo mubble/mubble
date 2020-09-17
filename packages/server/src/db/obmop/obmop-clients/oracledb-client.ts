@@ -277,7 +277,6 @@ export class OracleDbClient implements ObmopBaseClient {
 					connection.executeMany(queryString, binds as oracledb.BindParameters[], options,
 																 (err : oracledb.DBError, result : oracledb.Result<any>) => {
 						if (err) {
-							console.log('\n\n ------bindsQuery----err----', err)
 							return reject(err)}
 						return resolve(result)
 					})
@@ -291,9 +290,7 @@ export class OracleDbClient implements ObmopBaseClient {
 			
 			return result
 		} catch(e) {
-			console.log('\n\n-----error in bindQuery method in catch block----', e)
-
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', e, queryString)
 			throw new Mubble.uError(DB_ERROR_CODE, e.message)
 		} finally {
 			await connection.close()
