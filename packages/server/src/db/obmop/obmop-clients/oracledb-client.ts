@@ -276,7 +276,8 @@ export class OracleDbClient implements ObmopBaseClient {
 				if(multiple) {
 					connection.executeMany(queryString, binds as oracledb.BindParameters[], options,
 																 (err : oracledb.DBError, result : oracledb.Result<any>) => {
-						if (err) return reject(err)
+						if (err) {
+							return reject(err)}
 						return resolve(result)
 					})
 				} else {
@@ -289,8 +290,7 @@ export class OracleDbClient implements ObmopBaseClient {
 			
 			return result
 		} catch(e) {
-
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, e)
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', e, queryString)
 			throw new Mubble.uError(DB_ERROR_CODE, e.message)
 		} finally {
 			await connection.close()

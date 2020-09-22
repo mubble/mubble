@@ -107,7 +107,7 @@ export class ObmopManager {
 			return result
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in querying ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			rc.isError() && rc.error(rc.getName(this), err, mErr)
 			throw mErr
 		}
 	}
@@ -145,7 +145,7 @@ export class ObmopManager {
 			return entities
 		}	catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in executing query.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, query, err)
+			rc.isError() && rc.error(rc.getName(this), err, mErr, query)
 			throw mErr
 		}
 	}
@@ -187,7 +187,7 @@ export class ObmopManager {
 			}
 		} catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in inserting ${entity} into ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			rc.isError() && rc.error(rc.getName(this), err, mErr)
 			throw mErr
 		}
 	}
@@ -235,7 +235,7 @@ export class ObmopManager {
 			await this.client.mInsert(rc, tableName, entitiesArr, sequences)
 		} catch(e) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in inserting ${entities} into ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, e)
+			rc.isError() && rc.error(rc.getName(this), e, mErr)
 			throw mErr
 		}
 	}
@@ -271,7 +271,7 @@ export class ObmopManager {
 			await this.client.update(rc, tableName, newUpdates, primaryKey.mapping, primaryKeyValue)
 		} catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in updating ${entity} with ${updates} into ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			rc.isError() && rc.error(rc.getName(this), err, mErr)
 			throw mErr
 		}
 
@@ -296,7 +296,7 @@ export class ObmopManager {
 
 		} catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting ${entity} from ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			rc.isError() && rc.error(rc.getName(this), err, mErr)
 			throw mErr
 		}
 	}
@@ -318,7 +318,7 @@ export class ObmopManager {
 			await this.client.mDelete(rc, tableName, primaryKey.mapping, primaryKeyValues)
 		} catch(err) {
 			const mErr = new Mubble.uError(DB_ERROR_CODE, `Error in deleting ${entities} from ${tableName}.`)
-			rc.isError() && rc.error(rc.getName(this), mErr, err)
+			rc.isError() && rc.error(rc.getName(this), err, mErr)
 			throw mErr
 		}
 	}
