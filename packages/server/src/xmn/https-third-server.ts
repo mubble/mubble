@@ -97,6 +97,13 @@ export class HttpsThirdServer {
 
     this.providerMap.set(httpsProvider, now)
     await httpsProvider.processRequest(rc, apiName, apiParams, query, reqId)
+
+    // TODO: 301 redirects To be enhanced in framework - Vishal
+    // Been done for SSO redirect to app
+    if (pathName == "/obopay/completeAuth") {
+      res.writeHead(301, {'Location' : 'chakra://chakra-idp?ssoAuthComplete=true'});
+      res.end();
+    } 
   }
 
   markFinished(provider : HttpsThirdServerProvider) {
