@@ -34,6 +34,7 @@ const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro sec
 export namespace ObopayHttpsClient {
 
   export const OBOPAY_STR = 'obopay'
+  export const API_STR    = 'api'
 
   const CLASS_NAME = 'ObopayHttpsClient',
         POST       = 'POST'
