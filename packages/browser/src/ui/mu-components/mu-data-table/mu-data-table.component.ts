@@ -91,9 +91,9 @@ export interface MuTableEditEvent {
 
 export class MuDataTableComponent implements OnInit {
 
-  @ViewChild('slctAllBox',  {static : false}) slctAllBox   : MatCheckbox
-  @ViewChild('filterCont',  {static : false}) filterCont   : ElementRef
-  @ViewChild('muTableCont', {static : false}) muTableCont  : ElementRef
+  @ViewChild('slctAllBox') slctAllBox   : MatCheckbox
+  @ViewChild('filterCont') filterCont   : ElementRef
+  @ViewChild('muTableCont') muTableCont  : ElementRef
   @ViewChild('menuTrigger', { static : true }) menuTrigger : MatMenuTrigger
 
   @ViewChildren(FilterComponent)  filterCompChildren      : QueryList<FilterComponent>
