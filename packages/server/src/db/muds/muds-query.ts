@@ -176,13 +176,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
       }
     }
 
-    const meField = this.io.getReferredField(rc, fieldName as string, this.entityInfo.entityName) as MeField
-    meField.accessor.validateType(value)
-    //TODO:( Review this code)
-    if (meField.fieldType === Array) { 
-      value = value.toString()
+    if (fieldName !== KEY) {
+      const meField = this.io.getReferredField(rc, fieldName as string, this.entityInfo.entityName) as MeField
+      if (meField.fieldType !== Array) { 
+        meField.accessor.validateType(value)
+      }
+      this.filters.push({fieldName : fieldName as string, comparator, value})
+    } else {
+      this.filters.push({fieldName : fieldName as string, comparator, value : this.io.buildKeyForDs(rc, this.entityInfo.cons, [], value)})
     }
-    this.filters.push({fieldName : fieldName as string, comparator, value})
+    
     return this
   }
 
@@ -203,9 +206,10 @@ export class MudsQuery<T extends MudsBaseEntity> {
     this.verifyStatusAndFieldName(fieldName as string)
 
     for (const filter of this.filters) {
-      rc.isAssert() && rc.assert(rc.getName(this), 
+     /*  Order issue fixes
+     rc.isAssert() && rc.assert(rc.getName(this), 
         filter.fieldName === fieldName && filter.comparator === '=', 
-        `${entityName}/${fieldName} cannot order on field with equality filter`)
+        `${entityName}/${fieldName} cannot order on field with equality filter`) */
     }
 
     this.orders.push({fieldName : fieldName as string, ascending})
@@ -251,7 +255,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
     return this.result
   }
 
-  public async run(limit: number) {
+  public async run(limit : number, offset ?: number) {
     const rc = this.rc
     this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query cannot run again')
     const dsQuery = this.io.createQuery(this.entityInfo.entityName)
@@ -266,6 +270,12 @@ export class MudsQuery<T extends MudsBaseEntity> {
       order.ascending ? undefined : {descending: true})
 
     dsQuery.limit(limit)
+
+    if(offset !== undefined) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'Query with offset', offset)
+      dsQuery.offset(offset)
+    }
+      
     this.result = new MudsQueryResult(rc, this.io, this.entityClass, 
                     dsQuery, limit, await dsQuery.run(), 
                     !!(this.filters.length || this.groupBys.length))

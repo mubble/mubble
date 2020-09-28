@@ -8,29 +8,30 @@
 ------------------------------------------------------------------------------*/
 
 import { 
-        ConnectionInfo,
-        WIRE_TYPE,
-        WireEphEvent,
-        WireEventResp,
-        WireObject,
-        WireReqResp,
-        InvocationData,
-        Protocol,
-        Mubble,
-        XmnProvider
-       }                      from '@mubble/core'
-import {RunContextServer}     from '../rc-server'
-import {ConnectionMap}        from './connection-map'
-import {RedisWrapper}         from '../cache'
-import {XmnRegistry}          from './xmn-registry'
+         ConnectionInfo,
+         WIRE_TYPE,
+         WireEphEvent,
+         WireEventResp,
+         WireObject,
+         WireReqResp,
+         InvocationData,
+         Protocol,
+         Mubble,
+         XmnProvider
+       }                              from '@mubble/core'
+import { RunContextServer }           from '../rc-server'
+import { ConnectionMap }              from './connection-map'
+import { RedisWrapper }               from '../cache'
+import { XmnRegistry }                from './xmn-registry'
+import { HttpsThirdServerProvider }   from './https-third-server'
 
 const EVENT_QUEUE = 'event-queue:'
 
 export type ClientEventObject = {
-  workerId    : string
-  clientId    : number | string
-  eventName   : string
-  eventParams : Mubble.uObject<any> 
+  workerId     : string
+  connectionId : string
+  eventName    : string
+  eventParams  : Mubble.uObject<any> 
 }
 
 export class InvokeStruct {
@@ -58,13 +59,12 @@ export abstract class XmnRouterServer {
   private piggyfrontMap                                        = new WeakMap<InvocationData, Array<WireEphEvent>>()
   private reqRedis           : RedisWrapper
   private eventRedis         : RedisWrapper
-  // private providerCollection : ActiveProviderCollection
 
-  constructor(rc: RunContextServer, reqRedis : RedisWrapper, ...apiProviders: any[]) {
+  constructor(rc: RunContextServer, reqRedis : RedisWrapper, serverId : string, ...apiProviders: any[]) {
     XmnRegistry.commitRegister(rc, this, apiProviders)
     this.reqRedis = reqRedis
 
-    // this.providerCollection = web.getActiveProviderCollection(rc)  
+    //ConnectionMap.init(serverId, reqRedis)
   }
   
   public async verifyConnection(rc       : RunContextServer,
@@ -75,14 +75,6 @@ export abstract class XmnRouterServer {
 
     const reqStruct = apiName ? this.apiMap[apiName] : null
     await this.connectionOpened(rc, ci, reqStruct ? reqStruct.xmnInfo : null)
-  
-    const apiname = 'verifyConnection'
-    if (ci.customData) {
-      // rc.finish(ci, null as any, null as any, apiname)
-    } else if (ci.protocol === Protocol.WEBSOCKET) {
-      // TraceBase.sendTrace(rc, apiname , {type: 'NC_API'})
-    }
-    
   }
   
   public async sendEvent(rc : RunContextServer, ci : ConnectionInfo, eventName : string, data : object) {
@@ -146,16 +138,18 @@ export abstract class XmnRouterServer {
 
   async providerFailed(rc: RunContextServer, ci: ConnectionInfo) {
     if(ci && ci.customData && ci.customData.clientId)
-      ConnectionMap.removeActiveConnection(ci.customData.clientId)
+      await ConnectionMap.removeActiveConnection(rc, ci.customData.clientId.toString())
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'providerFailed', ci)
     await this.connectionClosed(rc, ci)
     rc.finish(ci , null as any , null as any)
   }
   
   async providerClosed(rc: RunContextServer, ci: ConnectionInfo) {
     if(ci && ci.customData && ci.customData.clientId)
-      ConnectionMap.removeActiveConnection(ci.customData.clientId)
+      await ConnectionMap.removeActiveConnection(rc, ci.customData.clientId.toString())
 
+    rc.isDebug() && rc.debug(rc.getName(this), 'providerClosed', ci)
     await this.connectionClosed(rc, ci)
 
     if(ci.protocol === Protocol.WEBSOCKET) {
@@ -196,11 +190,11 @@ export abstract class XmnRouterServer {
 
       const data = {
         errorCode    : err.code || err.name,
-        errorMessage : err.msg || err.message
+        errorMessage : err.message,
+        errorObject  : err.obj
       }
 
-      wResp = new WireReqResp(wo.name, wo.ts, data, err.code || err.name || err,
-                              err.msg || err.message || err, err)
+      wResp = new WireReqResp(wo.name, wo.ts, data, err.code || err.name, err.message, err.obj, err)
       await this.sendToProvider(rc, ci, wResp, ir)
     } finally {
       return wResp
@@ -227,19 +221,19 @@ export abstract class XmnRouterServer {
       }
 
       wResp = new WireEventResp(wo.name, wo.ts)
-      this.sendEventResponse(rc, ci, wResp, ie)
+      await this.sendEventResponse(rc, ci, wResp, ie)
 
     } catch (err) {
       rc.isError() && rc.error(rc.getName(this), err)
 
       const data = {
         errorCode    : err.code || err.name,
-        errorMessage : err.msg || err.message
+        errorMessage : err.message,
+        errorObject  : err.obj
       }
 
-      wResp = new WireEventResp(wo.name, wo.ts, data, err.code || err.name || err,
-                                err.msg || err.message || err, err)
-      this.sendEventResponse(rc, ci, wResp, ie)
+      wResp = new WireEventResp(wo.name, wo.ts, data, err.code || err.name, err.message, err.obj, err)
+      await this.sendEventResponse(rc, ci, wResp, ie)
     }
 
     return wResp
@@ -260,11 +254,6 @@ export abstract class XmnRouterServer {
       await this.invokeXmnFunction(rc, ci, ie, eventStruct, true)
 
     } catch (err) {
-      
-      let errStr = (err instanceof Mubble.uError) ? err.code 
-                 : (
-                      (err instanceof Error) ? err.message : err
-                   )
       rc.isError() && rc.error(rc.getName(this), err)
     }
 
@@ -272,6 +261,7 @@ export abstract class XmnRouterServer {
   }
 
   closeConnection(rc : RunContextServer, ci : ConnectionInfo) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'closeConnection')
     if(ci.provider) {
       ci.provider.requestClose(rc)
     } else {
@@ -405,9 +395,39 @@ export abstract class XmnRouterServer {
   private async processEventObject(refRc : RunContextServer, eventObj : ClientEventObject) {
     const rc = refRc.copyConstruct('', 'app-event')
 
-    const ci = ConnectionMap.getActiveConnection(eventObj.clientId)
-    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, !!ci)
+    const co   = await ConnectionMap.getActiveConnection(rc, eventObj.connectionId),
+          cond = !!(co && co.ci)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'processEventObject', co)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Sending event to app?', eventObj, cond)
     
-    if(ci) await rc.router.sendEvent(rc, ci, eventObj.eventName, eventObj.eventParams)
+    if(co && co.ci) {
+      await rc.router.sendEvent(rc, co.ci, eventObj.eventName, eventObj.eventParams)
+    }
+  }
+
+  public getCookies(ci : ConnectionInfo) : Mubble.uObject<string> {
+
+    if(ci.provider instanceof HttpsThirdServerProvider) {
+      return ci.provider.getCookies()
+    }
+
+    return {}
+  }
+
+  public setCookies(ci : ConnectionInfo, cookies : Mubble.uObject<string>) {
+
+    if(ci.provider instanceof HttpsThirdServerProvider) {
+      return ci.provider.setCookies(cookies)
+    }
+  }
+
+  public async redirectTo(rc : RunContextServer, ci : ConnectionInfo, url : string) {
+    if(ci.provider instanceof HttpsThirdServerProvider) {
+      return await ci.provider.redirect(rc, url)
+    }
+
+    throw new Error('Cannot redirect. Invalid provider.')
   }
 }

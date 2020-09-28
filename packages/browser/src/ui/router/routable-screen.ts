@@ -13,7 +13,9 @@
 import { TrackableScreen }    from './trackable-screen'
 import { RunContextBrowser }  from '../../rc-browser'
 import { Mubble }             from '@mubble/core'
+import { Directive } from "@angular/core";
 
+@Directive()
 export abstract class RoutableScreen extends TrackableScreen {
 
   abstract onRouterInit(queryParams: Mubble.uObject<any>, firstInvocation: boolean): void

@@ -24,7 +24,6 @@ import { NcMaxLengthDirective }     from './nc-maxlength.directive'
 const KEY_UP    = 'keyup',
       BACKSPACE = 'Backspace'
 
-
 export interface MaskingParams {
   maxLength        : number
   maskedLength     : number

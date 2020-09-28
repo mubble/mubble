@@ -35,7 +35,6 @@ export class NcMaxLengthDirective {
   @Input('ncMaxLength') protected maxLength : number = 0
   @Input('format') format : string
 
-
   @Output() updatedValue : EventEmitter<string> = new EventEmitter<string>()
    
   private eventHandlers : (()=>void)[] = []

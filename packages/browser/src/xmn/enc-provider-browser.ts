@@ -37,7 +37,7 @@ export class EncryptionBrowser {
     rc.setupLogger(this, 'EncryptionBrowser')
 
     if (!arShortCode) this.extractShortCode(rc, ci.shortName)
-    if (!arUniqueId)  this.extractUniqueId(rc, ci.customData.uniqueId)
+    if (!arUniqueId)  this.extractUniqueId(rc, ci.customData.jsVersion)
     if (!pwc)         pwc = new PakoWorkerClient(rc)
   }
 

@@ -13,13 +13,13 @@
     
     <div class="table-extras bg-white" #tableExtras>
       <div class="search-input txt-lg-med-dark text-color-primary" 
-            *ngIf="dataToDisplay.length && pageNumbers.length === 1">
+           *ngIf="!pageNumbers.length || pageNumbers.length === 1">
         
         Total Records : {{ tableConfig.totalRecords }}  
       </div>
 
       <div class="search-input txt-lg-med-dark text-color-primary" 
-            *ngIf="dataToDisplay.length && pageNumbers.length > 1">
+            *ngIf="pageNumbers.length > 1">
 
         {{ currPageIndex * tableConfig.dispRows + 1 }} to 
         {{ ((currPageIndex + 1) * tableConfig.dispRows) <= tableConfig.totalRecords ? ((currPageIndex + 1) * tableConfig.dispRows) : tableConfig.totalRecords }} 

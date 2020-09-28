@@ -14,7 +14,8 @@ import {  Component,
           ViewContainerRef,
           ComponentRef,
           ChangeDetectorRef,
-          ViewChild }                 from '@angular/core'
+          ViewChild, 
+          Directive}                 from '@angular/core'
 
 import { ActivatedRoute }             from '@angular/router'
 import { InjectionCaller,
@@ -26,6 +27,7 @@ import { UiRouter }                   from '../router/ui-router'
 import { RunContextBrowser }          from '../../rc-browser'
 import { Mubble }                     from '@mubble/core'
 
+@Directive()
 export abstract class InjectionParentBase implements OnDestroy, InjectionParent {
 
   childRequestedClose : boolean

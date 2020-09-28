@@ -25,7 +25,6 @@ export interface PipeParams {
   pipeName   : string
   value     ?: any
 }
-
 export interface MuMultiLineParms {
   multiLineKey ?: COL_TYPE[] // It takes input as image text and icon
   dataKeyType   : string[] // required only if multiLineKey consists of Image or Icon.
@@ -33,18 +32,31 @@ export interface MuMultiLineParms {
   headerArr     : string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
 }
 
+export interface NavInfo {
+  pageTitle?: string
+  logName   : string 
+  navUrl    : string
+  btnName  ?: string
+  rootNav  ?: boolean
+}
+
 export interface TableHeader {
-  header           : string
-  colType          : COL_TYPE 
-  dataKey         ?: string
-  pipeParams      ?: PipeParams
-  pipeParmas      ?: PipeParams
-  customStyle     ?: string
-  constValue      ?: any
-  enableSort      ?: boolean
-  widthPerc       ?: number
-  isEditable      ?: boolean
-  multiLineParas  ?: MuMultiLineParms
+  header        : string
+  dataKey      ?: string
+  colType       : COL_TYPE 
+  pipeParams   ?: PipeParams
+  pipeParmas   ?: PipeParams
+  customStyle  ?: string
+  constValue   ?: any
+  enableSort   ?: boolean
+  widthPerc    ?: number
+  isEditable   ?: boolean
+  multiLineKey ?: string[] // It takes input as image text and icon
+  dataKeyType  ?: string[] // it consists of the COL_TYPE of keys in multiLineKey
+  dataKeyArr   ?: string[] // when multiLineKey has text it consists of the array of dataKeys to be displayed in multiple rows
+  headerArr    ?: string[] // It consists of the header part of the corresponding datakeys in dataKeyArr
+  elementStyle ?: string
+  navInfo      ?: NavInfo
 }
 
 export interface FilterItem {
@@ -58,6 +70,7 @@ export interface InputParams {
   placeHolder      : string | string[]
   label           ?: string
   options         ?: SelectionBoxParams[]
+  selectAll       ?: boolean
   inputType       ?: string
   maxLength       ?: number
   value           ?: any
@@ -76,10 +89,15 @@ export interface InputParams {
   maskLength      ?: number
   isVisible       ?: boolean
   rangeKeys       ?: string[]
-  selectAll       ?: boolean
+  selectAllText   ?: string
+  unselectAllText ?: string
+  emitStepSelection ?: boolean
 }
 
-
+export interface StepSelectedFilter {
+  id    : string | number
+  value : any
+}
 
 export interface MuFomrValidation {
   validation  : any[]
@@ -98,26 +116,27 @@ export interface MuFormParams {
 }
 
 export enum DISPLAY_TYPE {
-  ROW_INPUT_BOX         = 'ROW_INPUT_BOX',
-  INPUT_BOX             = 'INPUT_BOX',
-  SELECTION_BOX         = 'SELECTION_BOX',
-  CALENDAR_BOX          = 'CALENDAR_BOX',
-  DATE_RANGE            = 'DATE_RANGE',
-  NUMBER_RANGE          = 'NUMBER_RANGE',
-  AUTOCOMPLETE_SELECT   = 'AUTO_COMPLETE_SELECT',
-  RADIO                 = 'RADIO',
-  ROW_RADIO             = 'ROW_RADIO',
-  TEXT_AREA             = 'TEXT_AREA',
-  IMAGE_UPLOAD          = 'IMAGE_UPLOAD',
-  TOGGLE                = 'TOGGLE',
-  MULTI_CHECK_BOX       = 'MULTI_CHECK_BOX',
-  BUTTON_TOGGLE         = 'BUTTON_TOGGLE',
-  SLIDER                = 'SLIDER',
-  TIME                  = 'TIME'
+  ROW_INPUT_BOX             = 'ROW_INPUT_BOX',
+  INPUT_BOX                 = 'INPUT_BOX',
+  SELECTION_BOX             = 'SELECTION_BOX',
+  CALENDAR_BOX              = 'CALENDAR_BOX',
+  DATE_RANGE                = 'DATE_RANGE',
+  NUMBER_RANGE              = 'NUMBER_RANGE',
+  AUTOCOMPLETE_SELECT       = 'AUTO_COMPLETE_SELECT',
+  RADIO                     = 'RADIO',
+  ROW_RADIO                 = 'ROW_RADIO',
+  TEXT_AREA                 = 'TEXT_AREA',
+  IMAGE_UPLOAD              = 'IMAGE_UPLOAD',
+  TOGGLE                    = 'TOGGLE',
+  MULTI_CHECK_BOX           = 'MULTI_CHECK_BOX',
+  BUTTON_TOGGLE             = 'BUTTON_TOGGLE',
+  SLIDER                    = 'SLIDER',
+  TIME                      = 'TIME',
+  DROPDOWN_MULTI_CHECK_BOX  = 'DROPDOWN_MULTI_CHECK_BOX'
 }
 
 export interface SelectionBoxParams {
-  id        : string
+  id        : string | number
   value     : string | number 
   selected ?: boolean
 }

@@ -16,7 +16,8 @@ import {
          Mubble,
          WireObject,
          WireRequest,
-         WireReqResp
+         WireReqResp,
+         CustomData
        }                      from '@mubble/core'
 import {
          SecurityError,
@@ -37,7 +38,7 @@ const TIMER_FREQUENCY_MS = 10 * 1000,  // to detect timed-out requests
       GET                = 'GET',
       POST               = 'POST',
       SUCCESS            = 'success',
-      API_STR            = 'api'
+      OBOPAY_STR         = 'obopay-java'
 
 export class HttpsServer {
 
@@ -86,6 +87,7 @@ export class HttpsServer {
     ci.ip             = this.router.getIp(req)
     ci.msOffset       = 0
     ci.lastEventTs    = 0
+    ci.customData     = {} as CustomData
 
     rc.isDebug() && rc.debug(rc.getName(this), 'ci', ci)
 
@@ -93,7 +95,7 @@ export class HttpsServer {
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
 
     try {
-      if(apiStr !== API_STR) 
+      if(apiStr !== ObopayHttpsClient.API_STR && (apiStr !== OBOPAY_STR)) // TODO : Change this
         throw new Error('Invalid path in request url ' + apiStr)
 
       if(!ObopayHttpsClient.verifyModule(moduleName, apiName))
@@ -101,6 +103,8 @@ export class HttpsServer {
 
       await this.router.verifyConnection(rc, ci, apiName)
     } catch (err) {
+      rc.isWarn() && rc.warn(rc.getName(this), 'Error in verifying connection. Sending 404 response.', err)
+
       res.writeHead(404, {
         [HTTP.HeaderKey.contentLength] : 0,
         connection                     : 'close' 
@@ -218,9 +222,11 @@ export class HttpsServerProvider implements XmnProvider {
             [HTTP.HeaderKey.contentType]   : HTTP.HeaderValue.stream
           }
 
-    const body       = wo.errorCode ? wo.errorCode === SUCCESS ? {error : wo.errorCode, data : wo.data}
-                                                               : {error : wo.errorCode, data : wo.errorMessage}
-                                    : {data : wo.data},
+    const body       = wo.errorCode
+                       ? wo.errorCode === SUCCESS
+                         ? {error : wo.errorCode, data : wo.data}
+                         : {error : wo.errorCode, data : wo.errorMessage, errorObj : wo.errorObject}
+                       : {data : wo.data},
           encBodyObj = this.encProvider.encodeBody(body, true)
 
     headers[HTTP.HeaderKey.bodyEncoding] = encBodyObj.bodyEncoding
@@ -238,6 +244,8 @@ export class HttpsServerProvider implements XmnProvider {
 
     this.finished = true
     this.server.markFinished(this)
+
+    rc.isDebug() && rc.debug(rc.getName(this), 'Closing provider')
     this.router.providerClosed(rc, this.ci)
   }
 

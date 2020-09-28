@@ -2,7 +2,8 @@
   "compilerOptions": {
     "lib"                     : ["es2018"],
     "module"                  : "commonjs",
-    "target"                  : "es2018",
+    "baseUrl"                 : "./src/",
+    "target"                  : "esnext",
     "noImplicitAny"           : true,
     "sourceMap"               : true,
     "outDir"                  : "lib",
@@ -17,7 +18,8 @@
   ],
   "exclude": [
       "node_modules",
-      "**/*.spec.ts"
+      "**/*.spec.ts",
+      "__tests__"
   ],
   "typeAcquisition": {
     "enable": true,

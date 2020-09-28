@@ -23,7 +23,7 @@ import * as lo            from 'lodash'
 const posix:any = require('posix') // https://github.com/ohmu/node-posix
 
 // Internal imports
-import {Validator}        from '@mubble/core'
+import {Validator, Mubble}        from '@mubble/core'
 import * as ipc           from './ipc-message'
 import {CONFIG}           from './config'
 import {clusterWorker}    from './worker'
@@ -36,11 +36,12 @@ import {RunContextServer, RUN_MODE} from '../rc-server'
  * @param config            Configuration for the platform
  */
 
-export async function startCluster( rc      : RunContextServer,
-                                    config  : CONFIG) : Promise<boolean> {
+export async function startCluster( rc       : RunContextServer,
+                                    config   : CONFIG,
+                                    initObj ?: Mubble.uObject<any>) : Promise<boolean> {
 
   if (cluster.isMaster) {
-    await clusterMaster.start(rc, config)
+    await clusterMaster.start(rc, config, initObj)
   } else {
     await clusterWorker.start(rc, config)
   }
@@ -71,21 +72,23 @@ interface UserInfo {
 ------------------------------------------------------------------------------*/
 export class ClusterMaster {
 
-  private workers  : WorkerInfo[]     = []
-  private userInfo : UserInfo | null  = null
-  private config   : CONFIG
-  
+  private workers       : WorkerInfo[]     = []
+  private userInfo      : UserInfo | null  = null
+  private config        : CONFIG
+  private workerInitObj : Mubble.uObject<any>
+
   constructor() {
     if (clusterMaster) throw('ClusterMaster is singleton. It cannot be instantiated again')
   }
   
-  async start(rc : RunContextServer, config: CONFIG) {
+  async start(rc : RunContextServer, config : CONFIG, initObj ?: Mubble.uObject<any>) {
 
     if (!cluster.isMaster) {
       throw('ClusterMaster cannot be started in the cluster.worker process')
     }
 
     this.config = config
+    if(initObj) this.workerInitObj = initObj
     rc.isDebug() && rc.debug(rc.getName(this), 'Starting cluster master with config', config)
 
     this.validateConfig(rc)
@@ -221,7 +224,7 @@ export class ClusterMaster {
                       ((rc.getRunMode() === RUN_MODE.PROD || rc.getRunMode() === RUN_MODE.PRE_PROD) ? os.cpus().length : 1)
 
     for (let workerIndex: number = 0; workerIndex < instances; workerIndex++) {
-      const workerInfo : WorkerInfo = new WorkerInfo(rc, this, workerIndex)
+      const workerInfo : WorkerInfo = new WorkerInfo(rc, this, workerIndex, this.workerInitObj)
       this.workers.push(workerInfo)
       workerInfo.fork(rc)
     }                  
@@ -307,8 +310,9 @@ class WorkerInfo {
   public  state         : WORKER_STATE          = WORKER_STATE.INIT
 
   constructor(rc: RunContextServer, 
-              readonly clusterMaster: ClusterMaster,
-              readonly workerIndex  : number, // index of clusterMaster.workers
+              readonly clusterMaster  : ClusterMaster,
+              readonly workerIndex    : number, // index of clusterMaster.workers
+              private  workerInitObj  : Mubble.uObject<any>
               ) {
   }
 
@@ -341,7 +345,11 @@ class WorkerInfo {
 
   public online(rc: RunContextServer): void {
     this.state = WORKER_STATE.ONLINE
-    const msgObj = new ipc.CWInitializeWorker(this.workerIndex , rc.getRunMode() , this.restartCount)
+    const msgObj = new ipc.CWInitializeWorker(this.workerIndex,
+                                              rc.getRunMode(),
+                                              this.restartCount,
+                                              this.workerInitObj)
+
     msgObj.send(this.worker)
   }
 

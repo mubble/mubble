@@ -29,15 +29,13 @@ import { FormControl,
        }                                  from '@angular/forms'
 import { TrackableScreen }                from '../../router/trackable-screen'
 import { RunContextBrowser }              from '../../../rc-browser'
-import { MatSelectChange,
-         MatDatepickerInputEvent,
-         MatAutocompleteSelectedEvent,
-         MatDatepicker,
-         MatRadioChange,
-         MatCheckboxChange,
-         MatSlideToggleChange,
-         MatButtonToggleChange
-       }                                  from '@angular/material'
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatButtonToggleChange } from '@angular/material/button-toggle';
+import { MatCheckboxChange } from '@angular/material/checkbox';
+import { MatDatepickerInputEvent, MatDatepicker } from '@angular/material/datepicker';
+import { MatRadioChange } from '@angular/material/radio';
+import { MatSelectChange } from '@angular/material/select';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
 import { InputValidator }                 from '../input-container/input-validator'
 import { Observable }                     from 'rxjs'
 import { map,
@@ -46,16 +44,16 @@ import { map,
 import { FileUploadComponent, 
          UploadedDocParams 
        }                                  from '../file-upload/file-upload.component'
-import { DISPLAY_TYPE, 
+import { Mubble,
+         DISPLAY_TYPE, 
          DISPLAY_MODE,
          InputParams,
          SelectionBoxParams,
          MuFormParams
-       }                                  from '@mubble/core/interfaces/app-server-interfaces'
+       }                                  from '@mubble/core'
 import { MuFormOutputParams, 
          FormOutputValue 
        }                                  from '../cmn-inp-cont/cmn-inp-cont-interfaces'
-import { Mubble }                         from '@mubble/core'
 
 @Component({
   selector    : 'mu-form-container',
@@ -66,7 +64,7 @@ import { Mubble }                         from '@mubble/core'
 export class MuFormContainerComponent implements OnChanges {
 
   @ViewChildren(MatDatepicker) picker                             : QueryList<MatDatepicker<Date>>
-  @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
+  @ViewChild(FileUploadComponent) fileUplInst  : FileUploadComponent
   @ViewChildren('inputCont') inputCont                            : QueryList<ElementRef>
 
   @Input()  formParams      : MuFormParams

@@ -11,7 +11,6 @@ import * as http                      from 'http'
 import * as https                     from 'https'
 
 import { XmnRouterServer }            from './xmn-router-server'
-import { ActiveProviderCollection }   from '@mubble/core'
 import { HttpsServer }                from './https-server'
 import { HttpsThirdServer }           from './https-third-server'
 import { WssServer }                  from './wss-server'
@@ -135,11 +134,7 @@ export class Web {
 
     return new Promise((resolve, reject) => {
 
-      httpServer.listen(config.port, (err: any) => {
-        if (err) {
-          rc.isError() && rc.error(rc.getName(this), 'http.listen failed', config.port)
-          return reject(err)
-        }
+      httpServer.listen(config.port, () => {
         resolve()
       })
 

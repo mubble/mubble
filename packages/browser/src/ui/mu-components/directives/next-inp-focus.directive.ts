@@ -15,7 +15,7 @@ import { Directive,
          Output,
          EventEmitter
        }                      from '@angular/core'
-import { RunContextBrowser }  from '@mubble/browser/rc-browser'
+import { RunContextBrowser }  from '../../../rc-browser'
 
 @Directive({
   selector: '[nextInpFocus]'

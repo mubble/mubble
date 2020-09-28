@@ -55,7 +55,7 @@ class EncProviderAndroid(val ci                 : ConnectionInfo,
 
       // Populate the unique id (version number)
       index = 0
-      var parts: List<Int> = ci.customData!!.uniqueId!!.split('.').map {it.toInt()}
+      var parts: List<Int> = ci.customData!!.appVersion!!.split('.').map {it.toInt()}
 
       if (parts.size > 1) {
         check(parts.size == 3 && parts[0] <= 99 && parts[1] <= 99 && parts[2] <= 99)
@@ -67,6 +67,9 @@ class EncProviderAndroid(val ci                 : ConnectionInfo,
       for (part in parts) arUniqueId[index++] = part.toByte()
     }
 
+    fun byteArrayToBase64(byteArr: ByteArray): String = Base64.encodeToString(byteArr, Base64.NO_WRAP)
+
+    fun base64ToByteArray(str: String): ByteArray = Base64.decode(str, Base64.NO_WRAP)
   }
 
   private val ivSpec = IvParameterSpec(byteArrayOf(0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
@@ -204,10 +207,6 @@ class EncProviderAndroid(val ci                 : ConnectionInfo,
   }
 
   private fun strToByteArray(str: String): ByteArray = str.toByteArray(Charset.defaultCharset())
-
-  private fun byteArrayToBase64(byteArr: ByteArray): String = Base64.encodeToString(byteArr, Base64.NO_WRAP)
-
-  private fun base64ToByteArray(str: String): ByteArray = Base64.decode(str, Base64.NO_WRAP)
 
   private fun stringifyWireObjects(objects: Array<WireObject>): String {
 

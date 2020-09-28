@@ -28,6 +28,7 @@ import * as ws                from 'ws'
 import * as https             from 'https'
 import * as http 							from 'http'
 import * as urlModule         from 'url'
+import * as lo                from 'lodash'
 
 const SLASH_SEP         = '/',
       PING_FREQUENCY_MS = 29 * 1000 // 29 seconds
@@ -55,7 +56,7 @@ export class WssServer {
 
     const rc = this.refRc.copyConstruct('', 'handshake')
 
-    rc.isStatus() && rc.status(rc.getName(this), 'Recieved a new connection. Establishing handshake.')
+    rc.isStatus() && rc.status(rc.getName(this), 'Received a new connection. Establishing handshake.')
 
     try {
       if(!req.url) throw new Error('Request URL absent.')
@@ -199,19 +200,20 @@ export class WssServerProvider implements XmnProvider {
   public async send(rc : RunContextServer, woArr : Array<WireObject>) {
     const data = await this.encProvider.encodeBody(woArr, this.appClient)
 
-    rc.isDebug() && rc.debug(rc.getName(this), 'sending', woArr)
+    rc.isStatus() && rc.status(rc.getName(this), 'sending', woArr)
 
     this.ci.lastRequestTs = woArr[woArr.length - 1].ts
     this.socket.send(data)
   }
 
   public requestClose(rc : RunContextServer) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'requestClose')
     this.socket.close()
     this.closeInternal(rc)
   }
 
   private onOpen() {
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc.copyConstruct('', 'wss' + + lo.random(1000, 9999, false))
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onopen()')
   }
 
@@ -245,21 +247,23 @@ export class WssServerProvider implements XmnProvider {
   }
 
   private onClose() {
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc
     rc.isDebug() && rc.debug(rc.getName(this), 'WebSocket onclose()')
 
     this.closeInternal(rc)
   }
 
   private onError(err : Error) {
+    
     this.wssServer.markClosed(this)
 
-    const rc = this.refRc.copyConstruct('', 'wss-request')
+    const rc = this.refRc
     rc.isError() && rc.error(rc.getName(this), 'WebSocket onerror()', err)
     this.router.providerFailed(rc, this.ci)
   }
 
   private closeInternal(rc : RunContextServer) {
+    rc.isDebug() && rc.debug(rc.getName(this), 'closeInternal')
     this.wssServer.markClosed(this)
     this.router.providerClosed(rc, this.ci)
   }

@@ -16,7 +16,8 @@ import { Component,
          EventEmitter,
          ViewChild,
          OnChanges,
-         ElementRef
+         ElementRef,
+         ChangeDetectorRef
        }                                  from '@angular/core'
 import { FormControl,
          Validators,
@@ -25,16 +26,14 @@ import { FormControl,
        }                                  from '@angular/forms'
 import { TrackableScreen }                from '../../../ui/router/trackable-screen'
 import { RunContextBrowser }              from '../../../rc-browser'
-import { MatSelectChange,
-         MatDatepickerInputEvent,
-         MatAutocompleteSelectedEvent,
-         MatDatepicker,
-         MatRadioChange,
-         MatCheckboxChange,
-         MatSlideToggleChange,
-         MatButtonToggleChange,
-         MatSliderChange
-       }                                  from '@angular/material'
+import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete';
+import { MatButtonToggleChange } from '@angular/material/button-toggle';
+import { MatCheckboxChange } from '@angular/material/checkbox';
+import { MatDatepickerInputEvent, MatDatepicker } from '@angular/material/datepicker';
+import { MatRadioChange } from '@angular/material/radio';
+import { MatSelectChange } from '@angular/material/select';
+import { MatSlideToggleChange } from '@angular/material/slide-toggle';
+import { MatSliderChange } from '@angular/material/slider';
 import { InputValidator }                 from './input-validator'
 import { Observable }                     from 'rxjs'
 import { map,
@@ -58,18 +57,20 @@ import { OutputParams }                   from '../cmn-inp-cont/cmn-inp-cont-int
 
 export class InputContainerComponent implements OnChanges {
 
-  @ViewChild(MatDatepicker, { static: false }) picker             : MatDatepicker<any>
-  @ViewChild(FileUploadComponent, { static: false }) fileUplInst  : FileUploadComponent
-
   @Input()  inputParams     : InputParams
   @Input()  screen          : TrackableScreen
-  @Input()  webMode         : boolean
   @Input()  parentCont      : ElementRef
+  @Input()  webMode         : boolean           
   @Input()  eventPropagate  : boolean               = false
+
   @Input()  displayMode     : DISPLAY_MODE         
   @Input()  displayLabel    : boolean               = true
+
   @Output() value           : EventEmitter<any>     = new EventEmitter<any>()
-  @Output() dropdownOpen    : EventEmitter<boolean> = new EventEmitter<boolean>()
+  @Output() dropdownOpen    : EventEmitter<boolean> =  new EventEmitter<boolean>()
+
+  @ViewChild(MatDatepicker)       picker       : MatDatepicker<any>
+  @ViewChild(FileUploadComponent) fileUplInst  : FileUploadComponent
 
   inputForm       : FormControl
   dateRange       : FormGroup

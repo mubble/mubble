@@ -7,9 +7,10 @@
    Copyright (c) 2020 Obopay. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { BigqueryBase }          from './bigquery-base'
-import { RunContextServer }       from '../../rc-server'
-import { Mubble }                 from '@mubble/core'
+import { BqBase, 
+          TABLE_OPTIONS   }    from './bigquery-base'
+import { RunContextServer }    from '../../rc-server'
+import { Mubble }              from '@mubble/core'
 
 /*------------------------------------------------------------------------------
    Bigquery Field Info
@@ -17,8 +18,8 @@ import { Mubble }                 from '@mubble/core'
 
 export type BqFieldInfo = {
   name    : string
-  type    : BigqueryBase.FIELD_TYPE
-  mode    : BigqueryBase.FIELD_MODE
+  type    : BqBase.FIELD_TYPE
+  mode    : BqBase.FIELD_MODE
   parent ?: string
   fields ?: BqFieldInfo[]
 }
@@ -31,18 +32,23 @@ export class BigqueryRegistry {
 
   private dataset       : string
   private tableName     : string
-  private dayPartition  : boolean = false
+  private partition     : boolean = false
   private version      ?: number
   private fields        : Array<BqFieldInfo> = []
+  private tableOptions ?: TABLE_OPTIONS
 
   constructor(table: string) {
     this.tableName = table
   }
 
-  init(dataset: string, dayPartition : boolean = false, version ?: number) {
-    this.dataset      = dataset
-    this.dayPartition = dayPartition
-    this.version      = version
+  init(dataset: string, options ?: TABLE_OPTIONS, version ?: number) {
+    this.dataset        = dataset
+    this.partition      = false
+    if (options) {
+      this.partition    = options.timePartitioning ? true : false
+      this.tableOptions = options
+    }
+    this.version        = version
   }
 
   addField(field : BqFieldInfo) {
@@ -69,7 +75,7 @@ export class BigqueryRegistry {
   }
 
   getNotNullFields() : Array<BqFieldInfo> {
-    return this.fields.filter((field : BqFieldInfo) => field.mode != BigqueryBase.FIELD_MODE.NULLABLE)
+    return this.fields.filter((field : BqFieldInfo) => field.mode != BqBase.FIELD_MODE.NULLABLE)
   }
 
   getFieldNames() : Array<string> {
@@ -94,12 +100,16 @@ export class BigqueryRegistry {
     return this.tableName
   }
 
-  isDayPartition(): boolean {
-    return this.dayPartition
+  isPartition(): boolean {
+    return this.partition
   }
 
   getVersion(): number | undefined {
     return this.version
+  }
+
+  getOptions() : TABLE_OPTIONS | undefined {
+    return this.tableOptions
   }
 }
 
@@ -117,16 +127,16 @@ export class BqRegistryManager {
   }
 
   public static addEntity(dataset: string, tableName : string, 
-                          dayPartition: boolean = false, version ?: number) {
+                          options ?: TABLE_OPTIONS, version ?: number) {
 
     const registry : BigqueryRegistry  = this.getRegistry(tableName)
-    registry.init(dataset, dayPartition, version)
+    registry.init(dataset, options, version)
   }
 
   public static addField(tableName  : string,
                          fieldName  : string,
-                         fieldType  : BigqueryBase.FIELD_TYPE,
-                         fieldMode  : BigqueryBase.FIELD_MODE) {
+                         fieldType  : BqBase.FIELD_TYPE,
+                         fieldMode  : BqBase.FIELD_MODE) {
 
     const registry  : BigqueryRegistry  = this.getRegistry(tableName),
           fieldInfo : BqFieldInfo = {
@@ -138,24 +148,11 @@ export class BqRegistryManager {
     registry.addField(fieldInfo)
   }
 
-  public static addRecord(tableName  : string,
-                          fieldName  : string,
-                          fieldMode  : BigqueryBase.FIELD_MODE) {
-
-    const registry  : BigqueryRegistry  = this.getRegistry(tableName),
-          fieldInfo : BqFieldInfo = {
-                                      name    : fieldName,
-                                      type    : BigqueryBase.FIELD_TYPE.RECORD,
-                                      mode    : fieldMode
-                                    }
-    registry.addField(fieldInfo)
-  }
-
   public static addRecordField(tableName  : string,
                                parent     : string,
                                fieldName  : string,
-                               fieldType  : BigqueryBase.FIELD_TYPE,
-                               fieldMode  : BigqueryBase.FIELD_MODE) {
+                               fieldType  : BqBase.FIELD_TYPE,
+                               fieldMode  : BqBase.FIELD_MODE) {
 
     const registry  : BigqueryRegistry  = this.getRegistry(tableName),
           fieldInfo : BqFieldInfo = {

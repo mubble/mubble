@@ -14,11 +14,12 @@ import {
          InitConfig,
          RunState,
          RCLoggerBase,
+         Mubble,
          MaskingDataParams
-       }                      from '@mubble/core'
-import { MasterMgr }          from './master/ma-manager'
-import * as semver            from 'semver'
-import * as lo                from 'lodash'
+       }                    from '@mubble/core'
+import { MasterMgr }        from './master/ma-manager'
+import * as semver          from 'semver'
+import * as lo              from 'lodash'
 
 // Import from external modules without types
 const colors:any = require('colors/safe') // https://github.com/marak/colors.js/
@@ -79,6 +80,7 @@ export abstract class RunContextServer extends RunContextBase {
   ------------------------------------------------------------------------------*/
 
   masterMgr   : MasterMgr
+  initObj     : Mubble.uObject<any>
 
   private static initDone: boolean
   
@@ -101,7 +103,8 @@ export abstract class RunContextServer extends RunContextBase {
   }
 
   clone(newRc : RunContextServer) {
-    // nothing to do, I have no member variables
+    newRc.initObj = this.initObj
+
     super.clone(newRc)
   }
 

@@ -23,8 +23,8 @@ export namespace Mubble {
   }
 
   export class uError extends Error {
-    constructor(public code: string, msg: string) {
-        super(msg)
+    constructor(public code : string, msg : string, public obj ?: uObject<any>) {
+      super(msg)
     }
   }
 

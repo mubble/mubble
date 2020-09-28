@@ -8,7 +8,8 @@
 ------------------------------------------------------------------------------*/
 
 import { Query as DsQuery, 
-          QueryResult }                           from '@google-cloud/datastore/query'
+         QueryResult
+       }                                          from '@google-cloud/datastore/query'
 import { DatastoreTransaction as DSTransaction }  from '@google-cloud/datastore/transaction'
 import { Muds,
          DatastoreInt,
@@ -24,8 +25,8 @@ import { MudsUtil }                               from './muds-util'
 import { Mubble }                                 from '@mubble/core'
 import { MudsQuery }                              from './muds-query'
 import { RunContextServer }                       from '../..'
-import * as lo                                    from 'lodash'
 import { CommitResponse }                         from '@google-cloud/datastore/request'
+import * as lo                                    from 'lodash'
 
 import Datastore = require('@google-cloud/datastore')
 
@@ -57,13 +58,13 @@ import Datastore = require('@google-cloud/datastore')
 
 export abstract class MudsIo {
 
-  protected datastore: Datastore
-  readonly now: number
-  protected upsertQueue: MudsBaseEntity[] = []
-  readonly uniques: UniqCacheObj[] = []
+  protected datastore   : Datastore
+  readonly  now         : number
+  protected upsertQueue : MudsBaseEntity[] = []
+  readonly  uniques     : UniqCacheObj[] = []
 
-  constructor(protected rc: RunContextServer,
-    protected manager: MudsManager) {
+  constructor(protected rc      : RunContextServer,
+              protected manager : MudsManager) {
 
     this.datastore = manager.getDatastore()
     this.now = Date.now()
@@ -213,6 +214,22 @@ export abstract class MudsIo {
     return [results, { moreResults : "NO_MORE_RESULTS" }]
   }
 
+  public async allocateSelfKey(entity : MudsBaseEntity) : Promise<void> {
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      entity.getInfo().keyType === Muds.Pk.Auto, 'this method should be used only for PK Auto')
+
+    const exec            = this.getExec(),
+          inCompletelyKey = this.datastore.key([entity.getInfo().entityName])
+    const tempKey = await exec.allocateIds(inCompletelyKey, 1)
+    if(tempKey && tempKey[0]) {
+      for(const key of tempKey[0]) {
+        if(key && key.path)
+          entity.commitUpsert(key.path)
+          break
+      }
+    }
+  }
+
   private async deleteInternal<T extends MudsBaseEntity>(
     ...reqs: IEntityKey<T>[]): Promise<void> {
 
@@ -289,6 +306,53 @@ export abstract class MudsIo {
     await this.removeUniquesFromCache(rc, modifiedEntities)
   }
 
+
+  protected async processTransactionUpsertQueue(rc               : RunContextServer, 
+                                                executedResults ?: void|[CommitResponse]) {
+
+    const exec              = this.getExec(),
+          modifiedEntities  = [],
+          dsRecs            = []
+
+    if (!this.upsertQueue.length) return
+
+    for (const entity of this.upsertQueue) {
+
+      if (!entity.isModified()) continue
+
+      dsRecs.push(entity.convertForUpsert(this.rc))
+      modifiedEntities.push(entity)
+    }
+
+    if (!modifiedEntities.length) return
+    
+    if(!executedResults) {
+      await this.checkUnique(rc, ...modifiedEntities)
+      await exec.save(dsRecs)
+    }
+    
+    if(executedResults && executedResults[0]) {
+      const selfKeyNotModified = modifiedEntities.filter(e => { 
+        return e.getSelfKey() ? false : true 
+      })
+      const commitResponseWithKey = executedResults[0].mutationResults.filter(e => { 
+        return e.key ? true : false 
+      })
+
+      for(const [index, result] of commitResponseWithKey.entries()) {
+        rc.isAssert() && rc.assert(rc.getName(this), result)
+        if(result.key) {
+          const entity = selfKeyNotModified[index]
+          entity.commitUpsert(result.key.path)
+        }
+      }
+      this.upsertQueue = []
+    }
+
+    //Remove key from cache after successful execution
+    await this.removeUniquesFromCache(rc, modifiedEntities)
+  }
+
   /* 
     This method will be called once the execution of the upsert called. 
     so that unique key will be removed once after success.
@@ -329,7 +393,7 @@ export abstract class MudsIo {
     await this.lockEntityInCache(rc, uniques)
     
     //check entity based on key and value, If device have the value throw error.
-    await this.checkEntityExistsInDS(rc,uniques)
+    await this.checkEntityExistsInDS(rc, uniques)
 
     this.uniques.concat(uniques)
   }
@@ -592,10 +656,13 @@ export abstract class MudsIo {
       'It is mandatory to have ancestorKeys for querying with-in transaction')
 
     for (const [index, info] of ancestorsInfo.entries()) {
-
-      //TODO(AD) : Verify this with raghu.
       if (ancestorKeys[index])
         dsKeys.push(info.entityName, this.checkKeyType(rc, ancestorKeys[index], info))
+    }
+
+    if(ancestorKeys && ancestorKeys.length === (ancestorsInfo.length + 1)) {
+      const key = ancestorKeys[ancestorKeys.length - 1] as any
+      dsKeys.push(entityInfo.entityName, key)
     }
 
     if(dsKeys.length) return this.datastore.key(dsKeys)
@@ -688,7 +755,7 @@ export class MudsTransaction extends MudsIo {
 
   createQuery(entityName: string) {
     //Default Namespace, without this transaction wont work??
-    return this.transaction.createQuery('', entityName)
+    return this.transaction.createQuery(this.manager.getNamespacePrefix() , entityName)
   }
 
   private async doCallback() {
@@ -697,12 +764,15 @@ export class MudsTransaction extends MudsIo {
 
     this.transaction = this.datastore.transaction()
     await this.transaction.run()
-
     try {
 
       const response = await this.callback(this, this.now)
-      if (this.upsertQueue.length) await this.processUpsertQueue(rc)
-      await this.transaction.commit()
+      if (this.upsertQueue.length) await this.processTransactionUpsertQueue(rc)
+      const commitResponse = await this.transaction.commit()
+      if(commitResponse) {
+        await this.processTransactionUpsertQueue(rc, commitResponse)
+      }
+
       rc.isDebug() && rc.debug(rc.getName(this), 'transaction completed')
       return response
     } catch (err) {

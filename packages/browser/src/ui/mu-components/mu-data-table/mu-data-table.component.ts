@@ -12,11 +12,11 @@ import { Component,
          QueryList
        }                            from '@angular/core'
 import { MatCheckboxChange, 
-         MatRadioChange,
-         MatSlideToggleChange,
-         MatCheckbox,
-         MatMenuTrigger
-       }                            from '@angular/material'
+         MatCheckbox 
+       }                            from '@angular/material/checkbox'
+import { MatRadioChange }           from '@angular/material/radio'
+import { MatMenuTrigger }           from '@angular/material/menu'
+import { MatSlideToggleChange }     from '@angular/material/slide-toggle'
 import { FormControl, 
          FormGroup
        }                            from '@angular/forms'
@@ -24,13 +24,12 @@ import { FormControl,
 import { TableHeader, 
          FilterItem, 
          DISPLAY_MODE,
-         MuStickyTableConfig
-       }                            from '@mubble/core/interfaces/app-server-interfaces'
-import { RunContextBrowser }        from '@mubble/browser/rc-browser'
-import { LOG_LEVEL,              
+         LOG_LEVEL,              
          COL_TYPE,
-         MuSelectedFilter
+         MuSelectedFilter,
+         MuStickyTableConfig
        }                            from '@mubble/core'
+import { RunContextBrowser }        from '../../../rc-browser'
 import { FilterComponent }          from '../filter'
 
 export interface TableConfig {
@@ -587,7 +586,7 @@ export class MuDataTableComponent implements OnInit {
    * @param data 
    */
   updateRow(rowIndex : number, data : Object) {
-
+    data['rowIndex'] = rowIndex
     this.dataMap[this.currPageIndex][rowIndex % this.tableConfig.dispRows] = data
   }
 

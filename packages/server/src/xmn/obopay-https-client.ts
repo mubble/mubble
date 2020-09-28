@@ -34,6 +34,7 @@ const REQUEST_TS_RANGE    = 15 * 60 * 1000 * 1000,    // 15 minutes in micro sec
 export namespace ObopayHttpsClient {
 
   export const OBOPAY_STR = 'obopay'
+  export const API_STR    = 'api'
 
   const CLASS_NAME = 'ObopayHttpsClient',
         POST       = 'POST'
@@ -69,7 +70,6 @@ export namespace ObopayHttpsClient {
                                   apiName       : string,
                                   params        : Mubble.uObject<any>,
                                   serverId      : string,
-                                  unsecured    ?: boolean,
                                   syncHashPath ?: string) : Promise<ResultStruct> {
 
     if(!selfId || !credentialRegistry)
@@ -105,9 +105,7 @@ export namespace ObopayHttpsClient {
       headers[HTTP.HeaderKey.transferEncoding] = HTTP.HeaderValue.chunked
     }
 
-    let unsecuredConn = false
-    if (unsecured !== undefined) unsecuredConn = unsecured
-    if (requestServer.unsecured !== undefined) unsecuredConn = requestServer.unsecured
+    let unsecuredConn = requestServer.unsecured
 
     rc.isDebug() && rc.debug(CLASS_NAME,
                              `http${unsecuredConn ? '' : 's'} request headers.`,
@@ -250,7 +248,7 @@ export namespace ObopayHttpsClient {
 
       if(!verifyIp(lo.cloneDeep(clientCredentials.permittedIps), clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
-                                'Client IP not permitted.')
+                                `Client IP not permitted: ${clientIp}`)
       }
 
       if(!headers[HTTP.HeaderKey.bodyEncoding])

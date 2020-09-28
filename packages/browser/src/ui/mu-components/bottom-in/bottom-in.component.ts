@@ -25,11 +25,6 @@ import { UiRouter }             from '../../router'
 
 import { DomHelper }            from '../../../util'
 
-import { BottomInInterface, 
-         InjectionParentBase, 
-         LOG_LEVEL, 
-         RunContextBrowser}     from '@mubble/browser'
-
 import {  query, 
           style, 
           state,
@@ -37,7 +32,14 @@ import {  query,
           transition, 
           group,
           animate }             from "@angular/animations"
-import { Mubble }               from '@mubble/core'
+
+import { Mubble, LOG_LEVEL }    from '@mubble/core'
+
+import { InjectionParentBase }  from '../injection-base'
+
+import { RunContextBrowser }    from '../../../rc-browser'
+
+import { BottomInInterface }    from '../injection-interface'
 
 export const STATE      = {HALF: 'HALF', FULL: 'FULL'}
 

@@ -9,14 +9,13 @@ import { Component,
          HostListener,
          Renderer2
        }                            from '@angular/core'
-import { RunContextApp }            from 'framework'
-import { TrackableScreen }          from '@mubble/browser'
+import { RunContextBrowser }          from '../../../rc-browser'
 import { Nail, 
          NailInterface 
        }                              from '../../nail'
 import { MultiStepValue, 
          DomHelper 
-       }                            from '@mubble/browser/util'
+       }                            from '../../../util'
        
 
 const ANIM_TRANSITION   = 600
@@ -61,7 +60,7 @@ export class DialerComponent implements NailInterface {
   @Input() parentDiv      : ElementRef
   @Input() dialerParams   : DialerParams
   @Input() eventPropagte  : boolean  = false 
-  @Input() screen         : TrackableScreen
+  // @Input() screen         : TrackableScreen
 
   @Output() value : EventEmitter<DialerOptions> 
 
@@ -73,7 +72,7 @@ export class DialerComponent implements NailInterface {
   private lastIndex     : number
   private sound         : any
 
-  constructor(@Inject('RunContext') protected rc  : RunContextApp,
+  constructor(@Inject('RunContext') protected rc  : RunContextBrowser,
               private renderer                    : Renderer2,
               private ngZone                      : NgZone) { 
                 

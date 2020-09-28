@@ -2,9 +2,7 @@ import { Component,
          OnInit,
          Inject
        }                      from '@angular/core'
-import { RunContextApp, 
-         ComponentRoute
-       }                      from 'framework'
+import { RunContextBrowser } from '../../../rc-browser'
 
 @Component({
   selector    : 'page-not-found',
@@ -14,7 +12,7 @@ import { RunContextApp,
 
 export class PageNotFoundComponent implements OnInit {
 
-  constructor(@Inject('RunContext') protected rc  : RunContextApp) { }
+  constructor(@Inject('RunContext') protected rc  : RunContextBrowser) { }
 
   ngOnInit() {
 
@@ -25,7 +23,7 @@ export class PageNotFoundComponent implements OnInit {
   =====================================================================*/
 
   onHomeClick() {
-    this.rc.uiRouter.rootNavigate(ComponentRoute.LandingProxy)
+    // this.rc.uiRouter.rootNavigate(ComponentRoute.LandingProxy)
   }
 
 }

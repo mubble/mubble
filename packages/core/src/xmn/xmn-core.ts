@@ -8,7 +8,6 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble, RunContextBase } from '..'
-import { XmnError }               from './xmn-error'
 import { CustomData }             from './custom-data'
 
 export enum Protocol {HTTP, WEBSOCKET, HTTPS, HTTP_THIRD}
@@ -25,6 +24,7 @@ export namespace HTTP {
     clientSecret     : 'x-client-secret',
     contentType      : 'content-type',
     contentLength    : 'content-length',
+    setCookie        : 'set-cookie',
     contentEncoding  : 'content-encoding',
     clientId         : 'x-obopay-cid',
     versionNumber    : 'x-obopay-version',
@@ -33,6 +33,8 @@ export namespace HTTP {
     requestType      : 'x-obopay-type',
     bodyEncoding     : 'x-obopay-encoding',
     transferEncoding : 'transfer-encoding',
+    location         : 'location',
+    accept           : 'accept',
     authorization    : 'authorization',
     token            : 'token'
   }
@@ -40,6 +42,7 @@ export namespace HTTP {
   /* HTTP Headers */
   export const HeaderValue = {
     form     : 'application/x-www-form-urlencoded',
+    mutiForm : 'multipart/form-data',
     stream   : 'application/octet-stream',
     json     : 'application/json',
     gzip     : 'gzip',
@@ -189,25 +192,35 @@ export class WireEphEvent extends WireObject {
 export class WireReqResp extends WireObject {
   errorCode    : string | null
   errorMessage : string | null
+  errorObject  : Mubble.uObject<any> | undefined
+
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data: object, errorCode ?: string, errorMessage ?: string, fullErr ?: any) {
+  constructor(name : string, ts : number, data : object, errorCode ?: string, errorMessage ?: string,
+              errorObject ?: Mubble.uObject<any>, fullErr ?: any) {
+
     super(WIRE_TYPE.REQ_RESP, name, data, ts)
 
     this.errorCode    = errorCode || null
     this.errorMessage = errorMessage || null
+    this.errorObject  = errorObject
     this._err         = fullErr
   }
 }
 
 export class WireEventResp extends WireObject {
-  errorCode    : string  | null
+  errorCode    : string | null
   errorMessage : string | null
+  errorObject  : Mubble.uObject<any> | undefined
+
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data ?: object, errorCode ?: string, errorMessage ?: string, fullErr ?: any) {
+  constructor(name : string, ts : number, data ?: object, errorCode ?: string, errorMessage ?: string,
+              errorObject ?: Mubble.uObject<any>, fullErr ?: any) {
+    
     super(WIRE_TYPE.EVENT_RESP, name, data || {}, ts)
 
     this.errorCode    = errorCode || null
     this.errorMessage = errorMessage || null
+    this.errorObject  = errorObject
     this._err         = fullErr
   }
 }

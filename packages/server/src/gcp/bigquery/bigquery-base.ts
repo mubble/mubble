@@ -12,8 +12,14 @@ import { BqRegistryManager }          from "./bigquery-registry"
 type UnionKeyToValue<U extends string> = {
   [K in U]: K
 }
+export type TABLE_OPTIONS = {timePartitioning       ?: {
+                                                          type   : 'DAY' | 'HOUR',
+                                                          field  : string // if set, partition happens on this field.
+                                                          // if not set, '_PARTITIONTIME' column will be created.
+                                                         },
+                             requirePartitionFilter ?: boolean }
 
-export namespace BigqueryBase {
+export namespace BqBase {
   
   export type FIELD_TYPE = 'INTEGER' | 'FLOAT' | 'STRING' | 'TIMESTAMP' | 'RECORD'
   export const FIELD_TYPE :UnionKeyToValue<FIELD_TYPE> = {
@@ -34,10 +40,10 @@ export namespace BigqueryBase {
    *  Annotation to mark a Bq model.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function model(dataset: string, dayPartition : boolean = false, version ?: number) {
+  export function model(dataset: string, options ?: TABLE_OPTIONS, version ?: number) {
     return function(target: any) {
       BqRegistryManager.addEntity(dataset, target.name.toLowerCase(), 
-                                  dayPartition, version)
+                                  options, version)
     }
   }
 
@@ -51,14 +57,6 @@ export namespace BigqueryBase {
       BqRegistryManager.addField(target.constructor.name.toLowerCase(), 
                                  propertyKey, type, mode)
     }
-  }
-
-  export function record(mode : FIELD_MODE = FIELD_MODE.NULLABLE) {
-
-    return function(target : any , propertyKey : string) {
-      BqRegistryManager.addRecord(target.constructor.name.toLowerCase(), 
-                                  propertyKey, mode)
-    }                           
   }
 
   export function recordField(parent  : string,

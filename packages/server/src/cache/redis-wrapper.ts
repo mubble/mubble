@@ -85,6 +85,7 @@ export class RedisCmds {
 
   hdel      (key : string , ...args : string[]) : Promise<void> { return true as any }
   hget      (key : string , field : string) : Promise<string> { return true as any }
+  hexists   (key : string, field : string) : Promise<number> { return true as any }
   hgetall   (key : string) : Promise<{[key:string] : string}> { return true as any }
   hscan     (key : string , ...args : string[]) : Promise<[string, string []]> { return true as any }
   hmget     (key : string , ...args : string[]) : Promise<string []> { return true as any }
