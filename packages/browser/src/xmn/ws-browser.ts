@@ -126,7 +126,8 @@ export class WsBrowser implements XmnProvider {
       this.pendingMessage = data
 
       if (!this.encProvider) {
-        this.encProvider = new EncryptionBrowser(rc, this.ci, this.router.getPubKey())
+        this.encProvider = new EncryptionBrowser(rc, this.ci, 
+          this.router.getPubKey(), this.router.getEncIV())
         await this.encProvider.init()
       }
 
@@ -140,7 +141,8 @@ export class WsBrowser implements XmnProvider {
         }
       }
 
-      const url     = `${this.ci.port === 443 ? 'wss' : 'wss'}://${this.ci.host}:${this.ci.port}/${HANDSHAKE}/${this.ci.protocolVersion}/${this.ci.shortName}/`,
+      const url     = `${this.ci.port === 443 || this.router.runAlwaysAsSecure(this.rc) 
+                       ? 'wss' : 'ws'}://${this.ci.host}:${this.ci.port}/${HANDSHAKE}/${this.ci.protocolVersion}/${this.ci.shortName}/`,
             header  = await this.encProvider.encodeHeader(this.wsProviderConfig)
       
       messageBody = encodeURIComponent(header)

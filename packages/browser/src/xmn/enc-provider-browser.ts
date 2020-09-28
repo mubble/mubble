@@ -18,10 +18,7 @@ import {
 import { RunContextBrowser }  from '../rc-browser'
 import { TextEncDec }         from './text-enc-dec'
 
-const IV                    = new Uint8Array([0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00, 
-                                              0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00]),
-      SYM_ALGO              = {name: "AES-CBC", iv: IV, length: 256},
-      ASYM_ALGO             = {name: 'RSA-OAEP', hash: {name: 'SHA-1'}}
+const ASYM_ALGO = {name: 'RSA-OAEP', hash: {name: 'SHA-1'}}
 
 let arShortCode : Uint8Array
 let arUniqueId  : Uint8Array
@@ -30,11 +27,16 @@ let pwc         : PakoWorkerClient
 export class EncryptionBrowser {
 
   private syncKey: any // can be sent as null by server
+  private symAlgo     
 
-  constructor(private rc: RunContextBrowser, private ci: ConnectionInfo, 
-              private rsaPubKey: Uint8Array) {
+  constructor(private rc: RunContextBrowser, 
+              private ci: ConnectionInfo, 
+              private rsaPubKey: Uint8Array,
+              private iv : Uint8Array) {
 
     rc.setupLogger(this, 'EncryptionBrowser')
+
+    this.symAlgo = { name: "AES-CBC", length: 256, iv: this.iv }
 
     if (!arShortCode) this.extractShortCode(rc, ci.shortName)
     if (!arUniqueId)  this.extractUniqueId(rc, ci.customData.jsVersion)
@@ -42,7 +44,7 @@ export class EncryptionBrowser {
   }
 
   async init() {
-    this.syncKey = await crypto.subtle.generateKey(SYM_ALGO, true, ['encrypt', 'decrypt'])
+    this.syncKey = await crypto.subtle.generateKey(this.symAlgo, true, ['encrypt', 'decrypt'])
   }
 
   async encodeHeader(wsConfig: WssProviderConfig): Promise<string> {
@@ -77,11 +79,11 @@ export class EncryptionBrowser {
   }
 
   private async encrypt(ar: Uint8Array): Promise<ArrayBuffer> {
-    return await crypto.subtle.encrypt(SYM_ALGO, this.syncKey, ar)
+    return await crypto.subtle.encrypt(this.symAlgo, this.syncKey, ar)
   }
 
   private async decrypt(ar: Uint8Array): Promise<ArrayBuffer> {
-    return await crypto.subtle.decrypt(SYM_ALGO, this.syncKey, ar)
+    return await crypto.subtle.decrypt(this.symAlgo, this.syncKey, ar)
   }
 
   private getArrayBuffer(ar: Uint8Array) {
@@ -183,7 +185,7 @@ export class EncryptionBrowser {
   public async setNewKey(syncKey: string) {
 
     const arEncNewKey = this.binToUnit8Ar(atob(syncKey))
-    this.syncKey      = await crypto.subtle.importKey('raw', arEncNewKey, SYM_ALGO, true, ['encrypt', 'decrypt'])
+    this.syncKey      = await crypto.subtle.importKey('raw', arEncNewKey, this.symAlgo, true, ['encrypt', 'decrypt'])
   }
 
   async getSyncKeyB64(): Promise<string> {

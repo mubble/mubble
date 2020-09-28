@@ -62,9 +62,11 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
   private lastEventTs      = 0
   private lastEventSendTs  = 0
   private pubKey: Uint8Array
+  private encIV : Uint8Array
 
   constructor(private rc: RunContextBrowser, serverUrl: string, 
-                      ci: ConnectionInfo, pubKey: string) {
+                      ci: ConnectionInfo, pubKey: string, 
+                      encIV: Uint8Array) {
 
     const urlParser     = document.createElement('a')
     urlParser.href      = serverUrl
@@ -77,6 +79,7 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
     
     const cls :any      = Uint8Array
     this.pubKey         = cls.from(atob(pubKey), (c : any) => c.charCodeAt(0))
+    this.encIV          = encIV
     
     this.timerReqResend    = rc.timer.register('router-resend', this.cbTimerReqResend.bind(this))
     this.timerReqTimeout   = rc.timer.register('router-req-timeout', this.cbTimerReqTimeout.bind(this))
@@ -86,6 +89,8 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
   }
 
   getPubKey() { return this.pubKey }
+  getEncIV() { return this.encIV }
+
   abstract getNetworkType(rc: RunContextBrowser): string
   abstract getLocation(rc: RunContextBrowser): string
   abstract getMaxOpenSecs() : number
@@ -94,7 +99,8 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
   abstract canStrtLastReqTimer(rc : RunContextBrowser) : boolean
   abstract getSessionTimeOutSecs(rc: RunContextBrowser)
   abstract sessionTimedOut(rc: RunContextBrowser)
-    
+  abstract runAlwaysAsSecure(rc: RunContextBrowser) : boolean  
+
   async sendRequest(rc: RunContextBrowser, apiName: string, data: object, timeoutMS ?: number): Promise<object> {
 
     const timeout = timeoutMS || TIMEOUT_MS
