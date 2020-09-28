@@ -1,29 +1,30 @@
 {
+  "compileOnSave": false,
   "compilerOptions": {
-    "module"                  : "commonjs",
-    "baseUrl"                 : "./src/",
-    "target"                  : "es5",
-    "sourceMap"               : true,
-    "outDir"                  : "lib",
-    "declaration"             : true,
-    "emitDecoratorMetadata"   : true,
-    "experimentalDecorators"  : true,
-    "esModuleInterop": true,
-    "typeRoots"               : ["node_modules/@types"],
-    "lib"                     : [
-                                  "es2016",
-                                  "dom"
-                                ]
-  },
-  "include": [
-      "src/**/*"
-  ],
-  "exclude": [
-      "node_modules",
-      "**/*.spec.ts"
-  ],
-  "typeAcquisition": {
-    "enable": true,
-    "include": ["../core"]
+    "baseUrl": "./",
+    "outDir": "./dist/out-tsc",
+    "sourceMap": true,
+    "declaration": false,
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "importHelpers": true,
+    "target": "es2015",
+    "typeRoots": [
+      "node_modules/@types"
+    ],
+    "lib": [
+      "es2018",
+      "dom"
+    ],
+    "paths": {
+      "mu-browser": [
+        "dist/mu-browser"
+      ],
+      "mu-browser/*": [
+        "dist/mu-browser/*"
+      ]
+    }
   }
 }

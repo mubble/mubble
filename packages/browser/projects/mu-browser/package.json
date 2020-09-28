@@ -1,0 +1,12 @@
+{
+  "name": "mu-browser",
+  "version": "0.0.1",
+  "peerDependencies": {
+    "@angular/compiler": "~10.0.2",
+    "@angular/core": "^10.0.2",
+    "@mubble/core": "file:../../../../mubble/packages/core/",
+    "dexie": "^2.0.1",
+    "@angular/flex-layout": "10.0.0-beta.32",
+    "@angular/forms": "~10.0.2"
+  }
+}
