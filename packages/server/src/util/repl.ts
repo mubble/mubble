@@ -7,28 +7,22 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as repl                    from 'repl'
-import * as path                    from 'path'
-import * as fs                      from 'fs'
-import * as lo                      from 'lodash'
-
 import { 
-        ConnectionInfo,
-        WireObject,
-        Protocol,
-        ClientIdentity,
-        WIRE_TYPE,
-        NetworkType,
-        WireEventResp,
-        XmnProvider,
-        WireReqResp
-       }                            from '@mubble/core'
-import {
-        RunContextServer,
-        RUN_MODE
-       }                            from '../rc-server'
-import {XmnRouterServer}            from '../xmn/xmn-router-server'
-
+         ConnectionInfo,
+         WireObject,
+         Protocol,
+         WIRE_TYPE,
+         XmnProvider,
+         HTTP,
+         Mubble,
+         CustomData
+       }                              from '@mubble/core'
+import { RunContextServer }           from '../rc-server'
+import { XmnRouterServer }            from '../xmn/xmn-router-server'
+import * as repl                      from 'repl'
+import * as path                      from 'path'
+import * as fs                        from 'fs'
+import * as lo                        from 'lodash'
 
 // Import from external modules without types
 const replHistory: any = require('repl.history') // https://github.com/ohmu/node-posix
@@ -36,12 +30,12 @@ const replHistory: any = require('repl.history') // https://github.com/ohmu/node
 
 export abstract class Repl {
   
-  protected ci : ConnectionInfo
+  protected ci         : ConnectionInfo
   protected replServer : any
-  protected provider : ReplProvider
+  protected provider   : ReplProvider
 
-  constructor(protected rc: RunContextServer, private clientIdentity: ClientIdentity) {
-    this.ci = this.getConnectionInfo ()
+  constructor(protected rc: RunContextServer, private clientIdentity: Mubble.uObject<any>) {
+    this.ci = this.getConnectionInfo()
     this.provider = this.ci.provider as ReplProvider
   }
 
@@ -98,35 +92,31 @@ export abstract class Repl {
     this.print(pr)
   }
 
-  createNewConnectionInfo(clientIdentity: ClientIdentity) {
+  createNewConnectionInfo(clientIdentity : CustomData) {
     this.ci = this.getConnectionInfo ()
-    this.ci.clientIdentity = clientIdentity
+    this.ci.customData = clientIdentity
     this.provider = this.ci.provider as ReplProvider
   }
 
   getConnectionInfo() {
     const ci = {
-      protocol        : Protocol.WEBSOCKET,
-      host            : 'localhost',        // host name of the server
-      port            : 1234,               // port of the server
-      url             : '/api/DummyApi',    // /api/getTopics Or connectUrl (for WS)
-      headers         : {},                 // empty for client
-      ip              : 'localhost',        // ip address or host name of the client socket
-
-      // Information passed by the client: to be used by Xmn internally
-      publicRequest   : false,
-      msOffset        : 0,                  // this is inferred by the server based on client's now field. Api/event need not use this
-
-      // Information passed by the client used by   
-      location        : '{}',
-      networkType     : NetworkType.net4G,
-      clientIdentity  : this.clientIdentity,
-
-      // provider for this connection (WebSocket, Http etc.)
-      provider        : null
-      
+      shortName   : '',
+      protocol    : Protocol.WEBSOCKET,
+      host        : 'localhost',
+      port        : 1234,
+      url         : '/api/DummyApi',
+      headers     : {},
+      ip          : 'localhost',
+      msOffset    : 0,
+      lastEventTs : 0,
+      customData  : this.clientIdentity,
+      protocolVersion : HTTP.CurrentProtocolVersion,
     } as ConnectionInfo
-    ci.provider = new ReplProvider (this.rc, ci, (<any>this.rc).router)
+
+    const provider = new ReplProvider (this.rc, ci, (<any>this.rc).router)
+
+    ci.provider = provider
+    
     return ci
   }
 }
@@ -193,12 +183,17 @@ export class ReplProvider implements XmnProvider {
 
   }
 
+  public requestClose() {
+
+  }
+
   sendOneMessage (rc: RunContextServer, wo: WireObject, idx: number) : void {
     if (wo.type == WIRE_TYPE.SYS_EVENT && wo.name == 'UPGRADE_CLIENT_IDENTITY') {
-      this.ci.clientIdentity = wo.data as ClientIdentity
-      rc.isStatus() && rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.clientIdentity))
+      this.ci.customData = wo.data as CustomData
+      rc.isStatus() && rc.status (rc.getName (this), 'Updated Client Identity: ', JSON.stringify (this.ci.customData))
       return
     }
+
     const apiSignature = wo.name + ':' + wo.ts
     if (wo && (<any>wo).error) {
       rc.isDebug() && rc.debug (rc.getName (this), 'Send Error to client: ', wo)
@@ -214,7 +209,7 @@ export class ReplProvider implements XmnProvider {
       rc.isDebug() && rc.debug (rc.getName (this), 'Sending Response to client: ', wo)
       switch (wo.type) {
         case 'REQ_RESP': case 'EVENT_RESP':
-          this.requests[apiSignature].resolver (wo)
+          this.requests[apiSignature].resolver(wo)
           delete this.requests[apiSignature]
         case 'EVENT': default:
           break

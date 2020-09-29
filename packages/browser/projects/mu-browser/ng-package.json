@@ -1,0 +1,14 @@
+{
+  "$schema": "../../node_modules/ng-packagr/ng-package.schema.json",
+  "dest": "../../dist/mu-browser",
+  "lib": {
+    "entryFile": "src/public-api.ts",
+    "umdModuleIds": {
+      "@mubble/core": "@mubble/core"
+    }
+  },
+  "assets": [
+    "src/lib/ui/mu-components/mu-components-theme.module.scss",
+    "src/lib/ui/mu-components/mu-components.module.scss"
+  ]
+}

@@ -25,11 +25,6 @@ import { UiRouter }             from '../../router'
 
 import { DomHelper }            from '../../../util'
 
-import { BottomInInterface, 
-         InjectionParentBase, 
-         LOG_LEVEL, 
-         RunContextBrowser}     from '@mubble/browser'
-
 import {  query, 
           style, 
           state,
@@ -38,8 +33,13 @@ import {  query,
           group,
           animate }             from "@angular/animations"
 
-import * as $                   from 'jquery'
-import { Mubble }               from '@mubble/core'
+import { Mubble, LOG_LEVEL }    from '@mubble/core'
+
+import { InjectionParentBase }  from '../injection-base'
+
+import { RunContextBrowser }    from '../../../rc-browser'
+
+import { BottomInInterface }    from '../injection-interface'
 
 export const STATE      = {HALF: 'HALF', FULL: 'FULL'}
 
@@ -111,30 +111,43 @@ export class BottomInComponent extends InjectionParentBase implements
   @HostListener('@routeAnimation.done', ['$event']) onRouteAnimationDone(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
     // console.log(event)
-    if (this.childRequestedClose && this.injectedComponent.closeFromParent) this.injectedComponent.closeFromParent()
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
+    if (this.childRequestedClose &&  this.injectedComponent.closeFromParent) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
+      this.injectedComponent.closeFromParent()
+    } else if (this.backPressed && this.injectedComponent.onBackPressed) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
+      this.injectedComponent.onBackPressed()
+    }
   }
 
-  @ViewChild('main')                                main          : ElementRef
-  @ViewChild('header')                              header        : ElementRef
-  @ViewChild('compContainer')                       compContainer : ElementRef
+  @ViewChild('main', { static: true })                                main          : ElementRef
+  @ViewChild('header', { static: true })                              header        : ElementRef
+  @ViewChild('compContainer', { static: true })                       compContainer : ElementRef
 
-  @ViewChild('injectAt', {read: ViewContainerRef})  injectAt;
+  @ViewChild('injectAt', { read: ViewContainerRef, static: true })  injectAt;
 
-  injectedComponent : BottomInInterface
+  injectedComponent       : BottomInInterface
 
-  private top       : number
-  @Input() title    : string  = ''
-  @Input() state    : string = STATE.HALF
-  @Input() allowFullPage: boolean = true
+  private top             : number
+  @Input() title          : string  = ''
+  @Input() state          : string = STATE.HALF
+  @Input() allowFullPage  : boolean = true
 
-  private panY      : number
-  private animValue : string
+  private panY        : number
+  private animValue   : string
 
-  private panYMin   : number
-  private panYMax   : number
-  private nail      : Nail
-  private routeName : string
-  private startTop  : number 
+  private panYMin     : number
+  private panYMax     : number
+  private nail        : Nail
+  private routeName   : string
+  private startTop    : number 
+
+  private backPressed       : boolean
+  private routeEndProcessed : boolean = false
 
   constructor(@Inject('RunContext') rc: RunContextBrowser,
               router: UiRouter,
@@ -188,14 +201,14 @@ export class BottomInComponent extends InjectionParentBase implements
 
     this.panYMax    = document.body.clientHeight
 
-    const $compCont    = $(this.compContainer.nativeElement),
-          compHeight   = $compCont.height(),
-          headerHeight = $(this.header.nativeElement).height()
+    const $compCont    = this.compContainer.nativeElement,
+          compHeight   = $compCont.clientHeight,
+          headerHeight = this.header.nativeElement.getBoundingClientRect().height
 
     if (this.allowFullPage) {
       
       this.panYMin    = 0
-      $compCont.height(document.body.clientHeight - headerHeight)
+      $compCont.style.height = document.body.clientHeight - headerHeight
 
     } else {
       this.top      = document.body.clientHeight - (compHeight + headerHeight)
@@ -325,6 +338,11 @@ export class BottomInComponent extends InjectionParentBase implements
   }
 
   animateClose() {
+    this.injectedComponent.closeFromParent()
     this.router.goBack()
+  }
+
+  onBackPressed() {
+    this.backPressed = true
   }
 }   

@@ -7,7 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-export * from './client-identity'
 export * from './connection-info'
 export * from './xmn-error'
 export * from './xmn-core'
+export * from './custom-data'

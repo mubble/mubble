@@ -8,7 +8,11 @@
 ------------------------------------------------------------------------------*/
 
 import { Mubble, RunContextBase } from '..'
-export enum Protocol {HTTP, WEBSOCKET, HTTPS}
+import { CustomData }             from './custom-data'
+
+export enum Protocol {HTTP, WEBSOCKET, HTTPS, HTTP_THIRD}
+
+export const HANDSHAKE = '__handshake__'
 
 /* HTTP Headers */
 export namespace HTTP {
@@ -16,24 +20,51 @@ export namespace HTTP {
   // normally these keys are written with uppercase, we are writing them in lowercase 
   // for compatibility
   export const HeaderKey = {
-    userAgent       : 'user-agent',
-    clientSecret    : 'x-client-secret',
-    contentType     : 'content-type',
-    contentLength   : 'content-length',
-    contentEncoding : 'content-encoding'
+    userAgent        : 'user-agent',
+    clientSecret     : 'x-client-secret',
+    contentType      : 'content-type',
+    contentLength    : 'content-length',
+    setCookie        : 'set-cookie',
+    contentEncoding  : 'content-encoding',
+    clientId         : 'x-obopay-cid',
+    versionNumber    : 'x-obopay-version',
+    requestTs        : 'x-obopay-ts',
+    symmKey          : 'x-obopay-key',
+    requestType      : 'x-obopay-type',
+    bodyEncoding     : 'x-obopay-encoding',
+    transferEncoding : 'transfer-encoding',
+    location         : 'location',
+    accept           : 'accept',
+    authorization    : 'authorization',
+    token            : 'token'
   }
   
   /* HTTP Headers */
   export const HeaderValue = {
-    form    : 'application/x-www-form-urlencoded',
-    gzip    : 'gzip',
-    deflate : 'deflate'
+    form     : 'application/x-www-form-urlencoded',
+    mutiForm : 'multipart/form-data',
+    stream   : 'application/octet-stream',
+    json     : 'application/json',
+    gzip     : 'gzip',
+    deflate  : 'deflate',
+    identity : 'identity',
+    version2 : 'v2',
+    chunked  : 'chunked'
   }
 
   export const Const = {
     protocolHttp  : 'http:',
     protocolHttps : 'https:'
   }
+
+  export const Method = {
+    PUT    : 'PUT',
+    GET    : 'GET',
+    POST   : 'POST',
+    DELETE : 'DELETE'
+  }
+
+  export const CurrentProtocolVersion = HTTP.HeaderValue.version2
 }
 
 export const NetworkType = {
@@ -83,15 +114,19 @@ export class WireObject {
       return new WireSysEvent(json.name, json.data)
 
       case WIRE_TYPE.EVENT_RESP:
-      return new WireEventResp(json.name, json.ts, json.data, json.error)
+      return new WireEventResp(json.name, json.ts, json.data, json.errorCode, json.errorMessage)
 
       case WIRE_TYPE.REQ_RESP:
-      return new WireReqResp(json.name, json.ts, json.data, json.error)
+      return new WireReqResp(json.name, json.ts, json.data, json.errorCode, json.errorMessage)
 
       default:
       console.info('Error: Invalid wire object ' + JSON.stringify(json))
       return null
     }
+  }
+
+  static parseString(str : string) : WireObject {
+    return JSON.parse(str)
   }
 
   type      : string
@@ -103,7 +138,7 @@ export class WireObject {
     this.type = type
     this.name = name
     this.data = data
-    this.ts   = ts || Date.now()
+    this.ts   = ts || Date.now() * 1000
   }
 
   stringify(): string {
@@ -155,27 +190,42 @@ export class WireEphEvent extends WireObject {
 }
 
 export class WireReqResp extends WireObject {
-  error: string | null
+  errorCode    : string | null
+  errorMessage : string | null
+  errorObject  : Mubble.uObject<any> | undefined
+
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data: object, error ?: string , fullErr ?: any) {
+  constructor(name : string, ts : number, data : object, errorCode ?: string, errorMessage ?: string,
+              errorObject ?: Mubble.uObject<any>, fullErr ?: any) {
+
     super(WIRE_TYPE.REQ_RESP, name, data, ts)
-    this.error = error || null
-    this._err = fullErr
+
+    this.errorCode    = errorCode || null
+    this.errorMessage = errorMessage || null
+    this.errorObject  = errorObject
+    this._err         = fullErr
   }
 }
 
 export class WireEventResp extends WireObject {
-  error: string  | null
+  errorCode    : string | null
+  errorMessage : string | null
+  errorObject  : Mubble.uObject<any> | undefined
+
   _err ?: any   // Full Error Object Instance. need not go to client (_). Required for trace logging
-  constructor(name: string, ts: number, data ?: object, error ?: string , fullErr ?: any) {
+  constructor(name : string, ts : number, data ?: object, errorCode ?: string, errorMessage ?: string,
+              errorObject ?: Mubble.uObject<any>, fullErr ?: any) {
+    
     super(WIRE_TYPE.EVENT_RESP, name, data || {}, ts)
-    this.error = error || null
-    this._err = fullErr
+
+    this.errorCode    = errorCode || null
+    this.errorMessage = errorMessage || null
+    this.errorObject  = errorObject
+    this._err         = fullErr
   }
 }
 
 export const SYS_EVENT = {
-  UPGRADE_CLIENT_IDENTITY : 'UPGRADE_CLIENT_IDENTITY',
   WS_PROVIDER_CONFIG      : 'WS_PROVIDER_CONFIG',
   ERROR                   : 'ERROR',
   PING                    : 'PING'
@@ -193,6 +243,19 @@ export interface WebSocketConfig {
   syncKey         ?: string
 }
 
+export interface WssProviderConfig {
+  pingSecs      : number
+  maxOpenSecs   : number
+  toleranceSecs : number
+  key           : string
+  custom        : CustomData
+}
+
+export const WssErrorCode = {
+  HANDSHAKE_FAILURE : 501,
+  INVALID_REQUESTTS : 502
+}
+
 export interface ConnectionError {
   code : string
   msg  : string
@@ -204,11 +267,13 @@ export interface InvocationData {
   params  : object
 }
 
-export const Leader = {
-  BIN         : 'B',
-  CONFIG      : 'C',
-  DEF_JSON    : 'D',
-  JSON        : 'J'
+export const DataLeader = {
+  BINARY       : 0x01,
+  DEF_JSON     : 0x02,
+  JSON         : 0x03,
+  ENC_BINARY   : 0x04,
+  ENC_DEF_JSON : 0x05,
+  ENC_JSON     : 0x06
 }
 
 export const Encoder = {
@@ -216,5 +281,11 @@ export const Encoder = {
 }
 
 export interface XmnProvider {
-  send(rc: RunContextBase , data: WireObject[]) : void 
+  send(rc: RunContextBase , data: WireObject[]) : void
+  requestClose(rc : RunContextBase) : void
+}
+
+export interface ActiveProviderCollection {
+  addActiveProvider(clientId : number, provider : XmnProvider) : void
+  getActiveProvider(clientId : number) : XmnProvider | undefined
 }

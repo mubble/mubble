@@ -1,5 +1,5 @@
 import { RunContextBrowser }  from ".."
-import { Mubble }             from "../../core"
+import { Mubble }             from "@mubble/core"
 
 const GLOBAL_PREFIX = 'global',
       CONFIG_PREFIX = 'config'
@@ -11,7 +11,7 @@ export class StorageProvider {
     localStorage.setItem(storageKey, value)
   }
 
-  getGlobalKeyValue(rc: RunContextBrowser, key: string): string {
+  async getGlobalKeyValue(rc: RunContextBrowser, key: string): Promise<string> {
     const storageKey = GLOBAL_PREFIX + '.' + key
     return localStorage.getItem(storageKey)
   }
@@ -20,7 +20,7 @@ export class StorageProvider {
     localStorage.setItem(key, value)
   }
 
-  getUserKeyValue(rc: RunContextBrowser, key: string): string {
+  async getUserKeyValue(rc: RunContextBrowser, key: string): Promise<string> {
     return localStorage.getItem(key)
   }
 
@@ -30,14 +30,14 @@ export class StorageProvider {
       const storageKey = `${CONFIG_PREFIX}.${entry.category}|${entry.key}`
       localStorage.setItem(storageKey, JSON.stringify(entry.value))
 
-      if (rc && rc.isDebug) {
-        rc.isDebug() && rc.debug('GcConfigKeyValue', 
-          `Saved key ${storageKey}=${JSON.stringify(entry.value)}`)
-      }
+      // if (rc && rc.isDebug) {
+      //   rc.isDebug() && rc.debug('GcConfigKeyValue', 
+      //     `Saved key ${storageKey}=${JSON.stringify(entry.value)}`)
+      // }
     })
   }
 
-  getGcConfig(rc: RunContextBrowser, category: string, key: string): string {
+  async getGcConfig(rc: RunContextBrowser, category: string, key: string): Promise<string> {
 
     const storageKey = `${CONFIG_PREFIX}.${category}|${key}`
     return localStorage.getItem(storageKey)

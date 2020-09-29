@@ -1,0 +1,26 @@
+<div class="alert-dialog-comp"
+  [ngClass.xl]="['web-alerts-dialog']"
+  [ngClass.lg]="['web-alerts-dialog']"
+  [ngClass.md]="['web-alerts-dialog']"
+  [ngClass.sm]="['web-alerts-dialog']">
+  <header class="header txt-xl-med-norm border" *ngIf="title">
+    <div class="header-title">
+      {{ title }}
+    </div>
+    <div class="close-btn" *ngIf="showCloseBtn"
+      (click)="onCancel()">
+      <i class="fa fa-lg fa-times"></i>
+    </div>
+  </header>
+  <div class="content txt-xl-med-norm">
+    {{ message }}
+  </div>
+  <footer class="footer" [style.justifyContent]="negativeActText ? 'space-between' : 'center'">
+    <button *ngIf='negativeActText' class="button-primary-small btn" (click)="onCancel()">
+      {{ negativeActText }}
+    </button>
+    <button class="button-primary-small btn" (click)="onContinue()">
+      {{ positiveActText }}
+    </button>
+  </footer>  
+</div>   

@@ -1,0 +1,95 @@
+<div class="keypad txt-xxl-med-dark">
+  
+  <div class="first-row">
+    <div matRipple class="key key-one" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('1')">
+      <span class="text-color-primary">1</span>
+    </div>
+    <div matRipple class="key key-two" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('2')">
+      <span class="text-color-primary">2</span>
+    </div>
+    <div matRipple class="key key-three" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('3')">
+      <span class="text-color-primary">3</span>
+    </div>
+
+    <div *ngIf="mode !== KEYBOARD_MODE.NORMAL"  class="key key-empty">
+      
+    </div>
+  </div>
+
+  <div class="second-row">
+    <div matRipple class="key key-four" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('4')">
+      <span class="text-color-primary">4</span>
+    </div>
+    <div matRipple class="key key-five" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('5')">
+      <span class="text-color-primary">5</span>
+    </div>
+    <div matRipple class="key key-six" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('6')">
+      <span class="text-color-primary" >6</span>
+    </div>
+    <div *ngIf="mode !== KEYBOARD_MODE.NORMAL"  class="key key-empty">
+      
+    </div>
+  </div>
+
+  <div class="third-row">
+    <div matRipple class="key key-seven" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('7')">
+      <span class="text-color-primary">7</span>
+    </div>
+    <div matRipple class="key key-eight" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('8')">
+      <span class="text-color-primary">8</span>
+    </div>
+    <div matRipple class="key key-nine" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('9')">
+      <span class="text-color-primary">9</span>
+    </div>
+    <div *ngIf="mode !== KEYBOARD_MODE.NORMAL"  class="key key-empty">
+      
+    </div>
+  </div>
+
+  <div class="fourth-row">
+    <div matRipple class="key key-back" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="onKeyBoardBack()">
+      <span class="text-color-primary">
+        <i class="fa fa-arrow-left fa-lg" aria-hidden="true"></i>
+      </span>
+    </div>
+    <div matRipple class="key key-zero" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="keyClick('0')">
+      <span class="text-color-primary">0</span>
+    </div>
+    <div *ngIf="mode !== KEYBOARD_MODE.NORMAL" 
+      matRipple class="key key-dot" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-dot'"
+      (click)="onKeyBoardDot()">
+      <span class="text-color-primary">.</span>
+    </div>
+    <div matRipple class="key" 
+      [ngClass]="mode === KEYBOARD_MODE.NORMAL ? 'key-normal' : 'key-ok'"
+      (click)="onKeyBoardOk()">
+      <span class="text-color-primary">
+        <i class="fa fa-check fa-lg" aria-hidden="true"></i>
+      </span>
+    </div>
+  </div>
+
+</div>

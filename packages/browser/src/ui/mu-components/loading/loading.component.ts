@@ -7,7 +7,11 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { Component, OnInit, Input, Inject } from '@angular/core'
+import { Component,
+         OnInit, 
+         Input, 
+         Inject 
+       }                                    from '@angular/core'
 import { RunContextBrowser }                from '../../../rc-browser'
 
 @Component({
@@ -19,6 +23,7 @@ export class LoadingComponent implements OnInit {
 
   @Input() apiLoadingText       : string
   @Input() apiLoadingBottomIn   : boolean
+  @Input() customClass          : string 
   
   constructor(@Inject('RunContext') private rc  : RunContextBrowser) { }
 

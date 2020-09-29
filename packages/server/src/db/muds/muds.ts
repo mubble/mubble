@@ -20,7 +20,6 @@ import {
 import {  MudsQuery }                             from './muds-query'
 import {  MudsManager }                           from './muds-manager'
 import {  RunContextServer }                      from '../..'
-import {  GcloudEnv }                             from '../../gcp/gcloud-env'
 import {  Mubble }                                from '@mubble/core'
 import {  MudsUtil }                              from './muds-util'
 import {  RedisWrapper }                          from '../../cache/redis-wrapper'
@@ -151,12 +150,12 @@ export class Muds {
    * * entities: All entities must be identified. To facilitate this list is taken as dummy input
    * * Level: property declaration
    */
-  public static init(rc          : RunContextServer, 
-                     gcloudEnv   : GcloudEnv, 
-                     trRedis     : RedisWrapper,
-                     ...entities : ({new(): Muds.BaseEntity}| Function)[]) {
+  public static init(rc           : RunContextServer, 
+                     gcloudEnv    : any, 
+                     trRedis      : RedisWrapper,
+                     namespace   ?: string) {
 
-    return this.manager.init(rc, gcloudEnv, trRedis)
+    return this.manager.init(rc, gcloudEnv, trRedis, namespace)
   }
 
   public static async transaction(rc: RunContextServer, 
@@ -194,6 +193,7 @@ export namespace Muds {
   export type  Query        = MudsQuery<MudsBaseEntity>
   export const getMpoc      = MudsUtil.getMpoc
   export type  ICacheEntity<T extends Muds.BaseEntity>  = IMudsCacheEntity<T>
+  export const NamespaceSeperator                       = '.'
 
   export enum Pk {
     None, // used for MudsStruct

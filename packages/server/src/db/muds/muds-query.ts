@@ -7,7 +7,6 @@
    Copyright (c) 2018 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import * as Datastore                   from '@google-cloud/datastore'
 import * as DsEntity                    from '@google-cloud/datastore/entity'
 import * as lo                          from 'lodash'
 
@@ -120,13 +119,13 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.verifyStatusAndFieldName(fieldName)
+    this.verifyStatusAndFieldName(fieldName as string)
     this.verifyCriterion(Criteria.selects)
 
     rc.isAssert() && rc.assert(rc.getName(this), !this.groupBys.length, 
     `${entityName}/${fieldName} you cannt use select when group-by is given`)
 
-    this.selects.push(fieldName)
+    this.selects.push(fieldName as string)
     return this
   }
 
@@ -135,13 +134,13 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.verifyStatusAndFieldName(fieldName)
+    this.verifyStatusAndFieldName(fieldName as string)
     this.verifyCriterion(Criteria.groupBys)
       
     rc.isAssert() && rc.assert(rc.getName(this), !this.selects.length, 
       `${entityName}/${fieldName} you cannt use group when select clause is given`)
 
-    this.groupBys.push(fieldName)
+    this.groupBys.push(fieldName as string)
     return this
   }
 
@@ -150,10 +149,10 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.verifyStatusAndFieldName(fieldName)
+    this.verifyStatusAndFieldName(fieldName as string)
     this.verifyCriterion(Criteria.filters)
 
-    this.selects.indexOf(fieldName) !== -1 && rc.isAssert() && rc.assert(rc.getName(this), 
+    this.selects.indexOf(fieldName as string) !== -1 && rc.isAssert() && rc.assert(rc.getName(this), 
       comparator !== '=', `A 'select'ed field ${entityName}/${fieldName} cannot be filtered for equality`)
 
     for (const filter of this.filters) {
@@ -177,10 +176,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
       }
     }
 
-    const meField = this.io.getReferredField(rc, fieldName, this.entityInfo.entityName) as MeField
-    meField.accessor.validateType(value)
-
-    this.filters.push({fieldName, comparator, value})
+    if (fieldName !== KEY) {
+      const meField = this.io.getReferredField(rc, fieldName as string, this.entityInfo.entityName) as MeField
+      if (meField.fieldType !== Array) { 
+        meField.accessor.validateType(value)
+      }
+      this.filters.push({fieldName : fieldName as string, comparator, value})
+    } else {
+      this.filters.push({fieldName : fieldName as string, comparator, value : this.io.buildKeyForDs(rc, this.entityInfo.cons, [], value)})
+    }
+    
     return this
   }
 
@@ -189,7 +194,7 @@ export class MudsQuery<T extends MudsBaseEntity> {
     const rc          = this.rc,
           entityName  = this.entityInfo.entityName
 
-    this.verifyStatusAndFieldName(fieldName)
+    this.verifyStatusAndFieldName(fieldName as string)
     this.verifyCriterion(Criteria.orders)
 
     if (!this.orders.length) {
@@ -198,15 +203,16 @@ export class MudsQuery<T extends MudsBaseEntity> {
       `${entityName}/${fieldName} first order field must be with ineq filter: (${ineqFilter.fieldName})`)
     }
 
-    this.verifyStatusAndFieldName(fieldName)
+    this.verifyStatusAndFieldName(fieldName as string)
 
     for (const filter of this.filters) {
-      rc.isAssert() && rc.assert(rc.getName(this), 
+     /*  Order issue fixes
+     rc.isAssert() && rc.assert(rc.getName(this), 
         filter.fieldName === fieldName && filter.comparator === '=', 
-        `${entityName}/${fieldName} cannot order on field with equality filter`)
+        `${entityName}/${fieldName} cannot order on field with equality filter`) */
     }
 
-    this.orders.push({fieldName, ascending})
+    this.orders.push({fieldName : fieldName as string, ascending})
     return this
   }
 
@@ -235,7 +241,21 @@ export class MudsQuery<T extends MudsBaseEntity> {
     }
   }
 
-  public async run(limit: number) {
+  public async runBasedOnMultipleKeys(keys : string[] | number[]) : 
+                                      Promise<MudsQueryResult<T>> {
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), keys.length != 0, 
+      `runBasedOnMultipleKeys keys should not be empty : ${keys}`)
+
+    const dsQuery = this.io.createQuery(this.entityInfo.entityName),
+          res     = await this.io.getEntityBasedOnKeys(this.entityInfo, keys)
+
+    this.result =  new MudsQueryResult(this.rc, this.io, this.entityClass, 
+          dsQuery, keys.length, res, false)
+    return this.result
+  }
+
+  public async run(limit : number, offset ?: number) {
     const rc = this.rc
     this.result && rc.isAssert() && rc.assert(rc.getName(this), false, 'Query cannot run again')
     const dsQuery = this.io.createQuery(this.entityInfo.entityName)
@@ -250,6 +270,12 @@ export class MudsQuery<T extends MudsBaseEntity> {
       order.ascending ? undefined : {descending: true})
 
     dsQuery.limit(limit)
+
+    if(offset !== undefined) {
+      rc.isDebug() && rc.debug(rc.getName(this), 'Query with offset', offset)
+      dsQuery.offset(offset)
+    }
+      
     this.result = new MudsQueryResult(rc, this.io, this.entityClass, 
                     dsQuery, limit, await dsQuery.run(), 
                     !!(this.filters.length || this.groupBys.length))
@@ -262,12 +288,12 @@ export class MudsQuery<T extends MudsBaseEntity> {
 -----------------------------------------------------------------------------*/
 export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<T> {
 
-  private records   : object[]
+  private records   : T[]
   private endCursor : string
   private hasMore   : boolean
 
   // This is short term till we get upgrade to 'for await' 
-  private iterator  : { next : (val ?: T) => Promise<{value ?: T, done: boolean}> } | null
+  private iterator  : { next : () => Promise<IteratorResult<T>> } | null
 
   constructor(private rc      : RunContextServer, 
     private io                : MudsIo,
@@ -282,7 +308,7 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   private loadData(result: DsQueryResult) {
 
     const [ar, info]  = result
-    this.records      = ar
+    this.records      = ar as T[]
 
     if (ar.length) {
       this.endCursor    = info.endCursor || ''
@@ -312,10 +338,11 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
   }
 
   // for future when we move to v8 6.3
-  public [Symbol.asyncIterator]() {
+  public [Symbol.asyncIterator]() : AsyncIterator<T> {
     let ptr = 0 
     return {
-      next: async (val: T) => {
+      next : async () : Promise<IteratorResult<T>> => {
+
         if (ptr === this.records.length) {
           if (this.hasMore) {
             this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'Fetching more data')
@@ -324,11 +351,15 @@ export class MudsQueryResult<T extends MudsBaseEntity> implements AsyncIterable<
             ptr = 0
           }
         }
+
+        // TODO : Need to fix next(), should return undefined after done
+
         const done = !this.hasMore && ptr === this.records.length
         return {
             done,
-            value: done ? val : this.io.getRecordFromDs(this.rc, this.entityClass, 
-                                  this.records[ptr++], !this.onlySelectedCols)
+            value : done ? this.records[ptr - 1]
+                         : this.io.getRecordFromDs(this.rc, this.entityClass,
+                                                   this.records[ptr++], !this.onlySelectedCols)
         }
       }
     }

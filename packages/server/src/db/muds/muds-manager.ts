@@ -20,12 +20,11 @@ import {
           FieldAccessor
        }                                from './muds-base-entity'
 import {  Mubble }                      from '@mubble/core'
-import {  GcloudEnv }                   from '../../gcp/gcloud-env'
 import {  RunContextServer }            from '../..'
 import {  MudsUtil }                    from './muds-util'
 import {  RedisWrapper }                from '../../cache/redis-wrapper'
-import * as Datastore                   from '@google-cloud/datastore'
 
+const  { Datastore } = require('@google-cloud/datastore')
 
 export class MeField {
   accessor: FieldAccessor
@@ -60,9 +59,10 @@ export class MudsEntityInfo {
 export class MudsManager {
 
   private entityInfoMap       : Mubble.uObject<MudsEntityInfo> = {}
-  private datastore           : Datastore
+  private datastore           : any
   private entityNames         : string[]
   private trRedis             : RedisWrapper
+  private namespacePrefix     : string
 
   // Temporary members while store schema is built, they are removed after init
   private tempAncestorMap     : Mubble.uObject<ReadonlyArray<{new(): Muds.BaseEntity}>> = {}
@@ -185,9 +185,10 @@ export class MudsManager {
     throw(`${id}unknown type: ${fieldType.name}`)
   }
 
-  public init(rc : RunContextServer, gcloudEnv : GcloudEnv, trRedis : RedisWrapper) {
+  public init(rc : RunContextServer, gcloudEnv : any, trRedis : RedisWrapper, namespacePrefix ?: string) {
 
-    this.trRedis = trRedis
+    this.trRedis         = trRedis
+    this.namespacePrefix = namespacePrefix || ''
 
     if (!this.tempEntityFieldsMap) throw(`Second attempt at Muds.init()?`)
 
@@ -222,15 +223,16 @@ export class MudsManager {
 
     this.validateIndices(rc)
 
-    this.datastore = new Datastore({
-      projectId   : gcloudEnv.projectId,
-      credentials : gcloudEnv.authKey || undefined
-    })
-
+    gcloudEnv.namespace = this.namespacePrefix
+    this.datastore = new Datastore(gcloudEnv)
     rc.isDebug() && rc.debug(rc.getName(this), `Muds initialized with ${
       Object.keys(this.entityInfoMap).length} entities`)
 
     this.finalizeDataStructures(rc) 
+  }
+
+  public getNamespacePrefix() : string {
+    return this.namespacePrefix
   }
 
   private extractFromMap(obj: Mubble.uObject<any>, prop: string) {

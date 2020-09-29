@@ -23,8 +23,8 @@ export namespace Mubble {
   }
 
   export class uError extends Error {
-    constructor(public code: string, msg: string) {
-        super(msg)
+    constructor(public code : string, msg : string, public obj ?: uObject<any>) {
+      super(msg)
     }
   }
 
@@ -67,12 +67,14 @@ export namespace Mubble {
 
     private  fnResolve : null | ((result: any) => any)
     private  fnReject  : null | ((err: Error)  => any)
+    private  fulfilled : boolean
     readonly promise   : Promise<T>
 
     constructor() {
       this.promise = new Promise<T>((resolve, reject) => {
         this.fnResolve = resolve
         this.fnReject  = reject
+        this.fulfilled = false
       })
     }
 
@@ -96,9 +98,14 @@ export namespace Mubble {
       }
     }
 
+    isFulfilled() : boolean {
+      return this.fulfilled
+    }
+
     private cleanup() {
       this.fnResolve = null
       this.fnReject  = null
+      this.fulfilled = true
     }
   }
   

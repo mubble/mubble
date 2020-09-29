@@ -1,18 +1,23 @@
-.spinner-cont {
-  position: relative;
-  margin-top: 60%;
-}
-
-.spinner-cont-top {
-  position: relative;
-  margin-top: 20%;
-}
-
-.spinner {
-  margin: 0% auto;
+.mu-loading-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .loading-text {
-  text-align: center;
-  margin-top: 5%;
+  padding: 2vw;
+}
+
+.loading-cont {
+  display: flex;
+  flex-direction: column;
+}
+
+.web-mu-content-div {
+  height: 100% !important;
+  width: 100% !important; 
+
+  .loading-text {
+    padding: 10px;
+  }
 }

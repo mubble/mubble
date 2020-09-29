@@ -37,8 +37,8 @@ Design
 
 ------------------------------------------------------------------------------*/
 import 'reflect-metadata'
-import { RunContextBrowser } from '..'
-import { StorageProvider } from '.'
+import { RunContextBrowser }  from '../rc-browser'
+import { StorageProvider }    from './storage-provider'
 
 const META_KEY    = 'autoStore',
       VALID_TYPES = [String, Number, Boolean, Object]
@@ -51,9 +51,10 @@ type fieldMapType = { [key: string]:  {
 
 export abstract class GlobalKeyValue {
 
-  @GlobalKeyValue.autoStore() syncSegments  : object
-  @GlobalKeyValue.autoStore() jsVersion     : string
-  @GlobalKeyValue.autoStore() logLevel      : number
+  @GlobalKeyValue.autoStore() syncSegments        : object
+  @GlobalKeyValue.autoStore() jsVersion           : string
+  @GlobalKeyValue.autoStore() logLevel            : number
+  @GlobalKeyValue.autoStore() deviceId            : string
   
   public static autoStore(): any {
 
@@ -122,7 +123,7 @@ export abstract class GlobalKeyValue {
   constructor(private rc: RunContextBrowser, private storage: StorageProvider) {
   }
 
-  init() {
+  async init() {
 
     const rc = this.rc
 
@@ -131,7 +132,7 @@ export abstract class GlobalKeyValue {
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
       const field           = GlobalKeyValue.fieldMap[name],
-            strSavedValue   = this.storage.getGlobalKeyValue(rc, name),
+            strSavedValue   = await this.storage.getGlobalKeyValue(rc, name),
             strDefaultValue = field.strValue,
             strValue        = strSavedValue || strDefaultValue
 
@@ -193,14 +194,14 @@ export abstract class GlobalKeyValue {
     return this.extractFields(Object.getPrototypeOf(proto), fieldz)
   }
 
-  $dump() {
+  async $dump() {
 
     for (const name of Object.keys(GlobalKeyValue.fieldMap)) {
 
       const field   = GlobalKeyValue.fieldMap[name],
             type    = (field.type as any).name,
             memory  = this[name],
-            store   = this.storage.getGlobalKeyValue(this.rc, name)
+            store   = await this.storage.getGlobalKeyValue(this.rc, name)
 
       console.info({name, type, memory, store})
     }

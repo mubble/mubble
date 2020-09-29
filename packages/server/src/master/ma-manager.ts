@@ -196,7 +196,7 @@ export class MasterMgr {
       this.sredis = await RedisWrapper.connect(rc , 'SlaveRedis' , sredisUrl )
       this.subRedis = await RedisWrapper.connect(rc , 'SubscriptionRedis' , sredisUrl )
       
-      assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
+      // assert(this.mredis.isMaster() && this.sredis.isSlave() , 'mRedis & sRedis are not master slave' , mredisUrl , sredisUrl)
       
       this.buildDependencyMap(rc)
 
@@ -396,7 +396,6 @@ export class MasterMgr {
   }
   
   public async applyFileData(rc : RunContextServer , arModels : {master : string , source: string} []) {
-    
     const results : object [] = []
     
     const digestMap   : Mubble.uObject<DigestInfo> =  await this.getDigestMap() ,
@@ -542,7 +541,33 @@ export class MasterMgr {
   }
 
   // Used for all source sync apis (partial , full , multi)
-  public async applyJsonData(context : RunContextServer ,  mastername : string , jsonRecords : any [] , redisRecords : Mubble.uObject<object> ) {
+  public async applyJsonData(rc : RunContextServer ,  mastername : string , jsonRecords : any [] , redisRecords : Mubble.uObject<object> ) {
+
+    mastername  = mastername.toLowerCase()
+
+    const results     :object[]           = [],
+          masterCache : MasterCache       = {},
+          todoModelz  : {[master:string] : {ssd : SourceSyncData , fDigest : string , modelDigest : string}} = {},
+          digestMap   : Mubble.uObject<DigestInfo> =  await this.getDigestMap(),
+          mDigest     : string            = digestMap[mastername] ? digestMap[mastername].fileDigest  : '' ,
+          registry    : MasterRegistry    = MasterRegistryMgr.getMasterRegistry(mastername),
+          fDigest     : string            = crypto.createHash('md5').update(JSON.stringify(jsonRecords) /*oModel.source*/).digest('hex')
+      
+    assert(registry != null , 'Unknow master ', mastername , 'for applySingleItem')
+
+    if (lo.isEqual(mDigest, fDigest)) {
+      MaMgrLog(rc, {name : mastername , error : 'skipping as data is unchanged'}) 
+      return
+    }
+
+    if (!redisRecords) redisRecords = await this.listAllMasterData(rc, mastername)
+    const ssd : SourceSyncData = await MasterRegistryMgr.validateBeforeSourceSync(rc, mastername, jsonRecords, redisRecords, Date.now())
+
+    this.setParentMapData(rc , mastername , masterCache , ssd) 
+    todoModelz[mastername] = {ssd : ssd , fDigest : fDigest , modelDigest : registry.getModelDigest()}
+    const resp = await this.applyData(rc, results, masterCache, todoModelz)
+
+    return resp
 
   }
 

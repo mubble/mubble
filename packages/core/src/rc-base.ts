@@ -6,23 +6,23 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import * as lo                      from 'lodash'  
-
-import  {format}                    from './util/date'
-import {
-  ConnectionInfo, 
-  WireEventResp,
-  WireReqResp,
-  WireObject
-} from './xmn'
-
-import { Timer } from './util/timer'
+import { format }               from './util/date'
+import { ConnectionInfo, 
+         WireEventResp,
+         WireReqResp,
+         WireObject
+       }                        from './xmn'
+import { Timer }                from './util/timer'
+import { omit }                 from 'lodash'
+import { keysIn }               from 'lodash'
+import { cloneDeep }            from 'lodash'
+import { DataMasker }           from './data-masker'
 
 // first index is dummy
 const LEVEL_CHARS : string[] = ['', '', '', '*** ', '!!! ']
 
-export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE}
-export enum RUN_MODE {DEV, PROD, LOAD}
+export enum LOG_LEVEL {DEBUG = 1, STATUS, WARN, ERROR, NONE }
+export enum RUN_MODE { DEV, QA, PRE_PROD, PROD, LOAD }
 
 export abstract class ExternalLogger {
   
@@ -56,7 +56,6 @@ export abstract class RunContextBase {
 
   public  logger  : RCLoggerBase
   public timer    : Timer
-  
   protected constructor(public initConfig   : InitConfig,
               public runState     : RunState,
               public contextId   ?: string, 
@@ -174,6 +173,13 @@ export abstract class RunContextBase {
    
 }
 
+export type MaskingDataParams = {
+  maskKey          : string
+  maskWith        ?: string
+  startSkipCount  ?: number
+  endSkipCount    ?: number
+}
+
 export type LogCacheEntry = {
   ts : number ,
   moduleName : string , 
@@ -255,7 +261,7 @@ export abstract class RCLoggerBase {
   abstract logToConsole(level: LOG_LEVEL, logMsg: string): void
 
   public log(moduleName: string, level: LOG_LEVEL, args: any[]): string {
-
+    // args  = JSON.parse(JSON.stringify(args))
     const refLogLevel = this.rc.runState.moduleLLMap[moduleName] || this.rc.initConfig.logLevel
 
     if (level < refLogLevel) return 'not logging'
@@ -271,8 +277,8 @@ export abstract class RCLoggerBase {
         // Error.name typically has class name of the ErrorCLass like EvalError
         // Error.message has the user readable message, this is also included in the stack
         strVal = val.stack || `Error ${val.name}: ${val.message} (no stack)`
-        let errObj = lo.omit(val , ['message'])
-        if(lo.keysIn(errObj).length){
+        let errObj = omit(val , ['message'])
+        if(keysIn(errObj).length){
           strVal = this.objectToString(errObj , 5) + ' '+ strVal
         }
         if(val.message && strVal.indexOf(val.message)==-1){
@@ -361,6 +367,27 @@ export abstract class RCLoggerBase {
     }
     //console.log(`obj: ${obj} ,${typeof(obj)}, ${obj.toString()} , ${typeof(obj.toString())}`)
     if (!isArray && typeof(obj.toString) === 'function') {
+
+      const rc  = this.rc as any
+
+      // if (rc.getMaskingData) {
+      //   const maskKeys  = rc.getMaskingData() as MaskingDataParams[]
+
+      //   if (maskKeys && maskKeys.length) {
+
+      //     for (const key in obj) {
+
+      //       maskKeys.forEach(val => {
+    
+      //         if (val.maskKey === key) {
+      //           obj[key]  = DataMasker.maskData(val, obj[key])
+      //         }
+      //       })
+    
+      //     }
+      //   }
+      // }
+      
       const str = obj.toString()
       if(typeof(str) === 'number' || (typeof(str)==='string' && !str.startsWith('[object'))) return str
     }

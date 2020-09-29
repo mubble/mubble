@@ -9,9 +9,7 @@
 
 import { format } from './date'
 import { Mubble } from '../mubble'  
-
-import * as lo from 'lodash'
-
+import { sortBy } from 'lodash'
 const CYCLE_STEP = '_cycle_'
 
 export class PerformanceMetrics {
@@ -97,7 +95,7 @@ export class PerformanceMetrics {
       this.logEntry(stepName, output.stepPerf[stepName], marks)
     }
     
-    marks = lo.sortBy(marks, 'startTs')
+    marks = sortBy(marks, 'startTs')
     console.info('Highlighted cycles (having min/max cycle/step time) >>')
     for (const mark of marks) {
       console.info(mark.toString())

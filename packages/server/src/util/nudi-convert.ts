@@ -48,7 +48,7 @@ export class NudiConvertor {
         if (word[i] in ignore_list) { i += 1; continue }
 
         // Find the mapping data
-        this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Processing Mapping:', word, new Buffer (word, 'binary').toString('hex'), op)
+        this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Processing Mapping:', word, Buffer.from(word, 'binary').toString('hex'), op)
         const data = this.findMapping(rc, op, word, i)
         this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Mapping:', op, i, '=>', data.op, data.n)
 
@@ -104,7 +104,7 @@ export class NudiConvertor {
             // then it must be seperated using ZWJ (Zero Width Joiner), so that it will not
             // mix with prev char. 
             // if (len(op) > 0 and re.search("್$", op[-1]) != None:
-            const buffer = new Buffer (mapping[t], 'binary')
+            const buffer = Buffer.from(mapping[t], 'binary')
             this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'Mapping:‍', mapping[t], buffer.toString('hex'), lastop)
             if (op.length > 0 && lastop.search(/್$/) != -1) { // lastop.search(/\u0CCD$/) != -1) {
               this.DEBUG && rc.isDebug() && rc.debug(rc.getName (this), 'ZWJ Found:', mapping[t], buffer.toString('hex'), lastop)

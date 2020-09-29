@@ -16,10 +16,6 @@ import {  Component,
           ViewChild }                 from '@angular/core'
           
 import { Router, ActivatedRoute }     from '@angular/router'
-import { ModalInterface, 
-         InjectionParentBase, 
-         RunContextBrowser, 
-         LOG_LEVEL, UiRouter }        from '@mubble/browser'
 
 import { query, 
          style, 
@@ -29,8 +25,15 @@ import { query,
          group,
          animate }                    from "@angular/animations"
 
-import { Mubble }                     from '@mubble/core'
-import { DomHelper }                  from '@mubble/browser'
+import { Mubble, LOG_LEVEL }          from '@mubble/core'
+
+import { InjectionParentBase }        from '../injection-base'
+
+import { RunContextBrowser }          from '../../../rc-browser'
+
+import { ModalInterface }             from '../injection-interface'
+
+import { UiRouter }                   from '../../router'
 
 const ROUTE_ANIM_MS     = 400
 
@@ -121,7 +124,6 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   @HostListener('click', ['$event.target']) onHostClick() {
     this.animateClose()
   }
-
   @HostListener('@routeAnimation.start', ['$event']) onRouteAnimationStart(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-start', event)
   }
@@ -129,19 +131,25 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   @HostListener('@routeAnimation.done', ['$event']) onRouteAnimationDone(event) {
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'onRouteAnimation-end', event)
     if (this.childRequestedClose &&  this.injectedComponent.closeFromParent) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
       this.injectedComponent.closeFromParent()
     } else if (this.backPressed && this.injectedComponent.onBackPressed) {
+      if (this.routeEndProcessed) return
+      this.routeEndProcessed  = true
       this.injectedComponent.onBackPressed()
     }
   }
 
-  @ViewChild('componentContainer') componentContainer: ElementRef
-  @ViewChild('injectAt', {read: ViewContainerRef}) injectAt;
+  @ViewChild('componentContainer', { static: true }) componentContainer: ElementRef
+  @ViewChild('injectAt', { read: ViewContainerRef, static: true }) injectAt;
 
   injectedComponent : ModalInterface
   private backPressed : boolean
+  private routeEndProcessed : boolean = false
   
   @Input() width:string = "75vw"
+  @Input() className : string 
 
   constructor(@Inject('RunContext') rc: RunContextBrowser, 
               router: UiRouter,
@@ -152,14 +160,18 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
 
     super(rc, router, componentFactoryResolver, route)
     
-    rc.setupLogger(this, 'ModalPopup', LOG_LEVEL.NONE)
+    rc.setupLogger(this, 'ModalPopup', LOG_LEVEL.DEBUG)
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'constructor')
   }
 
   onRouterInit(params: Mubble.uObject<any>) {
     
     super.onRouterInit(params, this.injectAt, true)
-    this.width = this.injectedComponent.getWidth()
+    this.width      = this.injectedComponent.getWidth()
+
+    if (this.injectedComponent.getCssClassName) {
+      this.className  = this.injectedComponent.getCssClassName()
+    }
   }
 
   ngAfterViewInit() {
@@ -169,6 +181,15 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   onClick(event: any) {
     event.preventDefault()
     event.stopPropagation()
+  }
+
+  ignoreScroll(event : any) {
+    const notScrollable = this.injectedComponent.isNotScrollable 
+                            && this.injectedComponent.isNotScrollable()
+    if (notScrollable) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
   }
 
   ngOnDestroy() {
@@ -192,4 +213,10 @@ export class ModalPopupComponent extends InjectionParentBase implements AfterVie
   onBackPressed() {
     this.backPressed = true
   }
+
+  canGoBack() {
+    const childComponent  = this.injectedComponent
+    return childComponent.canGoBack ? childComponent.canGoBack() : true
+  }
+
 }

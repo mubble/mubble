@@ -4,3 +4,4 @@ lib
 .vscode
 vscode-user-settings.json
 package-lock.json
+coverage

@@ -7,8 +7,7 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
-import { PerformanceMetrics, 
-         RunContextBase }           from '@mubble/core'
+import { PerformanceMetrics }       from '@mubble/core'
 import { Renderer2 }                from '@angular/core'
 import { DIRECTION, 
          THRESHOLD,
@@ -242,9 +241,10 @@ export class Nail  {
             speed  = deltaMs ? (change * 1000 / (deltaMs * deltaMs)) : 0
 
       let quickRatio    = (speed - FAST_MIN_SPEED) / (FAST_MAX_SPEED - FAST_MIN_SPEED)
-      quickRatio        = quickRatio < 0 ? 0 : (quickRatio > 1 ? 1 : quickRatio)
+      quickRatio        = quickRatio < 0 ? 0 : (quickRatio > 0.5 ? 0.5 : quickRatio)
       event.quickRatio  = quickRatio
       event.speed       = speed
+      event.timeTaken   = deltaMs
 
       // this.rc.isWarn() && this.rc.warn(this.rc.getName(this), {change, deltaMs, speed, 
       //   quickRatio, FAST_MIN_SPEED, FAST_MAX_SPEED})

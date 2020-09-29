@@ -49,6 +49,32 @@ export function getRandom(arr : any[]) {
   return arr[Math.floor(Math.random() * arr.length)]
 }
 
+@Muds.struct()
+export class TestObopay extends Muds.BaseStruct {
+  @Muds.unique(Muds.Man) panNo  : string
+  @Muds.unique(Muds.Man) adarNo : string
+}
+
+
+@Muds.entity(1, Muds.Pk.Auto)
+export class TestUser extends Muds.BaseEntity {
+  @Muds.unique(Muds.Man) email                : string
+  @Muds.unique(Muds.Man) mobileNo             : string
+  @Muds.field (Muds.Opt) name                 : string
+  @Muds.indexed(Muds.Man) etcInfo             : TestObopay 
+}
+
+
+@Muds.entity(1, Muds.Pk.Auto)
+@Muds.ancestors(TestUser)
+export class ChildUser extends Muds.BaseEntity {
+  @Muds.unique(Muds.Man) panNo  : string
+  @Muds.field(Muds.Man)  name   : string
+  @Muds.field(Muds.Opt)  dob    : number
+}
+
+
+
 
 /* ---------------------------------------------------------------------------
    C L I    C O M M A N D S

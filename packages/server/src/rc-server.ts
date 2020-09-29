@@ -7,20 +7,19 @@
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
 
+import {
+         RunContextBase, 
+         LOG_LEVEL,
+         RUN_MODE,
+         InitConfig,
+         RunState,
+         RCLoggerBase,
+         Mubble,
+         MaskingDataParams
+       }                    from '@mubble/core'
+import { MasterMgr }        from './master/ma-manager'
 import * as semver          from 'semver'
 import * as lo              from 'lodash'
-
-import {
-  RunContextBase, 
-  LOG_LEVEL,
-  RUN_MODE,
-  InitConfig,
-  RunState,
-  RCLoggerBase
-}  from '@mubble/core'
-
-import  {GcloudEnv}         from './gcp/gcloud-env'
-import  {MasterMgr}         from './master/ma-manager'
 
 // Import from external modules without types
 const colors:any = require('colors/safe') // https://github.com/marak/colors.js/
@@ -51,6 +50,7 @@ export class InitConfigServer extends InitConfig {
 }
 
 export class RunStateServer extends RunState {
+  
 
   private runIdIndx : number[] = [lo.random(0, CONS.length - 1), 
                                   lo.random(0, VOWS.length - 1), 
@@ -74,11 +74,13 @@ export class RunStateServer extends RunState {
 }
 
 export abstract class RunContextServer extends RunContextBase {
-
+  
   /*------------------------------------------------------------------------------
     Static declarations
   ------------------------------------------------------------------------------*/
+
   masterMgr   : MasterMgr
+  initObj     : Mubble.uObject<any>
 
   private static initDone: boolean
   
@@ -96,8 +98,13 @@ export abstract class RunContextServer extends RunContextBase {
     super(initConfig, runState, contextId, contextName)
   }
 
+  getMaskingData() : MaskingDataParams[] {
+    return []
+  }
+
   clone(newRc : RunContextServer) {
-    // nothing to do, I have no member variables
+    newRc.initObj = this.initObj
+
     super.clone(newRc)
   }
 
@@ -120,8 +127,7 @@ export abstract class RunContextServer extends RunContextBase {
   protected getContextId(): string {
 
     const arRunIndex : number[] = this.runState.getRunIdIndex(),
-
-          contextId      : string   = CONS.charAt(arRunIndex[0]) + 
+          contextId  : string   = CONS.charAt(arRunIndex[0]) + 
                                   VOWS.charAt(arRunIndex[1]) + 
                                   CONS.charAt(arRunIndex[2]++)
 
@@ -192,6 +198,5 @@ export class RCServerLogger extends RCLoggerBase {
     const fn: any = colors[LOG_LEVEL[level]]
     console.log(fn ? fn(logStr) : logStr)
   }
-
 }
 

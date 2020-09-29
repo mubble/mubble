@@ -12,7 +12,6 @@ import {
         ERROR_CODES,
         DSError
        }                  from './error-codes'
-import {GcloudEnv}        from '../../gcp/gcloud-env'
 import {BaseDatastore , 
         BASEDATASTORE_PROTECTED_FIELDS , 
         DATASTORE_COMPARISON_SYMBOL}    from './basedatastore'
@@ -77,7 +76,8 @@ export class DSQuery<T extends BaseDatastore<T>> {
   }
 
   filter(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , value : T[keyof T] | number| boolean , symbol ?: DATASTORE_COMPARISON_SYMBOL) : DSQuery<T> {
-    if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + key)
+    if(this.indexed.indexOf(key as string) === -1)
+      throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + key)
     if(value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD + ' Filter key:' + key)
     if(!symbol) symbol = '='
     this._query = this._query.filter(key, symbol, value)
@@ -86,7 +86,8 @@ export class DSQuery<T extends BaseDatastore<T>> {
 
   multiFilter(keyPairs : Array<{key : keyof T, value : T[keyof T] | number| boolean , symbol ?: DATASTORE_COMPARISON_SYMBOL}>) : DSQuery<T> {
     for(const filter of keyPairs) {
-      if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + filter.key)
+      if(this.indexed.indexOf(filter.key as string) === -1)
+        throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Filter key:' + filter.key)
       if(filter.value === undefined) throw new Error(ERROR_CODES.UNDEFINED_QUERY_FIELD+ ' Filter key:'+ filter.key)
       this._query = this._query.filter(filter.key, filter.symbol || '=', filter.value)
     }
@@ -94,7 +95,8 @@ export class DSQuery<T extends BaseDatastore<T>> {
   }
 
   order(key : keyof T | BASEDATASTORE_PROTECTED_FIELDS , descending ?: boolean) : DSQuery<T> {
-    if(this.indexed.indexOf(key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + key)
+    if(this.indexed.indexOf(key as string) === -1)
+      throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + key)
     if (!descending) this._query = this._query.order(key)
     else this._query = this._query.order(key, { descending: true })
     return this
@@ -102,7 +104,8 @@ export class DSQuery<T extends BaseDatastore<T>> {
 
   multiOrder(keyPairs: Array<{key : keyof T , descending : boolean}>) : DSQuery<T> {
     for(let filter of keyPairs) {
-      if(this.indexed.indexOf(filter.key) === -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + filter.key)
+      if(this.indexed.indexOf(filter.key as string) === -1)
+        throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' Order key:' + filter.key)
       if (!filter.descending) this._query = this._query.order(filter.key)
       else this._query = this._query.order(filter.key, { descending: true })
     }
@@ -120,7 +123,8 @@ export class DSQuery<T extends BaseDatastore<T>> {
   }
   
   groupBy(val : keyof T) : DSQuery<T> {
-    if(this.indexed.indexOf(val) == -1) throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' GroupBy key:' + val)
+    if(this.indexed.indexOf(val as string) == -1)
+      throw new Error(ERROR_CODES.FIELD_NOT_INDEXED + ' GroupBy key:' + val)
     this._query = this._query.groupBy(val)
     return this
   }

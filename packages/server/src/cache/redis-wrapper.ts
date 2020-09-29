@@ -13,18 +13,15 @@ import {
         Multi
        }                                from 'redis'
 import {
-        log,
-        concat
+        log
        }                                from '../master/ma-util' 
 import {RunContextServer}               from '../rc-server'
-import * as lo                          from 'lodash'
-
 import {Mubble}                         from '@mubble/core'
 
 
 function redisLog(rc : RunContextServer , ...args : any[] ) : void {
   if(rc){
-    rc && rc.isStatus() && rc.status(rc.getName(this), LOG_ID , ...args)
+    rc && rc.isStatus() && rc.status(LOG_ID , ...args)
   }else{
     log(LOG_ID , ...args)
   }
@@ -81,11 +78,14 @@ export class RedisCmds {
   incr      (...args : string[]) : Promise<void> {return true as any}
   watch     (...args : string[] ) : Promise<string []> {return true as any}
 
+  setex     (key : string, seconds : number, value : any) : Promise<string> {return true as any}
+
   mget      (...args : string[]) : Promise<string []> {return true as any}
   mset      (...args : string[]) : Promise<string> {return true as any}
 
   hdel      (key : string , ...args : string[]) : Promise<void> { return true as any }
   hget      (key : string , field : string) : Promise<string> { return true as any }
+  hexists   (key : string, field : string) : Promise<number> { return true as any }
   hgetall   (key : string) : Promise<{[key:string] : string}> { return true as any }
   hscan     (key : string , ...args : string[]) : Promise<[string, string []]> { return true as any }
   hmget     (key : string , ...args : string[]) : Promise<string []> { return true as any }
@@ -201,7 +201,7 @@ export class RedisWrapper {
       })
 
       this.redis.on("error" , (error : any)=>{
-        redisLog(this.rc , this.name , 'Could not connect to redis ',url , error)
+        redisLog(this.rc , this.name , 'some error occurred', url , error)
         reject(error)
       })
     })

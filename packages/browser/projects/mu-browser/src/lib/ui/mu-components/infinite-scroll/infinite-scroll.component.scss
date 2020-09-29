@@ -1,0 +1,25 @@
+:host {
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 100%;
+}
+
+.content-div {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.content-div::-webkit-scrollbar { 
+  display: none; 
+}
+
+.content-holder {
+  position: relative;
+  width: 1px;
+}

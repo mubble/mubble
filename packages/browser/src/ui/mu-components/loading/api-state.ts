@@ -1,5 +1,5 @@
-import { RunContextBrowser }                                from "../../.."
-import { TranslateService }                                 from ".."
+import { RunContextBrowser }                                from "../../../rc-browser"
+import { TranslateService }                                 from "../translate"
 
 export enum API_STATE {
   PROGRESS = 1,

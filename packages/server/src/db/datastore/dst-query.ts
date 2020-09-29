@@ -9,7 +9,6 @@
 
 import {RunContextServer} from '../../rc-server'
 import {ERROR_CODES}      from './error-codes'
-import {GcloudEnv}        from '../../gcp/gcloud-env'
 import { BaseDatastore , 
   BASEDATASTORE_PROTECTED_FIELDS,
   DATASTORE_COMPARISON_SYMBOL } from './basedatastore'

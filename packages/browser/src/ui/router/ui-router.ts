@@ -6,33 +6,30 @@
    
    Copyright (c) 2017 Mubble Networks Private Limited. All rights reserved.
 ------------------------------------------------------------------------------*/
-import { Injectable, Inject }   from '@angular/core'
-
-import {
-  CanActivate, Router,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  CanActivateChild,
-  NavigationExtras,
-  CanLoad, Route,
-  NavigationStart,
-  NavigationEnd,
-  UrlSegment,
-  UrlTree, 
-}                               from '@angular/router'
-
-import { Mubble }               from '@mubble/core'
-
+import { Router,
+         NavigationExtras,
+         NavigationEnd,
+         UrlSegment,
+         UrlTree
+        }                       from '@angular/router'
 import { INJECTION_PARAM, 
-         InjectionCaller }      from '../mu-components/injection-interface'
+         InjectionCaller 
+       }                        from '../mu-components/injection-interface'
+import { AlertDialogParams,
+         AlertDialogComponent 
+       }                        from '../mu-components/alert-dialog/alert-dialog.component'
 
-import * as lo                  from 'lodash'
-
-import { DIRECTION }            from '../nail'
 import { RunContextBrowser }    from '../../rc-browser'
+import { Mubble }               from '@mubble/core'
 import { ComponentRoutes }      from './shared-router-constants'
+import isEqual                  from 'lodash/isEqual'
 
-const ROOT_URL     = '/#/?launched=true'
+const ROOT_URL     = '#/?launched=true'
+
+const hashIndex = location.href.indexOf('#'),
+      baseHref  = hashIndex !== -1 ? location.href.substr(0, hashIndex) : location.href
+
+const BASE_HREF    = baseHref
 
 export const PRIMARY_OUTLET = 'primary',
              MODAL_OUTLET   = 'modal'
@@ -44,8 +41,9 @@ export enum NavMethod {NEXT = 1, CURRENT, POP}
 export type OUTLET = 'primary' | 'modal'
 
 export interface NcNavigationExtras extends NavigationExtras {
-  replaceIndex  ?: number
-  paramsId      ?: string
+  replaceIndex   ?: number
+  paramsId       ?: string,
+  replaceAllUrls ?: boolean
 }
 
 class StackItem {
@@ -76,9 +74,8 @@ export class UiRouter {
 
   private firstNavDone  : boolean   = false
   private browserStack  : string[]  = []
-  private urlPrefix     : string
-  
-  private lastNavMethod : NavMethod = 0
+
+  private lastNavMethod : NavMethod = 0 
   private lastPopIndex  : number    = -1
   private lastNavUrl    : string    = ''
   private lastGoingBack : boolean   = false
@@ -89,25 +86,31 @@ export class UiRouter {
   
   private codePop           : boolean = false
   private runningInBrowser  : boolean = false
+  private isSdkApp          : boolean = false 
+  private iframeHistLength  : number  = 0
 
   constructor(private rcBrowser         : RunContextBrowser,
               private router            : Router) {
 
-    this.historyWrapper = new HistoryWrapper(rcBrowser)
   }
 
-  public init(runningInBrowser: boolean) {
+  public init(runningInBrowser: boolean, isSdkApp : boolean = false) {
 
     this.runningInBrowser = runningInBrowser
+    this.isSdkApp         = isSdkApp
+
+    this.historyWrapper = new HistoryWrapper(this.rcBrowser, this.isSdkApp)
+
 
     this.urlStack[0]      = new StackItem()
     this.urlStack[0].url  = (location.hash || '').substr(1)
 
-    const curLoc = location.href
-    this.historyWrapper.replaceState({index: -1}, document.title, ROOT_URL)
-    this.historyWrapper.pushState({index: 0}, document.title, curLoc)
+    this.historyWrapper.replaceState({index: -1}, document.title, baseHref + ROOT_URL)
+    this.historyWrapper.pushState({index: 0}, document.title, baseHref)
 
-    window.addEventListener('popstate', this.onPopState.bind(this))
+    if (!this.isSdkApp) window.addEventListener('popstate', this.onPopState.bind(this))  
+
+    
     this.browserStack[0]  = this.urlStack[0].url
     this.router.events.subscribe(this.onNavEnd.bind(this))
 
@@ -116,15 +119,25 @@ export class UiRouter {
     })
   }
 
-  public navigate(routeTo: string, extras ?: NcNavigationExtras) {
-    return this.navigateByUrl([routeTo], extras)
+  public async navigate(routeTo: string, extras ?: NcNavigationExtras) {
+
+    if (extras && extras.replaceAllUrls) {
+      if (this.urlStack.length - 1 > 0) {
+        extras.replaceIndex = 1
+      }
+    }
+
+    return await this.navigateByUrl([{ outlets: { primary : routeTo, modal: null } }], extras, PRIMARY_OUTLET)
   }
 
-  public rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
+  public async rootNavigate(routeTo: string, extras ?: NcNavigationExtras) {
     
-    this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'Inside RootNavigate', routeTo)
-    if (extras) extras.replaceIndex = 0
-    return this.navigateByUrl([routeTo], extras, PRIMARY_OUTLET)
+    this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 
+      'Inside RootNavigate', routeTo)
+    if (!extras) extras = {}
+    extras.replaceIndex = 0
+    
+    return await this.navigateByUrl([{ outlets: { primary : routeTo,modal: null } }], extras, PRIMARY_OUTLET)
   }
 
   public areWeGoingBack() {
@@ -139,7 +152,7 @@ export class UiRouter {
     return this.curOutlet !== PRIMARY_OUTLET
   }
 
-  private navigateByUrl(urlOrCommand: string | any[], extras ?: NcNavigationExtras, 
+  private async navigateByUrl(urlOrCommand: string | any[], extras ?: NcNavigationExtras, 
           outlet ?: OUTLET) {
 
     if (!extras) extras = {}
@@ -189,7 +202,8 @@ export class UiRouter {
     const url = Array.isArray(urlOrCommand) ? this.router.createUrlTree(urlOrCommand, extras) : urlOrCommand
     this.lastNavUrl = typeof url === 'string' ? url : this.router.serializeUrl(url)
 
-    if (this.router.navigateByUrl(url, extras)) {
+
+    if (await this.router.navigateByUrl(url, extras)) {
       return true
     }
   }
@@ -209,8 +223,16 @@ export class UiRouter {
     this.showInModal(component, componentRoute, queryParams, ComponentRoutes.Modal, caller, repUrl)
   }
 
+  public showAlertDialog(queryParams : AlertDialogParams, caller : InjectionCaller, replaceUrl ?: boolean) {
+    this.popupModal(AlertDialogComponent, ComponentRoutes.Alert, queryParams, replaceUrl, caller)
+  }
+
   public hasQueryParamsById(params): boolean {
     return !!params.nc_paramsId
+  }
+
+  public getUrlStackLength() {
+    return this.urlStack.length
   }
 
   public getCurrentComponent(outlet = PRIMARY_OUTLET): any {
@@ -223,10 +245,25 @@ export class UiRouter {
     return this.getRouteName(topUrl)
   }
 
-  public getRouteName(url): string {
+  public onNavCancel() {
+    this.lastNavMethod  = 0
+  }
+
+  public getCurQueryParams() {
+    return this.curQueryParam
+  }
+
+  public getRouteName(url : string): string {
 
     const urlTree: UrlTree        = this.router.parseUrl(url)
-    const segments: UrlSegment[]  = urlTree.root.children.primary.segments
+    const segments: UrlSegment[]  = urlTree.root.children.primary ? urlTree.root.children.primary.segments : undefined
+    
+    if (!segments) {
+      //we are adding dummy url (#/?launched=true) in the beginning.
+      this.rcBrowser.isWarn() && this.rcBrowser.warn(this.rcBrowser.getName(this), 
+      `received invalid url ${url}`)
+      return ''
+    }
 
     if (segments.length > 1) {
       let path = ''
@@ -240,7 +277,7 @@ export class UiRouter {
     return segments[0].path
   }
 
-  public getModuleName(url): string {
+  public getModuleName(url : string): string {
 
     const urlTree: UrlTree        = this.router.parseUrl(url)
     const segments: UrlSegment[]  = urlTree.root.children.primary.segments
@@ -259,6 +296,16 @@ export class UiRouter {
       'Trying to retrieve non-existent params', params, this.currentQpId)
 
     return this.curQueryParam
+  }
+
+  public clearHisory() {
+    const distanceFromRoot  = -1 * this.historyWrapper.getState().index - 1
+    this.historyWrapper.go(distanceFromRoot)
+    
+  }
+
+  public setIframeHistLength(length  : number) {
+    this.iframeHistLength = length
   }
 
   public updateQueryParam(name: string, value: any) {
@@ -370,13 +417,18 @@ export class UiRouter {
     if (index === -1) {
       
       if (!this.codePop) {
-        if (this.warnedUser) {
-          this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
+
+        if (!this.canCompGoBack()) {
+          return
+        }
+
+        if (this.warnedUser || this.runningInBrowser) {
+          this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this),
             'onPopState: Exiting the app', this.historyWrapper.getLength())
           this.notifyAppClose()
           
           if (!this.runningInBrowser) this.notifyAppClose() 
-          else this.historyWrapper.go(-1)
+          else location.reload()
 
           return
         } else {
@@ -391,16 +443,13 @@ export class UiRouter {
 
       for (let i = 0; i < stackLen; i++) {
         this.browserStack[i] = this.urlStack[i].url
-        this.historyWrapper.pushState({index: i}, '', '/#' + this.urlStack[i].url)
+        this.historyWrapper.pushState({index: i}, '', BASE_HREF + '#' + this.urlStack[i].url)
       }
       this.browserStack.length = stackLen
 
     } else {
 
-      if (!this.canGoBack() || this.isToolTipShown()) {
-        const lastIdx  = this.urlStack.length - 1,
-        lastItem = this.urlStack[lastIdx]
-        this.historyWrapper.pushState({index: lastIdx}, '', '/#' + lastItem.url)
+      if (!this.canCompGoBack()) {
         return
       }
 
@@ -416,6 +465,18 @@ export class UiRouter {
     }
   }
 
+  private canCompGoBack() {
+    if (!this.canGoBack() || this.isToolTipShown()) {
+      const lastIdx  = this.urlStack.length - 1,
+      lastItem = this.urlStack[lastIdx]
+      this.historyWrapper.pushState({index: lastIdx}, '', BASE_HREF + '#' + lastItem.url)
+      this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'not going back')
+      return false
+    }
+
+    return true
+  }
+
   private onPopUpClosed() {
     const lastIdx  = this.urlStack.length - 1,
     lastItem = this.urlStack[lastIdx]
@@ -426,13 +487,17 @@ export class UiRouter {
     comp.component.onBackPressed()
   }
 
-  private canGoBack() {
+  protected canGoBack() {
+
     const lastIdx  = this.urlStack.length - 1,
           lastItem = this.urlStack[lastIdx]
    
     if (!lastItem) return true
     const comp = this.curCompMap[lastItem.outlet]
-    if (!comp || !comp.component.canGoBack) return true
+    if (!comp || !comp.component.canGoBack) {
+      this.removeOverlayIfExists()
+      return true
+    }
     if (!comp.component.canGoBack()) {
       this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 
         'Skipping back as component dis-allowed back press')
@@ -445,6 +510,8 @@ export class UiRouter {
   }
 
   private onNavEnd(event ?: any) {
+
+
 
     if (!(event instanceof NavigationEnd)) {
       return
@@ -463,7 +530,7 @@ export class UiRouter {
       const url     = location.href,
             hashPtr = url.indexOf('#')
 
-      this.urlPrefix   = hashPtr === -1 ? url : url.substr(0, hashPtr)
+      const urlPrefix   = hashPtr === -1 ? url : url.substr(0, hashPtr)
     }
 
     this.rcBrowser.isStatus() && this.rcBrowser.status(this.rcBrowser.getName(this), 'NavigationEnd', {
@@ -528,7 +595,7 @@ export class UiRouter {
     // this.curQueryParam  = null
 
     if (this.warnedUser) this.warnedUser = false
-    this.syncBrowserHistory()
+    if (!this.isSdkApp) this.syncBrowserHistory()
 
     this.onMubbleScreenNavEnd(event.url, this.lastNavMethod)
   }
@@ -540,7 +607,7 @@ export class UiRouter {
     const params = this.router.routerState.root.snapshot.queryParams,
           qp     = params.nc_paramsId ? this.curQueryParam : params
 
-    if (lo.isEqual(qp, outletEntry.lastParams)) {
+    if (isEqual(qp, outletEntry.lastParams)) {
       this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'Skipping onRouterInit as parameters are same')
       return 
     }
@@ -576,10 +643,10 @@ export class UiRouter {
     } else if (fromIndex === (stackLen - 1)) {
 
       if (browserStack.length === urlStack.length) {
-        this.historyWrapper.replaceState({index: fromIndex}, '', '/#' + urlStack[fromIndex])
+        this.historyWrapper.replaceState({index: fromIndex}, '', BASE_HREF + '#' + urlStack[fromIndex])
         browserStack[fromIndex] = urlStack[fromIndex].url
       } else if (browserStack.length + 1 === urlStack.length) {
-        this.historyWrapper.pushState({index: fromIndex}, '', '/#' + urlStack[fromIndex])
+        this.historyWrapper.pushState({index: fromIndex}, '', BASE_HREF + '#' + urlStack[fromIndex])
         browserStack[fromIndex] = urlStack[fromIndex].url
       } else {
         this.browserGotoRoot()
@@ -593,7 +660,9 @@ export class UiRouter {
 
     this.rcBrowser.isAssert() && this.rcBrowser.assert(this.rcBrowser.getName(this), this.historyWrapper.getState().index >= 0)
 
-    const distanceFromRoot = -1 * this.historyWrapper.getState().index - 1
+    const totalDistance = this.iframeHistLength + this.historyWrapper.getState().index
+
+    const distanceFromRoot = -1 * totalDistance - 1
     this.rcBrowser.isDebug() && this.rcBrowser.debug(this.rcBrowser.getName(this), 'browserGotoRoot', { 
       distanceFromRoot, 
       stackLen        : this.urlStack.length, 
@@ -602,6 +671,7 @@ export class UiRouter {
 
     this.codePop = true
     this.historyWrapper.go(distanceFromRoot)
+    if (this.iframeHistLength) this.iframeHistLength = 0
   }
 
   /*--------------------------------------------------------------------------------------------------------------
@@ -641,15 +711,21 @@ export class UiRouter {
   public isToolTipShown() : boolean {
     return true
   }
+
+  public removeOverlayIfExists() {
+
+  }
+
 }
 
 class HistoryWrapper {
 
-  constructor(private rc) {
+  constructor(private rc, private isSdkApp : boolean) {
     rc.setupLogger(this, 'HistoryWrapper')
   }
 
   pushState(state: Mubble.uObject<any>, title: string, url: string) {
+    if (this.isSdkApp) return
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before pushState', {
       historyLength : history.length, 
       historyState  : history.state,
@@ -663,10 +739,12 @@ class HistoryWrapper {
   }
 
   replaceState(state: Mubble.uObject<any>, title: string, url: string) {
-
+    if (this.isSdkApp) return
     this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 'before replaceState', {
       historyLength : history.length, 
       historyState  : history.state,
+      title         : title,
+      url           : url,
       newState      : state
     })
     history.replaceState(state, title, url)
@@ -677,14 +755,17 @@ class HistoryWrapper {
   }
 
   go(delta: number) {
+    if (this.isSdkApp) return
     history.go(delta)
   }
 
   getState() {
+    if (this.isSdkApp) return
     return history.state
   }
 
   getLength() {
+    if (this.isSdkApp) return
     return history.length
   }
 

@@ -153,7 +153,8 @@ export class MudsBaseStruct {
 
     for (const fieldName of entityInfo.fieldNames) {
       const meField = entityInfo.fieldMap[fieldName],
-            headEntry = (meField.mandatory ? '*' : '') + 
+            headEntry = (meField.mandatory ? '*' : '') 
+            + 
                         `${fieldName}/${meField.fieldType.name}` + 
                         (meField.unique ? '+' : (meField.indexed ? '@' : '')) 
                         
@@ -185,7 +186,7 @@ export type DatastorePayload = {
 export class MudsBaseEntity extends MudsBaseStruct {
 
   private savePending : boolean  // indicates that entity is pending to be saved
-  public _id          : string   // Used only while serialising
+  public _id          : string   // Used only while serializing
 
   constructor(rc                    : RunContextServer, 
               io                    : MudsIo, 
@@ -214,8 +215,8 @@ export class MudsBaseEntity extends MudsBaseStruct {
       const meField  = entityInfo.fieldMap[fieldName],
             value    = thisObj[fieldName]
       
-      if (value === undefined) continue
-      data[fieldName] = meField.accessor.serialize(this)
+      //if (value === undefined) continue
+      data[fieldName] = value === undefined ? undefined : meField.accessor.serialize(this)
     }
     return data as T
   }
@@ -406,7 +407,7 @@ export class FieldAccessor {
   private setOriginal(inEntity: MudsBaseStruct, value: any) {
     const entity = inEntity as any
     // JSON.stringify converts everything to string except undefined is left as is
-    // string is quoted. We are stringifying it so that modification of value does not
+    // string is quoted. We are stringify it so that modification of value does not
     // affect the old value
     entity[this.ovFieldName] = {original: JSON.stringify(value)}
   }
