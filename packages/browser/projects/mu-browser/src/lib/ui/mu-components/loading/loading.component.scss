@@ -1,0 +1,25 @@
+.mu-loading-root {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-text {
+  padding: 2vw;
+}
+
+.loading-cont {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.web-mu-content-div {
+  height: 100% !important;
+  width: 100% !important; 
+
+  .loading-text {
+    padding: 10px;
+  }
+}

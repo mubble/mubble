@@ -1,0 +1,67 @@
+@mixin mu-components-module-theme($theme) {
+
+  $primary: map-get($theme, primary);
+  $accent: map-get($theme, accent);
+  $warn: map-get($theme, warn);
+  $nc-colorful: map-get($theme, nc-colorful);
+  $foreground: map-get($theme, foreground);
+  $background: map-get($theme, background);
+  
+
+  .bottom-in-comp {
+
+    .bottom-in-toolbar-outline {
+      outline: 1px solid mat-color($foreground, divider)
+    }
+
+    .bottom-in-container {
+      background-color: mat-color($background, background);
+    }
+
+  }
+
+  .modal-popup-comp {
+
+    .modal-root-div {
+      background: mat-color($background, background);
+    }
+
+  }
+
+  .loading-overlay-comp {
+
+    .component-loader {
+      background: mat-color($background, background);
+    }
+
+  }
+
+  .toast-comp {
+    
+    .toast-text {
+      color: mat-color($foreground, toast-text) !important;
+    }
+
+    .toast {
+      background: mat-color($background, toast-bg) !important;
+    }
+
+  }
+
+  .filter-content-body::-webkit-scrollbar-thumb {
+    background: lightgrey
+  }
+
+  .keypad {
+    .key {
+      span {
+        // background    : mat-color($background, nc-bg-second);
+      }
+    }
+  }
+
+  .bg-pnf {
+    background: mat-color($primary, 500) !important;
+  }
+
+}

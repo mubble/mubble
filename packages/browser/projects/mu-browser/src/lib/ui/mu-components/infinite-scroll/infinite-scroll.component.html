@@ -1,0 +1,6 @@
+<div class="content-holder" #contentHolder></div>
+<div class="content-div" #scrollCont
+  [ngClass]="customClass || 'bg-primary-light'"
+  (scroll)="refreshList()">
+  <ng-content></ng-content>
+</div> 

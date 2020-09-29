@@ -1,0 +1,53 @@
+.alert-dialog-comp {
+  position: relative;
+  padding: 2vw;
+}
+
+.header {
+  position: relative;
+  border-bottom-width: 1px;
+  border-bottom-style: solid;
+  padding-bottom: 2vw;
+  display: flex;
+  justify-content: space-between;
+}
+
+.content {
+  position: relative;
+  padding: 2vw 0;
+}
+
+.footer {
+  position: relative;
+  display:  flex;
+  align-items: center;
+  padding: 4vw 0;
+}
+
+.btn {
+  position: relative;
+  width: 30vw;
+}
+
+.web-alerts-dialog {
+
+  padding:  20px;
+
+  .header {
+    padding-bottom: 20px; 
+  }
+
+  .content {
+    position: relative;
+    padding: 20px 0;
+  }
+
+  .footer {
+    padding: 20px 0;
+  }
+
+  .btn {
+    width : 150px;
+  }
+
+}

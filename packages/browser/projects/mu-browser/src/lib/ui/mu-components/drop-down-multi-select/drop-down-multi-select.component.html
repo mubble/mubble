@@ -1,0 +1,52 @@
+<div class="drop-down-multi-select-comp"
+  [ngClass.xl]="['web-drop-down-multi-select']"
+  [ngClass.lg]="['web-drop-down-multi-select']"
+  [ngClass.md]="['web-drop-down-multi-select']"
+  [ngClass.sm]="['web-drop-down-multi-select']">
+
+  <div class="drop-box-cont border-primary">
+
+    <div class="placeholder txt-md-med-light" *ngIf="placeholder && showPlaceHolder">
+      {{ placeholder }}
+    </div>
+
+    <div class="sel-items-cont" *ngIf="!showPlaceHolder">
+
+      <ng-container *ngFor="let option of listOptions">
+        <div class="sel-item txt-sm-med-dark grey-bg" *ngIf="option.selected">
+          {{ option.value }}
+        </div>
+      </ng-container>
+
+    </div>
+
+    <div class="arrow-cont">
+      <div class="arrow" (click)="handleDropDown()">
+        <i class="fa fa-2x fa-angle-down" aria-hidden="true"></i>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="drop-down-list bg-white" *ngIf="showDropDown">
+
+    <div class="checkbox-cont">
+      <mat-checkbox *ngIf="showSelectAll" [value]="'ALL'"
+        class="txt-md-med-norm checkbox"
+        [checked]="isSelectAll"
+        (change)="onSelectAll($event)">
+        Select All
+      </mat-checkbox>
+
+      <mat-checkbox *ngFor="let option of listOptions" [value]="option"
+        class="txt-md-med-norm checkbox"
+        [checked]="option.selected"
+        (change)="onCheckBoxClick($event, option)">
+        {{ option.value }}
+      </mat-checkbox>
+
+    </div>
+  
+  </div>
+
+</div>

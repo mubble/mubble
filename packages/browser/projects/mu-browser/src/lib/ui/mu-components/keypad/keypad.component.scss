@@ -1,0 +1,55 @@
+.keypad {
+  flex-direction  : column;
+  width           : 100vw;
+  @extend .flex-center;
+}
+
+.zero-row {
+  display         : flex;
+  flex-direction  : row;
+  justify-content : flex-end;
+  padding         : 0vh 8vw 2vh 8vw;
+}
+
+.zero-row, .first-row, .second-row, .third-row, .fourth-row {
+  width           : 100vw;
+  display         : flex;
+  flex-direction  : row;
+  justify-content : center;
+}
+
+.typed-text-view {
+  width   : 100%;
+  height  : 100%;
+  @extend .flex-center;
+}
+
+.key {
+  padding         : 1vh 0;
+  @extend .flex-center;
+
+  span {
+    width         : 12vw;
+    height        : 12vw;
+    border-radius : 50%;
+    @extend .flex-center;
+  }
+}
+
+.flex-center {
+  display         : flex;
+  align-items     : center;
+  justify-content : center;
+}
+
+.key-normal {
+  width : 33.33vw !important;
+}
+
+.key-dot {
+  width : 28vw;
+}
+
+.key-ok, .key-empty {
+  width           : 16vw !important;
+}

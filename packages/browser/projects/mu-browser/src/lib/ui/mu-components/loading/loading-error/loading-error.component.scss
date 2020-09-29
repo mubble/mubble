@@ -1,0 +1,46 @@
+.mu-loading-root {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.error-text-cont {
+  position: relative;
+  margin-left: 5%;
+  margin-right: 5%;
+}
+
+.error-btn-cont {
+  position: relative;
+  margin-top: 10vh;
+}
+
+.error-btn {
+  width: 70vw;
+}
+
+.web-loading-error {
+
+  .mu-loading-root {
+    width: 100%;
+    height: 100%;
+  }
+
+  .error-btn-cont {
+    width: 100%;
+  }
+
+  .error-btn {
+    width: 50%;
+  }
+
+  .error-text-cont {
+    overflow-wrap: break-word;
+  }
+
+}
+
+
+
+

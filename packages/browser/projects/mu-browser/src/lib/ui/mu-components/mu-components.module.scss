@@ -1,0 +1,58 @@
+.mu-loading-root {
+  height: 100vh;
+  width: 100vw;
+  position: absolute;
+  text-align: center;
+  left: 0;
+  top: 0;
+}
+
+.input-cont-comp {
+
+  .mat-button-toggle-label-content {
+    line-height: 36px !important;
+    padding: 0 12px !important;
+  }
+
+  .mat-checkbox-inner-container {
+    height: 28px;
+    width: 28px;
+  }
+}
+
+.mu-form-container-comp {
+
+  .mat-form-field-wrapper {
+    width: 100%;
+  }
+
+}
+
+.drop-down-multi-select-comp {
+
+  .mat-checkbox-layout {
+    display: block;
+    width: 100%;
+  }
+  
+}
+
+@media screen and (min-width: 900px) {
+  .mat-select-panel::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .mat-select-panel::-webkit-scrollbar-thumb {
+    border-radius: 10px
+  }
+}
+ 
+@media screen and (max-width: 1500px) and (min-width: 900px) {
+    .mat-select-panel {
+      max-width: 220px !important;
+      min-width: calc(100% + 20px) !important;
+    }
+}
+
+
+

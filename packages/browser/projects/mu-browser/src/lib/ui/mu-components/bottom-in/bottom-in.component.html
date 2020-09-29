@@ -1,0 +1,28 @@
+<div class="bottom-in-comp">
+  <div class="main bottom-in-container glb-animated-element" (click)="onClick($event)" #main>
+
+    <div #header>
+
+      <header *ngIf="allowFullPage" class="test-bottom-in-toolabr bottom-in-toolbar-outline nc-toolbar">
+        <span class="toolbar-title title text-body-supp text-size-medium test-bottom-in-title">{{title}}</span>
+
+        <div *ngIf="state !== 'FULL'" (click)="onFull(true)" class="toolbar-right-ic-btn">
+          <i class="modal-right-ic test-bottom-in-more fa fa-angle-up" aria-hidden="true"></i>
+        </div>
+        <div *ngIf="state === 'FULL'" (click)="animateClose()" class="toolbar-right-ic-btn">
+          <i class="modal-right-ic test-bottom-in-more fa fa-angle-down" aria-hidden="true"></i>
+        </div>
+      </header>
+
+      <header *ngIf="!allowFullPage && title" class="nc-small-toolbar text-heading">
+        <span class="title test-bottom-in-title">{{title}}</span>
+      </header>
+
+    </div>
+
+    <div class="component-container" #compContainer>
+      <ng-template #injectAt></ng-template>
+    </div>
+
+  </div>
+</div>
