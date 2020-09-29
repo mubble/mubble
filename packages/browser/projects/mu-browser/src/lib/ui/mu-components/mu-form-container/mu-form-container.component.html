@@ -5,373 +5,113 @@
 [ngClass.md]="webMode ? ['web-form-container-comp'] : ['web-view-input-comp']"
 [ngClass.sm]="webMode ? ['web-form-container-comp'] : ['web-view-input-comp']">
 
-  <div class="main-input-cont" *ngFor="let inputParam of formParams.inputParams; let i = index" 
-  adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
+  <ng-container *ngFor="let inputParam of formParams.inputParams; let i = index">
+    <div *ngIf="(inputParam.isVisible === undefined || inputParam.isVisible)" class="main-input-cont"  
+      adjustElements [displayInSingleRow]="displayCount" [elementIndex]="i" [webMode]="webMode">
 
-    <div class="label-txt txt-lg-reg-norm"
-      *ngIf="displayLabel && inputParam.label && inputParam.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
-      {{ inputParam.label }}
-      <span class="red-asterix error-text" *ngIf="inputParam.isRequired">
-        *
-      </span>
-    </div>
+      <div class="label-txt txt-lg-reg-norm"
+        *ngIf="displayLabel && inputParam.label && inputParam.displayType !== DISPLAY_TYPE.ROW_INPUT_BOX">
+        {{ inputParam.label }}
+        <span class="red-asterix error-text" *ngIf="inputParam.isRequired">
+          *
+        </span>
+      </div>
 
-    <ng-container [ngSwitch]="inputParam.displayType">
+      <ng-container [ngSwitch]="inputParam.displayType">
 
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.INPUT_BOX">
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.INPUT_BOX">
 
-        <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+          <div *ngIf="!inputParam.withoutBorder" 
+          class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
 
-          <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
-            <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
-            <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
-          </div>
+            <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
+              <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
+              <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
+            </div>
 
-          <input matInput #inputCont
-          
-            placeholder="{{inputParam.placeHolder}}"
-            type="{{inputParam.inputType || 'text'}}"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            (updatedValue)="setChangedValues($event, i)"
-            class="txt-lg-med-norm input-cont" 
-            formControlName="{{ inputParam.id }}"
-            name="{{ inputParam.name || 'input-text' }}"
-            [ncMaxLength]="inputParam.maxLength || 1000"
-            textSecurity="inputParam.isPassword"
-            format="{{ inputParam.format }}"
-            [class.num-password-input]="inputParam.isPassword"
-            autocomplete="{{ inputParam.autoComplete || 'off'}}"
-            [keyboard]="parentCont">
-
-          <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
-            <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
-            <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
-          </div>
-
-        </div>
-
-        <mat-form-field *ngIf="inputParam.withoutBorder" class="onb-input-box-cont mat-input-box-cont" 
-          [class.border-disabled]="inputParam.isDisabled">
-
-          <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
-            <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
-            <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
-          </div>
-
-
-          <input matInput #inputCont
-            placeholder="{{inputParam.placeHolder}}"
-            type="{{inputParam.inputType || 'text'}}"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            (updatedValue)="setChangedValues($event, i)"
-            class="txt-lg-med-norm input-cont mat-input-cont" 
-            formControlName="{{ inputParam.id }}"
-            name="{{ inputParam.name || 'input-text' }}"
-            [ncMaxLength]="inputParam.maxLength || 1000"
-            format="{{ inputParam.format }}"
-            textSecurity="inputParam.isPassword"
-            [class.num-password-input]="inputParam.isPassword"
-            autocomplete="{{ inputParam.autoComplete || 'off'}}"
-            [keyboard]="parentCont>
-
-          <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
-            <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
-            <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
-          </div>
-
-        </mat-form-field>
-        
-      </ng-container> 
-      
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.TIME">
-
-        <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-
-          <input matInput #inputCont
-          
-            placeholder="{{inputParam.placeHolder}}"
-            type="time"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            (updatedValue)="setChangedValues($event, i)"
-            class="txt-lg-med-norm input-cont" 
-            formControlName="{{ inputParam.id }}"
-            name="{{ inputParam.name || 'input-time' }}"
-            [keyboard]="parentCont"
-            step="1">
-
-        </div>
-      </ng-container> 
-      
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.TEXT_AREA">
-        <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-          <textarea matInput #inputCont
-            placeholder="{{ inputParam.placeHolder }}"
-            type="{{ inputParam.inputType || 'text' }}"
-            (updatedValue)="setChangedValues($event, i)"
-            class="txt-lg-med-norm input-cont" 
-            formControlName="{{ inputParam.id }}"
-            name="{{ inputParam.name || 'input-text' }}"
-            [ncMaxLength]="inputParam.maxLength || 1000"
-            format="{{ inputParam.format }}"
-            textSecurity="inputParam.isPassword"
-            [class.num-password-input]="inputParam.isPassword"
-            autocomplete="off"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            [keyboard]="parentCont">
-          </textarea> 
-        </div>
-      </ng-container>  
-    
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.SELECTION_BOX">
-
-        <ng-template #selectBox>
-
-          <mat-select #inputCont
-            formControlName="{{ inputParam.id }}"
-            customTrigger="inputCont"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            placeholder="{{ inputParam.placeHolder }}" 
-            class="txt-lg-med-norm input-cont"
-            (selectionChange)="selectedOption($event, i)"
-            (openedChange)="dropDownToggle($event, i)">
-            <mat-option *ngFor="let option of inputParam.options" [value]="option"
-              class="txt-lg-med-norm">
-              {{ option.value }}
-            </mat-option>
-          </mat-select>
-        </ng-template>
-
-        <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-
-          <ng-container>
-
-            <ng-container 
-              *ngTemplateOutlet="selectBox">
-            </ng-container>
-
-          </ng-container>
-
-        </div>  
-
-        <ng-container *ngIf="inputParam.withoutBorder">
-
-          <mat-form-field class="onb-input-box-cont mat-input-box-cont">
-
-            <mat-select #inputCont
-              formControlName="{{ inputParam.id }}"
-              customTrigger="inputCont"
+            <input matInput #inputCont
+            
+              placeholder="{{inputParam.placeHolder}}"
+              type="{{inputParam.inputType || 'text'}}"
               [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
               (onSubmit)="enterOnLastInput($event)"
-              placeholder="{{ inputParam.placeHolder }}" 
-              class="txt-lg-med-norm input-cont mat-input-cont"
-              (selectionChange)="selectedOption($event, i)"
-              (openedChange)="dropDownToggle($event, i)">
-              <mat-option *ngFor="let option of inputParam.options" [value]="option"
-                class="txt-lg-med-norm">
-                {{ option.value }}
-              </mat-option>
-              
-            </mat-select>
+              (updatedValue)="setChangedValues($event, i)"
+              class="txt-lg-med-norm input-cont" 
+              formControlName="{{ inputParam.id }}"
+              name="{{ inputParam.name || 'input-text' }}"
+              [ncMaxLength]="inputParam.maxLength || 1000"
+              textSecurity="inputParam.isPassword"
+              format="{{ inputParam.format }}"
+              [class.num-password-input]="inputParam.isPassword"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
+              [keyboard]="parentCont">
+
+            <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
+              <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
+              <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
+            </div>
+
+          </div>
+
+          <mat-form-field *ngIf="inputParam.withoutBorder" class="onb-input-box-cont mat-input-box-cont" 
+            [class.border-disabled]="inputParam.isDisabled">
+
+            <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
+              <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
+              <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
+            </div>
+
+
+            <input matInput #inputCont
+              placeholder="{{inputParam.placeHolder}}"
+              type="{{inputParam.inputType || 'text'}}"
+              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+              (onSubmit)="enterOnLastInput($event)"
+              (updatedValue)="setChangedValues($event, i)"
+              class="txt-lg-med-norm input-cont mat-input-cont" 
+              formControlName="{{ inputParam.id }}"
+              name="{{ inputParam.name || 'input-text' }}"
+              [ncMaxLength]="inputParam.maxLength || 1000"
+              format="{{ inputParam.format }}"
+              textSecurity="inputParam.isPassword"
+              [class.num-password-input]="inputParam.isPassword"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
+              [keyboard]="parentCont>
+
+            <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
+              <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
+              <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
+            </div>
 
           </mat-form-field>
-
-        </ng-container>
-
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.MULTI_CHECK_BOX">
-        <div class="checkbox-cont">
-          <mat-checkbox *ngFor="let option of inputParam.options" [value]="option"
-            class="txt-lg-med-norm checkbox"
-            [checked]="option.selected"
-            (change)="checkedOption($event, option, i)">
-            {{ option.value }}
-          </mat-checkbox>
-        </div>
-      </ng-container>
-      
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.RADIO">
-        <mat-radio-group
-          formControlName="{{ inputParam.id }}"
-          class="txt-lg-med-norm input-cont radio-group"
-          (change)="selectedOption($event, i)">
-          <mat-radio-button *ngFor="let option of inputParam.options" [value]="option" 
-            class="txt-lg-med-norm radio-button"
-            [checked]="option.selected">
-            {{ option.value }}
-          </mat-radio-button>
-        </mat-radio-group>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_RADIO">
-        <mat-radio-group 
-          formControlName="{{ inputParam.id }}"
-          class="txt-lg-med-norm vert-input-cont vert-radio-group"
-          (change)="selectedOption($event, i)">
-          <mat-radio-button  *ngFor="let option of inputParam.options" [value]="option" 
-            class="txt-lg-med-norm radio-button"
-            [checked]="option.selected">
-            {{ option.value }}
-          </mat-radio-button>
-        </mat-radio-group>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.TOGGLE">
-        <mat-slide-toggle class="toggle-cont"
-          (change)="onToggleChane($event, i)">
-        </mat-slide-toggle>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.CALENDAR_BOX">
-        <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-          <input matInput #inputCont
-            formControlName="{{ inputParam.id }}"
-            [matDatepicker]="picker" 
-            (dateChange)="setDate($event, i)"
-            [max]="inputParam.validators && inputParam.validators.allowFutureDate ? null : maxDate"
-            placeholder="{{ inputParam.placeHolder }}"
-            class="txt-lg-med-norm input-cont"
-            name="{{ inputParam.name || 'input-text' }}"
-            [ncMaxLength]="inputParam.maxLength || 10"
-            format="{{ inputParam.format }}"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            autocomplete="{{ inputParam.autoComplete || 'off'}}"
-            [keyboard]="parentCont">
-          <mat-datepicker-toggle matSuffix [for]="picker" 
-          disableRipple="false"></mat-datepicker-toggle>
-          <mat-datepicker touchUi #picker></mat-datepicker>
-        </div>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.DATE_RANGE" formGroupName="{{ inputParam.id }}">
-        <div class="range">
-          <div class="range-onb-input-box-cont border-primary">
-            <input matInput #inputCont
-              formControlName="startDate"
-              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-              [matDatepicker]="startPicker" 
-              (dateChange)="setDateRange($event, i)"
-              placeholder="{{ inputParam.placeHolder[0] }}"
-              class="txt-lg-med-norm input-cont"
-              name="{{ inputParam.name || 'input-text' }}"
-              autocomplete="{{ inputParam.autoComplete || 'off'}}"
-              [keyboard]="parentCont">
-            <mat-datepicker-toggle matSuffix [for]="startPicker" disableRipple="false"></mat-datepicker-toggle>
-            <mat-datepicker touchUi #startPicker></mat-datepicker>
-          </div>
-
-          <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-            <input matInput #inputCont
-              formControlName="endDate"
-              [matDatepicker]="endPicker" 
-              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-              (dateChange)="setDateRange($event, i)"
-              placeholder="{{ inputParam.placeHolder[1] }}"
-              class="txt-lg-med-norm input-cont"
-              [keyboard]="parentCont">
-            <mat-datepicker-toggle matSuffix [for]="endPicker" disableRipple="false"></mat-datepicker-toggle>
-            <mat-datepicker touchUi #endPicker></mat-datepicker>
-          </div>
-        </div>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.NUMBER_RANGE" formGroupName="{{ inputParam.id }}">
-        <div class="range">
-          <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-            <input matInput #inputCont
-              placeholder="{{ inputParam.placeHolder[0] }}"
-              type="number"
-              (input)="setNumberRange($event, i)"
-              class="txt-lg-med-norm input-cont" 
-              formControlName="minAmount"
-              name="{{ inputParam.name || 'input-text' }}"
-              textSecurity="inputParam.isPassword"
-              [class.num-password-input]="inputParam.isPassword"
-              autocomplete="{{ inputParam.autoComplete || 'off'}}"
-              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-              [keyboard]="parentCont">
-          </div>
-      
-          <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-            <input matInput #inputCont
-              placeholder="{{ inputParam.placeHolder[1] }}"
-              type="number"
-              (input)="setNumberRange($event, i)"
-              class="txt-lg-med-norm input-cont" 
-              formControlName="maxAmount"
-              name="{{ inputParam.name || 'input-text' }}"
-              textSecurity="inputParam.isPassword"
-              [class.num-password-input]="inputParam.isPassword"
-              autocomplete="{{ inputParam.autoComplete || 'off'}}"
-              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-              [keyboard]="parentCont">
-          </div>
-        </div>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.AUTOCOMPLETE_SELECT">
-        <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
-          <input matInput #autoCompInput #inputCont
-            type="text"
-            class="txt-lg-med-norm input-cont" 
-            placeholder="{{ inputParam.placeHolder }}"
-            formControlName="{{ inputParam.id }}"
-            [matAutocomplete]="auto"
-            [keyboard]="parentCont"
-            name="{{ inputParam.name || 'input-text' }}"
-            autocomplete="{{ inputParam.autoComplete || 'off'}}"
-            [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
-            (onSubmit)="enterOnLastInput($event)"
-            (blur)="valueEntered(autoCompInput.value, i)">
-
-          <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
-            (optionSelected)="setAutocompleteValue($event, i)"
-            class="txt-xl-med-norm input-cont">
-            <mat-option *ngFor="let option of filteredOptions | async" [value]="option"
-              class="txt-lg-med-norm">
-              {{ option.value }}
-            </mat-option>
-          </mat-autocomplete>
-        </div>
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.BUTTON_TOGGLE">
-        <mat-button-toggle-group name="toggle" class="button-toggle" #group="matButtonToggleGroup">
-
-          <ng-container *ngFor="let option of inputParam.options ; let j = index">
-            <mat-button-toggle value="{{ option.id }}" class="txt-lg-reg-norm"
-              [checked]="option.selected"
-              [ngClass]="{ 'primary-bg' : group.value === option.id, 'text-color-white' : group.value === option.id}"
-              (change)="onBtnToggleChange($event, i)">
-              {{ option.value }}
-            </mat-button-toggle>
-          </ng-container>
-
-        </mat-button-toggle-group>
-
-      </ng-container>
-
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
+          
+        </ng-container> 
         
-        <div class="input-container">
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.TIME">
 
-          <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParam.label">
-            {{ inputParam.label }} 
-            <span class="red-asterix error-text" *ngIf="inputParam.isRequired">
-              *
-            </span>  
+          <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+
+            <input matInput #inputCont
+            
+              placeholder="{{inputParam.placeHolder}}"
+              type="time"
+              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+              (onSubmit)="enterOnLastInput($event)"
+              (updatedValue)="setChangedValues($event, i)"
+              class="txt-lg-med-norm input-cont" 
+              formControlName="{{ inputParam.id }}"
+              name="{{ inputParam.name || 'input-time' }}"
+              [keyboard]="parentCont"
+              step="1">
+
           </div>
-
-          <div class="onb-input-box-cont border-primary small-box" [class.border-disabled]="inputParam.isDisabled">
-            <input matInput inputCont
+        </ng-container> 
+        
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.TEXT_AREA">
+          <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+            <textarea matInput #inputCont
               placeholder="{{ inputParam.placeHolder }}"
-              type="{{inputParam.inputType || 'text'}}"
+              type="{{ inputParam.inputType || 'text' }}"
               (updatedValue)="setChangedValues($event, i)"
               class="txt-lg-med-norm input-cont" 
               formControlName="{{ inputParam.id }}"
@@ -380,101 +120,364 @@
               format="{{ inputParam.format }}"
               textSecurity="inputParam.isPassword"
               [class.num-password-input]="inputParam.isPassword"
-              autocomplete="{{ inputParam.autoComplete || 'off'}}"
+              autocomplete="off"
               [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
               (onSubmit)="enterOnLastInput($event)"
               [keyboard]="parentCont">
+            </textarea> 
           </div>
+        </ng-container>  
+      
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.SELECTION_BOX">
 
-        </div>  
+          <ng-template #selectBox>
+
+            <mat-select #inputCont
+              formControlName="{{ inputParam.id }}"
+              customTrigger="inputCont"
+              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+              (onSubmit)="enterOnLastInput($event)"
+              placeholder="{{ inputParam.placeHolder }}" 
+              class="txt-lg-med-norm input-cont"
+              (selectionChange)="selectedOption($event, i)"
+              (openedChange)="dropDownToggle($event, i)">
+              <mat-option *ngFor="let option of inputParam.options" [value]="option"
+                class="txt-lg-med-norm">
+                {{ option.value }}
+              </mat-option>
+            </mat-select>
+          </ng-template>
+
+          <div *ngIf="!inputParam.withoutBorder" class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+
+            <ng-container>
+
+              <ng-container 
+                *ngTemplateOutlet="selectBox">
+              </ng-container>
+
+            </ng-container>
+
+          </div>  
+
+          <ng-container *ngIf="inputParam.withoutBorder">
+
+            <mat-form-field class="onb-input-box-cont mat-input-box-cont">
+
+              <mat-select #inputCont
+                formControlName="{{ inputParam.id }}"
+                customTrigger="inputCont"
+                [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+                (onSubmit)="enterOnLastInput($event)"
+                placeholder="{{ inputParam.placeHolder }}" 
+                class="txt-lg-med-norm input-cont mat-input-cont"
+                (selectionChange)="selectedOption($event, i)"
+                (openedChange)="dropDownToggle($event, i)">
+                <mat-option *ngFor="let option of inputParam.options" [value]="option"
+                  class="txt-lg-med-norm">
+                  {{ option.value }}
+                </mat-option>
+                
+              </mat-select>
+
+            </mat-form-field>
+
+          </ng-container>
+
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.MULTI_CHECK_BOX">
+          <div class="checkbox-cont">
+            <mat-checkbox *ngFor="let option of inputParam.options" [value]="option"
+              class="txt-lg-med-norm checkbox"
+              [checked]="option.selected"
+              (change)="checkedOption($event, option, i)">
+              {{ option.value }}
+            </mat-checkbox>
+          </div>
+        </ng-container>
+        
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.RADIO">
+          <mat-radio-group
+            formControlName="{{ inputParam.id }}"
+            class="txt-lg-med-norm input-cont radio-group"
+            (change)="selectedOption($event, i)">
+            <mat-radio-button *ngFor="let option of inputParam.options" [value]="option" 
+              class="txt-lg-med-norm radio-button"
+              [checked]="option.selected">
+              {{ option.value }}
+            </mat-radio-button>
+          </mat-radio-group>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_RADIO">
+          <mat-radio-group 
+            formControlName="{{ inputParam.id }}"
+            class="txt-lg-med-norm vert-input-cont vert-radio-group"
+            (change)="selectedOption($event, i, inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined)">
+            <mat-radio-button  *ngFor="let option of inputParam.options" [value]="option" 
+              class="txt-lg-med-norm radio-button"
+              [checked]="option.selected">
+              {{ option.value }}
+            </mat-radio-button>
+          </mat-radio-group>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.TOGGLE">
+          <mat-slide-toggle class="toggle-cont"
+            (change)="onToggleChane($event, i)">
+          </mat-slide-toggle>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.CALENDAR_BOX">
+          <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+            <input matInput #inputCont
+              formControlName="{{ inputParam.id }}"
+              [matDatepicker]="picker" 
+              (dateChange)="setDate($event, i)"
+              [max]="inputParam.validators && inputParam.validators.allowFutureDate ? null : maxDate"
+              placeholder="{{ inputParam.placeHolder }}"
+              class="txt-lg-med-norm input-cont"
+              name="{{ inputParam.name || 'input-text' }}"
+              [ncMaxLength]="inputParam.maxLength || 10"
+              format="{{ inputParam.format }}"
+              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+              (onSubmit)="enterOnLastInput($event)"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
+              [keyboard]="parentCont">
+            <mat-datepicker-toggle matSuffix [for]="picker" 
+            disableRipple="false"></mat-datepicker-toggle>
+            <mat-datepicker touchUi #picker></mat-datepicker>
+          </div>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.DATE_RANGE" formGroupName="{{ inputParam.id }}">
+          <div class="range">
+            <div class="range-onb-input-box-cont border-primary">
+              <input matInput #inputCont
+                formControlName="startDate"
+                [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+                [matDatepicker]="startPicker" 
+                (dateChange)="setDateRange($event, i)"
+                placeholder="{{ inputParam.placeHolder[0] }}"
+                class="txt-lg-med-norm input-cont"
+                name="{{ inputParam.name || 'input-text' }}"
+                autocomplete="{{ inputParam.autoComplete || 'off'}}"
+                [keyboard]="parentCont">
+              <mat-datepicker-toggle matSuffix [for]="startPicker" disableRipple="false"></mat-datepicker-toggle>
+              <mat-datepicker touchUi #startPicker></mat-datepicker>
+            </div>
+
+            <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+              <input matInput #inputCont
+                formControlName="endDate"
+                [matDatepicker]="endPicker" 
+                [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+                (dateChange)="setDateRange($event, i)"
+                placeholder="{{ inputParam.placeHolder[1] }}"
+                class="txt-lg-med-norm input-cont"
+                [keyboard]="parentCont">
+              <mat-datepicker-toggle matSuffix [for]="endPicker" disableRipple="false"></mat-datepicker-toggle>
+              <mat-datepicker touchUi #endPicker></mat-datepicker>
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.NUMBER_RANGE" formGroupName="{{ inputParam.id }}">
+          <div class="range">
+            <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+              <input matInput #inputCont
+                placeholder="{{ inputParam.placeHolder[0] }}"
+                type="number"
+                (input)="setNumberRange($event, i)"
+                class="txt-lg-med-norm input-cont" 
+                formControlName="minAmount"
+                name="{{ inputParam.name || 'input-text' }}"
+                textSecurity="inputParam.isPassword"
+                [class.num-password-input]="inputParam.isPassword"
+                autocomplete="{{ inputParam.autoComplete || 'off'}}"
+                [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+                [keyboard]="parentCont">
+            </div>
+        
+            <div class="range-onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+              <input matInput #inputCont
+                placeholder="{{ inputParam.placeHolder[1] }}"
+                type="number"
+                (input)="setNumberRange($event, i)"
+                class="txt-lg-med-norm input-cont" 
+                formControlName="maxAmount"
+                name="{{ inputParam.name || 'input-text' }}"
+                textSecurity="inputParam.isPassword"
+                [class.num-password-input]="inputParam.isPassword"
+                autocomplete="{{ inputParam.autoComplete || 'off'}}"
+                [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+                [keyboard]="parentCont">
+            </div>
+          </div>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.AUTOCOMPLETE_SELECT">
+          <div class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
+            <input matInput #autoCompInput #inputCont
+              type="text"
+              class="txt-lg-med-norm input-cont" 
+              placeholder="{{ inputParam.placeHolder }}"
+              formControlName="{{ inputParam.id }}"
+              [matAutocomplete]="auto"
+              [keyboard]="parentCont"
+              name="{{ inputParam.name || 'input-text' }}"
+              autocomplete="{{ inputParam.autoComplete || 'off'}}"
+              [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+              (onSubmit)="enterOnLastInput($event)"
+              (blur)="valueEntered(autoCompInput.value, i)">
+
+            <mat-autocomplete #auto="matAutocomplete" [displayWith]="displayFn"
+              (optionSelected)="setAutocompleteValue($event, i)"
+              class="txt-xl-med-norm input-cont">
+              <mat-option *ngFor="let option of filteredOptions | async" [value]="option"
+                class="txt-lg-med-norm">
+                {{ option.value }}
+              </mat-option>
+            </mat-autocomplete>
+          </div>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.BUTTON_TOGGLE">
+          <mat-button-toggle-group name="toggle" class="button-toggle" #group="matButtonToggleGroup">
+
+            <ng-container *ngFor="let option of inputParam.options ; let j = index">
+              <mat-button-toggle value="{{ option.id }}" class="txt-lg-reg-norm"
+                [checked]="option.selected"
+                [ngClass]="{ 'primary-bg' : group.value === option.id, 'text-color-white' : group.value === option.id}"
+                (change)="onBtnToggleChange($event, i)">
+                {{ option.value }}
+              </mat-button-toggle>
+            </ng-container>
+
+          </mat-button-toggle-group>
+
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.ROW_INPUT_BOX">
+          
+          <div class="input-container">
+
+            <div class="label-txt txt-lg-reg-norm" *ngIf="displayLabel && inputParam.label">
+              {{ inputParam.label }} 
+              <span class="red-asterix error-text" *ngIf="inputParam.isRequired">
+                *
+              </span>  
+            </div>
+
+            <div class="onb-input-box-cont border-primary small-box" [class.border-disabled]="inputParam.isDisabled">
+              <input matInput inputCont
+                placeholder="{{ inputParam.placeHolder }}"
+                type="{{inputParam.inputType || 'text'}}"
+                (updatedValue)="setChangedValues($event, i)"
+                class="txt-lg-med-norm input-cont" 
+                formControlName="{{ inputParam.id }}"
+                name="{{ inputParam.name || 'input-text' }}"
+                [ncMaxLength]="inputParam.maxLength || 1000"
+                format="{{ inputParam.format }}"
+                textSecurity="inputParam.isPassword"
+                [class.num-password-input]="inputParam.isPassword"
+                autocomplete="{{ inputParam.autoComplete || 'off'}}"
+                [nextInpFocus]="inputContainers ? (inputContainers[i !== (formParams.inputParams.length - 1) ? i + 1 : undefined]) : undefined"
+                (onSubmit)="enterOnLastInput($event)"
+                [keyboard]="parentCont">
+            </div>
+
+          </div>  
+        </ng-container>
+
+        <ng-container *ngSwitchCase="DISPLAY_TYPE.IMAGE_UPLOAD">
+          <file-upload
+            [screen]="screen"
+            (value)="fileUploadValue($event, inputParam.id)"
+            [isRequired]="inputParam.isRequired">
+          </file-upload>  
+        </ng-container> 
+
       </ng-container>
 
-      <ng-container *ngSwitchCase="DISPLAY_TYPE.IMAGE_UPLOAD">
-        <file-upload
-          [screen]="screen"
-          (value)="fileUploadValue($event, inputParam.id)"
-          [isRequired]="inputParam.isRequired">
-        </file-upload>  
-      </ng-container> 
+      <div *ngIf="inputParam.displayType !== DISPLAY_TYPE.DATE_RANGE &&
+        inputParam.displayType !== DISPLAY_TYPE.NUMBER_RANGE" class="errors-list" [class.mat-errors-list]="inputParam.withoutBorder">
 
-    </ng-container>
+        <mat-error class="txt-sm-reg-norm error-text"
+          *ngIf="inputForm.get(inputParam.id).touched && inputParam.isRequired && 
+          inputForm.get(inputParam.id).hasError('required')">
+          <span *ngIf="inputParam.displayType === DISPLAY_TYPE.RADIO || 
+            inputParam.displayType === DISPLAY_TYPE.SELECTION_BOX ||
+            inputParam.displayType === DISPLAY_TYPE.MULTI_CHECK_BOX ; else default" class="err-text">
+            {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_sel_err' | translate) }}
+          </span>
+          <ng-template #default>
+            {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+          </ng-template>
+        </mat-error>
 
-    <div *ngIf="inputParam.displayType !== DISPLAY_TYPE.DATE_RANGE &&
-      inputParam.displayType !== DISPLAY_TYPE.NUMBER_RANGE" class="errors-list" [class.mat-errors-list]="inputParam.withoutBorder">
-
-      <mat-error class="txt-sm-reg-norm error-text"
-        *ngIf="inputForm.get(inputParam.id).touched && inputParam.isRequired && 
-        inputForm.get(inputParam.id).hasError('required')">
-        <span *ngIf="inputParam.displayType === DISPLAY_TYPE.RADIO || 
-          inputParam.displayType === DISPLAY_TYPE.SELECTION_BOX ||
-          inputParam.displayType === DISPLAY_TYPE.MULTI_CHECK_BOX ; else default" class="err-text">
-          {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_sel_err' | translate) }}
-        </span>
-        <ng-template #default>
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched
+          && inputForm.get(inputParam.id).value && inputForm.get(inputParam.id).hasError('pattern')">
           {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
-        </ng-template>
-      </mat-error>
+        </mat-error>
 
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched
-        && inputForm.get(inputParam.id).value && inputForm.get(inputParam.id).hasError('pattern')">
-        {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
-      </mat-error>
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched
+          && inputForm.get(inputParam.id).value && inputForm.get(inputParam.id).hasError('invalid') 
+          && !inputForm.get(inputParam.id).hasError('pattern')">
+          {{ formParams.formValidators.errorMsg }}
+        </mat-error>
 
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched
-        && inputForm.get(inputParam.id).value && inputForm.get(inputParam.id).hasError('invalid') 
-        && !inputForm.get(inputParam.id).hasError('pattern')">
-        {{ formParams.formValidators.errorMsg }}
-      </mat-error>
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched &&
+          inputForm.get(inputParam.id).errors && inputForm.get(inputParam.id).hasError('futureDate')">
+          {{ 'mu_inpt_cont_futr_date_err' | translate }}
+        </mat-error>
+      </div>
 
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).touched &&
-        inputForm.get(inputParam.id).errors && inputForm.get(inputParam.id).hasError('futureDate')">
-        {{ 'mu_inpt_cont_futr_date_err' | translate }}
-      </mat-error>
+      <div *ngIf="inputParam.displayType === DISPLAY_TYPE.DATE_RANGE" class="errors-list">
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('noStartDate')">
+          {{ 'mu_inpt_cont_strt_date_err' | translate }}
+        </mat-error>
+
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('startDateExceed')">
+          {{ 'mu_inpt_cont_date_err' | translate }}
+        </mat-error>
+
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('futureDate') || 
+          inputForm.get(inputParam.id).hasError('futureDate')">
+          {{ 'mu_inpt_cont_futr_date_err' | translate }}
+        </mat-error>
+
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParam.isRequired && 
+          inputForm.get(inputParam.id).touched && inputForm.get(inputParam.id).hasError('required')">
+          {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+        </mat-error>
+      </div>
+
+      <div *ngIf="inputParam.displayType === DISPLAY_TYPE.NUMBER_RANGE" class="errors-list">
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('noMinAmount')">
+          {{ 'mu_inpt_cont_min_amnt_err' | translate }}
+        </mat-error>
+      
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('minAmountExceed')">
+          {{ 'mu_inpt_cont_amnt_err' | translate }}
+        </mat-error>
+
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParam.isRequired && 
+          inputForm.get(inputParam.id).touched && inputForm.get(inputParam.id).hasError('required')">
+          {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
+        </mat-error>
+      </div>
+
+
+      <!-- <div *ngIf="inputForm && inputParam.displayType === DISPLAY_TYPE.DATE_RANGE" class="errors-list">
+        <mat-error class="txt-sm-reg-norm error-text" *ngIf=" (inputForm.get('startDate').touched && 
+          inputForm.get('endDate').touched) && inputForm.get('startDate').value && !inputForm.get('endDate').value">
+          {{ 'mu_inpt_cont_end_date_err' | translate }}
+        </mat-error>
+      </div> -->
+
     </div>
-
-    <div *ngIf="inputParam.displayType === DISPLAY_TYPE.DATE_RANGE" class="errors-list">
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('noStartDate')">
-        {{ 'mu_inpt_cont_strt_date_err' | translate }}
-      </mat-error>
-
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('startDateExceed')">
-        {{ 'mu_inpt_cont_date_err' | translate }}
-      </mat-error>
-
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('futureDate') || 
-        inputForm.get(inputParam.id).hasError('futureDate')">
-        {{ 'mu_inpt_cont_futr_date_err' | translate }}
-      </mat-error>
-
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParam.isRequired && 
-        inputForm.get(inputParam.id).touched && inputForm.get(inputParam.id).hasError('required')">
-        {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
-      </mat-error>
-    </div>
-
-    <div *ngIf="inputParam.displayType === DISPLAY_TYPE.NUMBER_RANGE" class="errors-list">
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('noMinAmount')">
-        {{ 'mu_inpt_cont_min_amnt_err' | translate }}
-      </mat-error>
-    
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputForm.get(inputParam.id).hasError('minAmountExceed')">
-        {{ 'mu_inpt_cont_amnt_err' | translate }}
-      </mat-error>
-
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf="inputParam.isRequired && 
-        inputForm.get(inputParam.id).touched && inputForm.get(inputParam.id).hasError('required')">
-        {{ inputParam.validators ? inputParam.validators.validationError : ('mu_inpt_cont_val_err' | translate) }}
-      </mat-error>
-    </div>
-
-
-    <!-- <div *ngIf="inputForm && inputParam.displayType === DISPLAY_TYPE.DATE_RANGE" class="errors-list">
-      <mat-error class="txt-sm-reg-norm error-text" *ngIf=" (inputForm.get('startDate').touched && 
-        inputForm.get('endDate').touched) && inputForm.get('startDate').value && !inputForm.get('endDate').value">
-        {{ 'mu_inpt_cont_end_date_err' | translate }}
-      </mat-error>
-    </div> -->
-
-  </div>
+  </ng-container>  
 
 </div>

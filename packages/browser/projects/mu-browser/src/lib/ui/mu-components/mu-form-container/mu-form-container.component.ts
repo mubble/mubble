@@ -247,6 +247,9 @@ export class MuFormContainerComponent implements OnChanges {
     }
   }
 
+  clearForm() {
+    this.inputForm.reset()
+  }
   /*=====================================================================
                               HTML
   =====================================================================*/
@@ -478,7 +481,7 @@ export class MuFormContainerComponent implements OnChanges {
             params.options.forEach(opt => {
               if (opt.selected) selectedValues.push(opt)
             })
-            if (selectedValues.length) this.inputForm.setValue(selectedValues)
+            if (selectedValues.length) this.inputForm.get(params.id).setValue(selectedValues[0])
           }
           this.setInputDisabled(params.id,params.isDisabled)
           break
@@ -551,11 +554,6 @@ export class MuFormContainerComponent implements OnChanges {
       (option.value as string).toLowerCase().includes(filterValue))
   }
 
-  private setInputDisabled(id : string, value : boolean) {
-    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
-  }
-
-
   private isDateObj(value : any) : boolean {
     let isDate : boolean
 
@@ -577,6 +575,10 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               UTILS
   =====================================================================*/
+
+  setInputDisabled(id : string, value : boolean) {
+    value ? this.inputForm.get(id).disable() : this.inputForm.get(id).enable()
+  }
 
   focusElement(index : number) {
     
