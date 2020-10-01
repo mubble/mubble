@@ -24,24 +24,12 @@ import { MatMenuModule }                    from '@angular/material/menu'
 
 import { MuComponentsRoutingModule }        from './ui/mu-components/mu-components-routing.module'
 
-import { TRANSLATION_PROVIDERS,
-         TranslateService,
-         TranslatePipe,
-         getTranslationProviders
-       }                                    from './ui'
+import { TranslateService
+       }                                    from './ui/mu-components/translate/translate.service'
 
 import { CustomBreakPointsProvider }        from './ui/mu-components/custom-breakpoints'
 
-import { NcMaxLengthDirective,
-         NcAutoFocusDirective,
-         LongPressDirective,
-         NcStyleClassDirective,
-         NextInpFocusDirective,
-         AdjustElementsDirective,
-         NcFallbackCharDirective,
-         KeyboardDirective
-       }                                    from './ui/mu-components/directives'
-import { GenericPipe }                      from './ui/mu-components/pipes'
+import { GenericPipe }                      from './ui/mu-components/pipes/generic.pipe'
 import { BottomInComponent }                from './ui/mu-components/bottom-in/bottom-in.component'
 import { ModalPopupComponent }              from './ui/mu-components/modal-popup/modal-popup.component'
 import { LoadingComponent }                 from './ui/mu-components/loading/loading.component'
@@ -65,6 +53,16 @@ import { DropDownMultiSelectComponent }     from './ui/mu-components/drop-down-m
 import { HAMMER_GESTURE_CONFIG }            from '@angular/platform-browser'
 // import { GestureConfig }                    from '@angular/material'
 import { MaskingValueDirective }            from './ui/mu-components/directives/masking-value.directive'
+import { TranslatePipe }                    from './ui/mu-components/translate/translate.pipe'
+import { getTranslationProviders }          from './ui/mu-components/translate/translations'
+import { NcAutoFocusDirective }             from './ui/mu-components/directives/nc-autofocus.directive'
+import { NcMaxLengthDirective }             from './ui/mu-components/directives/nc-maxlength.directive'
+import { LongPressDirective }               from './ui/mu-components/directives/longpress.directive'
+import { NcStyleClassDirective }            from './ui/mu-components/directives/nc-style-class.directive'
+import { NextInpFocusDirective }            from './ui/mu-components/directives/next-inp-focus.directive'
+import { AdjustElementsDirective }          from './ui/mu-components/directives/adjust-elements.directive'
+import { NcFallbackCharDirective }          from './ui/mu-components/directives/nc-fallback-char.directive'
+import { KeyboardDirective }                from './ui/mu-components/directives/keyboard.directive'
 
 @NgModule({
   imports: [

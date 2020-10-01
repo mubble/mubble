@@ -33,7 +33,7 @@ import { RunContextBrowser }          from '../../../rc-browser'
 
 import { ModalInterface }             from '../injection-interface'
 
-import { UiRouter }                   from '../../router'
+import { UiRouter }                   from '../../router/ui-router'
 
 const ROUTE_ANIM_MS     = 400
 

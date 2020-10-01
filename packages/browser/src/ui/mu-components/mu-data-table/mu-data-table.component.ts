@@ -30,7 +30,7 @@ import { TableHeader,
          MuStickyTableConfig
        }                            from '@mubble/core'
 import { RunContextBrowser }        from '../../../rc-browser'
-import { FilterComponent }          from '../filter'
+import { FilterComponent }          from '../filter/filter.component'
 
 export interface TableConfig {
   headers            : TableHeader[]

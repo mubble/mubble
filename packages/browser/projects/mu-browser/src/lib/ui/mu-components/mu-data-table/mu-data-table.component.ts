@@ -32,7 +32,7 @@ import { TableHeader,
          expandTemplate
        }                            from '@mubble/core'
 import { RunContextBrowser }        from '../../../rc-browser'
-import { FilterComponent }          from '../filter'
+import { FilterComponent }          from '../filter/filter.component'
 import { BaseUtility }              from '../../../util'
 
 export interface TableConfig {

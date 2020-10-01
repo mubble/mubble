@@ -8,7 +8,7 @@ import { Component,
          EventEmitter
        }                          from '@angular/core'
 import { TrackableScreen }        from '../../../ui/router/trackable-screen'
-import { TranslateService }       from '../translate'
+import { TranslateService }       from '../translate/translate.service'
 
 export const PERMISSION = {
   CAMERA  : 'CAMERA'

@@ -13,8 +13,9 @@ import { RunContextBrowser }          from '../../../rc-browser'
 import { Nail, 
          NailInterface 
        }                              from '../../nail'
-import { MultiStepValue, 
-         DomHelper 
+import { MultiStepValue 
+       }                            from '../../../util'
+import { DomHelper 
        }                            from '../../../util'
        
 
