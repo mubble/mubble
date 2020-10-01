@@ -9,6 +9,7 @@ import org.json.JSONObject
 import util.AdhocTimer
 import util.AndroidBase
 import java.net.URL
+import javax.crypto.spec.IvParameterSpec
 
 /*------------------------------------------------------------------------------
    About      : Router to manage communication with mubble servers
@@ -24,7 +25,7 @@ import java.net.URL
 ------------------------------------------------------------------------------*/
 
 abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInfo,
-                                private val pubKey: ByteArray) : MubbleLogger {
+                                private val pubKey: ByteArray, private  val ivSpec: IvParameterSpec) : MubbleLogger {
 
   private var ongoingRequests : MutableList<RouterRequest> = mutableListOf()
 
@@ -41,6 +42,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   abstract fun updateCustomDataFromConfig(wo: WireObject)
   abstract fun handleEphEvent(wo: WireObject)
   abstract fun onSocketAbnormalClose(code: Int)
+  abstract fun runAlwaysAsSecure() : Boolean
 
   companion object {
 
@@ -66,6 +68,10 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
   fun getPubKey(): ByteArray? {
     return this.pubKey
+  }
+
+  fun getIvSpec(): IvParameterSpec {
+    return this.ivSpec
   }
 
   open fun cleanup() {
