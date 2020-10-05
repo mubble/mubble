@@ -337,4 +337,20 @@ export class MuUtility {
 
   }
 
+  // used to create a url with params
+  createNavUrl(url : string, object : Mubble.uObject<any>) : string {
+
+    const navUrl  = url.split('?')[0],
+          tempUrl = url.split('?')[1],
+          urlObj  = JSON.parse('{"' + decodeURI(tempUrl).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}')
+
+    for (let key of Object.keys(urlObj)) {
+      if(key in object){
+        urlObj[key] = object[key]
+      }
+    }
+
+    const completeUrl = navUrl + '?' + Object.keys(urlObj).map(key => key + '=' + urlObj[key]).join('&')
+    return completeUrl
+  }
 }

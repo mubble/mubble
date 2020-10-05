@@ -33,7 +33,7 @@ import { TableHeader,
        }                            from '@mubble/core'
 import { RunContextBrowser }        from '../../../rc-browser'
 import { FilterComponent }          from '../filter/filter.component'
-import { BaseUtility }              from '../../../util'
+import { MuUtility }              from '../../../util'
 
 export interface TableConfig {
   headers            : TableHeader[]
@@ -451,7 +451,7 @@ export class MuDataTableComponent implements OnInit {
 
     if (header.navInfo) {
       const navUrl  = JSON.parse(JSON.stringify(header.navInfo.navUrl)),
-            utility = new BaseUtility()
+            utility = new MuUtility()
 
       header.navInfo.navUrl = utility.createNavUrl(navUrl, rowData)
       buttonEvent.navInfo   = header.navInfo
