@@ -1,11 +1,132 @@
 import { Mubble, 
          expandTemplate,
          expandTemplateObj,
-         XmnError
+         XmnError,
+         NetworkType
        }                        from '@mubble/core'
 import { UrlHelper }            from './url-helper'
+import { RunContextBrowser }    from '../rc-browser'
+import { TranslateService } from '../ui'
 
-export class BaseUtility {
+export class MuUtility {
+
+
+  isOfTypeUiError(errObj : Object) : errObj is {errorCode  : string, errorMessage ?: string} {
+    return errObj.hasOwnProperty('errorCode')
+  }
+
+  isNetworkUnhealthy(rc: RunContextBrowser) {
+
+    if (rc.bridge.isRunningInBrowser()) {
+      return !navigator.onLine 
+    } else {
+      const netType = rc.bridge.getCordovaNetworkType()
+      return netType === NetworkType.absent || 
+            (netType === NetworkType.unknown && !navigator.onLine)
+    }
+  }
+
+  isValidIndianMobNum(number: string): boolean {
+
+    number = this.sanitizeNumber(number) 
+    return new RegExp('^\\+91[9876]\\d{9}$').test(number)
+  }
+
+  
+  get10digitMobNumber(number: string) {
+
+    const num = this.sanitizeNumber(number)
+
+    if (num.startsWith('+91')) return num.substring(3)
+    if (num.startsWith('91')) return num.substring(2)
+    else if (num.startsWith('0')) return num.substring(1)
+    else return num
+  }
+
+  sanitizeNumber(number: string): string {
+
+    let temp: string = number
+    if (!temp) return null
+
+    const startsWithPlus = temp.startsWith('+91')
+    if (startsWithPlus) return temp
+
+    // check for indian or international i.e. 0 or 00
+    if (temp.startsWith('0')) {
+      temp = temp.substring(1)
+
+      if (temp.startsWith('0')) {
+        return '+' + temp.substring(1)
+      } else if (temp.length === 10) {
+        return '+91' + temp
+      } else {
+        return '0' + temp
+      }
+
+      // 10 digit mobile/landline number case return with +91
+    } else if (temp.length == 10) {
+      return '+91' + temp
+    }
+
+    return temp
+  }
+
+
+  getNetworkType(rc: RunContextBrowser) {
+    return rc.bridge.isRunningInBrowser() 
+      ? navigator.onLine ? NetworkType.wifi : NetworkType.absent 
+      : rc.bridge.getCordovaNetworkType() 
+  }
+
+  getErrorText(rc: RunContextBrowser, transServ: TranslateService, errorMessage: string): string {
+
+    let errorText: string
+    switch(errorMessage) {
+
+      case XmnError.NetworkNotPresent:
+        errorText = transServ.instant('cmn_toast_err_net_off')
+        break
+
+      case XmnError.ConnectionFailed:
+        if (this.isNetworkUnhealthy(rc)) {
+          errorText = transServ.instant('cmn_toast_err_net_off')
+        } else {
+          errorText = transServ.instant('cmn_toast_err_con_failed')
+        }
+        break
+
+      case XmnError.RequestTimedOut:
+      case XmnError.SendTimedOut:
+        errorText = transServ.instant('cmn_toast_err_timeout')
+        break
+      
+      default:
+        errorText = transServ.instant('cmn_toast_err_unknown')
+    }
+    return errorText
+  }  
+
+
+  getLocation(rc: RunContextBrowser) {
+
+    if (rc.bridge.isRunningInBrowser()) {
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          return JSON.stringify({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          })
+        })
+      } else {
+        return '{}'
+      }
+
+    } else {
+      return rc.bridge.getLocation()
+    }
+  }
+
 
   expandTemplate(template: string, data: Mubble.uObject<any>): string {
     return expandTemplate(template, data)
@@ -216,20 +337,4 @@ export class BaseUtility {
 
   }
 
-  // used to create a url with params
-  createNavUrl(url : string, object : Mubble.uObject<any>) : string {
-
-    const navUrl  = url.split('?')[0],
-          tempUrl = url.split('?')[1],
-          urlObj  = JSON.parse('{"' + decodeURI(tempUrl).replace(/"/g, '\\"').replace(/&/g, '","').replace(/=/g,'":"') + '"}')
-
-    for (let key of Object.keys(urlObj)) {
-      if(key in object){
-        urlObj[key] = object[key]
-      }
-    }
-
-    const completeUrl = navUrl + '?' + Object.keys(urlObj).map(key => key + '=' + urlObj[key]).join('&')
-    return completeUrl
-  }
 }
