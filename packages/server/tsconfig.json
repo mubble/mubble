@@ -2,8 +2,7 @@
   "compilerOptions": {
     "lib"                     : ["es2018"],
     "module"                  : "commonjs",
-    "baseUrl"                 : "./src/",
-    "target"                  : "esnext",
+    "target"                  : "es2018",
     "noImplicitAny"           : true,
     "sourceMap"               : true,
     "outDir"                  : "lib",

@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "esModuleInterop"         : true,
-    "baseUrl"                 : "./src/",
     "module"                  : "commonjs",
     "target"                  : "es5",
     "noImplicitAny"           : true,
