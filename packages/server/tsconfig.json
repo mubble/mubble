@@ -18,8 +18,7 @@
   ],
   "exclude": [
       "node_modules",
-      "**/*.spec.ts",
-      "__tests__"
+      "**/*.spec.ts"
   ],
   "typeAcquisition": {
     "enable": true,
