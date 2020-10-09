@@ -3,6 +3,7 @@
 | Version | Reviewer | Date | Comments |
 |--|--|--|--|
 
+| 1.16.2 | Deepak Kumar    | 2020-10-09 | Approved |
 | 1.16.1 | Deepak Kumar    | 2020-09-18 | Approved |
 | 1.16.0 | Deepak Kumar    | 2020-08-13 | Approved |
 | 1.15.1 | Deepak Kumar    | 2020-07-04 | Approved |
@@ -23,7 +24,8 @@
 # Version 1.16.1
 
 ## Features
-- None
+- Handled isvisible
+- Mu form changes
 
 ## Bug Fixes
 - None
