@@ -1,6 +1,5 @@
 package xmn
 
-import com.obopay.dms.deliverypartner.BuildConfig
 import core.BaseApp
 import core.MubbleLogger
 import org.jetbrains.anko.error
@@ -25,7 +24,9 @@ import javax.crypto.spec.IvParameterSpec
 ------------------------------------------------------------------------------*/
 
 abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInfo,
-                                private val pubKey: ByteArray, private  val ivSpec: IvParameterSpec) : MubbleLogger {
+                                private val pubKey: ByteArray,
+                                private  val ivSpec: IvParameterSpec,
+                                private val isDebugMode : Boolean) : MubbleLogger {
 
   private var ongoingRequests : MutableList<RouterRequest> = mutableListOf()
 
@@ -113,7 +114,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
-    if (BuildConfig.DEBUG && !(customData != null && customData.clientId != 0L)) {
+    if (isDebugMode && !(customData != null && customData.clientId != 0L)) {
       error("You cannot send Persistent events without clientId")
     }
 
@@ -129,7 +130,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
-    if (BuildConfig.DEBUG && !(customData != null && customData.clientId != 0L)) {
+    if (isDebugMode && !(customData != null && customData.clientId != 0L)) {
       error("You cannot send Ephemeral events without clientId")
     }
 
