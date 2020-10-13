@@ -44,6 +44,8 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   abstract fun handleEphEvent(wo: WireObject)
   abstract fun onSocketAbnormalClose(code: Int)
   abstract fun runAlwaysAsSecure() : Boolean
+  abstract fun getSessionInfo(fingerprintSupported: Boolean, cb: (JSONObject) -> Unit)
+  abstract fun createSession(fingerprintSupported: Boolean, cb: ((JSONObject) -> Unit)? = null)
 
   companion object {
 
@@ -107,6 +109,12 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
       info { "Send to be retried ${wr.toJsonObject()}" }
       timerReqResend?.tickAfter(SEND_RETRY_MS, true)
     }
+  }
+
+  fun sendEvent(eventName: String, params: JSONObject, ephemeral: Boolean) {
+
+    if (ephemeral) sendEphemeralEvent(eventName, params)
+    else           sendPersistentEvent(eventName, params)
   }
 
   fun sendPersistentEvent(eventName: String, data: JSONObject) {

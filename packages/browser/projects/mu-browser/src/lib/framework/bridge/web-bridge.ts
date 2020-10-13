@@ -187,8 +187,21 @@ export class MuWebBridge {
     window.location.reload()
   }
 
+  protected logOutUser() {
+    window.location.reload()
+  }
+
+  protected forgetUser() {
+    this.resetApp()
+  }
+
   protected resetApp() {
 
+    localStorage.clear()
+    window.location.reload()
+  }
+
+  private reinstallFromAppMarket() {
     localStorage.clear()
     window.location.reload()
   }

@@ -47,6 +47,16 @@ export const BROWSER_PERM = {
   GALLERY   : 'STORAGE'
 }
 
+export const FINGERPRINT_ERROR = {
+  KEY_DOES_NOT_EXIST      : 'KEY_DOES_NOT_EXIST',
+  KEY_INVALIDATED         : 'KEY_INVALIDATED',
+  TIMED_OUT               : 'TIMED_OUT',
+  USER_CANCELLED          : 'USER_CANCELLED',
+  NOT_SUPPORTED           : 'NOT_SUPPORTED',
+  AUTH_FAILED             : 'AUTH_FAILED',
+  FP_CREDENTIALS_MISMATCH : 'FP_CREDENTIALS_MISMATCH'
+}
+
 export enum Permission {
   STORAGE   = 'STORAGE',
   CAMERA    = 'CAMERA',

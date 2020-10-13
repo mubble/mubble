@@ -21,18 +21,17 @@ import { GcCategory,
        }                                      from './constants'
 import { RunContextBrowser }                  from '../rc-browser'
 
-
 export class MuRouterApp extends XmnRouterBrowser {
 
-  private userLoggedIn      : boolean
   private isSessionTimedout : boolean
-
-  constructor(rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, pubKey : string, encIV:Uint8Array ) {
+  protected userLoggedIn    : boolean
+  
+  constructor(rc: RunContextBrowser, serverUrl: string, ci: ConnectionInfo, 
+              pubKey : string, encIV:Uint8Array) {
 
     super(rc, serverUrl, ci, pubKey, encIV)
     
     rc.setupLogger(this, 'RouterApp', LOG_LEVEL.DEBUG)
-
   }
 
   getNetworkType(rc: RunContextBrowser): string {
@@ -86,7 +85,8 @@ export class MuRouterApp extends XmnRouterBrowser {
 ===============================================================================*/
 
   // Never throws
-  async sendRequest(rc: RunContextBrowser, api: string, params: object): Promise <object>  {
+  async sendRequest(rc: RunContextBrowser, api: string, params: object, 
+                    timeoutMS ?: number): Promise <object>  {
 
     if (!api || !params) throw new Error(`Invalid argument for sendRequest api: ${api} params: ${params}`)
 
@@ -104,7 +104,7 @@ export class MuRouterApp extends XmnRouterBrowser {
         location.reload()
       }
 
-      const resp = await this.sendBrowserRequest(rc, api, params)
+      const resp = await this.sendBrowserRequest(rc, api, params,timeoutMS)
 
       if (rc.utils.isOfTypeUiError(resp) && resp['errorCode'] === XmnError._ConnectionExpired) {
         return await this.sendRequest(rc, api, params)
@@ -207,9 +207,10 @@ export class MuRouterApp extends XmnRouterBrowser {
   }
 
 
-  protected async sendBrowserRequest(rc: RunContextBrowser, api: string, params: object): Promise <object> {
+  protected async sendBrowserRequest(rc: RunContextBrowser, api: string, 
+                                     params: object, timeoutMS ?: number): Promise <object> {
     
-    return await super.sendRequest(rc, api, params)
+    return await super.sendRequest(rc, api, params, timeoutMS)
     .catch(err => {
         const error = {
           errorCode     : err.code || err.message,

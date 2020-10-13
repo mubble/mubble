@@ -97,9 +97,7 @@ class ULocationManager(private val parentActivity: MubbleBaseActivity): MubbleLo
         }
         .addOnFailureListener {
 
-          val statusCode = (it as ApiException).statusCode
-
-          when (statusCode) {
+          when ((it as ApiException).statusCode) {
 
             LocationSettingsStatusCodes.RESOLUTION_REQUIRED -> {
               try {

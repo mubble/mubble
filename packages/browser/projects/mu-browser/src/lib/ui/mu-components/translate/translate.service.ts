@@ -86,7 +86,7 @@ export class TranslateService {
   }
 
   public addTranslations(langObj : object, lang : string) {
-    Object.assign(this._translations[lang], langObj)
+    this._translations[lang] = {...langObj, ...this._translations[lang]}
   }
 
   public instant(key: string, words?: string | string[]) { // add optional parameter
@@ -104,9 +104,5 @@ export class TranslateService {
         translation = translation.replace(PLACEHOLDER.concat(<any>i), e)
     })
     return translation
-  }
-
-  public addMoreTranslations(langObj : object, lang : string) {
-    this._translations[lang] = {...langObj, ...this._translations[lang]}
   }
 }

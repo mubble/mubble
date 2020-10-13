@@ -31,9 +31,10 @@ const BUTTON  = 'BUTTON'
 export class NcAllowSingleClickDirective {
   
   @Input('ncPreventDoubleClick') allowClickDelay: number
+  @Input('onHoverBackgroundColor') onHoverColor   : string
   
   @Output() ncClick : EventEmitter<any> = new EventEmitter<any>()
-
+  
   private clickEnabled: boolean = true
   private originialColor  : string  = ''
 
@@ -50,7 +51,8 @@ export class NcAllowSingleClickDirective {
       this.originialColor = window.getComputedStyle(this.element.nativeElement, null).getPropertyValue('background-color')
     }
 
-    this.element.nativeElement.style.background = '#f2f5f7'
+    this.onHoverColor ? this.renderer.addClass(this.element.nativeElement,this.onHoverColor)
+      : this.element.nativeElement.style.background = '#f2f5f7'
   }
 
   @HostListener ('click', ['$event']) onClick($event) {
@@ -82,6 +84,11 @@ export class NcAllowSingleClickDirective {
                               PRIVATE
   =====================================================================*/
   private applyOriginalBg() {
+
+    if (this.onHoverColor){
+      this.renderer.removeClass(this.element.nativeElement,this.onHoverColor) 
+    } 
+
     if (this.element.nativeElement.tagName  === BUTTON || !this.rc.bridge.isRunningInBrowser()) return
     this.element.nativeElement.style.background = this.originialColor || 'initial'
   }

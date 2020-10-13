@@ -15,11 +15,13 @@ import { Mubble,
        }                                            from '@mubble/core'
 import * as NATIVE                                  from './native-constants'
 import { RunContextBrowser }                        from '../../rc-browser'
-import { MuWebBridge }                                from './web-bridge'
+import { MuWebBridge }                              from './web-bridge'
 import { NgZone }                                   from '@angular/core'
+import { EventSystem }                              from '../../util'
+import { APP_UI_EVENT }                             from '../app-ui-event'
 
-const ANDROID = 'Android'
-const IPAD    = 'iPad'
+export const ANDROID = 'Android'
+export const IPAD    = 'iPad'
 
 export interface ReferrerParams {
   utm_source    : string
@@ -146,7 +148,7 @@ export class MuBridge {
       this.onConnectionAttr(navigator.onLine ? NetworkType.wifi : null, null)
 
     } else {
-      const data          = await this.sendAsyncRequest('getInitData')
+      const data          = await this.getInitData()
       this.initConfig     = data['initConfig']
       this.launchContext  = data['launchContext']
       
@@ -174,6 +176,10 @@ export class MuBridge {
 
   isRunningInIPad() {
     return window.navigator.userAgent.includes(IPAD)
+  }
+
+  isRunningInMobile() {
+    return this.isAndroid() || this.isIos() || this.isRunningInMWeb()
   }
 
 /*==============================================================================
@@ -270,9 +276,70 @@ export class MuBridge {
   getLocalStoragePath() {
     return this.initConfig.localStoragePath
   }
+ 
+/*==============================================================================
+                              Bridge Utils
+==============================================================================*/
+
+  isAndroid() {
+    return (this.userAgent === UserAgent.ANDROID)
+  }
+
+  isIos() {
+    return (this.userAgent === UserAgent.IOS)
+  }
+
+  async writeExternalStyles(base64Data: string) {
+
+    const path = this.getLocalStoragePath() + "/styles/",
+          name = "external.css"
+
+    const json = await this.sendAsyncRequest('saveBinaryFile', path, name, base64Data) 
+    return json['success']
+  }
+
+  async enableDebug() {
+
+    this.rc.setGlobalLogLevel(LOG_LEVEL.DEBUG)
+    this.rc.globalKeyVal.logLevel = LOG_LEVEL.DEBUG
+    await this.setDebuggable()
+    this.rc.uiRouter.showToast('Log level changed to debug')
+  }
 
 /*==============================================================================
-                          FIREBASE 
+                          Init Data 
+==============================================================================*/
+
+  async getInitData(): Promise<Object> {
+
+    const obj = await this.sendAsyncRequest('getInitData')
+    return obj
+  }
+
+  async getDeviceInfo(): Promise<Object> {
+
+    const obj = await this.sendAsyncRequest('getDeviceInfo')
+    return obj
+  }
+
+/*==============================================================================
+                          Session APIs 
+==============================================================================*/
+
+  async getSessionInfo(): Promise<NATIVE.NativeRouterResponse> {
+
+    const obj = await this.sendAsyncRequest('getSessionInfo')
+    return obj as NATIVE.NativeRouterResponse
+  }
+
+  async recreateSession(): Promise<NATIVE.NativeRouterResponse> {
+
+    const obj = await this.sendAsyncRequest('recreateSession')
+    return obj as NATIVE.NativeRouterResponse
+  }
+
+/*==============================================================================
+                          Analytics 
 ==============================================================================*/
 
   async setUserId(userId: number) {
@@ -285,6 +352,430 @@ export class MuBridge {
 
   async setUserProperty(propName: string, value: string) {
     await this.sendAsyncRequest('setUserProperty', propName, value)
+  }
+
+/*==============================================================================
+                            Storage
+==============================================================================*/
+
+  async setGlobalKeyValue(key: string, value: string) {
+    await this.sendAsyncRequest('setGlobalKeyValue', key, value)
+  }
+
+  async getGlobalKeyValue(key: string): Promise<string> {
+    const object = await this.sendAsyncRequest('getGlobalKeyValue', key)
+    return object['value']
+  }
+
+  async setUserKeyValue(key: string, value: string) {
+    await this.sendAsyncRequest('setUserKeyValue' ,key, value)
+  }
+
+  async getUserKeyValue(key: string): Promise<string> {
+    const object = await this.sendAsyncRequest('getUserKeyValue', key)
+    return object['value']
+  }
+
+  async setGcConfig(config: string) {
+    await this.sendAsyncRequest('setGcConfig', config)
+  }
+
+  async getGcConfig(category: string, key: string): Promise<string> {
+    const object = await this.sendAsyncRequest('getGcConfig', category, key)
+    return object['value']
+  }
+
+/*==============================================================================
+                            Xmn Requests
+==============================================================================*/
+
+  async prepareConnection() {
+    await this.sendAsyncRequest('prepareConnection')
+  }
+
+  async sendRouterRequest(api: string, params: object): Promise<NATIVE.NativeRouterResponse> {
+
+    const obj = await this.sendAsyncRequest('sendRequest', api, JSON.stringify(params))
+    return obj as NATIVE.NativeRouterResponse
+  }
+
+  async sendRouterEvent(name: string, params: object, ephemeral: boolean) {
+    await this.sendAsyncRequest('sendEvent', name, JSON.stringify(params), ephemeral)
+  }
+
+/*==============================================================================
+                             Fingerprint
+==============================================================================*/
+
+  async fingerprintScan(data: string): Promise<Object> {
+    const obj = await this.sendAsyncRequest('fingerprintScan', data)
+    return obj
+  }
+
+  async canAuthWithFingerprint(): Promise<boolean> {
+    const obj = await this.sendAsyncRequest('canAuthWithFingerprint')
+    return obj['canAuth']
+  }
+
+  async generateFpKeyPair() {
+    const obj = await this.sendAsyncRequest('generateFpKeyPair')
+    return obj['pubKey']
+  }
+
+/*==============================================================================
+                             Camera
+==============================================================================*/
+
+  //  /**
+  //   * @param aspectRatio : '16/9', '4/3'
+  //   * @returns { success: boolean, base64: string, mimeType: string, cropped: boolean, failureCode: string }
+  //   */
+  async takePictureFromCamera(aspectRatio = '1') {
+    const obj = await this.sendAsyncRequest('takePictureFromCamera', aspectRatio) 
+    return obj
+  }
+
+  // /**
+  //   * @returns { success: boolean, base64: string, mimeType: string, cropped: boolean, failureCode: string }
+  //   */
+  async selectPictureFromGallery() {
+    const obj = await this.sendAsyncRequest('selectPictureFromGallery') 
+    return obj
+  }
+
+/*==============================================================================
+                             Permission
+==============================================================================*/
+
+  async getPermission(permission: NATIVE.Permission, showRationale: boolean = true): 
+    Promise<{permGiven : boolean, dialogShown: boolean, webStream? : MediaStream}> {
+
+    const json = await this.sendAsyncRequest('getPermission', this.permObj[permission], showRationale)
+    return { permGiven: json['permissionGiven'], dialogShown: json['dialogShown']}
+  }
+
+  async hasPermission(permission: NATIVE.Permission): Promise<boolean> {
+
+    const obj = await this.sendAsyncRequest('hasPermission', this.permObj[permission])
+    return obj['hasPerm']
+  }
+
+/*==============================================================================
+                             File I/O
+==============================================================================*/
+
+  async saveBinaryFile(filePath: string /* embeds ncInstanceId */, fileName: string, 
+    base64Data: string) {
+    const json = await this.sendAsyncRequest('saveBinaryFile', filePath, fileName, base64Data)
+    return json['success']
+  }
+  
+  //  /**
+  //   * @returns { base64: string, checkSum: string, mimeType: string }
+  //   */
+  async selectDocumentFile(): Promise<object> {
+    const obj = await this.sendAsyncRequest('selectDocumentFile')
+    return obj
+  }
+
+  async openPdfViewer(base64 : string) {
+    await this.sendAsyncRequest('openPdfViewer', base64)
+  }
+
+/*==============================================================================
+                             Phone / SMS
+==============================================================================*/
+
+  async placeCall(mobileNumber: string) {
+    mobileNumber  = this.rc.utils.sanitizeNumber(mobileNumber)
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `Placing call with number ${mobileNumber}`)
+    await this.sendAsyncRequest('placeCall', mobileNumber)
+  }
+
+  async listenForSmsCode() {
+    await this.sendAsyncRequest('listenForSmsCode')
+  }
+
+  async requestMobNumHint() {
+
+    if (this.userAgent !== UserAgent.ANDROID) return null
+    const resp = await this.sendAsyncRequest('requestMobNumHint')
+    return resp ? resp['selectedId'] : null
+  }
+
+  async getPhoneContacts() {
+    const obj = await this.sendAsyncRequest('getPhoneContacts')
+    return obj['contacts']
+  }
+
+/*==============================================================================
+                             Scan
+==============================================================================*/
+
+  async takeSignature(invSource: string) : Promise<Object> {
+    const resp = await this.sendAsyncRequest('takeSignature', invSource)
+    return resp
+  }
+
+  async scanQrCode(invSource: string, title : String) : Promise<object> {
+
+    const object = await this.sendAsyncRequest('scanQrCode', invSource, title)
+    const scanResult  = {
+      result  : object['result'],
+      action  : object['action']
+    }
+    return scanResult
+  }
+
+  async scanBarcode(invSource: string): Promise<Object> {
+
+    if (!await this.hasPermission(NATIVE.Permission.CAMERA)) {
+      const resp = await this.getPermission(NATIVE.Permission.CAMERA)
+      if (!resp.permGiven) {
+        this.rc.uiRouter.showToast('Can\'t scan Barcode without Camera permission')
+        return null
+      }
+    }
+
+    const obj = await this.sendAsyncRequest('scanBarcode', invSource)
+    return obj
+  }
+
+/*==============================================================================
+                        Common Cordova Utilities
+==============================================================================*/
+
+  async setDebuggable() {
+    await this.sendAsyncRequest('setDebuggable')
+  }
+
+  async showNativeToast(msg: String) {
+    await this.sendAsyncRequest('showToast', msg)
+  }
+
+  async closeApp() {
+    await this.sendAsyncRequest('closeApp')
+  }
+
+  async openInMobileBrowser(url: string) {
+    await this.sendAsyncRequest('openInMobileBrowser', url)
+  }
+
+  async closeMobileBrowser() {
+    await this.sendAsyncRequest('closeMobileBrowser')
+  }
+
+  async launchAppMarket(packageName : string = '') {
+    await this.sendAsyncRequest('launchAppMarket', packageName)
+  }
+
+  async reinstallFromAppMarket() {
+    await this.sendAsyncRequest('reinstallFromAppMarket')
+  }
+
+  async sendMail(email ?: string, subject ?: string, body ?: string) {
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), {email, subject})
+    return await this.sendAsyncRequest('sendMail', email || '', subject || '', body || '')
+  }
+
+  async checkIfPkgInstalled(pkgName: string): Promise<boolean> {
+    const obj = await this.sendAsyncRequest('checkIfPkgInstalled', pkgName)
+    return obj['installed']
+  }
+
+  async launchNavigationOnMap(lat:string,lng:string) {
+    await this.sendAsyncRequest('launchNavigationOnMap', lat,lng)
+  }
+
+  async copyToClipBoard(text: string) {
+    return await this.sendAsyncRequest('copyToClipBoard', text)
+  }
+
+  async openSoftInputKeyboard() {
+    if (this.userAgent === UserAgent.ANDROID) await this.sendAsyncRequest('openSoftInputKeyboard')
+  }
+
+  async hideSoftInputKeyboard() {
+    if (this.userAgent === UserAgent.ANDROID) await this.sendAsyncRequest('hideSoftInputKeyboard')
+  }
+
+  async resetApp() {
+    await this.sendAsyncRequest('resetApp')
+  }
+
+  async getCurrentLocation(): Promise<Location> {
+
+    const json = await this.sendAsyncRequest('getCurrentLocation')
+    return {
+      lat : json['lat'],
+      lng : json['lng']
+    }
+  }
+
+  async setVerStringToken(clientTransactionId: string) {
+    await this.sendAsyncRequest('setVerStringToken', clientTransactionId)
+  }
+
+/*------------------------------------------------------------------------------
+  F R O M    N A T I V E
+------------------------------------------------------------------------------*/
+
+  async asyncRequestFromNative(fnName: string, requestTag: string, ...params: any[]) {
+
+    this.ngZone.run(() => {
+      this.asyncRequestFromNativeInternal(fnName, requestTag, params)
+    })
+  }
+
+  private async asyncRequestFromNativeInternal(fnName: string, requestTag: string, ...params: any[]) {
+
+    const fn = this[fnName]
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      typeof fn === 'function', fnName)
+
+    const resp = await fn.apply(this, params)
+
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      resp && (typeof resp === 'object'), resp)
+
+    if (this.userAgent !== UserAgent.BROWSER) {
+      this.sendAsyncRequest('asyncRequestResponseFromJs', requestTag, JSON.stringify(resp))
+    }
+  }
+
+  eventFromNative(eventName: string, ...params: any[]) {
+
+    this.ngZone.run(() => {
+
+      const fnName  = `on${eventName}`,
+            fn      = this[fnName]
+
+      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+        typeof fn === 'function', fnName)
+
+      fn.apply(this, params)
+
+    })
+  }
+
+/*------------------------------------------------------------------------------
+  E V E N T S   F R O M   N A T I V E
+------------------------------------------------------------------------------*/
+
+  private onUpdateCustomData(json: object) {
+    this.rc.router.updateCustomData(this.rc, json as CustomData)
+  }
+
+  private onEphEvent(wo: object) {
+    this.rc.router.providerMessage(this.rc, [wo as WireObject])
+  }
+
+  protected onVerSmsCode(smsBody: string) {
+    // this.rc.uiRouter.getRoot().onVerificationSmsCode(smsBody)
+  }
+
+  private onVerSmsTimeout() {
+
+  }
+
+  private onMobileBrowserClosed() {
+    EventSystem.broadcast(this.rc, APP_UI_EVENT.MOBILE_BROWSER_CLOSED)
+  }
+
+  private onAdjustPan(factorHeight: number) {
+    this.currKeyboardHt = factorHeight
+    EventSystem.broadcast(this.rc, APP_UI_EVENT.ADJUST_PAN_FOR_SCREEN)
+  }
+
+  private onFingerprintScanResult(result: string) {
+    EventSystem.broadcast(this.rc, APP_UI_EVENT.FINGERPRINT_SCAN_RESULT, JSON.parse(result))
+  }
+
+  protected onConnectionAttr(netType: string, location: object) {
+
+    if (netType) this.netType = netType
+
+    if (!location) return
+
+    const lat: number = location['lat']
+    const lng: number = location['lng']
+
+    if (lat && lng) {
+      this.location = location
+    }
+  }
+
+  private onScreenPause() {
+    EventSystem.broadcast(this.rc, APP_UI_EVENT.CORDOVA_SCREEN_PAUSE)
+  }
+
+  private onScreenResume() {
+    EventSystem.broadcast(this.rc, APP_UI_EVENT.CORDOVA_SCREEN_RESUME)
+  }
+
+  onLaunch(directLink: string) {
+
+    if (!directLink) return
+    this.launchContext.directLink = directLink
+    //this.rc.uiRouter.getRoot().showLanding(false, false)
+  }
+
+  setDirectLink(directLink: string) {
+
+    if (!directLink) return
+    this.launchContext.directLink = directLink
+  }
+
+/*------------------------------------------------------------------------------
+  A P P  R E Q U E S T 
+------------------------------------------------------------------------------*/
+
+  /**
+   * Request has a response to be given back to JS mapped with requestId
+   * @param messageId API to be called
+   * @param params arguments for the API
+   */
+  protected async sendAsyncRequest(apiName: string, ...params: any[]) {
+
+    const nar = new NativeAsyncRequest(this.nextRequestId++, apiName)
+    this.requestMap[nar.requestId] = nar
+
+    switch(this.userAgent) {
+
+      case UserAgent.ANDROID:
+        window['cordova'][apiName](nar.requestId, ...params)
+        break
+
+      case UserAgent.IOS:
+        window['webkit'].messageHandlers.cordova.postMessage({ requestId: nar.requestId, 
+          method: apiName, args: params })
+        break
+
+      case UserAgent.BROWSER:
+        this.webBridge.handleRequest(nar.requestId,apiName, params)
+        break
+    }
+    
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `Response received for sendAsyncRequest: requestid: ${nar.requestId}, 
+      apiName: ${apiName}`)
+    return await nar.promise
+  }
+
+  // TODO: make private, web-bridge dependency
+  asyncResponseFromNative(requestId: number, json: object) {
+
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `asyncResponseFromNative requestId:${requestId} Response:${JSON.stringify(json)}`)
+    const nar: NativeAsyncRequest = this.requestMap[requestId]
+    if (!nar) {
+      this.rc.isError() && this.rc.error(this.rc.getName(this), 'Request id', 
+          requestId, 'is missing in request map')
+      return
+    }
+    delete this.requestMap[requestId]
+    nar.resolve(json)
   }
 
 /*==============================================================================
@@ -362,479 +853,9 @@ export class MuBridge {
     await this.sendAsyncRequest('onMobileSdkResponse', JSON.stringify(obj), closeApp)
   }
 
-/*==============================================================================
-                            STORAGE CORDOVA
-==============================================================================*/
-
-  async setGlobalKeyValue(key: string, value: string) {
-    await this.sendAsyncRequest('setGlobalKeyValue', key, value)
-  }
-
-  async getGlobalKeyValue(key: string): Promise<string> {
-    const object = await this.sendAsyncRequest('getGlobalKeyValue', key)
-    return object['value']
-  }
-
-  async setUserKeyValue(key: string, value: string) {
-    await this.sendAsyncRequest('setUserKeyValue' ,key, value)
-  }
-
-  async getUserKeyValue(key: string): Promise<string> {
-    const object = await this.sendAsyncRequest('getUserKeyValue', key)
-    return object['value']
-  }
-
-  async setGcConfig(config: string) {
-    await this.sendAsyncRequest('setGcConfig', config)
-  }
-
-  async getGcConfig(category: string, key: string): Promise<string> {
-    const object = await this.sendAsyncRequest('getGcConfig', category, key)
-    return object['value']
-  }
-
-/*==============================================================================
-                            CORDOVA ROUTER
-==============================================================================*/
-
-  async prepareConnection() {
-    await this.sendAsyncRequest('prepareConnection')
-  }
-
-  async sendRouterRequest(api: string, params: object): Promise<NATIVE.NativeRouterResponse> {
-
-    const obj = await this.sendAsyncRequest('sendRequest', api, JSON.stringify(params))
-    return obj as NATIVE.NativeRouterResponse
-  }
-
-  async sendRouterEvent(name: string, params: object, ephemeral: boolean) {
-    await this.sendAsyncRequest('sendEvent', name, JSON.stringify(params), ephemeral)
-  }
-
-/*==============================================================================
-                              BRIDGE UTILS
-==============================================================================*/
-
-  isAndroid(){
-    return (this.userAgent  === UserAgent.ANDROID)
-  }
-
-  isIos(){
-    return (this.userAgent  === UserAgent.IOS)
-  }
-
-  getUserProfilePicUrl(clientId: number, profilePicFileName?: string): string {
-
-    if (!this.rc.userKeyVal.getWebProfilePicBase64(clientId)) return null
-
-    if (this.runningInBrowser) {
-      return 'data:image/jpeg;base64,' + this.rc.userKeyVal.getWebProfilePicBase64(clientId)
-    }
-
-    // TODO - fix profile pic file name
-    // const profPicFileName = profilePicFileName || this.rc.userKeyVal.profilePicFileName
-    const profPicFileName = profilePicFileName 
-
-    const url = this.getLocalStoragePath() + "/" + 
-           `users/${String(clientId)}` + "/" + 
-           profPicFileName + 
-           '?random+\=' + Math.random()
-    return ''
-  }
-
-
-/*==============================================================================
-                         ASYNC REQUESTS TO CORDOVA
-==============================================================================*/
-
-  async getDeviceInfo(): Promise<Object> {
-
-    const obj = await this.sendAsyncRequest('getDeviceInfo')
-    return obj
-  }
-
-  async getSessionInfo(): Promise<NATIVE.NativeRouterResponse> {
-
-    const obj = await this.sendAsyncRequest('getSessionInfo')
-    return obj as NATIVE.NativeRouterResponse
-  }
-
-  async recreateSession(): Promise<NATIVE.NativeRouterResponse> {
-
-    const obj = await this.sendAsyncRequest('recreateSession')
-    return obj as NATIVE.NativeRouterResponse
-  }
-
-  async getCurrentLocation(): Promise<Location> {
-
-    const json = await this.sendAsyncRequest('getCurrentLocation')
-    return {
-      lat : json['lat'],
-      lng : json['lng']
-    }
-  }
-
-  async requestMobNumHint() {
-
-    if (this.userAgent !== UserAgent.ANDROID) return null
-    const resp = await this.sendAsyncRequest('requestMobNumHint')
-    return resp ? resp['selectedId'] : null
-  }
-
-  async getPhoneContacts() {
-    const obj = await this.sendAsyncRequest('getPhoneContacts')
-    return obj['contacts']
-  }
-
-  // /**
-  //  * @returns { success: boolean, base64: string, mimeType: string, cropped: boolean, failureCode: string }
-  //  */
-  async takePictureFromCamera() {
-    const obj = await this.sendAsyncRequest('takePictureFromCamera') 
-    return obj
-  }
-
-  // /**
-  //  * @returns { success: boolean, base64: string, mimeType: string, cropped: boolean, failureCode: string }
-  //  */
-  async selectPictureFromGallery() {
-    const obj = await this.sendAsyncRequest('selectPictureFromGallery') 
-    return obj
-  }
-
-  // /**
-  //  * @returns { base64: string, checkSum: string, mimeType: string }
-  //  */
-  async selectDocumentFile(): Promise<object> {
-    const obj = await this.sendAsyncRequest('selectDocumentFile')
-    
-    return obj
-  }
-  
-  async getPermission(permission: NATIVE.Permission, showRationale: boolean = true): 
-    Promise<{permGiven : boolean, dialogShown: boolean, webStream? : MediaStream}> {
-
-    const json = await this.sendAsyncRequest('getPermission', this.permObj[permission], showRationale)
-    return { permGiven: json['permissionGiven'], dialogShown: json['dialogShown']}
-  }
-
-  async writeExternalStyles(base64Data: string) {
-
-    const json = await this.sendAsyncRequest('writeExternalStyles', base64Data) 
-    return json['success']
-  }
-
-  async saveBinaryFile(filePath: string /* embeds ncInstanceId */, fileName: string, 
-    base64Data: string) {
-    const json = await this.sendAsyncRequest('saveBinaryFile', filePath, fileName, base64Data)
-    return json['success']
-  }
-
-  /**
-  //  * @returns { action: string, result: string }
-   * 
-   * Eg. action : SAVED_PAYEES, DISMISS, SCAN
-   * result : Scanned result if action is SCAN
-   */
-  async payViaQr(invSource: string): Promise<object> {
-
-    const object = await this.sendAsyncRequest('payViaQr', invSource)
-    return object
-  }
-
-  async scanQrCode(invSource: string, title : String) : Promise<object> {
-
-    const object = await this.sendAsyncRequest('scanQrCode', invSource, title)
-    const scanResult  = {
-      result  : object['result'],
-      action  : object['action']
-    }
-    return scanResult
-  }
-
-  async scanBarcode(invSource: string): Promise<Object> {
-
-    if (!await this.hasPermission(NATIVE.Permission.CAMERA)) {
-      const resp = await this.getPermission(NATIVE.Permission.CAMERA)
-      if (!resp.permGiven) {
-        this.rc.uiRouter.showToast('Can\'t scan Barcode without Camera permission')
-        return null
-      }
-    }
-
-    const obj = await this.sendAsyncRequest('scanBarcode', invSource)
-    return obj
-  }
-
-  // async fingerprintScan() {
-  //   await this.sendAsyncRequest('fingerprintScan')
-  // }
-
-  // async canAuthWithFingerprint(): Promise<boolean> {
-  //   const obj = await this.sendAsyncRequest('canAuthWithFingerprint')
-  //   return obj['canAuth']
-  // }
-
-  async openInMobileBrowser(url: string) {
-    await this.sendAsyncRequest('openInMobileBrowser', url)
-  }
-
-  async closeMobileBrowser() {
-    await this.sendAsyncRequest('closeMobileBrowser')
-  }
-
-  async enableDebug() {
-
-    this.rc.setGlobalLogLevel(LOG_LEVEL.DEBUG)
-    this.rc.globalKeyVal.logLevel = LOG_LEVEL.DEBUG
-    await this.sendAsyncRequest('setDebuggable')
-    this.rc.uiRouter.showToast('Log level changed to debug')
-  }
-
-  async updateGcConfig() {
-    if (this.userAgent !== UserAgent.BROWSER) await this.sendAsyncRequest('updateGcConfig')
-  }
-
-  async closeApp() {
-    await this.sendAsyncRequest('closeApp')
-  }
-
-  async logoutUser() {
-    await this.sendAsyncRequest('logoutUser')
-  }
-
-  async forgetUser() {
-    await this.sendAsyncRequest('forgetUser')
-  }
-
-  async launchAppMarket(packageName : string = '') {
-    await this.sendAsyncRequest('launchAppMarket', packageName)
-  }
-
-  async sendMail(email ?: string, subject ?: string, body ?: string) {
-
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), {email, subject})
-    return await this.sendAsyncRequest('sendMail', email || '', subject || '', body || '')
-  }
-
-  async placeCall(mobileNumber: string) {
-
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), `Placing call with number ${mobileNumber}`)
-    await this.sendAsyncRequest('placeCall', mobileNumber)
-  }
-
-  async checkIfPkgInstalled(pkgName: string): Promise<boolean> {
-    const obj = await this.sendAsyncRequest('checkIfPkgInstalled', pkgName)
-    return obj['installed']
-  }
-
-  async hasPermission(permission: NATIVE.Permission): Promise<boolean> {
-
-    const obj = await this.sendAsyncRequest('hasPermission', this.permObj[permission])
-    return obj['hasPerm']
-  }
-
-  async listenForSmsCode() {
-    await this.sendAsyncRequest('listenForSmsCode')
-  }
-
-  async setVerStringToken(clientTransactionId: string) {
-    await this.sendAsyncRequest('setVerStringToken', clientTransactionId)
-  }
-
-  async copyToClipBoard(text: string) {
-    return await this.sendAsyncRequest('copyToClipBoard', text)
-  }
-
-  async openSoftInputKeyboard() {
-    if (this.userAgent === UserAgent.ANDROID) await this.sendAsyncRequest('openSoftInputKeyboard')
-  }
-
-  async hideSoftInputKeyboard() {
-    if (this.userAgent === UserAgent.ANDROID) await this.sendAsyncRequest('hideSoftInputKeyboard')
-  }
-
-  async logOutCurrentUser() {
-    await this.rc.userKeyVal.logOutCurrentUser()
-    // const params: LogoutUser.params = {}
-
-    //await this.rc.router.sendRequest(this.rc, LogoutUser.name, params)
-    await this.sendAsyncRequest('logoutUser')
-  }
-
-  async resetApp() {
-    await this.sendAsyncRequest('resetApp')
-  }
-
-/*------------------------------------------------------------------------------
-  F R O M    N A T I V E
-------------------------------------------------------------------------------*/
-
-  async asyncRequestFromNative(fnName: string, requestTag: string, ...params: any[]) {
-
-    this.ngZone.run(() => {
-      this.asyncRequestFromNativeInternal(fnName, requestTag, params)
-    })
-  }
-
-  private async asyncRequestFromNativeInternal(fnName: string, requestTag: string, ...params: any[]) {
-
-    const fn = this[fnName]
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      typeof fn === 'function', fnName)
-
-    const resp = await fn.apply(this, params)
-
-    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-      resp && (typeof resp === 'object'), resp)
-
-    if (this.userAgent !== UserAgent.BROWSER) {
-      this.sendAsyncRequest('asyncRequestResponseFromJs', requestTag, JSON.stringify(resp))
-    }
-  }
-
-  eventFromNative(eventName: string, ...params: any[]) {
-
-    this.ngZone.run(() => {
-
-      const fnName  = `on${eventName}`,
-            fn      = this[fnName]
-
-      this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-        typeof fn === 'function', fnName)
-
-      fn.apply(this, params)
-
-    })
-  }
-
-/*------------------------------------------------------------------------------
-  E V E N T S   F R O M   N A T I V E
-------------------------------------------------------------------------------*/
-
-  private onUpdateCustomData(json: object) {
-    this.rc.router.updateCustomData(this.rc, json as CustomData)
-  }
-
-  private onEphEvent(wo: object) {
-    this.rc.router.providerMessage(this.rc, [wo as WireObject])
-  }
-
-  private onVerSmsCode(smsBody: string) {
-    // this.rc.uiRouter.getRoot().onVerificationSmsCode(smsBody)
-  }
-
-  private onVerSmsTimeout() {
-
-  }
-
-  private onMobileBrowserClosed() {
-    // EventSystem.broadcast(this.rc, APP_UI_EVENT.MOBILE_BROWSER_CLOSED)
-  }
-
-  private onAdjustPan(factorHeight: number) {
-    this.currKeyboardHt = factorHeight
-    // EventSystem.broadcast(this.rc, APP_UI_EVENT.ADJUST_PAN_FOR_SCREEN)
-  }
-
-  private onFingerprintScanResult(result: string) {
-    // EventSystem.broadcast(this.rc, APP_UI_EVENT.FINGERPRINT_SCAN_RESULT, JSON.parse(result))
-  }
-
-  private onConnectionAttr(netType: string, location: object) {
-
-    if (netType) this.netType = netType
-
-    if (!location) return
-
-    const lat: number = location['lat']
-    const lng: number = location['lng']
-
-    if (lat && lng) {
-      this.location = location
-
-      // if (this.rc.router && this.rc.userKeyVal.clientId) {
-      //   const locUpdReq: LocationUpdateEvent.params = { lat, lng }
-      //   this.rc.router.sendEvent(this.rc, LocationUpdateEvent.name, locUpdReq, 
-      //     LocationUpdateEvent.ephemeral)
-      // }
-    }
-  }
-
-  private onScreenPause() {
-    // EventSystem.broadcast(this.rc, APP_UI_EVENT.CORDOVA_SCREEN_PAUSE)
-  }
-
-  private onScreenResume() {
-    // EventSystem.broadcast(this.rc, APP_UI_EVENT.CORDOVA_SCREEN_RESUME)
-  }
-
-  // onLaunch(directLink: string) {
-
-  //   if (!directLink) return
-  //   this.launchContext.directLink = directLink
-  //   this.rc.uiRouter.getRoot().showLanding(false, false)
-  // }
-
-  setDirectLink(directLink: string) {
-
-    if (!directLink) return
-    this.launchContext.directLink = directLink
-  }
-
-/*------------------------------------------------------------------------------
-  A P P  R E Q U E S T 
-------------------------------------------------------------------------------*/
-
-  /**
-   * Request has a response to be given back to JS mapped with requestId
-   * @param messageId API to be called
-   * @param params arguments for the API
-   */
-  protected async sendAsyncRequest(apiName: string, ...params: any[]) {
-
-    const nar = new NativeAsyncRequest(this.nextRequestId++, apiName)
-    this.requestMap[nar.requestId] = nar
-
-    switch(this.userAgent) {
-
-      case UserAgent.ANDROID:
-        window['cordova'][apiName](nar.requestId, ...params)
-        break
-
-      case UserAgent.IOS:
-        window['webkit'].messageHandlers.cordova.postMessage({ requestId: nar.requestId, 
-          method: apiName, args: params })
-        break
-
-      case UserAgent.BROWSER:
-        this.webBridge.handleRequest(nar.requestId,apiName, params)
-        break
-    }
-    
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
-      `Response received for sendAsyncRequest: requestid: ${nar.requestId}, 
-      apiName: ${apiName}`)
-    return await nar.promise
-  }
-
-  // TODO: make private, web-bridge dependency
-  asyncResponseFromNative(requestId: number, json: object) {
-
-    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
-      `asyncResponseFromNative requestId:${requestId} Response:${JSON.stringify(json)}`)
-    const nar: NativeAsyncRequest = this.requestMap[requestId]
-    if (!nar) {
-      this.rc.isError() && this.rc.error(this.rc.getName(this), 'Request id', 
-          requestId, 'is missing in request map')
-      return
-    }
-    delete this.requestMap[requestId]
-    nar.resolve(json)
-  }
 }
 
-class NativeAsyncRequest {
+export class NativeAsyncRequest {
       
   promise         : Promise<object>
   resolve         : (object) => void

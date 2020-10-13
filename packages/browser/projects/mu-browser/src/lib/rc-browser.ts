@@ -89,12 +89,12 @@ export abstract class RunContextBrowser extends RunContextBase {
   }
 
   preInit() {
-    super.init()
     this.logger   = new RCBrowserLogger(this)
   }
 
-
-
+  init() {
+    super.init()
+  }
 
   // Called only once in the lifetime of app during app load
   // init() {
