@@ -32,14 +32,14 @@
 
     <div class="checkbox-cont">
       <mat-checkbox *ngIf="showSelectAll" [value]="'ALL'"
-        class="txt-md-med-norm checkbox"
+        class="txt-lg-med-norm checkbox"
         [checked]="isSelectAll"
         (change)="onSelectAll($event)">
         Select All
       </mat-checkbox>
 
       <mat-checkbox *ngFor="let option of listOptions" [value]="option"
-        class="txt-md-med-norm checkbox"
+        class="txt-lg-med-norm checkbox"
         [checked]="option.selected"
         (change)="onCheckBoxClick($event, option)">
         {{ option.value }}
