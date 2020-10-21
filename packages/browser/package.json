@@ -1,7 +1,7 @@
 {
-  "name": "mu-browser",
+  "name": "@mubble/browser",
   "description": "Library with browser projects",
-  "version": "1.0.0",
+  "version": "0.0.9",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -9,29 +9,16 @@
     "test": "jest",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "package": "ng build && cd ./dist/mu-browser && npm pack"
+    "package": "ng build"
   },
-  "private": true,
-  "dependencies": {
-    "@angular/animations": "~10.0.2",
-    "@angular/cdk": "~10.0.1",
-    "@angular/common": "^10.0.2",
-    "@angular/compiler": "~10.0.2",
-    "@angular/core": "^10.0.2",
-    "@angular/flex-layout": "10.0.0-beta.32",
-    "@angular/forms": "~10.0.2",
-    "@angular/material": "~10.0.1",
-    "@angular/material-moment-adapter": "^10.0.1",
-    "@angular/platform-browser": "~10.0.2",
-    "@angular/platform-browser-dynamic": "~10.0.2",
-    "@angular/router": "~10.0.2",
-    "rxjs": "~6.5.1",
-    "tslib": "^1.9.0",
-    "zone.js": "~0.9.1",
-    "dexie": "^2.0.1",
-    "hashids": "^1.1.4",
-    "@mubble/core": "file:../core/"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mubble-test/mubble.git"
   },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "license": "MIT",
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.801.3",
     "@angular-devkit/build-ng-packagr": "~0.801.3",
