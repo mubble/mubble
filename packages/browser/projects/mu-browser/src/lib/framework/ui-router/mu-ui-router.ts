@@ -17,7 +17,8 @@ import { UiRouter,
          NcNavigationExtras
        }                            from '../../ui'
 import { Mubble, 
-         LOG_LEVEL 
+         LOG_LEVEL, 
+         NavInfo
        }                            from '@mubble/core'
 import { RunContextBrowser }        from '../../rc-browser'
 import { AnalyticsScreenManager }   from '../analytics'
@@ -124,20 +125,21 @@ export class MuUiRouter extends UiRouter {
     this.navigate(routingInfo.routeTo, params)
   }
 
-  // navigateForInfo(screen: TrackableScreen, navInfo: NavInfo, ncExtras ?: NcNavigationExtras) {
+  navigateForInfo(screen: TrackableScreen, navInfo: NavInfo, ncExtras ?: NcNavigationExtras) {
 
-  //   if (!navInfo) return
+    if (!navInfo) return
 
-  //   this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
-  //     navInfo.navUrl && navInfo.logName, `missing navUrl or logName 
-  //     ${navInfo.logName}, ${navInfo.navUrl}`)
+    this.rc.isAssert() && this.rc.assert(this.rc.getName(this), 
+      navInfo.navUrl && navInfo.logName, `missing navUrl or logName 
+      ${navInfo.logName}, ${navInfo.navUrl}`)
 
-  //   this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
-  //     `Came to navigate: LogName-${navInfo.logName}, Url-${navInfo.navUrl}`)
+    this.rc.isDebug() && this.rc.debug(this.rc.getName(this), 
+      `Came to navigate: LogName-${navInfo.logName}, Url-${navInfo.navUrl}`)
 
-  //   this.logScreenAction(screen, navInfo.logName)
-  //   this.navigateByDirectLink(navInfo.navUrl, ncExtras)
-  // }
+    this.logScreenAction(screen, navInfo.logName)
+    this.navigateByDirectLink(navInfo.navUrl, ncExtras)
+  }
+
   /*--------------------------------------------------------------------------------------------------------------
     History Stack management
   --------------------------------------------------------------------------------------------------------------*/

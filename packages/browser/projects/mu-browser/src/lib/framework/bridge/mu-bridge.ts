@@ -306,6 +306,10 @@ export class MuBridge {
     this.rc.uiRouter.showToast('Log level changed to debug')
   }
 
+  getUserProfilePicUrl(clientId: number, profilePicFileName?: string): string {
+    return ''
+  }
+
 /*==============================================================================
                           Init Data 
 ==============================================================================*/
@@ -539,6 +543,18 @@ export class MuBridge {
 
     const obj = await this.sendAsyncRequest('scanBarcode', invSource)
     return obj
+  }
+
+  ///**
+  // * @returns { action: string, result: string }
+  // *
+  // * Eg. action : SAVED_PAYEES, DISMISS, SCAN
+  // * result : Scanned result if action is SCAN
+  // */
+  async payViaQr(invSource: string): Promise<object> {
+
+    const object = await this.sendAsyncRequest('payViaQr', invSource)
+    return object
   }
 
 /*==============================================================================
