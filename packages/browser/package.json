@@ -9,7 +9,7 @@
     "test": "jest",
     "lint": "ng lint",
     "e2e": "ng e2e",
-    "package": "ng build"
+    "package": "ng build && cd ./dist/mu-browser && npm pack"
   },
   "repository": {
     "type": "git",
@@ -17,6 +17,26 @@
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com/"
+  },
+  "dependencies": {
+    "@angular/animations": "~10.0.2",
+    "@angular/cdk": "~10.0.1",
+    "@angular/common": "^10.0.2",
+    "@angular/compiler": "~10.0.2",
+    "@angular/core": "^10.0.2",
+    "@angular/flex-layout": "10.0.0-beta.32",
+    "@angular/forms": "~10.0.2",
+    "@angular/material": "~10.0.1",
+    "@angular/material-moment-adapter": "^10.0.1",
+    "@angular/platform-browser": "~10.0.2",
+    "@angular/platform-browser-dynamic": "~10.0.2",
+    "@angular/router": "~10.0.2",
+    "rxjs": "~6.5.1",
+    "tslib": "^1.9.0",
+    "zone.js": "~0.9.1",
+    "dexie": "^2.0.1",
+    "hashids": "^1.1.4",
+    "@mubble/core": "file:../core/"
   },
   "license": "MIT",
   "devDependencies": {
