@@ -10,7 +10,7 @@
 import { Mubble }                   from '@mubble/core'
 import { MuDataTableComponent, 
          TableConfig 
-       }                            from '../ui'
+       }                            from '../ui/mu-components/mu-data-table/mu-data-table.component'
 
 export interface TableDataMgrListener {
   loadMore(lastIndex : number) : void

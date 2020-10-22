@@ -8,18 +8,39 @@
 ------------------------------------------------------------------------------*/
 
 import { RunContextBrowser }                    from '../../../rc-browser'
-import { Injectable, Inject, EventEmitter }     from '@angular/core'
+import { Injectable, 
+         Inject 
+       }                                        from '@angular/core'
 import { TRANSLATIONS }                         from './translations'
-import { EventSystem }                          from '../../../util'
 import { Mubble }                               from '@mubble/core'
 
 const PLACEHOLDER = '%'
 
-@Injectable()
+@Injectable({
+  providedIn : 'root'
+})
+
 export class TranslateService {
 
   constructor(@Inject('RunContext') private rc: RunContextBrowser, 
               @Inject(TRANSLATIONS) private _translations: any) {
+ 
+    if (Array.isArray(this._translations)) {
+      const obj = {}
+      for (const translate of this._translations) {
+        const keys = Object.keys(translate)
+        for (const key of keys) {
+          if (!obj[key]) {
+            obj[key] = translate[key]
+          } else {
+            Object.assign(obj[key], translate[key])
+          }
+        }
+      }
+      this._translations  = obj
+    } else {
+      throw new Error(`Translations Error. Expected type array. Actual ${typeof this._translations} ${JSON.stringify(this._translations)}`)
+    }
   }
   
   private defaultLang : string = Mubble.Lang.English
@@ -65,7 +86,7 @@ export class TranslateService {
   }
 
   public addTranslations(langObj : object, lang : string) {
-    Object.assign(this._translations[lang], langObj)
+    this._translations[lang] = {...langObj, ...this._translations[lang]}
   }
 
   public instant(key: string, words?: string | string[]) { // add optional parameter
@@ -83,9 +104,5 @@ export class TranslateService {
         translation = translation.replace(PLACEHOLDER.concat(<any>i), e)
     })
     return translation
-  }
-
-  public addMoreTranslations(langObj : object, lang : string) {
-    this._translations[lang] = {...langObj, ...this._translations[lang]}
   }
 }

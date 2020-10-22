@@ -15,3 +15,11 @@ export * from './lib/ui/index'
 export * from './lib/animations/index'
 export * from './lib/rc-browser'
 export * from './lib/xmn/index'
+export * from './lib/framework/index'
+
+// used only for testing purpose
+export * from './lib/jest-rc-browser'
+
+
+export * from './lib/ui/mu-components/loading/loading.component'
+

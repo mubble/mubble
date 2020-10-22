@@ -10,5 +10,8 @@
   "assets": [
     "src/lib/ui/mu-components/mu-components-theme.module.scss",
     "src/lib/ui/mu-components/mu-components.module.scss"
+  ],
+  "whitelistedNonPeerDependencies": [
+    "@mubble/core"
   ]
 }

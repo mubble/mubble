@@ -1,5 +1,5 @@
 {
-  "name": "mu-browser",
+  "name": "@mubble/browser",
   "version": "0.0.1",
   "peerDependencies": {
     "@angular/compiler": "~10.0.2",

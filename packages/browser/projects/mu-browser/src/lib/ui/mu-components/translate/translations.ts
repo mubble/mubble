@@ -14,14 +14,15 @@ import { muDictionary }     from './mu-dictionary'
 export const TRANSLATIONS = new InjectionToken('translations')
 
 export const TRANSLATION_PROVIDERS = [
-  { provide: TRANSLATIONS, useValue: muDictionary },
+  { provide: TRANSLATIONS, useValue: muDictionary, multi : true },
 ]
 
-export function getTranslationProviders(dictionary) {
-  return { provide: TRANSLATIONS, useValue: mergeDictionaries(muDictionary, dictionary) }
+
+export function getTranslations(dictionary) {
+  return mergeDictionaries(muDictionary, dictionary)
 }
 
-function mergeDictionaries(muDictionary, dictionary) {
+export function mergeDictionaries(muDictionary, dictionary) {
   Object.keys(muDictionary).forEach((key) => {
     const value = muDictionary[key]
     if (dictionary[key]) muDictionary[key] = Object.assign(value, dictionary[key])

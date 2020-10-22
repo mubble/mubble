@@ -1,6 +1,5 @@
 package xmn
 
-import com.obopay.dms.deliverypartner.BuildConfig
 import core.BaseApp
 import core.MubbleLogger
 import org.jetbrains.anko.error
@@ -9,6 +8,7 @@ import org.json.JSONObject
 import util.AdhocTimer
 import util.AndroidBase
 import java.net.URL
+import javax.crypto.spec.IvParameterSpec
 
 /*------------------------------------------------------------------------------
    About      : Router to manage communication with mubble servers
@@ -24,7 +24,9 @@ import java.net.URL
 ------------------------------------------------------------------------------*/
 
 abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInfo,
-                                private val pubKey: ByteArray) : MubbleLogger {
+                                private val pubKey: ByteArray,
+                                private  val ivSpec: IvParameterSpec,
+                                private val isDebugMode : Boolean) : MubbleLogger {
 
   private var ongoingRequests : MutableList<RouterRequest> = mutableListOf()
 
@@ -41,6 +43,9 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
   abstract fun updateCustomDataFromConfig(wo: WireObject)
   abstract fun handleEphEvent(wo: WireObject)
   abstract fun onSocketAbnormalClose(code: Int)
+  abstract fun runAlwaysAsSecure() : Boolean
+  abstract fun getSessionInfo(fingerprintSupported: Boolean, cb: (JSONObject) -> Unit)
+  abstract fun createSession(fingerprintSupported: Boolean, cb: ((JSONObject) -> Unit)? = null)
 
   companion object {
 
@@ -66,6 +71,10 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
 
   fun getPubKey(): ByteArray? {
     return this.pubKey
+  }
+
+  fun getIvSpec(): IvParameterSpec {
+    return this.ivSpec
   }
 
   open fun cleanup() {
@@ -102,12 +111,18 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     }
   }
 
+  fun sendEvent(eventName: String, params: JSONObject, ephemeral: Boolean) {
+
+    if (ephemeral) sendEphemeralEvent(eventName, params)
+    else           sendPersistentEvent(eventName, params)
+  }
+
   fun sendPersistentEvent(eventName: String, data: JSONObject) {
 
     if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
-    if (BuildConfig.DEBUG && !(customData != null && customData.clientId != 0L)) {
+    if (isDebugMode && !(customData != null && customData.clientId != 0L)) {
       error("You cannot send Persistent events without clientId")
     }
 
@@ -123,7 +138,7 @@ abstract class XmnRouterAndroid(serverUrl: String, private val ci: ConnectionInf
     if (this.ci.provider == null) this.prepareConnection()
     val customData = this.ci.customData
 
-    if (BuildConfig.DEBUG && !(customData != null && customData.clientId != 0L)) {
+    if (isDebugMode && !(customData != null && customData.clientId != 0L)) {
       error("You cannot send Ephemeral events without clientId")
     }
 
