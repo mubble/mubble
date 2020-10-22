@@ -95,7 +95,7 @@ export class HttpsServer {
           version  = ci.headers[HTTP.HeaderKey.versionNumber] 
 
     try {
-      if(apiStr !== ObopayHttpsClient.API_STR && (apiStr !== OBOPAY_STR)) // TODO : Change this
+      if(apiStr !== ObopayHttpsClient.API_STR) 
         throw new Error('Invalid path in request url ' + apiStr)
 
       if(!ObopayHttpsClient.verifyModule(moduleName, apiName))

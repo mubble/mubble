@@ -1,7 +1,7 @@
 {
-  "name": "mu-browser",
+  "name": "@mubble/browser",
   "description": "Library with browser projects",
-  "version": "1.0.0",
+  "version": "0.0.9",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -11,7 +11,13 @@
     "e2e": "ng e2e",
     "package": "ng build && cd ./dist/mu-browser && npm pack"
   },
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mubble-test/mubble.git"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
   "dependencies": {
     "@angular/animations": "~10.0.2",
     "@angular/cdk": "~10.0.1",
@@ -32,6 +38,7 @@
     "hashids": "^1.1.4",
     "@mubble/core": "file:../core/"
   },
+  "license": "MIT",
   "devDependencies": {
     "@angular-devkit/build-angular": "~0.801.3",
     "@angular-devkit/build-ng-packagr": "~0.801.3",

@@ -96,7 +96,7 @@ class WsAndroid(private val ci: ConnectionInfo,
       this.pendingMessage = data
 
       if (this.encProvider == null) {
-        this.encProvider = EncProviderAndroid(this.ci, router.getPubKey())
+        this.encProvider = EncProviderAndroid(this.ci, router.getPubKey(), router.getIvSpec())
       }
 
       if (this.wsProviderConfig == null) {
@@ -104,7 +104,7 @@ class WsAndroid(private val ci: ConnectionInfo,
             this.encProvider!!.getSyncKeyB64(), this.ci.customData)
       }
 
-      val protocol = if(this.ci.port == 443 ) "wss" else "ws"
+      val protocol = if(this.ci.port == 443 || this.router.runAlwaysAsSecure()) "wss" else "ws"
       val url      = "$protocol://${this.ci.host}:${this.ci.port}/$PROTOCOL_HANDSHAKE/${this.ci.protocolVersion}/${this.ci.shortName}/"
       val header   = this.encProvider!!.encodeHeader(wsProviderConfig!!)
       val msgBody  = URLEncoder.encode(header, "UTF-8")

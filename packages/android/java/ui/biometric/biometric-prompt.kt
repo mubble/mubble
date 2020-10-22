@@ -33,6 +33,9 @@ class MuBiometricPrompt(val activity : MubbleBaseActivity, val builder: Biometri
     private const val KEY_NAME  = "OBO_BIOMETRIC_KEY"
     private const val SIGN_ALGO = "SHA256withRSA"
 
+    data class FingerprintTexts(val appName: Int, val title: Int, val subTitle: Int,
+                                val description: Int, val negBtn: Int)
+
     fun canAuthenticate(): Boolean {
 
       return androidx.biometric.BiometricManager.from(BaseApp.instance)

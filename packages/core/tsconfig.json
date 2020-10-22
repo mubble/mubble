@@ -1,7 +1,6 @@
 {
   "compilerOptions": {
     "esModuleInterop"         : true,
-    "baseUrl"                 : "./src/",
     "module"                  : "commonjs",
     "target"                  : "es5",
     "noImplicitAny"           : true,
@@ -22,7 +21,6 @@
   ],
   "exclude": [
       "node_modules",
-      "**/*.spec.ts",
-      "__tests__"
+      "**/*.spec.ts"
   ]
 }

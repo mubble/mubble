@@ -28,7 +28,8 @@ import javax.crypto.spec.SecretKeySpec
 ------------------------------------------------------------------------------*/
 
 class EncProviderAndroid(val ci                 : ConnectionInfo,
-                         private val rsaPubKey  : ByteArray?) : MubbleLogger {
+                         private val rsaPubKey  : ByteArray?,
+                         private val ivSpec     : IvParameterSpec) : MubbleLogger {
 
   private var syncKey    : ByteArray = ByteArray(32)
 
@@ -71,9 +72,6 @@ class EncProviderAndroid(val ci                 : ConnectionInfo,
 
     fun base64ToByteArray(str: String): ByteArray = Base64.decode(str, Base64.NO_WRAP)
   }
-
-  private val ivSpec = IvParameterSpec(byteArrayOf(0x01, 0x00, 0x03, 0x00, 0x01, 0x00, 0x00, 0x00,
-                                                   0x01, 0x00, 0x09, 0x00, 0x07, 0x00, 0x00, 0x00))
 
   init {
     //init(ci)

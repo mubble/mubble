@@ -28,7 +28,7 @@ import { DISPLAY_TYPE,
          StepSelectedFilter
        }                              from '@mubble/core'
 import { OutputParams }               from '../cmn-inp-cont'
-import { TranslateService } from '../translate'
+import { TranslateService } from '../translate/translate.service'
 
 
 enum CONTEXT {

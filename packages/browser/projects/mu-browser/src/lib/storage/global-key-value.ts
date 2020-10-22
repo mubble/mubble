@@ -39,6 +39,7 @@ Design
 import 'reflect-metadata'
 import { RunContextBrowser }  from '../rc-browser'
 import { StorageProvider }    from './storage-provider'
+import { EnvConfig }          from '../framework'
 
 const META_KEY    = 'autoStore',
       VALID_TYPES = [String, Number, Boolean, Object]
@@ -55,6 +56,8 @@ export abstract class GlobalKeyValue {
   @GlobalKeyValue.autoStore() jsVersion     : string
   @GlobalKeyValue.autoStore() logLevel      : number
   @GlobalKeyValue.autoStore() deviceId      : string
+  @GlobalKeyValue.autoStore() envConfig     : EnvConfig
+
   
   public static autoStore(): any {
 

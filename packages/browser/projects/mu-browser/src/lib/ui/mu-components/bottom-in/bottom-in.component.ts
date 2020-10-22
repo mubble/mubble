@@ -21,9 +21,9 @@ import { Nail,
          NailInterface,
          AXIS }                 from '../../nail'
 
-import { UiRouter }             from '../../router'
+import { UiRouter }             from '../../router/ui-router'
 
-import { DomHelper }            from '../../../util'
+import { DomHelper }            from '../../../util/dom-helper'
 
 import {  query, 
           style, 

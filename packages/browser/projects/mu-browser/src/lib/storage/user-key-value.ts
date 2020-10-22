@@ -24,6 +24,7 @@ export abstract class UserKeyValue {
   private _webProfilePicBase64    : string
   
   userName                        : string
+  mobileNo                        : string
   screenVisitedStates             : { [compName: string] : boolean }
 
   private users         : {[key: string]: object} = {}
