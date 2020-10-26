@@ -219,7 +219,8 @@ export namespace ObopayHttpsClient {
                                       version     : string,
                                       encProvider : HttpsEncProvider,
                                       headers     : Mubble.uObject<any>,
-                                      clientIp    : string) {
+                                      clientIp    : string,
+                                      clientHost  : string) {
 
     rc.isDebug() && rc.debug(CLASS_NAME,
                              'Verifying client request headers.',
@@ -249,6 +250,11 @@ export namespace ObopayHttpsClient {
       if(!verifyIp(lo.cloneDeep(clientCredentials.permittedIps), clientIp)) {
         throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
                                 `Client IP not permitted: ${clientIp}`)
+      }
+
+      if(!verifyHost(clientCredentials.permittedHosts, clientHost)) {
+        throw new Mubble.uError(SecurityErrorCodes.INVALID_CLIENT,
+                                `Host Header not permitted: ${clientHost}`)
       }
 
       if(!headers[HTTP.HeaderKey.bodyEncoding])
@@ -282,6 +288,13 @@ export namespace ObopayHttpsClient {
     permittedIps.forEach((permittedIp) => permittedIps.push('::ffff:' + permittedIp))
 
     return lo.includes(permittedIps, ip)
+  }
+
+  export function verifyHost(permittedHosts : Array<string> | null, host : string) : boolean {
+    if(!permittedHosts || !permittedHosts.length) return true
+    return lo.some(permittedHosts, (permittedHost) => {
+      return host.endsWith(permittedHost)
+    });
   }
 
   export function verifyVersion(version : string) : boolean {
