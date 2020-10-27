@@ -16,7 +16,6 @@ import {
 import { RunContextServer }		from '../../rc-server'
 import { ActiveUserRequest }	from '../request'
 import { HttpsRequest }				from '../../util'
-import { SmsConstants } 			from '../sms-constants'
 import { HTTP } 							from '@mubble/core'
 import { UrlObject } 					from 'url'
 import * as http							from 'http'

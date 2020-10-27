@@ -22,7 +22,6 @@ import { RedisWrapper }     from '../cache'
 import { SmsConstants } 		from './sms-constants'
 import * as lo  						from 'lodash'
 
-
 interface GatewayScore {
 	lastWeightedAverage : number
 	currentTotal        : number
