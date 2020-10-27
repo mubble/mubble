@@ -77,7 +77,7 @@ class MubbleCli {
 
     for (const pack in PACKAGES) {
 
-      if (pack.toLowerCase() !== packageName.toLowerCase()) continue
+      if (packageName && pack.toLowerCase() !== packageName.toLowerCase()) continue
       
       const path  = PACKAGES[pack].path
       
