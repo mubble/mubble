@@ -584,7 +584,13 @@ abstract class Bridge(protected val app       : BaseApp,
   fun getPhoneContacts(requestId: Int) {
     check(isActivityChild)
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
-    AndroidBase.getPhoneContacts(activity, getResponseLambda(requestId, "getPhoneContacts"))
+    activity.getUtilManager()!!.getContacts(activity) {
+      val obj = JSONObject()
+      obj.put("contacts", it)
+      sendAsyncResponseToJs(requestId, obj)
+    }
+
+    //AndroidBase.getPhoneContacts(activity, getResponseLambda(requestId, "getPhoneContacts"))
   }
 
 /*------------------------------------------------------------------------------

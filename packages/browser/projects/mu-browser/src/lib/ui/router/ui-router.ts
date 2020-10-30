@@ -710,7 +710,7 @@ export class UiRouter {
   }
 
   public isToolTipShown() : boolean {
-    return true
+    return false
   }
 
   public removeOverlayIfExists() {
