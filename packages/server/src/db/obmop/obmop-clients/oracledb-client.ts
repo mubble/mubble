@@ -263,7 +263,7 @@ export class OracleDbClient implements ObmopBaseClient {
 													 binds 			  : oracledb.BindParameters[] | oracledb.BindParameters,
 													 multiple    ?: boolean) {
 
-		rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery', queryString, binds)
+		rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery executing', queryString, binds)
 
 		if(!this.initialized) await this.init(rc)
     
@@ -287,10 +287,12 @@ export class OracleDbClient implements ObmopBaseClient {
 					})
 				}
 			})
+
+			rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery executed', queryString, binds, result)
 			
 			return result
 		} catch(e) {
-			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', e, queryString)
+			rc.isError() && rc.error(rc.getName(this), 'Error in executing query.', queryString, binds, e)
 			throw new Mubble.uError(DB_ERROR_CODE, e.message)
 		} finally {
 			await connection.close()

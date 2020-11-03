@@ -294,7 +294,7 @@ export class PostgresClient implements ObmopBaseClient {
         })
 			})
 
-			rc.isDebug() && rc.debug(rc.getName(this), 'bindsQuery executed', queryString, binds)
+			rc.isDebug() && rc.debug(rc.getName(this), 'bindsQuery executed', queryString, binds, result)
 
       return result
     } catch(e) {
