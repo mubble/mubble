@@ -63,14 +63,15 @@ export class OracleDbClient implements ObmopBaseClient {
 		this.initialized = false
 	}
 
-	public async query(rc      : RunContextServer,
-										 table   : string,
-										 fields  : Array<string>,
-										 query  ?: QueryCondition,
-										 limit   : number = -1,
-										 offset  : number = 0,
-										 range  ?: QueryRange,
-										 sort   ?: QuerySort) : Promise<QueryRetval> {
+	public async query(rc     	  : RunContextServer,
+										 table  	  : string,
+										 fields 	  : Array<string>,
+										 query  	 ?: QueryCondition,
+										 limit  	  : number = -1,
+										 offset 	  : number = 0,
+										 range  	 ?: QueryRange,
+										 sort   	 ?: QuerySort,
+										 lobFields ?: Array<string>) : Promise<QueryRetval> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching from table,', table)
 
@@ -101,7 +102,7 @@ export class OracleDbClient implements ObmopBaseClient {
 			binds.push(`${limit}`)						 				
 		}
 
-		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds))
+		const entities = this.convertResultArray(await this.bindsQuery(rc, queryString, binds, lobFields))
 
 		const result : QueryRetval = {
 			entities,
@@ -113,11 +114,14 @@ export class OracleDbClient implements ObmopBaseClient {
 		return result
 	}
 
-	public async sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>> {
+	public async sql(rc 				: RunContextServer,
+									 query 			: string,
+									 binds 			: Array<any>,
+									 lobFields ?: Array<string>) : Promise<Array<Mubble.uObject<any>>> {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Executing query.', query, binds)
 
-		const entities = this.convertResultArray(await this.bindsQuery(rc, query, binds))
+		const entities = this.convertResultArray(await this.bindsQuery(rc, query, binds, lobFields))
 
 		return entities
 	}
@@ -184,7 +188,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		const queryString = `INSERT INTO ${table} (${keys.join(', ')})`
 												+ ` values (${bindsKeys.join(', ')})`
 
-		await this.bindsQuery(rc, queryString, binds, true)
+		await this.bindsQuery(rc, queryString, binds, [], true)
 	}
 
 	public async update(rc 				  : RunContextServer,
@@ -261,14 +265,21 @@ export class OracleDbClient implements ObmopBaseClient {
 	private async bindsQuery(rc					  : RunContextServer,
 													 queryString  : string,
 													 binds 			  : oracledb.BindParameters[] | oracledb.BindParameters,
+													 lobFields    : Array<string> = [],
 													 multiple    ?: boolean) {
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'bindQuery executing', queryString, binds)
 
 		if(!this.initialized) await this.init(rc)
+
+		const fetchInfo = {} as any
+
+		for(const lobField of lobFields) {
+			fetchInfo[lobField] = oracledb.STRING
+		}
     
 		const connection = await this.clientPool.getConnection(),
-					options    = { autoCommit : true }
+					options    = { autoCommit : true, fetchInfo }
 
 		try {
 			const result = await new Promise<oracledb.Result<any>>((resolve, reject) => {
