@@ -275,7 +275,7 @@ export class OracleDbClient implements ObmopBaseClient {
 		const fetchInfo = {} as any
 
 		for(const lobField of lobFields) {
-			fetchInfo[lobField] = oracledb.STRING
+			fetchInfo[lobField.toUpperCase()] = { type : oracledb.STRING }
 		}
     
 		const connection = await this.clientPool.getConnection(),
