@@ -501,7 +501,8 @@ export class MuFormContainerComponent implements OnChanges {
         case DISPLAY_TYPE.CALENDAR_BOX  :
           if (params.value) params.value = new Date(params.value)
 
-          formValidations.push(InputValidator.futureDateValidator)
+          if(!params.validators || !params.validators.allowFutureDate) 
+            formValidations.push(InputValidator.futureDateValidator)
 
           this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
           this.setInputDisabled(params.id,params.isDisabled)
