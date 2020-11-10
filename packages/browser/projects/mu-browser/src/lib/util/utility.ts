@@ -32,23 +32,32 @@ export class MuUtility {
     return new RegExp('^\\+91[9876]\\d{9}$').test(number)
   }
 
+  isValidAusMobNum(number: string): boolean {
+
+    number = this.sanitizeNumber(number) 
+    return new RegExp('^\\+61[45]\\d{8}$').test(number)
+  }
+
   
   get10digitMobNumber(number: string) {
 
     const num = this.sanitizeNumber(number)
 
+    if (num.startsWith('+61')) return num.substring(3)
+    if (num.startsWith('61')) return num.substring(2)
     if (num.startsWith('+91')) return num.substring(3)
     if (num.startsWith('91')) return num.substring(2)
     else if (num.startsWith('0')) return num.substring(1)
     else return num
   }
 
+  // TODO: make sumber validation dynamic
   sanitizeNumber(number: string): string {
 
     let temp: string = number
     if (!temp) return null
 
-    const startsWithPlus = temp.startsWith('+91')
+    const startsWithPlus = temp.startsWith('+91') || temp.startsWith('+61')
     if (startsWithPlus) return temp
 
     // check for indian or international i.e. 0 or 00
@@ -66,6 +75,8 @@ export class MuUtility {
       // 10 digit mobile/landline number case return with +91
     } else if (temp.length == 10) {
       return '+91' + temp
+    } else if (temp.length == 9) {
+      return '+61' + temp
     }
 
     return temp
