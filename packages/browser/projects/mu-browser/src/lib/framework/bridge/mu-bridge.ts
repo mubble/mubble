@@ -486,6 +486,14 @@ export class MuBridge {
     await this.sendAsyncRequest('openPdfViewer', base64)
   }
 
+  async openShareIntent(base64 : string) {
+    await this.sendAsyncRequest('openShareIntent', base64)
+  }
+
+  async saveImageToGallery(base64 : string) {
+    await this.sendAsyncRequest('saveImageToGallery', base64)
+  }
+
 /*==============================================================================
                              Phone / SMS
 ==============================================================================*/
