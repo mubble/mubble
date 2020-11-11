@@ -1,6 +1,6 @@
 {
   "name": "@mubble/server",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "Server package for Mubble projects",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
