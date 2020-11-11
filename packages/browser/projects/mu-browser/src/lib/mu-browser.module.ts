@@ -49,6 +49,7 @@ import { ValidateImgDirective }             from './ui/mu-components/directives/
 import { GenericPipe }                      from './ui/mu-components/pipes/generic.pipe'
 import { ExtractMobileNoPipe }              from './ui/mu-components/pipes/extract-mobile-no.pipe'
 import { CurrencyPipe }                     from './ui/mu-components/pipes/currency.pipe'
+import { AUDCurrencyPipe }                  from './ui/mu-components/pipes/audcurrency.pipe'
 
 import { DropDownMultiSelectComponent }     from './ui/mu-components/drop-down-multi-select/drop-down-multi-select.component'
 import { BottomInComponent }                from './ui/mu-components/bottom-in/bottom-in.component'
@@ -130,7 +131,8 @@ import { MaskingValueDirective }            from './ui/mu-components//directives
     GenericPipe,
     CurrencyPipe,
     KeypadComponent,
-    ExtractMobileNoPipe
+    ExtractMobileNoPipe,
+    AUDCurrencyPipe
   ],
 
   entryComponents : [
@@ -172,7 +174,7 @@ import { MaskingValueDirective }            from './ui/mu-components//directives
     GenericPipe,
     ExtractMobileNoPipe,
     CurrencyPipe,
-
+    AUDCurrencyPipe,
 
     //Angular imports
     CommonModule,
