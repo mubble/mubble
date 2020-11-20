@@ -2,11 +2,17 @@ package bridge
 
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
+import android.os.Environment
+import android.provider.MediaStore
 import android.util.Base64
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
 import android.widget.Toast
+import androidx.core.app.ActivityCompat
 import bridge.Bridge.State.*
 import core.BaseApp
 import core.DeviceInfo
@@ -18,7 +24,9 @@ import org.json.JSONObject
 import ui.base.MubbleBaseWebActivity
 import ui.permission.PermissionGroup
 import util.*
+import java.io.*
 import java.util.*
+
 
 /*------------------------------------------------------------------------------
    About      : Bridge to JS in WebView
@@ -61,9 +69,9 @@ private const val JS_INTERFACE        = "fromCordova"
 private const val REQUEST_TIMEOUT_MS  = 15000
 
 @Suppress("UNUSED")
-abstract class Bridge(protected val app       : BaseApp,
-                      protected val webView   : WebView,
-                      protected val webBridge : MubbleBaseWebActivity) : MubbleLogger {
+abstract class Bridge(protected val app: BaseApp,
+                      protected val webView: WebView,
+                      protected val webBridge: MubbleBaseWebActivity) : MubbleLogger {
 
   private   var nextRequestId       = 0
   private   val pendingRequestsMap  = mutableMapOf<String, AsyncCallbackStruct>()
@@ -74,7 +82,7 @@ abstract class Bridge(protected val app       : BaseApp,
   init {
     val timer = Timer()
     timer.scheduleAtFixedRate(TimeoutTimer(), REQUEST_TIMEOUT_MS.toLong(),
-    REQUEST_TIMEOUT_MS.toLong())
+            REQUEST_TIMEOUT_MS.toLong())
   }
 
   fun asyncRequestToJs(requestName: String, vararg args: Any,
@@ -125,8 +133,7 @@ abstract class Bridge(protected val app       : BaseApp,
 
   protected fun getResponseLambda(requestId: Int, requestName: String): (JSONObject) -> Unit {
 
-    return {
-      jsonObject ->
+    return { jsonObject ->
       info {"Sending async response to JS for $requestName/$requestId as $jsonObject"}
       sendAsyncResponseToJs(requestId, jsonObject)
     }
@@ -136,20 +143,20 @@ abstract class Bridge(protected val app       : BaseApp,
 
     return when(arg) {
 
-      null            -> "null"
+      null -> "null"
 
       // using single quote to avoid most of the escaping needs
-      is String       -> "'${escapeSingleQuote(arg.toString())}'"
+      is String -> "'${escapeSingleQuote(arg.toString())}'"
 
       is Int,
-      is Long         -> String.format("%d", arg)
+      is Long -> String.format("%d", arg)
 
       is Float,
-      is Double       -> String.format("%f", arg)
+      is Double -> String.format("%f", arg)
 
       is JSONArray,
       is JSONObject,
-      is Boolean      -> arg.toString()
+      is Boolean -> arg.toString()
 
       else            -> {check(false) {"$arg has invalid type"}; ""}
     }
@@ -182,7 +189,7 @@ abstract class Bridge(protected val app       : BaseApp,
 
     when(valueOf(strState)) {
       INITIALIZED -> initializedFromJs()
-      LOADING -> check(false) {"Automatically set"}
+      LOADING -> check(false) { "Automatically set" }
       SHOWN -> shownFromJs()
     }
 
@@ -245,8 +252,8 @@ abstract class Bridge(protected val app       : BaseApp,
   }
 
   // Data class to hold async callback lambdas
-  private data class AsyncCallbackStruct(val requestTag : String,
-                                         val cb         : (JSONObject) -> Unit) {
+  private data class AsyncCallbackStruct(val requestTag: String,
+                                         val cb: (JSONObject) -> Unit) {
     val ts = System.currentTimeMillis()
   }
 
@@ -297,7 +304,7 @@ abstract class Bridge(protected val app       : BaseApp,
 
     syncExecuteInMainThread {
       activity.getRouter()?.getSessionInfo(canAuth, getResponseLambda(requestId,
-          "getSessionInfo"))
+              "getSessionInfo"))
     }
   }
 
@@ -310,7 +317,7 @@ abstract class Bridge(protected val app       : BaseApp,
 
     syncExecuteInMainThread {
       activity.getRouter()?.createSession(canAuth, getResponseLambda(requestId,
-          "recreateSession"))
+              "recreateSession"))
     }
   }
 
@@ -446,7 +453,7 @@ abstract class Bridge(protected val app       : BaseApp,
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
 
     val obj = JSONObject()
-    obj.put("canAuth", activity.getUtilManager()?.canAuthWithFingerprint()?:false)
+    obj.put("canAuth", activity.getUtilManager()?.canAuthWithFingerprint() ?: false)
     return sendAsyncResponseToJs(requestId, obj)
   }
 
@@ -508,7 +515,7 @@ abstract class Bridge(protected val app       : BaseApp,
   }
 
   @JavascriptInterface
-  fun hasPermission(requestId: Int,permission: String) {
+  fun hasPermission(requestId: Int, permission: String) {
 
     check(isActivityChild)
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
@@ -540,11 +547,56 @@ abstract class Bridge(protected val app       : BaseApp,
   }
 
   @JavascriptInterface
-  fun openPdfViewer(requestId : Int, pdfBase64 : String) {
+  fun openPdfViewer(requestId: Int, pdfBase64: String) {
     check(isActivityChild)
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
     activity.openPdfViewer(pdfBase64)
     sendAsyncResponseToJs(requestId)
+  }
+
+  @JavascriptInterface
+  fun openShareIntent(requestId: Int, base64: String) {
+
+    val path: String = this.insertImageInGallery(base64)
+
+    val shareIntent: Intent = Intent().apply {
+      action = Intent.ACTION_SEND
+      putExtra(Intent.EXTRA_STREAM, Uri.parse(path))
+      type = "image/png"
+    }
+    webView.context.startActivity(Intent.createChooser(shareIntent, ""))
+  }
+
+  @JavascriptInterface
+  fun saveImageToGallery(requestId: Int, base64: String) {
+
+    val path : String = this.insertImageInGallery(base64)
+
+    val jsonObject = JSONObject()
+    jsonObject.put("success", true)
+    jsonObject.put("savedPath", path)
+    sendAsyncResponseToJs(requestId, jsonObject)
+  }
+
+  private fun cleanBase64Data(base64 : String) : String {
+
+    return base64.substring(base64.indexOf(",") + 1);
+  }
+
+  private fun getBitmapFromBase64(base64 : String) : Bitmap {
+
+    val decodedString: ByteArray = Base64.decode(base64, Base64.DEFAULT)
+    val decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.size)
+    return decodedByte
+  }
+
+  private fun insertImageInGallery(base64 : String) : String {
+
+    val decodedByte = this.getBitmapFromBase64(this.cleanBase64Data(base64))
+    val bytes = ByteArrayOutputStream()
+    decodedByte.compress(Bitmap.CompressFormat.PNG, 100, bytes)
+    val path: String = MediaStore.Images.Media.insertImage(webView.context.getContentResolver(), decodedByte, System.currentTimeMillis().toString(), null)
+    return path
   }
 
 /*------------------------------------------------------------------------------
@@ -577,7 +629,7 @@ abstract class Bridge(protected val app       : BaseApp,
     check(isActivityChild)
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
     activity.getUtilManager()?.requestMobNumHint(activity, getResponseLambda(requestId,
-        "requestMobNumHint"))
+            "requestMobNumHint"))
   }
 
   @JavascriptInterface
@@ -604,7 +656,7 @@ abstract class Bridge(protected val app       : BaseApp,
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
     asyncExecuteInMainThread {
       activity.takeSignature(invSource, getResponseLambda(requestId,
-          "takeSignature"))
+              "takeSignature"))
     }
   }
 
@@ -615,7 +667,7 @@ abstract class Bridge(protected val app       : BaseApp,
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
     asyncExecuteInMainThread {
       activity.scanQrCode(invSource, title, getResponseLambda(requestId,
-          "scanQrCode"))
+              "scanQrCode"))
     }
   }
 
@@ -626,7 +678,7 @@ abstract class Bridge(protected val app       : BaseApp,
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
     asyncExecuteInMainThread {
       activity.scanBarcode(invSource, getResponseLambda(requestId,
-          "scanBarcode"))
+              "scanBarcode"))
     }
   }
 
@@ -682,7 +734,7 @@ abstract class Bridge(protected val app       : BaseApp,
   }
 
   @JavascriptInterface
-  fun launchAppMarket(requestId: Int, packageName : String?) {
+  fun launchAppMarket(requestId: Int, packageName: String?) {
 
     var pckgName = app.packageName
     if (!packageName.isNullOrBlank()) pckgName = packageName
@@ -709,10 +761,10 @@ abstract class Bridge(protected val app       : BaseApp,
   }
 
   @JavascriptInterface
-  fun launchNavigationOnMap(requestId: Int, lat:String, lng:String) {
+  fun launchNavigationOnMap(requestId: Int, lat: String, lng: String) {
     check(isActivityChild)
     val activity: MubbleBaseWebActivity = webView.context as MubbleBaseWebActivity
-    activity.getUtilManager()?.requestToStartNavigation(activity, lat,lng)
+    activity.getUtilManager()?.requestToStartNavigation(activity, lat, lng)
     sendAsyncResponseToJs(requestId)
   }
 
