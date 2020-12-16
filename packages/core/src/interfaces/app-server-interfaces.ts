@@ -154,8 +154,9 @@ export enum DISPLAY_MODE {
 }
 
 export interface ImageParams {
-  imgUrl    ?: string
-  iconClass ?: string
+  imgUrl          ?: string
+  iconClass       ?: string
+  cb              ?: (...params : any[]) => void
 }
 
 export interface FilterImage {

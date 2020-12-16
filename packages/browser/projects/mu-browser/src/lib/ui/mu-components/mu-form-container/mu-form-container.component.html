@@ -24,7 +24,8 @@
           <div *ngIf="!inputParam.withoutBorder" 
           class="onb-input-box-cont border-primary" [class.border-disabled]="inputParam.isDisabled">
 
-            <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
+            <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams" 
+              ncAllowSingleClick (ncClick)="onPreSuffixClick($event, inputParam, inputParam?.image?.prefixParams)">
               <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
               <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
             </div>
@@ -46,7 +47,8 @@
               autocomplete="{{ inputParam.autoComplete || 'off'}}"
               [keyboard]="parentCont">
 
-            <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
+            <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams"
+              ncAllowSingleClick (ncClick)="onPreSuffixClick($event, inputParam, inputParam?.image?.suffixParams)">
               <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
               <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
             </div>
@@ -56,7 +58,8 @@
           <mat-form-field *ngIf="inputParam.withoutBorder" class="onb-input-box-cont mat-input-box-cont" 
             [class.border-disabled]="inputParam.isDisabled">
 
-            <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams">
+            <div class="prefix-image" *ngIf="inputParam?.image?.prefixParams" 
+              ncAllowSingleClick (ncClick)="onPreSuffixClick($event, inputParam, inputParam?.image?.prefixParams)">
               <i class="{{ inputParam.image.prefixParams?.iconClass }}"></i>
               <img src="{{ inputParam.image.prefixParams?.imgUrl }}">
             </div>
@@ -76,9 +79,10 @@
               textSecurity="inputParam.isPassword"
               [class.num-password-input]="inputParam.isPassword"
               autocomplete="{{ inputParam.autoComplete || 'off'}}"
-              [keyboard]="parentCont>
+              [keyboard]="parentCont">
 
-            <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams">
+            <div class="suffix-image" *ngIf="inputParam?.image?.suffixParams" 
+              ncAllowSingleClick (ncClick)="onPreSuffixClick($event, inputParam, inputParam?.image?.suffixParams)">
               <i class="{{ inputParam.image.suffixParams?.iconClass }}"></i>
               <img src="{{ inputParam.image.suffixParams?.imgUrl }}">
             </div>
