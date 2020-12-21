@@ -10,14 +10,13 @@
     "test:watch": "jest --verbose --watch",
     "coverage": "jest --verbose --coverage && open ./coverage/index.html"
   },
-  "private":false,
   "author": "Raghvendra Varma",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/mubble/mubble.git"
   },
   "publishConfig": {
-    "registry":"https://registry.npmjs.org/"
+    "registry": "https://registry.npmjs.org"
   },
   "license": "MIT",
   "devDependencies": {

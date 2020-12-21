@@ -61,7 +61,7 @@ export abstract class XmnRouterBrowser implements XmnRouterBase {
 
   private lastEventTs      = 0
   private lastEventSendTs  = 0
-  private pubKey: Uint8Array
+  private pubKey: Uint8Array 
   private encIV : Uint8Array
 
   constructor(private rc: RunContextBrowser, serverUrl: string, 

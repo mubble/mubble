@@ -43,6 +43,7 @@ export class InvokeStruct {
   }
 
   async executeFn(...params: any[]) {
+
     let fn = this.parent[this.name]
     if (fn) return await fn.call(this.parent, ...params)
 

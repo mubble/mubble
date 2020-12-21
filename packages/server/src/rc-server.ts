@@ -112,6 +112,7 @@ export abstract class RunContextServer extends RunContextBase {
     return this.initConfig.runMode
   }
 
+
   executePromise(promise: Promise<any>): void {
     promise.then((ret) => {
       this.freeRunId()

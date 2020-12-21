@@ -1,6 +1,24 @@
 {
   "name": "@mubble/browser",
-  "version": "0.0.1",
+  "version": "0.0.0",
+  "author": "Raghvendra Varma",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mubble/mubble.git"
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/mubble/mubble/issues"
+  },
+  "homepage": "https://github.com/mubble/mubble#readme",
+  "main": "jest.config.js",
+  "keywords": [
+    "mubble-browser",
+    "mu-browser"
+  ],
   "peerDependencies": {
     "@angular/compiler": "~10.0.2",
     "@angular/core": "^10.0.2",
