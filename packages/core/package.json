@@ -1,6 +1,6 @@
 {
   "name": "@mubble/core",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Common core module for client & server projects for Mubble",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

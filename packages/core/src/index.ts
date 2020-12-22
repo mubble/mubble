@@ -13,4 +13,5 @@ export * from './xmn'
 export * from './master'
 export * from './mubble'
 export * from './interfaces'
+export * from './data-masker'
 

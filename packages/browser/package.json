@@ -1,7 +1,7 @@
 {
   "name": "@mubble/browser",
   "description": "Library with browser projects",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
@@ -37,7 +37,7 @@
     "zone.js": "~0.9.1",
     "dexie": "^2.0.1",
     "hashids": "^1.1.4",
-    "@mubble/core": "file:../core/"
+    "@mubble/core": "^0.0.1"
   },
   "license": "MIT",
   "devDependencies": {

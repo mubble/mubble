@@ -13,7 +13,7 @@
     "test:browser": "node mubble-cli.js test browser",
     "publish:server": "npm run build:server && npm publish packages/server/",
     "publish:core": "npm run build:core && npm publish packages/core/",
-    "publish:browser": "npm run build:browser && npm publish dist/mu-browser/ --access public"
+    "publish:browser": "npm run build:browser && npm publish packages/browser/dist/mu-browser/ --access public"
   },
   "devDependencies": {
     "colors": "^1.3.0",

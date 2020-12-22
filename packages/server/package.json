@@ -1,6 +1,6 @@
 {
   "name": "@mubble/server",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "description": "Server package for Mubble projects",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -44,7 +44,7 @@
     "@google-cloud/bigquery": "^4.7.0",
     "@google-cloud/datastore": "^3.1.2",
     "@google-cloud/storage": "^4.1.3",
-    "@mubble/core": "^0.0.0",
+    "@mubble/core": "^0.0.1",
     "colors": "^1.3.0",
     "gm": "^1.23.1",
     "imagemin": "^7.0.1",
