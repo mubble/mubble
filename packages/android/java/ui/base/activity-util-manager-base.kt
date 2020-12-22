@@ -14,7 +14,9 @@ import com.yalantis.ucrop.UCropActivity
 import core.BaseApp
 import core.MubbleLogger
 import org.jetbrains.anko.find
+import org.json.JSONArray
 import org.json.JSONObject
+import ui.auth.ContactsManager
 import ui.auth.HintRequestManager
 import ui.auth.LoginManager
 import ui.biometric.MuBiometricPrompt
@@ -39,6 +41,7 @@ open class ActivityUtilManagerBase(private val fileAuthority: String) : MubbleLo
   private var hintReqManager      : HintRequestManager?       = null
   private var documentManager     : DocumentManager?          = null
   private var biometricPrompt     : MuBiometricPrompt?        = null
+  private var contactsManager     : ContactsManager?          = null
 
   protected var fetchingResource      : Boolean = false // Flag to check if app has requested work outside its context
   private lateinit var pictureCropCb  : (JSONObject) ->  Unit
@@ -139,6 +142,11 @@ open class ActivityUtilManagerBase(private val fileAuthority: String) : MubbleLo
 
   fun generateFpKeyPair(): String {
     return MuBiometricPrompt.generateKeyPair()
+  }
+
+  fun getContacts(activity: MubbleBaseWebActivity, cb: (JSONArray) -> Unit) {
+    contactsManager = ContactsManager()
+    contactsManager!!.getAllContacts(activity, true, cb)
   }
 
   fun fingerprintScan(activity: MubbleBaseWebActivity, challenge: String,

@@ -14,7 +14,6 @@ import { Acl,
 			 } 											from './smsproviders'
 import { ActiveUserRequest }	from './request'
 import { RunContextServer }		from '../rc-server'
-import { Mubble }							from '@mubble/core'
 
 export interface SendSmsResponse {
 	isIndianNumber           : boolean       // Is the mobile number from India?

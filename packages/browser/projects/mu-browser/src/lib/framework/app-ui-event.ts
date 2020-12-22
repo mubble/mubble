@@ -7,5 +7,5 @@ export const APP_UI_EVENT = {
   MOBILE_BROWSER_CLOSED     : 'mobile-browser-closed',
   CORDOVA_SCREEN_PAUSE      : 'cordova-scr-pause',
   CORDOVA_SCREEN_RESUME     : 'cordova-scr-resume',
-
+  UPDATE_USER_PROFILE_PIC   : 'update-user-pro-pic'
 }

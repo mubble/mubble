@@ -14,8 +14,7 @@ import { SmsErrorCodes,
 import { SmsProviderConfig, 
 				 SendSmsResponse,
 				 SmsTransactionInfo,
-				 Provider,
-				 ProviderConfigs
+				 Provider
 			 }										 from './sms-interfaces'
 import { RunContextServer }  from '../rc-server'
 import { SmsLogger } 				 from './sms-logger'

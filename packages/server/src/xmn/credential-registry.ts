@@ -8,12 +8,13 @@
 ------------------------------------------------------------------------------*/
 
 export interface ServerCredentials {
-  id            : string             // Client / Server identifier
-  syncHash      : string             // Client / Server public key
-  host          : string             // Server host
-  port          : number             // Server port
-  permittedIps  : Array<string>      // Permitted IPs for client
-  unsecured     : boolean
+  id              : string             // Client / Server identifier
+  syncHash        : string             // Client / Server public key
+  host            : string             // Server host
+  port            : number             // Server port
+  permittedIps    : Array<string>      // Permitted IPs for client
+  unsecured       : boolean
+  permittedHosts  : Array<string>      // Permitted IPs for client
 }
 
 export interface CredentialRegistry {

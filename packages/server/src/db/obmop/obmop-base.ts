@@ -45,6 +45,7 @@ export namespace Obmop {
                         unique    : boolean   = false,
                         indexed   : boolean   = false,
                         serial    : boolean   = false,
+                        lob       : boolean   = false,
                         sequence ?: string) {
 
     return function(target : any , propertyKey : string) {
@@ -52,7 +53,7 @@ export namespace Obmop {
             reflectType = Reflect.getMetadata('design:type', target, propertyKey)
 
       ObmopRegistryManager.addField(table, propertyKey, type, reflectType.name,
-                                    unique, indexed, serial, sequence)
+                                    unique, indexed, serial, lob, sequence)
     }
   }
 
@@ -60,13 +61,13 @@ export namespace Obmop {
    *  Annotation to mark a obmop model primary key.
    *  Make sure the table name is same as the name of the class in lower case.
    */
-  export function primaryKey(serial : boolean = false, sequence ?: string) {
+  export function primaryKey(serial : boolean = false, lob : boolean = false, sequence ?: string) {
     return function(target : any , propertyKey : string) {
       const table       = target.constructor.name.toLowerCase(),
             reflectType = Reflect.getMetadata('design:type', target, propertyKey)
 
       ObmopRegistryManager.addField(table, propertyKey, FieldType.PRIMARY, reflectType.name,
-                                    true, true, serial, sequence)
+                                    true, true, serial, lob, sequence)
     }
   }
 }
@@ -157,17 +158,21 @@ export interface ObmopBaseClient {
    * @param offset The offset to start fetching the values from. 
    * @param range Optional range for query retval.
    * @param sort Optional sort for query retval.
+   * @param lobFields Optional CLOB and BLOB fields.
    */
   query(rc : RunContextServer, table : string, fields : Array<string>, query ?: QueryCondition, 
-        limit ?: number, offset ?: number, range ?: QueryRange, sort ?: QuerySort) : Promise<QueryRetval>
+        limit ?: number, offset ?: number, range ?: QueryRange, sort ?: QuerySort,
+        lobFields ?: Array<string>) : Promise<QueryRetval>
 
   /**
    * Returns all entries/row(s) for the given query.
    * @param rc RunContext, used for logging.
    * @param query Native SQL query.
    * @param binds Bind values for the given query.
+   * @param lobFields Optional CLOB and BLOB fields.
    */
-  sql(rc : RunContextServer, query : string, binds : Array<any>) : Promise<Array<Mubble.uObject<any>>>
+  sql(rc : RunContextServer, query : string, binds : Array<any>,
+      lobFields ?: Array<string>) : Promise<Array<Mubble.uObject<any>>>
                
   /**
    * Inserts a new entry (row) in the given table.

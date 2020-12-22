@@ -52,7 +52,8 @@ import { Mubble,
          DISPLAY_MODE,
          InputParams,
          SelectionBoxParams,
-         MuFormParams
+         MuFormParams,
+         ImageParams
        }                                  from '@mubble/core'
 import { MuFormOutputParams, 
          FormOutputValue 
@@ -253,6 +254,14 @@ export class MuFormContainerComponent implements OnChanges {
   /*=====================================================================
                               HTML
   =====================================================================*/
+
+  onPreSuffixClick(event : any, inputParams : InputParams, preSuffixParams : ImageParams) {
+
+    if (preSuffixParams.cb) {
+      preSuffixParams.cb(event, inputParams, this.inputForm.get(inputParams.id))
+    }
+  }
+  
 
   selectedOption(event : MatSelectChange | MatRadioChange, i : number) {
 
@@ -501,7 +510,8 @@ export class MuFormContainerComponent implements OnChanges {
         case DISPLAY_TYPE.CALENDAR_BOX  :
           if (params.value) params.value = new Date(params.value)
 
-          formValidations.push(InputValidator.futureDateValidator)
+          if(!params.validators || !params.validators.allowFutureDate) 
+            formValidations.push(InputValidator.futureDateValidator)
 
           this.inputForm.addControl(params.id, new FormControl(params.value || null, formValidations))
           this.setInputDisabled(params.id,params.isDisabled)

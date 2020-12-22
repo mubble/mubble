@@ -76,7 +76,8 @@ export class ObmopManager {
 		                                            sort      ?: ObmopSort<T>) : Promise<ObmopQueryRetval<T>> {
 
 		const tableName = new entityType(rc).getTableName(),
-					fields    = ObmopRegistryManager.getRegistry(tableName).getFields()
+					fields    = ObmopRegistryManager.getRegistry(tableName).getFields(),
+					lobFields = ObmopRegistryManager.getRegistry(tableName).getLobFields()
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', tableName, query, limit,
 														 offset, range, sort)
@@ -84,7 +85,8 @@ export class ObmopManager {
 		if (query) query.queryStr = this.convertQueryFieldNamesToMappings(rc, query.queryStr, fields)
 		try {
 			const records = await this.client.query(rc, tableName, fields.map((f) => f.mapping), query, limit, offset,
-																								 range as QueryRange, sort as QuerySort)
+																							range as QueryRange, sort as QuerySort,
+																							lobFields.map((f) => f.mapping))
 
 			const entities = records.entities.map((record) => {
 				const entity = new entityType(rc)
@@ -120,14 +122,15 @@ export class ObmopManager {
 																							query 		 : string,
 																							binds 		 : Array<any>) : Promise<Array<T>> {
 
-		const name 	 = new entityType(rc).getTableName(),
-					fields = ObmopRegistryManager.getRegistry(name).getFields()																	
+		const tableName = new entityType(rc).getTableName(),
+					fields 		= ObmopRegistryManager.getRegistry(tableName).getFields(),
+					lobFields = ObmopRegistryManager.getRegistry(tableName).getLobFields()																
 
 		rc.isDebug() && rc.debug(rc.getName(this), 'Fetching data.', query, binds)
 
 		try {
 
-			const rows = await this.client.sql(rc, query, binds)
+			const rows = await this.client.sql(rc, query, binds, lobFields.map((f) => f.mapping))
 
 			const entities = rows.map((row) => {
 				const entity = new entityType(rc)

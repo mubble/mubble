@@ -24,6 +24,7 @@ export type ObmopFieldInfo = {
   unique    : boolean
   indexed   : boolean
   serial    : boolean
+  lob       : boolean
   sequence ?: string
 }
 
@@ -100,6 +101,10 @@ export class ObmopRegistry {
     return this.fields.filter((field : ObmopFieldInfo) => field.type != Obmop.FieldType.OPTIONAL)
   }
 
+  getLobFields() : Array<ObmopFieldInfo> {
+    return this.fields.filter((field : ObmopFieldInfo) => field.lob)
+  }
+
   getFieldInfo(field : string) : ObmopFieldInfo {
     const info = this.fields.find((f : ObmopFieldInfo) => f.mapping === field)
 
@@ -135,6 +140,7 @@ export class ObmopRegistryManager {
                          unique     : boolean,
                          indexed    : boolean,
                          serial     : boolean,
+                         lob        : boolean,
                          sequence  ?: string) {
 
     const registry  : ObmopRegistry  = this.getRegistry(entity),
@@ -146,6 +152,7 @@ export class ObmopRegistryManager {
                                          unique,
                                          indexed,
                                          serial,
+                                         lob,
                                          sequence 
                                        }
 

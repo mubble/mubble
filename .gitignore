@@ -1,5 +1,6 @@
 node_modules
 lib
+!**/mu-browser/src/lib/
 .DS_Store
 .vscode
 vscode-user-settings.json
